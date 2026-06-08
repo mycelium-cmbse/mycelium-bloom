@@ -1,0 +1,39 @@
+﻿@inherits LayoutComponentBase
+
+<div class="min-h-screen bg-slate-50 text-slate-900">
+    <div class="flex min-h-screen">
+        <aside class="w-64 shrink-0 border-r border-slate-200 bg-white">
+            <NavMenu />
+        </aside>
+
+        <main class="flex min-w-0 flex-1 flex-col">
+            <header class="flex h-14 items-center justify-end border-b border-slate-200 bg-white px-4">
+                <a 
+                    href="https://learn.microsoft.com/aspnet/core/" 
+                    target="_blank"
+                    class="text-sm font-medium text-slate-600 hover:text-slate-950">
+                    About
+                </a>
+            </header>
+
+            <article class="flex-1 p-4 sm:p-6 lg:p-8">
+                @Body
+            </article>
+        </main>
+    </div>
+</div>
+
+<div 
+    id="blazor-error-ui" 
+    data-nosnippet
+    class="fixed bottom-0 left-0 right-0 z-50 hidden border-t border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-lg">
+    An unhandled error has occurred.
+
+    <a href="." class="ml-2 font-semibold underline hover:text-red-950">
+        Reload
+    </a>
+
+    <span class="dismiss ml-4 cursor-pointer font-bold">
+        🗙
+    </span>
+</div>
