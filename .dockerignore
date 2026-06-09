@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/node_modules/
+
+.git/
+.vs/
+.idea/
+.vscode/
+
+**/npm-debug.log
+**/pnpm-debug.log
