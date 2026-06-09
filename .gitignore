@@ -63,3 +63,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+#Idea / VS files
+.idea
+.vscode

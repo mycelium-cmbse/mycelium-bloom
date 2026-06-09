@@ -1,5 +1,5 @@
 services:
-  mycelium-bloom:
+  service:
     build:
       context: .
       dockerfile: Dockerfile

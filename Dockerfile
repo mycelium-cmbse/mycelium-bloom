@@ -13,11 +13,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project files first for better Docker cache
-COPY MyCeliumBloom/MyCeliumBloom.csproj ./MyCeliumBloom/
-COPY MyCeliumBloom/package.json ./MyCeliumBloom/
-COPY MyCeliumBloom/pnpm-lock.yaml* ./MyCeliumBloom/
+COPY MyceliumBloom/MyceliumBloom.csproj ./MyceliumBloom/
+COPY MyceliumBloom/package.json ./MyceliumBloom/
+COPY MyceliumBloom/pnpm-lock.yaml* ./MyceliumBloom/
 
-WORKDIR /src/MyCeliumBloom
+WORKDIR /src/MyceliumBloom
 
 # Install Tailwind dependencies
 RUN pnpm config set node-linker hoisted \
@@ -25,16 +25,16 @@ RUN pnpm config set node-linker hoisted \
 
 # Copy the rest of the source code
 WORKDIR /src
-COPY MyCeliumBloom/ ./MyCeliumBloom/
+COPY MyceliumBloom/ ./MyceliumBloom/
 
-WORKDIR /src/MyCeliumBloom
+WORKDIR /src/MyceliumBloom
 
 
 # Build Tailwind into wwwroot/css/app.css
 RUN pnpm run css:build
 
 # Publish the .NET app
-RUN dotnet publish MyCeliumBloom.csproj -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish MyceliumBloom.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 
 # ---------- Runtime stage ----------
@@ -48,4 +48,4 @@ EXPOSE 8080
 
 ENV ASPNETCORE_URLS=http://+:8080
 
-ENTRYPOINT ["dotnet", "MyCeliumBloom.dll"]
+ENTRYPOINT ["dotnet", "MyceliumBloom.dll"]

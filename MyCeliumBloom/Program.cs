@@ -1,4 +1,4 @@
-using Bloom.Components;
+using MyceliumBloom.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

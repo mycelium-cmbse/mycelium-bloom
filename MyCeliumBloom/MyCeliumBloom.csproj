@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <RootNamespace>Bloom</RootNamespace>
+    <AssemblyName>MyceliumBloom</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
