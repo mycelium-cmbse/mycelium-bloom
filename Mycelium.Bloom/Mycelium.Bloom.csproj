@@ -5,7 +5,8 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <AssemblyName>MyceliumBloom</AssemblyName>
+    <AssemblyName>Mycelium.Bloom</AssemblyName>
+    <RootNamespace>Mycelium.Bloom</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
