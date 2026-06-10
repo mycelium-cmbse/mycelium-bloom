@@ -55,3 +55,12 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+#Front End
+node_modules/
+.pnpm-store/
+pnpm-debug.log*
+
+#Idea / VS files
+.idea
+.vscode
