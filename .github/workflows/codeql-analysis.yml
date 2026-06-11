@@ -5,6 +5,11 @@ on:
   pull_request:
   schedule:
     - cron: '0 18 * * 1'
+      
+permissions:
+  actions: read
+  contents: read
+  security-events: write
 
 jobs:
   CodeQL-Build:
@@ -28,7 +33,7 @@ jobs:
   
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       # Override language selection by uncommenting this and choosing your languages
       with:
         languages: csharp
@@ -39,8 +44,29 @@ jobs:
         dotnet-version: '10.0.x'
     - name: Install dependencies
       run: dotnet restore
+      
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: pnpm
+        cache-dependency-path: Mycelium.Bloom/pnpm-lock.yaml
+
+    - name: Install frontend dependencies
+      working-directory: Mycelium.Bloom
+      run: pnpm install --frozen-lockfile
+
+    - name: Build Tailwind CSS
+      working-directory: Mycelium.Bloom
+      run: pnpm run build  
+      
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build Mycelium.Bloom.sln --configuration Release --no-restore
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
