@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mycelium.Bloom", "Mycelium.Bloom\Mycelium.Bloom.csproj", "{74616E76-F18D-47F9-8EF8-EC671DADCC60}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mycelium.Bloom.Tests", "Mycelium.Bloom.Tests\Mycelium.Bloom.Tests.csproj", "{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{74616E76-F18D-47F9-8EF8-EC671DADCC60}.Release|x64.Build.0 = Release|Any CPU
 		{74616E76-F18D-47F9-8EF8-EC671DADCC60}.Release|x86.ActiveCfg = Release|Any CPU
 		{74616E76-F18D-47F9-8EF8-EC671DADCC60}.Release|x86.Build.0 = Release|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Debug|x64.Build.0 = Debug|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Debug|x86.Build.0 = Debug|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Release|x64.ActiveCfg = Release|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Release|x64.Build.0 = Release|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Release|x86.ActiveCfg = Release|Any CPU
+		{F9FC7AA1-5390-4281-B450-9C5B8B6DC8A5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
