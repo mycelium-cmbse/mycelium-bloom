@@ -2,11 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>disable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <AssemblyName>Mycelium.Bloom</AssemblyName>
     <RootNamespace>Mycelium.Bloom</RootNamespace>
+    <LangVersion>14.0</LangVersion>
+    <Company>Starion Group S.A.</Company>
+    <Authors>Sam Gerene, Antoine Théate, Régis André, Tanase-Marius Manafu, Omrane Haj Mohamed</Authors>
+    <Description>Mycelium Bloom web application for collaborative model-based systems engineering with SysML v2 support</Description>
+    <Copyright>Copyright © Starion Group S.A.</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/mycelium-cmbse/mycelium-bloom</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
