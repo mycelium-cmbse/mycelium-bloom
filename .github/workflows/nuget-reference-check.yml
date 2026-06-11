@@ -89,8 +89,7 @@ jobs:
         fi        
         
     - name: Create GitHub Issue if issues found
-      if: github.event_name != 'pull_requuest' && (steps.outdated.outputs.outdated == 'true' 
-      || steps.deprecated.outputs.deprecated == 'true' || steps.vulnerable.outputs.vulnerable == 'true')
+      if: github.event_name != 'pull_requuest' && (steps.outdated.outputs.outdated == 'true' || steps.deprecated.outputs.deprecated == 'true' || steps.vulnerable.outputs.vulnerable == 'true')
       uses: actions/github-script@v8
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
