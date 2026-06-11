@@ -21,7 +21,6 @@ jobs:
       # cover this case because it only relaxes the "require signature" check,
       # not the chain-validation step that NU3012 fires from. Revert this env
       # var once the affected packages are re-signed and re-published.
-      NUGET_CERT_REVOCATION_MODE: offline
     steps:
       - uses: actions/checkout@v6.0.2
         with:
