@@ -20,12 +20,6 @@
         /// <summary>
         /// Renders the <see cref="Error"/> component with the provided HTTP context as a cascading value.
         /// </summary>
-        /// <param name="httpContext">
-        /// The HTTP context to provide to the component.
-        /// </param>
-        /// <returns>
-        /// The rendered <see cref="Error"/> component.
-        /// </returns>
         private IRenderedComponent<Error> RenderErrorComponent(HttpContext httpContext)
         {
             RenderFragment renderFragment = builder =>
@@ -44,8 +38,7 @@
      
             return renderedFragment.FindComponent<Error>();
         }
-
-
+        
         /// <summary>
         /// Verifies that the error page displays the expected default error content.
         /// </summary>

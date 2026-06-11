@@ -13,15 +13,6 @@
     public sealed class NotFoundTests : BunitContext
     {
         /// <summary>
-        /// Disposes the bUnit test context after each test.
-        /// </summary>
-        [TearDown]
-        public void TearDown()
-        {
-            this.Dispose();
-        }
-
-        /// <summary>
         /// Verifies that the not found page displays the expected title and message.
         /// </summary>
         [Test]
@@ -33,6 +24,15 @@
             Assert.That(
                 component.Find("p").TextContent,
                 Is.EqualTo("Sorry, the content you are looking for does not exist."));
+        }
+        
+        /// <summary>
+        /// Disposes the bUnit test context after each test.
+        /// </summary>
+        [TearDown]
+        public void TearDown()
+        {
+            this.Dispose();
         }
     }
 }
