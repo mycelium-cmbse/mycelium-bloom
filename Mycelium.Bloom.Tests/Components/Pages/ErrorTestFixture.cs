@@ -15,7 +15,7 @@
     /// Tests the <see cref="Error"/> page.
     /// </summary>
     [TestFixture]
-    public sealed class ErrorTests : BunitContext
+    public sealed class ErrorTestFixture : BunitContext
     {
         /// <summary>
         /// Renders the <see cref="Error"/> component with the provided HTTP context as a cascading value.
@@ -26,6 +26,7 @@
             {
                 builder.OpenComponent<CascadingValue<HttpContext>>(0);
                 builder.AddAttribute(1, nameof(CascadingValue<HttpContext>.Value), httpContext);
+
                 builder.AddAttribute(2, nameof(CascadingValue<HttpContext>.ChildContent), (RenderFragment)(childBuilder =>
                 {
                     childBuilder.OpenComponent<Error>(3);
@@ -54,11 +55,14 @@
 
             var component = this.RenderErrorComponent(httpContext);
 
-            Assert.That(component.Find("h1").TextContent, Is.EqualTo("Error."));
-            Assert.That(component.Find("h2").TextContent, Is.EqualTo("An error occurred while processing your request."));
-            Assert.That(component.Find("h3").TextContent, Is.EqualTo("Development Mode"));
-            Assert.That(component.Find("code").TextContent, Is.EqualTo("test-request-id"));
-            Assert.That(component.Markup, Does.Contain("The Development environment shouldn't be enabled for deployed applications."));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("h1").TextContent, Is.EqualTo("Error."));
+                Assert.That(component.Find("h2").TextContent, Is.EqualTo("An error occurred while processing your request."));
+                Assert.That(component.Find("h3").TextContent, Is.EqualTo("Development Mode"));
+                Assert.That(component.Find("code").TextContent, Is.EqualTo("test-request-id"));
+                Assert.That(component.Markup, Does.Contain("The Development environment shouldn't be enabled for deployed applications."));
+            }
         }
 
         /// <summary>

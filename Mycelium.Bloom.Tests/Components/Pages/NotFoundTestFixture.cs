@@ -10,7 +10,7 @@
     /// Tests the <see cref="NotFound"/> page.
     /// </summary>
     [TestFixture]
-    public sealed class NotFoundTests : BunitContext
+    public sealed class NotFoundTestFixture : BunitContext
     {
         /// <summary>
         /// Verifies that the not found page displays the expected title and message.
@@ -20,10 +20,13 @@
         {
             var component = this.Render<NotFound>();
 
-            Assert.That(component.Find("h3").TextContent, Is.EqualTo("Not Found"));
-            Assert.That(
-                component.Find("p").TextContent,
-                Is.EqualTo("Sorry, the content you are looking for does not exist."));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("h3").TextContent, Is.EqualTo("Not Found"));
+                Assert.That(
+                    component.Find("p").TextContent,
+                    Is.EqualTo("Sorry, the content you are looking for does not exist."));
+            }
         }
         
         /// <summary>
