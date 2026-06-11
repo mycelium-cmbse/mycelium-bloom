@@ -5,9 +5,13 @@ on:
   pull_request:
   schedule:
     - cron: '0 8 * * *'
-
+      
+permissions:
+  contents: read
+  issues: write
+  
 jobs:
-  build:
+  nuget-package-check:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -85,14 +89,15 @@ jobs:
         fi        
         
     - name: Create GitHub Issue if issues found
-      if: steps.outdated.outputs.outdated == 'true' || steps.deprecated.outputs.deprecated == 'true' || steps.vulnerable.outputs.vulnerable == 'true'
-      uses: actions/github-script@v6
+      if: github.event_name != 'pull_requuest' && (steps.outdated.outputs.outdated == 'true' 
+      || steps.deprecated.outputs.deprecated == 'true' || steps.vulnerable.outputs.vulnerable == 'true')
+      uses: actions/github-script@v8
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
 
-          let issueBody = `### NuGet Package Issues Detected in [SysML2.NET](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY})\n\n`;
+          let issueBody = `### NuGet Package Issues Detected in [Mycelium.Bloom](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY})\n\n`;
 
           if ('${{ steps.outdated.outputs.outdated }}' === 'true') {
             const outdatedLog = fs.readFileSync('outdated-issue.log', 'utf8');
