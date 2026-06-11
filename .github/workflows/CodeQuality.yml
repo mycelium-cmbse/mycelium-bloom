@@ -53,7 +53,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: Mycelium.Bloom
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Build Tailwind CSS
         working-directory: Mycelium.Bloom
