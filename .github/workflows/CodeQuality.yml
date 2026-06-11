@@ -48,13 +48,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
+          cache-dependency-path: Mycelium.Bloom/pnpm-lock.yaml
 
       - name: Install frontend dependencies
+        working-directory: Mycelium.Bloom
         run: pnpm install --frozen-lockfile
 
       - name: Build Tailwind CSS
+        working-directory: Mycelium.Bloom
         run: pnpm run css:build
         
       - name: Sonarqube Begin
