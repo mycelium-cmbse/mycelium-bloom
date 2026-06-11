@@ -63,7 +63,7 @@ jobs:
 
     - name: Build Tailwind CSS
       working-directory: Mycelium.Bloom
-      run: pnpm run build  
+      run: pnpm run css:build  
       
     - name: Build
       run: dotnet build Mycelium.Bloom.sln --configuration Release --no-restore
