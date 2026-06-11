@@ -39,7 +39,24 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore Mycelium.Bloom.sln
+        
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
 
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tailwind CSS
+        run: pnpm run css:build
+        
       - name: Sonarqube Begin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
