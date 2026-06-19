@@ -30,6 +30,7 @@
     <Folder Include="Components\UI\Organisms\" />
     <Folder Include="Components\UI\Shared\" />
     <Folder Include="Components\UI\Templates\" />
+    <Folder Include="wwwroot\css\" />
   </ItemGroup>
 
 </Project>
