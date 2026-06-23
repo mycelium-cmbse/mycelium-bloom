@@ -1,5 +1,8 @@
 ﻿namespace Mycelium.Bloom.Model
 {
+    /// <summary>
+    /// Represents an item displayed inside a tab list.
+    /// </summary>
     public sealed class TabItem
     {
         /// <summary>
