@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
-
-namespace Mycelium.Bloom.Components.UI.Atoms.SectionHeader
+﻿namespace Mycelium.Bloom.Components.UI.Atoms.SectionHeader
 {
+    using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.Components.Common;
 
     /// <summary>

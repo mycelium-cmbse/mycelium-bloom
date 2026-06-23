@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
-
-namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
+﻿namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
 {
+    using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Model;
 

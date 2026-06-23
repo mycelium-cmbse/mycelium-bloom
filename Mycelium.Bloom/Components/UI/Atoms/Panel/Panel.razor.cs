@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
-
-namespace Mycelium.Bloom.Components.UI.Atoms.Panel
+﻿namespace Mycelium.Bloom.Components.UI.Atoms.Panel
 {
+    using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Model;
 

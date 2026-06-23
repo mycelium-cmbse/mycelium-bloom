@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
-
-namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
+﻿namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
 {
+    using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.JSInterop;
 
@@ -182,6 +181,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                     // The circuit is already disconnected, so there is nothing left to clean up on the client.
                 }
             }
+
             GC.SuppressFinalize(this);
         }
     }

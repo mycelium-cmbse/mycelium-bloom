@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
-
-namespace Mycelium.Bloom.Components.UI.Atoms.Button
+﻿namespace Mycelium.Bloom.Components.UI.Atoms.Button
 {
+    using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.Common;

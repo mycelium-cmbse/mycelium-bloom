@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Components;
-
-namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
+﻿namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
 {
+    using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Model;
 
