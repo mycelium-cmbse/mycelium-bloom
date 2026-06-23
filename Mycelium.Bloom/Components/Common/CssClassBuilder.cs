@@ -13,7 +13,7 @@
         /// <param name="cssClass">The CSS class to add.</param>
         /// <param name="condition">A value indicating whether the CSS class should be added.</param>
         /// <returns>The current CSS class builder instance.</returns>
-        public CssClassBuilder Add(string? cssClass, bool condition = true)
+        public CssClassBuilder Add(string cssClass, bool condition = true)
         {
             if (condition && !string.IsNullOrWhiteSpace(cssClass))
             {

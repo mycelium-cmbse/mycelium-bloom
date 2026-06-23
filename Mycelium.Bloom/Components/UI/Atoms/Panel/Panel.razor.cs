@@ -32,20 +32,20 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Panel
         /// Gets or sets additional CSS classes applied to the panel.
         /// </summary>
         [Parameter]
-        public string? Class { get; set; }
+        public string Class { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the content rendered inside the panel.
         /// </summary>
         [Parameter]
         [EditorRequired]
-        public RenderFragment? ChildContent { get; set; }
+        public RenderFragment ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets additional unmatched attributes applied to the panel element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the final CSS class list applied to the panel.

@@ -20,19 +20,19 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
         /// Gets or sets the optional title used for accessibility or tooltip display.
         /// </summary>
         [Parameter]
-        public string? Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the optional custom avatar background color.
         /// </summary>
         [Parameter]
-        public string? BackgroundColor { get; set; }
+        public string BackgroundColor { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the optional custom avatar border color.
         /// </summary>
         [Parameter]
-        public string? BorderColor { get; set; }
+        public string BorderColor { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the avatar size.
@@ -50,18 +50,18 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
         /// Gets or sets additional CSS classes applied to the avatar.
         /// </summary>
         [Parameter]
-        public string? Class { get; set; }
+        public string Class { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets additional unmatched attributes applied to the avatar element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the inline style containing custom avatar CSS variables.
         /// </summary>
-        private string? Style
+        private string Style
         {
             get
             {

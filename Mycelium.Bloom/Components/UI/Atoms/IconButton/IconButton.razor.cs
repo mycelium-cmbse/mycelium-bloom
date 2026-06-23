@@ -28,7 +28,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         /// Gets or sets the optional title used for tooltip display.
         /// </summary>
         [Parameter]
-        public string? Title { get; set; }
+        public string Title { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets a value indicating whether the icon button is disabled.
@@ -40,14 +40,14 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         /// Gets or sets additional CSS classes applied to the icon button.
         /// </summary>
         [Parameter]
-        public string? Class { get; set; }
+        public string Class { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the icon content rendered inside the button.
         /// </summary>
         [Parameter]
         [EditorRequired]
-        public RenderFragment? ChildContent { get; set; }
+        public RenderFragment ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets the callback invoked when the icon button is clicked.
@@ -59,7 +59,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         /// Gets or sets additional unmatched attributes applied to the button element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the final CSS class list applied to the icon button.

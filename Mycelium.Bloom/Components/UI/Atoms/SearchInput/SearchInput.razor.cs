@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// <summary>
         /// The JavaScript module used to manage the search shortcut.
         /// </summary>
-        private IJSObjectReference? module;
+        private IJSObjectReference module;
 
         /// <summary>
         /// Gets or sets the identifier of the search input element.
@@ -80,13 +80,13 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// Gets or sets additional CSS classes applied to the search input wrapper.
         /// </summary>
         [Parameter]
-        public string? Class { get; set; }
+        public string Class { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets optional content rendered before the search input.
         /// </summary>
         [Parameter]
-        public RenderFragment? StartIcon { get; set; }
+        public RenderFragment StartIcon { get; set; }
 
         /// <summary>
         /// Gets or sets the callback invoked when a key is pressed while the search input is focused.
@@ -98,7 +98,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// Gets or sets additional unmatched attributes applied to the search input element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the effective identifier of the search input element.
@@ -136,7 +136,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                     "import",
                     "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
 
-                await this.module.InvokeVoidAsync("registerSearchShortcut", this.InputId);
+                await this.module!.InvokeVoidAsync("registerSearchShortcut", this.InputId);
             }
         }
 
@@ -182,6 +182,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                     // The circuit is already disconnected, so there is nothing left to clean up on the client.
                 }
             }
+            GC.SuppressFinalize(this);
         }
     }
 }

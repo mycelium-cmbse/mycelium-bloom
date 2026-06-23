@@ -20,32 +20,32 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Chip
         /// Gets or sets the optional custom color used by the chip.
         /// </summary>
         [Parameter]
-        public string? Color { get; set; }
+        public string Color { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets additional CSS classes applied to the chip.
         /// </summary>
         [Parameter]
-        public string? Class { get; set; }
+        public string Class { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the content rendered inside the chip.
         /// </summary>
         [Parameter]
-        public RenderFragment? ChildContent { get; set; }
+        public RenderFragment ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets additional unmatched attributes applied to the chip element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the inline style containing the optional custom chip color.
         /// </summary>
-        private string? Style => !string.IsNullOrWhiteSpace(this.Color)
+        private string Style => !string.IsNullOrWhiteSpace(this.Color)
             ? $"--mb-chip-color: {this.Color};"
-            : null;
+            : string.Empty;
 
         /// <summary>
         /// Gets the final CSS class list applied to the chip.

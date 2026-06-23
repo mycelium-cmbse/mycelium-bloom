@@ -52,25 +52,25 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
         /// Gets or sets additional CSS classes applied to the button.
         /// </summary>
         [Parameter]
-        public string? Class { get; set; }
+        public string Class { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets optional content rendered before the button content.
         /// </summary>
         [Parameter]
-        public RenderFragment? StartIcon { get; set; }
+        public RenderFragment StartIcon { get; set; }
 
         /// <summary>
         /// Gets or sets optional content rendered after the button content.
         /// </summary>
         [Parameter]
-        public RenderFragment? EndIcon { get; set; }
+        public RenderFragment EndIcon { get; set; }
 
         /// <summary>
         /// Gets or sets the main content rendered inside the button.
         /// </summary>
         [Parameter]
-        public RenderFragment? ChildContent { get; set; }
+        public RenderFragment ChildContent { get; set; }
 
         /// <summary>
         /// Gets or sets the callback invoked when the button is clicked.
@@ -82,7 +82,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
         /// Gets or sets additional unmatched attributes applied to the button element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets a value indicating whether the button should be rendered as disabled.
