@@ -1,5 +1,7 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
 {
+    using System.Threading.Tasks;
+
     using Bunit;
 
     using Microsoft.AspNetCore.Components.Web;
@@ -109,6 +111,32 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
             component.Find("input").KeyDown(new KeyboardEventArgs { Key = "Enter" });
 
             Assert.That(capturedKey, Is.EqualTo("Enter"));
+        }
+
+        /// <summary>
+        /// Verifies that the search shortcut is registered and disposed through JavaScript interop.
+        /// </summary>
+        [Test]
+        public async Task Render_EnableShortcutRegistersAndDisposesShortcut()
+        {
+            var module = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+            var registerHandler = module.SetupVoid("registerSearchShortcut", "search-box");
+            var disposeHandler = module.SetupVoid("disposeSearchShortcut");
+
+            registerHandler.SetVoidResult();
+            disposeHandler.SetVoidResult();
+
+            var component = this.Render<SearchInputComponent>(parameters => parameters
+                .Add(component => component.Id, "search-box")
+                .Add(component => component.EnableShortcut, true));
+
+            await component.Instance.DisposeAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(registerHandler.Invocations.Count, Is.EqualTo(1));
+                Assert.That(disposeHandler.Invocations.Count, Is.EqualTo(1));
+            }
         }
     }
 }

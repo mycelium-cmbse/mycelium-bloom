@@ -7,7 +7,7 @@
             type="button"
             class="@(this.GetTabClass(item))"
             role="tab"
-            aria-selected="@isActive"
+            aria-selected="@(isActive ? "true" : "false")"
             disabled="@item.Disabled"
             @onclick="() => this.SelectTabAsync(item)">
             @item.Label
