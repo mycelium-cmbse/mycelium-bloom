@@ -1,0 +1,29 @@
+﻿<button
+    type="@(this.Type)"
+    class="@(this.CssClass)"
+    disabled="@(this.IsDisabled)"
+    @onclick="this.OnClick"
+    @attributes="this.AdditionalAttributes">
+
+    @if (this.IsLoading)
+    {
+        <span class="mb-button__spinner" aria-hidden="true"></span>
+    }
+    else if (this.StartIcon is not null)
+    {
+        <span class="mb-button__icon">
+            @(this.StartIcon)
+        </span>
+    }
+
+    <span class="mb-button__content">
+        @(this.ChildContent)
+    </span>
+
+    @if (!this.IsLoading && this.EndIcon is not null)
+    {
+        <span class="mb-button__icon">
+            @(this.EndIcon)
+        </span>
+    }
+</button>

@@ -26,7 +26,7 @@ namespace Mycelium.Bloom
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
-                app.UseExceptionHandler("/Error", createScopeForErrors: true);
+                app.UseExceptionHandler("/Error", true);
                 app.UseHsts();
             }
 
@@ -36,6 +36,7 @@ namespace Mycelium.Bloom
             app.UseAntiforgery();
 
             app.MapStaticAssets();
+
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 

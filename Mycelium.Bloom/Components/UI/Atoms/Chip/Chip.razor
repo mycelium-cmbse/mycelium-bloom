@@ -1,0 +1,8 @@
+﻿<span class="@(this.CssClass)" style="@(this.Style)" @attributes="this.AdditionalAttributes">
+    @if (!string.IsNullOrWhiteSpace(this.Color))
+    {
+        <span class="mb-chip__dot"></span>
+    }
+
+    @(this.ChildContent)
+</span>

@@ -248,4 +248,22 @@
     --mb-color-sysml-metadata-header: #6b7280;
     --mb-color-sysml-metadata-surface: #f9fafb;
     --mb-color-sysml-metadata-border: #d1d5db;
+
+    /* Component-specific values from Figma components */
+    --mb-color-component-text: #293342;
+    --mb-color-component-icon: #738294;
+    --mb-color-component-border: #e3e8ed;
+    --mb-color-component-border-strong: #d1d6db;
+    --mb-color-component-soft: #f5f7fa;
+    --mb-color-component-footer: #fafafc;
+
+    --mb-color-brand-action: #0f9e8c;
+    --mb-color-brand-action-hover: #0d9488;
+
+    --mb-control-height-xs: 28px;
+    --mb-control-height-sm: 34px;
+    --mb-control-height-md: 40px;
+
+    --mb-radius-control: 6px;
 }
+

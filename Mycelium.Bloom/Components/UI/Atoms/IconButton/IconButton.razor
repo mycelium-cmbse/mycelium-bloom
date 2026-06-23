@@ -1,0 +1,11 @@
+﻿<button
+    type="@(this.Type)"
+    class="@(this.CssClass)"
+    disabled="@(this.Disabled)"
+    aria-label="@(this.AriaLabel)"
+    title="@(this.Title)"
+    @onclick="this.OnClick"
+    @attributes="this.AdditionalAttributes">
+
+    @(this.ChildContent)
+</button>
