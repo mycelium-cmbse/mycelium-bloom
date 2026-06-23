@@ -134,8 +134,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(registerHandler.Invocations.Count, Is.EqualTo(1));
-                Assert.That(disposeHandler.Invocations.Count, Is.EqualTo(1));
+                Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(disposeHandler.Invocations, Has.Count.EqualTo(1));
             }
         }
     }

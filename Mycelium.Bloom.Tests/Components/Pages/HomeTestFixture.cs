@@ -42,7 +42,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Find("h1").TextContent.Trim(), Is.EqualTo("Welcome To Mycelium Bloom"));
                 Assert.That(component.Find("input").GetAttribute("id"), Is.EqualTo("global-search"));
                 Assert.That(component.Markup, Does.Contain("Search value: model"));
-                Assert.That(registerHandler.Invocations.Count, Is.EqualTo(1));
+                Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
             }
         }
     }

@@ -28,10 +28,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         [Test]
         public void Render_DisplaysMainLayoutContent()
         {
-            RenderFragment body = builder =>
-            {
-                builder.AddContent(0, "Workspace content");
-            };
+            RenderFragment body = builder => { builder.AddContent(0, "Workspace content"); };
 
             var component = this.Render<MainLayout>(parameters => parameters
                 .Add(component => component.Body, body));
