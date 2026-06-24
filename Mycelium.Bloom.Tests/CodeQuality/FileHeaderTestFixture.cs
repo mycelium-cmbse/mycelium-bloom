@@ -69,24 +69,16 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         {
             if (fileName.EndsWith(".razor", StringComparison.OrdinalIgnoreCase))
             {
-                var razorHeaderStart = fileName.Equals("_Imports.razor", StringComparison.OrdinalIgnoreCase)
-                    ? "@* ------------------------------------------------------------------------------------------------"
-                    : "<!-- ------------------------------------------------------------------------------------------------";
-
-                var razorHeaderEnd = fileName.Equals("_Imports.razor", StringComparison.OrdinalIgnoreCase)
-                    ? "------------------------------------------------------------------------------------------------ *@"
-                    : "------------------------------------------------------------------------------------------------ -->";
-
                 return string.Join(
                     Environment.NewLine,
-                    razorHeaderStart,
+                    "@* ------------------------------------------------------------------------------------------------",
                     $"<copyright file=\"{fileName}\" company=\"Starion Group S.A.\">",
                     string.Empty,
                     "  Copyright 2026 Starion Group S.A.",
                     "  SPDX-License-Identifier: Apache-2.0",
                     string.Empty,
                     "</copyright>",
-                    razorHeaderEnd,
+                    "------------------------------------------------------------------------------------------------ *@",
                     string.Empty,
                     string.Empty);
             }
