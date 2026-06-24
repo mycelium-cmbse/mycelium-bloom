@@ -9,7 +9,7 @@
     /// <summary>
     /// Represents a reusable search input component with optional shortcut and icon support.
     /// </summary>
-    public partial class SearchInput : ComponentBase, IDisposable, IAsyncDisposable
+    public sealed partial class SearchInput : ComponentBase, IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The generated fallback identifier of the search input element.
@@ -193,18 +193,27 @@
         }
 
         /// <summary>
-        /// Disposes the search input component.
+        /// Releases synchronous resources used by the search input component.
         /// </summary>
         public void Dispose()
         {
-            GC.SuppressFinalize(this);
+            // The component owns no synchronous resources. JavaScript cleanup is handled by DisposeAsync.
+        }
+
+        /// <summary>
+        /// Releases asynchronous resources used by the search input component.
+        /// </summary>
+        /// <returns>A value task representing the asynchronous dispose operation.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            await this.DisposeAsyncCore();
         }
 
         /// <summary>
         /// Asynchronously disposes the JavaScript shortcut registration.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
-        public async ValueTask DisposeAsync()
+        private async ValueTask DisposeAsyncCore()
         {
             if (this.module is not null)
             {
@@ -220,8 +229,6 @@
                     // The circuit is already disconnected, so there is nothing left to clean up on the client.
                 }
             }
-
-            GC.SuppressFinalize(this);
         }
     }
 }
