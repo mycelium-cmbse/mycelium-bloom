@@ -9,7 +9,7 @@
     /// <summary>
     /// Represents a reusable search input component with optional shortcut and icon support.
     /// </summary>
-    public partial class SearchInput : ComponentBase, IAsyncDisposable
+    public partial class SearchInput : ComponentBase, IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The generated fallback identifier of the search input element.
@@ -50,6 +50,30 @@
         /// </summary>
         [Parameter]
         public string ShortcutText { get; set; } = "Ctrl K";
+
+        /// <summary>
+        /// Gets or sets the keyboard key used for the search shortcut.
+        /// </summary>
+        [Parameter]
+        public string ShortcutKey { get; set; } = "k";
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the shortcut requires Control or Command.
+        /// </summary>
+        [Parameter]
+        public bool ShortcutRequiresControlOrMeta { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the shortcut requires Alt.
+        /// </summary>
+        [Parameter]
+        public bool ShortcutRequiresAlt { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the shortcut requires Shift.
+        /// </summary>
+        [Parameter]
+        public bool ShortcutRequiresShift { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the shortcut text should be displayed.
@@ -109,19 +133,12 @@
         /// <summary>
         /// Gets the final CSS class list applied to the search input wrapper.
         /// </summary>
-        private string CssClass
-        {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-search-input",
-                    CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
-                    CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
-                    this.Class);
-
-                return cssClass;
-            }
-        }
+        private string CssClass =>
+            CssClassBuilder.Build(
+                "mb-search-input",
+                CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
+                CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
+                this.Class);
 
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -130,11 +147,24 @@
 
             if (firstRender && this.EnableShortcut)
             {
+                var shortcutKey = string.IsNullOrWhiteSpace(this.ShortcutKey)
+                    ? "k"
+                    : this.ShortcutKey;
+
                 this.module = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
                     "import",
                     "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
 
-                await this.module!.InvokeVoidAsync("registerSearchShortcut", this.InputId);
+                await this.module.InvokeVoidAsync(
+                    "registerSearchShortcut",
+                    this.InputId,
+                    new
+                    {
+                        key = shortcutKey,
+                        requiresControlOrMeta = this.ShortcutRequiresControlOrMeta,
+                        requiresAlt = this.ShortcutRequiresAlt,
+                        requiresShift = this.ShortcutRequiresShift
+                    });
             }
         }
 
@@ -163,7 +193,15 @@
         }
 
         /// <summary>
-        /// Disposes the JavaScript shortcut registration.
+        /// Disposes the search input component.
+        /// </summary>
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Asynchronously disposes the JavaScript shortcut registration.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
         public async ValueTask DisposeAsync()
@@ -174,6 +212,8 @@
                 {
                     await this.module.InvokeVoidAsync("disposeSearchShortcut");
                     await this.module.DisposeAsync();
+
+                    this.module = null;
                 }
                 catch (JSDisconnectedException)
                 {
