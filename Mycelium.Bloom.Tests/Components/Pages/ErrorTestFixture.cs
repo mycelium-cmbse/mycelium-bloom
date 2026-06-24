@@ -9,37 +9,21 @@
 
     using Mycelium.Bloom.Components.Pages;
 
-    using NUnit.Framework;
-
     /// <summary>
-    /// Tests the <see cref="Error"/> page.
+    /// Tests the <see cref="Error" /> page.
     /// </summary>
     [TestFixture]
     public sealed class ErrorTestFixture : BunitContext
     {
         /// <summary>
-        /// Renders the <see cref="Error"/> component with the provided HTTP context as a cascading value.
+        /// Disposes the bUnit test context after each test.
         /// </summary>
-        private IRenderedComponent<Error> RenderErrorComponent(HttpContext httpContext)
+        [TearDown]
+        public void TearDown()
         {
-            RenderFragment renderFragment = builder =>
-            {
-                builder.OpenComponent<CascadingValue<HttpContext>>(0);
-                builder.AddAttribute(1, nameof(CascadingValue<HttpContext>.Value), httpContext);
-
-                builder.AddAttribute(2, nameof(CascadingValue<HttpContext>.ChildContent), (RenderFragment)(childBuilder =>
-                {
-                    childBuilder.OpenComponent<Error>(3);
-                    childBuilder.CloseComponent();
-                }));
-                builder.CloseComponent();
-            };
-     
-            var renderedFragment = this.Render(renderFragment);
-     
-            return renderedFragment.FindComponent<Error>();
+            this.Dispose();
         }
-        
+
         /// <summary>
         /// Verifies that the error page displays the expected default error content.
         /// </summary>
@@ -66,12 +50,27 @@
         }
 
         /// <summary>
-        /// Disposes the bUnit test context after each test.
+        /// Renders the <see cref="Error" /> component with the provided HTTP context as a cascading value.
         /// </summary>
-        [TearDown]
-        public void TearDown()
+        private IRenderedComponent<Error> RenderErrorComponent(HttpContext httpContext)
         {
-            this.Dispose();
+            RenderFragment renderFragment = builder =>
+            {
+                builder.OpenComponent<CascadingValue<HttpContext>>(0);
+                builder.AddAttribute(1, nameof(CascadingValue<HttpContext>.Value), httpContext);
+
+                builder.AddAttribute(2, nameof(CascadingValue<HttpContext>.ChildContent), (RenderFragment)(childBuilder =>
+                {
+                    childBuilder.OpenComponent<Error>(3);
+                    childBuilder.CloseComponent();
+                }));
+
+                builder.CloseComponent();
+            };
+
+            var renderedFragment = this.Render(renderFragment);
+
+            return renderedFragment.FindComponent<Error>();
         }
     }
 }

@@ -1,0 +1,16 @@
+﻿<div class="@(this.GetCssClass())" role="tablist" @attributes="this.AdditionalAttributes">
+    @foreach (var item in this.Items)
+    {
+        var isActive = this.IsActive(item);
+
+        <button
+            type="button"
+            class="@(this.GetTabClass(item))"
+            role="tab"
+            aria-selected="@(isActive ? "true" : "false")"
+            disabled="@item.Disabled"
+            @onclick="() => this.SelectTabAsync(item)">
+            @item.Label
+        </button>
+    }
+</div>

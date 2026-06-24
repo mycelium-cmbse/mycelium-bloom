@@ -1,0 +1,43 @@
+﻿@inject IJSRuntime JsRuntime
+<label class="@(this.GetCssClass())">
+    <span class="mb-search-input__icon" aria-hidden="true">
+        @if (this.StartIcon is not null)
+        {
+            @(this.StartIcon)
+        }
+        else
+        {
+            <svg viewBox="0 0 16 16" fill="none">
+                <path
+                    d="M7.25 12.5C10.1495 12.5 12.5 10.1495 12.5 7.25C12.5 4.35051 10.1495 2 7.25 2C4.35051 2 2 4.35051 2 7.25C2 10.1495 4.35051 12.5 7.25 12.5Z"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"/>
+                <path d="M11 11L14 14"
+                      stroke="currentColor"
+                      stroke-width="1.4"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+            </svg>
+        }
+    </span>
+
+    <input
+        @attributes="this.AdditionalAttributes"
+        id="@(this.GetInputId())"
+        class="mb-search-input__field"
+        type="search"
+        value="@(this.Value)"
+        placeholder="@(this.Placeholder)"
+        disabled="@(this.Disabled)"
+        @oninput="this.HandleInputAsync"
+        @onkeydown="this.HandleKeyDownAsync"/>
+
+    @if (this.ShowShortcut && !string.IsNullOrWhiteSpace(this.ShortcutText))
+    {
+        <kbd class="mb-search-input__shortcut">
+            @(this.ShortcutText)
+        </kbd>
+    }
+</label>

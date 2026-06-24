@@ -1,0 +1,12 @@
+﻿<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <span class="mb-section-header__label">
+        @(this.Label)
+    </span>
+
+    @if (this.Actions != null)
+    {
+        <div class="mb-section-header__actions">
+            @(this.Actions)
+        </div>
+    }
+</div>

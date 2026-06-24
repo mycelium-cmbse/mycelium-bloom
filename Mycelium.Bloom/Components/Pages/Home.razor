@@ -1,7 +1,79 @@
 ﻿@page "/"
 
-<PageTitle>MyCelium - Bloom</PageTitle>
+<PageTitle>Mycelium - Bloom</PageTitle>
+<div class="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-(--mb-color-background)">
+    <h1 class="mb-text-display-lg text-(--mb-color-text-primary)">
+        Welcome To Mycelium Bloom
+    </h1>
 
-<div class="w-full flex flex-col justify-center items-center h-full">
-    <h1>Welcome To MyCelium Boom</h1>
+    <div class="flex flex-wrap items-center justify-center gap-3">
+        <Button Variant="ButtonVariant.Primary">
+            Save changes
+        </Button>
+
+        <Button Variant="ButtonVariant.Secondary">
+            Cancel
+        </Button>
+
+        <Button Variant="ButtonVariant.Danger" Disabled="true">
+            Delete
+        </Button>
+
+        <IconButton AriaLabel="Open notifications" Title="Notifications">
+            <span>🔔</span>
+        </IconButton>
+    </div>
+
+    <div class="w-full max-w-sm">
+        <Button Variant="ButtonVariant.Primary" FullWidth="true">
+            Continue
+        </Button>
+    </div>
+    <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">
+        AOCS
+    </Chip>
+    <div class="flex items-center gap-3">
+        <Avatar Text="RA" Title="Rami Ahmed"/>
+
+        <Avatar
+            Text="JK"
+            Size="AvatarSize.Small"
+            BackgroundColor="var(--mb-color-brand-700)"
+            BorderColor="#2B66C9"
+            Title="John Keller"/>
+
+        <Avatar
+            Text="+2"
+            Size="AvatarSize.Small"
+            Variant="AvatarVariant.More"
+            Title="2 more users"/>
+        <div class="w-full max-w-xs">
+            <SearchInput @bind-Value="this.SearchText" FullWidth="true"
+                         Id="global-search"
+                         EnableShortcut="true"/>
+        </div>
+
+        <p class="mb-text-body-sm text-(--mb-color-text-secondary)">
+            Search value: @(this.SearchText)
+        </p>
+
+    </div>
+
+    <Panel Class="w-full max-w-md" Padding="PanelPadding.Medium">
+        <h2 class="mb-text-heading-xs text-(--mb-color-text-primary)">
+            Project workspace
+        </h2>
+
+        <p class="mb-text-body-sm text-(--mb-color-text-secondary)">
+            This panel now matches the reusable white bordered surfaces from the Figma.
+        </p>
+    </Panel>
 </div>
+
+
+
+@code {
+
+    private string SearchText { get; set; } = string.Empty;
+
+}
