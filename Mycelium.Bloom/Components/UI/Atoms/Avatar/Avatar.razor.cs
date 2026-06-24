@@ -92,12 +92,11 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-avatar")
-                    .Add(this.GetSizeClass())
-                    .Add(this.GetVariantClass())
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-avatar",
+                    this.GetSizeClass(),
+                    this.GetVariantClass(),
+                    this.Class);
 
                 return cssClass;
             }

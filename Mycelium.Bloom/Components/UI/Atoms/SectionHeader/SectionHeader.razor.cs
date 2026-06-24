@@ -37,10 +37,9 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-section-header")
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-section-header",
+                    this.Class);
 
                 return cssClass;
             }

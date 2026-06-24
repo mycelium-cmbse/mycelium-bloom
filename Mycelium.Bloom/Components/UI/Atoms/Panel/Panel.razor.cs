@@ -54,13 +54,12 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-panel")
-                    .Add(this.GetPaddingClass())
-                    .Add("mb-panel--full-height", this.FullHeight)
-                    .Add("mb-panel--overflow-hidden", this.OverflowHidden)
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-panel",
+                    this.GetPaddingClass(),
+                    CssClassBuilder.When("mb-panel--full-height", this.FullHeight),
+                    CssClassBuilder.When("mb-panel--overflow-hidden", this.OverflowHidden),
+                    this.Class);
 
                 return cssClass;
             }

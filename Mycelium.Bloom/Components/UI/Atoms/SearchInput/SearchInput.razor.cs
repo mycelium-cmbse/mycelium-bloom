@@ -113,12 +113,11 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-search-input")
-                    .Add("mb-search-input--full-width", this.FullWidth)
-                    .Add("mb-search-input--disabled", this.Disabled)
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-search-input",
+                    CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
+                    CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
+                    this.Class);
 
                 return cssClass;
             }

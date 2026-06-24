@@ -54,12 +54,12 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-chip")
-                    .Add(this.GetVariantClass())
-                    .Add("mb-chip--custom-color", !string.IsNullOrWhiteSpace(this.Color))
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-chip",
+                    this.GetVariantClass(),
+                    CssClassBuilder.When("mb-chip--custom-color",
+                        !string.IsNullOrWhiteSpace(this.Color)),
+                    this.Class);
 
                 return cssClass;
             }

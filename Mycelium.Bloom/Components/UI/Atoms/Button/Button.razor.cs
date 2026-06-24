@@ -95,14 +95,13 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-button")
-                    .Add(this.GetVariantClass())
-                    .Add(this.GetSizeClass())
-                    .Add("mb-button--full-width", this.FullWidth)
-                    .Add("mb-button--disabled", this.IsDisabled)
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-button",
+                    this.GetVariantClass(),
+                    this.GetSizeClass(),
+                    CssClassBuilder.When("mb-button--full-width", this.FullWidth),
+                    CssClassBuilder.When("mb-button--disabled", this.IsDisabled),
+                    this.Class);
 
                 return cssClass;
             }

@@ -1,37 +1,36 @@
 ﻿namespace Mycelium.Bloom.Components.Common
 {
     /// <summary>
-    /// Builds a CSS class string by conditionally adding class names.
+    /// Provides helper methods to build CSS class strings.
     /// </summary>
-    public class CssClassBuilder
+    public static class CssClassBuilder
     {
-        private readonly List<string> classes = [];
-
         /// <summary>
-        /// Adds a CSS class when the provided condition is true and the class is not empty.
+        /// Builds a CSS class string from the provided class names.
         /// </summary>
-        /// <param name="cssClass">The CSS class to add.</param>
-        /// <param name="condition">A value indicating whether the CSS class should be added.</param>
-        /// <returns>The current CSS class builder instance.</returns>
-        public CssClassBuilder Add(string cssClass, bool condition = true)
+        /// <param name="cssClasses">The CSS classes to combine.</param>
+        /// <returns>The CSS classes separated by spaces.</returns>
+        public static string Build(params string[] cssClasses)
         {
-            if (condition && !string.IsNullOrWhiteSpace(cssClass))
-            {
-                this.classes.Add(cssClass);
-            }
+            var validCssClasses = cssClasses
+                .Where(cssClass => !string.IsNullOrWhiteSpace(cssClass));
 
-            return this;
+            var cssClass = string.Join(" ", validCssClasses);
+
+            return cssClass;
         }
 
         /// <summary>
-        /// Builds the final CSS class string.
+        /// Returns the CSS class when the provided condition is true.
         /// </summary>
-        /// <returns>The CSS classes separated by spaces.</returns>
-        public override string ToString()
+        /// <param name="cssClass">The CSS class to return.</param>
+        /// <param name="condition">A value indicating whether the CSS class should be returned.</param>
+        /// <returns>The CSS class when the condition is true; otherwise, an empty string.</returns>
+        public static string When(string cssClass, bool condition)
         {
-            var cssClass = string.Join(" ", this.classes);
+            var resolvedCssClass = condition ? cssClass : string.Empty;
 
-            return cssClass;
+            return resolvedCssClass;
         }
     }
 }

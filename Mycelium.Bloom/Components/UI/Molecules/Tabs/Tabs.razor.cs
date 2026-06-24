@@ -50,11 +50,10 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-tabs")
-                    .Add("mb-tabs--full-width", this.FullWidth)
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-tabs",
+                    CssClassBuilder.When("mb-tabs--full-width", this.FullWidth),
+                    this.Class);
 
                 return cssClass;
             }
@@ -79,11 +78,10 @@
         /// <returns>The tab item CSS class.</returns>
         private string GetTabClass(TabItem item)
         {
-            var cssClass = new CssClassBuilder()
-                .Add("mb-tabs__item")
-                .Add("mb-tabs__item--active", this.IsActive(item))
-                .Add("mb-tabs__item--disabled", item.Disabled)
-                .ToString();
+            var cssClass = CssClassBuilder.Build(
+                "mb-tabs__item",
+                CssClassBuilder.When("mb-tabs__item--active", this.IsActive(item)),
+                CssClassBuilder.When("mb-tabs__item--disabled", item.Disabled));
 
             return cssClass;
         }

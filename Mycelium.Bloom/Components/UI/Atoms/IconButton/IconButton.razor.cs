@@ -67,10 +67,9 @@
         {
             get
             {
-                var cssClass = new CssClassBuilder()
-                    .Add("mb-icon-button")
-                    .Add(this.Class)
-                    .ToString();
+                var cssClass = CssClassBuilder.Build(
+                    "mb-icon-button",
+                    this.Class);
 
                 return cssClass;
             }
