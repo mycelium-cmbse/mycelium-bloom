@@ -36,9 +36,13 @@
         /// <summary>
         /// Gets the final CSS class list applied to the section header.
         /// </summary>
-        private string CssClass =>
-            CssClassBuilder.Build(
+        private string GetCssClass()
+        {
+            var cssClass = CssClassBuilder.Build(
                 "mb-section-header",
                 this.Class);
+
+            return cssClass;
+        }
     }
 }

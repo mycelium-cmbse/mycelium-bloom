@@ -1,4 +1,5 @@
-﻿<span class="@(this.CssClass)" style="@(this.Style)" title="@(this.Title)" @attributes="this.AdditionalAttributes">
+﻿<span class="@(this.GetCssClass())" style="@(this.GetStyle())" title="@(this.Title)"
+      @attributes="this.AdditionalAttributes">
     <span class="mb-avatar__text">
         @(this.Text)
     </span>

@@ -50,19 +50,16 @@
         /// <summary>
         /// Gets the final CSS class list applied to the panel.
         /// </summary>
-        private string CssClass
+        private string GetCssClass()
         {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-panel",
-                    this.GetPaddingClass(),
-                    CssClassBuilder.When("mb-panel--full-height", this.FullHeight),
-                    CssClassBuilder.When("mb-panel--overflow-hidden", this.OverflowHidden),
-                    this.Class);
+            var cssClass = CssClassBuilder.Build(
+                "mb-panel",
+                this.GetPaddingClass(),
+                CssClassBuilder.When("mb-panel--full-height", this.FullHeight),
+                CssClassBuilder.When("mb-panel--overflow-hidden", this.OverflowHidden),
+                this.Class);
 
-                return cssClass;
-            }
+            return cssClass;
         }
 
         /// <summary>

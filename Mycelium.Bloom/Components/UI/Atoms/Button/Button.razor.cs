@@ -86,25 +86,27 @@
         /// <summary>
         /// Gets a value indicating whether the button should be rendered as disabled.
         /// </summary>
-        private bool IsDisabled => this.Disabled || this.IsLoading;
+        private bool IsDisabled()
+        {
+            var isDisabled = this.Disabled || this.IsLoading;
+
+            return isDisabled;
+        }
 
         /// <summary>
         /// Gets the final CSS class list applied to the button.
         /// </summary>
-        private string CssClass
+        private string GetCssClass()
         {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-button",
-                    this.GetVariantClass(),
-                    this.GetSizeClass(),
-                    CssClassBuilder.When("mb-button--full-width", this.FullWidth),
-                    CssClassBuilder.When("mb-button--disabled", this.IsDisabled),
-                    this.Class);
+            var cssClass = CssClassBuilder.Build(
+                "mb-button",
+                this.GetVariantClass(),
+                this.GetSizeClass(),
+                CssClassBuilder.When("mb-button--full-width", this.FullWidth),
+                CssClassBuilder.When("mb-button--disabled", this.IsDisabled()),
+                this.Class);
 
-                return cssClass;
-            }
+            return cssClass;
         }
 
         /// <summary>

@@ -43,26 +43,28 @@
         /// <summary>
         /// Gets the inline style containing the optional custom chip color.
         /// </summary>
-        private string Style => !string.IsNullOrWhiteSpace(this.Color)
-            ? $"--mb-chip-color: {this.Color};"
-            : string.Empty;
+        private string GetStyle()
+        {
+            var style = !string.IsNullOrWhiteSpace(this.Color)
+                ? $"--mb-chip-color: {this.Color};"
+                : string.Empty;
+
+            return style;
+        }
 
         /// <summary>
         /// Gets the final CSS class list applied to the chip.
         /// </summary>
-        private string CssClass
+        private string GetCssClass()
         {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-chip",
-                    this.GetVariantClass(),
-                    CssClassBuilder.When("mb-chip--custom-color",
-                        !string.IsNullOrWhiteSpace(this.Color)),
-                    this.Class);
+            var cssClass = CssClassBuilder.Build(
+                "mb-chip",
+                this.GetVariantClass(),
+                CssClassBuilder.When("mb-chip--custom-color",
+                    !string.IsNullOrWhiteSpace(this.Color)),
+                this.Class);
 
-                return cssClass;
-            }
+            return cssClass;
         }
 
         /// <summary>

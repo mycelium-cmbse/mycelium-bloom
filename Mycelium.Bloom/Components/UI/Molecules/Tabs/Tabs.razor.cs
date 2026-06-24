@@ -49,11 +49,15 @@
         /// <summary>
         /// Gets the final CSS class list applied to the tabs.
         /// </summary>
-        private string CssClass =>
-            CssClassBuilder.Build(
+        private string GetCssClass()
+        {
+            var cssClass = CssClassBuilder.Build(
                 "mb-tabs",
                 CssClassBuilder.When("mb-tabs--full-width", this.FullWidth),
                 this.Class);
+
+            return cssClass;
+        }
 
         /// <summary>
         /// Checks whether the provided tab item is currently active.

@@ -63,16 +63,13 @@
         /// <summary>
         /// Gets the final CSS class list applied to the icon button.
         /// </summary>
-        private string CssClass
+        private string GetCssClass()
         {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-icon-button",
-                    this.Class);
+            var cssClass = CssClassBuilder.Build(
+                "mb-icon-button",
+                this.Class);
 
-                return cssClass;
-            }
+            return cssClass;
         }
     }
 }

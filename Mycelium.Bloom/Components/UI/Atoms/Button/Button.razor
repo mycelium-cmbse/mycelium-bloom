@@ -1,7 +1,7 @@
 ﻿<button
     type="@(this.Type)"
-    class="@(this.CssClass)"
-    disabled="@(this.IsDisabled)"
+    class="@(this.GetCssClass())"
+    disabled="@(this.IsDisabled())"
     @onclick="this.OnClick"
     @attributes="this.AdditionalAttributes">
 

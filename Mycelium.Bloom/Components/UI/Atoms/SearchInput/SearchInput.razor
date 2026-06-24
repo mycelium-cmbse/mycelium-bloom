@@ -1,5 +1,5 @@
 ﻿@inject IJSRuntime JsRuntime
-<label class="@(this.CssClass)">
+<label class="@(this.GetCssClass())">
     <span class="mb-search-input__icon" aria-hidden="true">
         @if (this.StartIcon is not null)
         {
@@ -25,7 +25,7 @@
 
     <input
         @attributes="this.AdditionalAttributes"
-        id="@(this.InputId)"
+        id="@(this.GetInputId())"
         class="mb-search-input__field"
         type="search"
         value="@(this.Value)"

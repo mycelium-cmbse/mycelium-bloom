@@ -61,45 +61,39 @@
         /// <summary>
         /// Gets the inline style containing custom avatar CSS variables.
         /// </summary>
-        private string Style
+        private string GetStyle()
         {
-            get
+            var styles = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(this.BackgroundColor))
             {
-                var styles = new List<string>();
-
-                if (!string.IsNullOrWhiteSpace(this.BackgroundColor))
-                {
-                    styles.Add($"--mb-avatar-background: {this.BackgroundColor}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(this.BorderColor))
-                {
-                    styles.Add($"--mb-avatar-border: {this.BorderColor}");
-                }
-
-                var style = styles.Count > 0
-                    ? string.Join("; ", styles)
-                    : null;
-
-                return style;
+                styles.Add($"--mb-avatar-background: {this.BackgroundColor}");
             }
+
+            if (!string.IsNullOrWhiteSpace(this.BorderColor))
+            {
+                styles.Add($"--mb-avatar-border: {this.BorderColor}");
+            }
+
+            var style = styles.Count > 0
+                ? string.Join("; ", styles)
+                : null;
+
+            return style;
         }
 
         /// <summary>
         /// Gets the final CSS class list applied to the avatar.
         /// </summary>
-        private string CssClass
+        private string GetCssClass()
         {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-avatar",
-                    this.GetSizeClass(),
-                    this.GetVariantClass(),
-                    this.Class);
+            var cssClass = CssClassBuilder.Build(
+                "mb-avatar",
+                this.GetSizeClass(),
+                this.GetVariantClass(),
+                this.Class);
 
-                return cssClass;
-            }
+            return cssClass;
         }
 
         /// <summary>

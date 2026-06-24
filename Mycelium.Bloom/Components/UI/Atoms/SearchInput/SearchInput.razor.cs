@@ -126,19 +126,28 @@
         /// <summary>
         /// Gets the effective identifier of the search input element.
         /// </summary>
-        private string InputId => string.IsNullOrWhiteSpace(this.Id)
-            ? this.generatedId
-            : this.Id;
+        private string GetInputId()
+        {
+            var inputId = string.IsNullOrWhiteSpace(this.Id)
+                ? this.generatedId
+                : this.Id;
+
+            return inputId;
+        }
 
         /// <summary>
         /// Gets the final CSS class list applied to the search input wrapper.
         /// </summary>
-        private string CssClass =>
-            CssClassBuilder.Build(
+        private string GetCssClass()
+        {
+            var cssClass = CssClassBuilder.Build(
                 "mb-search-input",
                 CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
                 CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
                 this.Class);
+
+            return cssClass;
+        }
 
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -157,7 +166,7 @@
 
                 await this.module.InvokeVoidAsync(
                     "registerSearchShortcut",
-                    this.InputId,
+                    this.GetInputId(),
                     new
                     {
                         key = shortcutKey,
