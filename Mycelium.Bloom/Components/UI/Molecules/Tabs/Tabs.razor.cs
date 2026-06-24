@@ -46,18 +46,14 @@
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; }
 
-        private string CssClass
-        {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-tabs",
-                    CssClassBuilder.When("mb-tabs--full-width", this.FullWidth),
-                    this.Class);
-
-                return cssClass;
-            }
-        }
+        /// <summary>
+        /// Gets the final CSS class list applied to the tabs.
+        /// </summary>
+        private string CssClass =>
+            CssClassBuilder.Build(
+                "mb-tabs",
+                CssClassBuilder.When("mb-tabs--full-width", this.FullWidth),
+                this.Class);
 
         /// <summary>
         /// Checks whether the provided tab item is currently active.

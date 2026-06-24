@@ -33,16 +33,12 @@
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
-        private string CssClass
-        {
-            get
-            {
-                var cssClass = CssClassBuilder.Build(
-                    "mb-section-header",
-                    this.Class);
-
-                return cssClass;
-            }
-        }
+        /// <summary>
+        /// Gets the final CSS class list applied to the section header.
+        /// </summary>
+        private string CssClass =>
+            CssClassBuilder.Build(
+                "mb-section-header",
+                this.Class);
     }
 }
