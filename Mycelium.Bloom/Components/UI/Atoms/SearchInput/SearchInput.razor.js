@@ -1,15 +1,26 @@
 ﻿let keydownHandler;
 
-export function registerSearchShortcut(inputId) {
+// Called from SearchInput.razor.cs through JS interop.
+export function registerSearchShortcut(inputId, shortcut) {
     disposeSearchShortcut();
+
+    const shortcutKey = (shortcut?.key ?? "k").toLowerCase();
+    const requiresControlOrMeta = shortcut?.requiresControlOrMeta ?? true;
+    const requiresAlt = shortcut?.requiresAlt ?? false;
+    const requiresShift = shortcut?.requiresShift ?? false;
 
     keydownHandler = function (event) {
         const key = event.key?.toLowerCase();
+        const hasControlOrMeta = event.ctrlKey || event.metaKey;
 
-        const isSearchShortcut = (event.ctrlKey || event.metaKey)
-            && key === "k"
-            && !event.altKey
-            && !event.shiftKey;
+        const matchesControlOrMeta = requiresControlOrMeta
+            ? hasControlOrMeta
+            : !hasControlOrMeta;
+
+        const isSearchShortcut = key === shortcutKey
+            && matchesControlOrMeta
+            && event.altKey === requiresAlt
+            && event.shiftKey === requiresShift;
 
         if (!isSearchShortcut) {
             return;
