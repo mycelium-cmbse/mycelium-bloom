@@ -119,8 +119,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
         [Test]
         public async Task Render_EnableShortcutRegistersAndDisposesShortcut()
         {
+            object shortcutOptions = null;
+
             var module = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
-            var registerHandler = module.SetupVoid("registerSearchShortcut", "search-box");
+            var registerHandler = module.SetupVoid(
+                "registerSearchShortcut",
+                invocation =>
+                {
+                    if (invocation.Arguments.Count != 2 || !Equals(invocation.Arguments[0], "search-box"))
+                    {
+                        return false;
+                    }
+
+                    shortcutOptions = invocation.Arguments[1];
+
+                    return true;
+                });
+
             var disposeHandler = module.SetupVoid("disposeSearchShortcut");
 
             registerHandler.SetVoidResult();
@@ -128,7 +143,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
 
             var component = this.Render<SearchInputComponent>(parameters => parameters
                 .Add(component => component.Id, "search-box")
-                .Add(component => component.EnableShortcut, true));
+                .Add(component => component.EnableShortcut, true)
+                .Add(component => component.ShortcutKey, "/")
+                .Add(component => component.ShortcutRequiresControlOrMeta, false)
+                .Add(component => component.ShortcutRequiresAlt, true)
+                .Add(component => component.ShortcutRequiresShift, true));
 
             await component.Instance.DisposeAsync();
 
@@ -136,7 +155,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
             {
                 Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
                 Assert.That(disposeHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(GetPropertyValue(shortcutOptions, "key"), Is.EqualTo("/"));
+                Assert.That(GetPropertyValue(shortcutOptions, "requiresControlOrMeta"), Is.False);
+                Assert.That(GetPropertyValue(shortcutOptions, "requiresAlt"), Is.True);
+                Assert.That(GetPropertyValue(shortcutOptions, "requiresShift"), Is.True);
             }
+        }
+
+        /// <summary>
+        /// Gets a property value from an object passed to JavaScript interop.
+        /// </summary>
+        /// <param name="instance">The object instance.</param>
+        /// <param name="propertyName">The property name.</param>
+        /// <returns>The property value.</returns>
+        private static object GetPropertyValue(object instance, string propertyName)
+        {
+            var property = instance.GetType().GetProperty(propertyName);
+
+            return property!.GetValue(instance);
         }
     }
 }
