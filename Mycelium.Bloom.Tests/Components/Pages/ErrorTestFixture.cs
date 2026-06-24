@@ -1,4 +1,13 @@
-﻿namespace Mycelium.Bloom.Tests.Components.Pages
+﻿// ------------------------------------------------------------------------------------------------
+// <copyright file="ErrorTestFixture.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Tests.Components.Pages
 {
     using System.Diagnostics;
 

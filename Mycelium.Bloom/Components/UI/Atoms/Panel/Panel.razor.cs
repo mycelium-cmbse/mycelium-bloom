@@ -1,4 +1,13 @@
-﻿namespace Mycelium.Bloom.Components.UI.Atoms.Panel
+﻿// ------------------------------------------------------------------------------------------------
+// <copyright file="Panel.razor.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Components.UI.Atoms.Panel
 {
     using Microsoft.AspNetCore.Components;
 
