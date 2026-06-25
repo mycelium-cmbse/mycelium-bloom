@@ -1,4 +1,13 @@
-﻿namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
+﻿// ------------------------------------------------------------------------------------------------
+// <copyright file="IconButton.razor.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
 {
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;

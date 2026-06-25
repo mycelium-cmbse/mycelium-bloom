@@ -1,4 +1,13 @@
-﻿namespace Mycelium.Bloom.Components.Common
+﻿// ------------------------------------------------------------------------------------------------
+// <copyright file="CssClassBuilder.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Components.Common
 {
     /// <summary>
     /// Provides helper methods to build CSS class strings.
