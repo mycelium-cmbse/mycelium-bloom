@@ -2,7 +2,7 @@
 	<s:String x:Key="/Default/CodeStyle/FileHeader/FileHeaderText/@EntryValue">// ------------------------------------------------------------------------------------------------&#xD;
 // &lt;copyright file="${File.FileName}" company="Starion Group S.A."&gt;&#xD;
 //&#xD;
-//   Copyright 2026 Starion Group S.A.&#xD;
+//   Copyright ${CurrentDate.Year} Starion Group S.A.&#xD;
 //   SPDX-License-Identifier: Apache-2.0&#xD;
 //&#xD;
 // &lt;/copyright&gt;&#xD;

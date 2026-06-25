@@ -21,12 +21,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <SonarQubeSetting Include="sonar.coverage.exclusions">
-            <Value>**/*.razor</Value>
-        </SonarQubeSetting>
-    </ItemGroup>
-
-    <ItemGroup>
         <Folder Include="Components\Core\"/>
         <Folder Include="Components\Features\Auth\"/>
         <Folder Include="Components\Features\Dashboard\"/>
