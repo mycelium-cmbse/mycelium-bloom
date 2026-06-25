@@ -1,15 +1,18 @@
-// ------------------------------------------------------------------------------------------------
-// <copyright file="Program.cs" company="Starion Group S.A.">
-//
-//   Copyright 2026 Starion Group S.A.
-//   SPDX-License-Identifier: Apache-2.0
-//
-// </copyright>
-// ------------------------------------------------------------------------------------------------
+// // ------------------------------------------------------------------------------------------------
+// // <copyright file="Program.cs" company="Starion Group S.A.">
+// //
+// //   Copyright 2026 Starion Group S.A.
+// //   SPDX-License-Identifier: Apache-2.0
+// //
+// // </copyright>
+// // ------------------------------------------------------------------------------------------------
 
 namespace Mycelium.Bloom
 {
     using Mycelium.Bloom.Components;
+    using Mycelium.Bloom.Core.ModelLoading;
+
+    using OpenTelemetry.Resources;
 
     /// <summary>
     /// Provides the entry point for the Mycelium Bloom web application.
@@ -24,12 +27,22 @@ namespace Mycelium.Bloom
         /// </param>
         public static void Main(string[] args)
         {
+            const string serviceName = "Mycelium.Bloom";
+
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddOpenTelemetry()
+                .ConfigureResource(resource => resource.AddService(serviceName))
+                .WithLogging();
+
+            builder.Services.AddMemoryCache();
 
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
+            //Add ModelLoaderService
+            builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
