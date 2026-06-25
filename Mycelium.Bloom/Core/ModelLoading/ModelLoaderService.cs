@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
     /// <summary>
     /// Provides operations to load SysML model files.
     /// </summary>
-    public sealed class ModelLoaderService : IModelLoaderService
+    public sealed partial class ModelLoaderService : IModelLoaderService
     {
         private const string QuantitiesModelCacheKey = "SysML2.QuantitiesModel";
 
@@ -31,15 +31,15 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelLoaderService" /> class.
         /// </summary>
-        /// <param name="webHostEnvironment">The web host environment used to resolve application paths.</param>
+        /// <param name="hostEnvironment">The web host environment used to resolve application paths.</param>
         /// <param name="loggerFactory">The logger factory used by the service and the SysML XMI deserializer.</param>
         /// <param name="memoryCache">The memory cache used to cache loaded standard library models.</param>
         public ModelLoaderService(
-            IHostEnvironment webHostEnvironment,
+            IHostEnvironment hostEnvironment,
             ILoggerFactory loggerFactory,
             IMemoryCache memoryCache)
         {
-            this.hostEnvironment = webHostEnvironment;
+            this.hostEnvironment = hostEnvironment;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<ModelLoaderService>();
             this.memoryCache = memoryCache;
@@ -53,16 +53,12 @@ namespace Mycelium.Bloom.Core.ModelLoading
         public INamespace LoadModel(Uri modelUri)
         {
             var stopwatch = Stopwatch.StartNew();
-            this.logger.LogInformation("Loading SysML model from {ModelUri}", modelUri);
 
             var deSerializer = new DeSerializer(this.loggerFactory);
             var model = deSerializer.DeSerialize(modelUri);
             stopwatch.Stop();
 
-            this.logger.LogInformation(
-                "Loaded SysML model from {ModelUri} in {ElapsedMilliseconds} ms",
-                modelUri,
-                stopwatch.ElapsedMilliseconds);
+            LogModelLoaded(this.logger, modelUri, stopwatch.ElapsedMilliseconds);
 
             return model;
         }
@@ -98,5 +94,11 @@ namespace Mycelium.Bloom.Core.ModelLoading
 
             return model;
         }
+
+        [LoggerMessage(
+            EventId = 1,
+            Level = LogLevel.Information,
+            Message = "Loaded SysML model from {ModelUri} in {ElapsedMilliseconds} ms")]
+        private static partial void LogModelLoaded(ILogger logger, Uri modelUri, long elapsedMilliseconds);
     }
 }
