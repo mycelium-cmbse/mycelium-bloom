@@ -1,18 +1,17 @@
-﻿// ------------------------------------------------------------------------------------------------
-// <copyright file="Error.razor.cs" company="Starion Group S.A.">
-//
-//   Copyright 2026 Starion Group S.A.
-//   SPDX-License-Identifier: Apache-2.0
-//
-// </copyright>
-// ------------------------------------------------------------------------------------------------
+﻿// // ------------------------------------------------------------------------------------------------
+// // <copyright file="Error.razor.cs" company="Starion Group S.A.">
+// //
+// //   Copyright 2026 Starion Group S.A.
+// //   SPDX-License-Identifier: Apache-2.0
+// //
+// // </copyright>
+// // ------------------------------------------------------------------------------------------------
 
 namespace Mycelium.Bloom.Components.Pages
 {
     using System.Diagnostics;
 
     using Microsoft.AspNetCore.Components;
-    using Microsoft.AspNetCore.Http;
 
     /// <summary>
     /// Represents the default error page displayed when an unhandled exception occurs.

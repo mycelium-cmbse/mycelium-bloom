@@ -1,17 +1,17 @@
-// ------------------------------------------------------------------------------------------------
-// <copyright file="ChipTestFixture.cs" company="Starion Group S.A.">
-//
-//   Copyright 2026 Starion Group S.A.
-//   SPDX-License-Identifier: Apache-2.0
-//
-// </copyright>
-// ------------------------------------------------------------------------------------------------
+// // ------------------------------------------------------------------------------------------------
+// // <copyright file="ChipTestFixture.cs" company="Starion Group S.A.">
+// //
+// //   Copyright 2026 Starion Group S.A.
+// //   SPDX-License-Identifier: Apache-2.0
+// //
+// // </copyright>
+// // ------------------------------------------------------------------------------------------------
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Chip
 {
     using Bunit;
 
-    using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     using ChipComponent = Mycelium.Bloom.Components.UI.Atoms.Chip.Chip;
 
@@ -29,6 +29,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Chip
         public void TearDown()
         {
             this.Dispose();
+        }
+
+        /// <summary>
+        /// Verifies that a custom color chip displays a color dot and CSS variable.
+        /// </summary>
+        [Test]
+        public void Render_CustomColorDisplaysDotAndStyle()
+        {
+            var component = this.Render<ChipComponent>(parameters => parameters
+                .Add(component => component.Color, "#008577")
+                .AddChildContent("Lifecycle"));
+
+            var chip = component.Find(".mb-chip");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(chip.GetAttribute("class"), Does.Contain("mb-chip--custom-color"));
+                Assert.That(chip.GetAttribute("style"), Is.EqualTo("--mb-chip-color: #008577;"));
+                Assert.That(component.FindAll(".mb-chip__dot"), Has.Count.EqualTo(1));
+            }
         }
 
         /// <summary>
@@ -74,26 +94,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Chip
                 .AddChildContent("State"));
 
             Assert.That(component.Find(".mb-chip").GetAttribute("class"), Does.Contain(expectedCssClass));
-        }
-
-        /// <summary>
-        /// Verifies that a custom color chip displays a color dot and CSS variable.
-        /// </summary>
-        [Test]
-        public void Render_CustomColorDisplaysDotAndStyle()
-        {
-            var component = this.Render<ChipComponent>(parameters => parameters
-                .Add(component => component.Color, "#008577")
-                .AddChildContent("Lifecycle"));
-
-            var chip = component.Find(".mb-chip");
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(chip.GetAttribute("class"), Does.Contain("mb-chip--custom-color"));
-                Assert.That(chip.GetAttribute("style"), Is.EqualTo("--mb-chip-color: #008577;"));
-                Assert.That(component.FindAll(".mb-chip__dot"), Has.Count.EqualTo(1));
-            }
         }
     }
 }

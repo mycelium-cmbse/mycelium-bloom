@@ -1,4 +1,5 @@
-﻿@* ------------------------------------------------------------------------------------------------
+﻿@using Mycelium.Bloom.Components.Pages
+@* ------------------------------------------------------------------------------------------------
 <copyright file="Routes.razor" company="Starion Group S.A.">
 
   Copyright 2026 Starion Group S.A.
@@ -7,7 +8,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(NotFound)">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
         <FocusOnNavigate RouteData="routeData" Selector="h1"/>

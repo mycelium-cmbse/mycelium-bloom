@@ -1,17 +1,17 @@
-// ------------------------------------------------------------------------------------------------
-// <copyright file="AvatarTestFixture.cs" company="Starion Group S.A.">
-//
-//   Copyright 2026 Starion Group S.A.
-//   SPDX-License-Identifier: Apache-2.0
-//
-// </copyright>
-// ------------------------------------------------------------------------------------------------
+// // ------------------------------------------------------------------------------------------------
+// // <copyright file="AvatarTestFixture.cs" company="Starion Group S.A.">
+// //
+// //   Copyright 2026 Starion Group S.A.
+// //   SPDX-License-Identifier: Apache-2.0
+// //
+// // </copyright>
+// // ------------------------------------------------------------------------------------------------
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Avatar
 {
     using Bunit;
 
-    using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     using AvatarComponent = Mycelium.Bloom.Components.UI.Atoms.Avatar.Avatar;
 
@@ -63,23 +63,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Avatar
         }
 
         /// <summary>
-        /// Verifies that the avatar uses the expected size class.
-        /// </summary>
-        /// <param name="size">The avatar size.</param>
-        /// <param name="expectedCssClass">The expected CSS class.</param>
-        [TestCase(AvatarSize.Small, "mb-avatar--small")]
-        [TestCase(AvatarSize.Medium, "mb-avatar--medium")]
-        [TestCase(AvatarSize.Large, "mb-avatar--large")]
-        public void Render_UsesExpectedSizeClass(AvatarSize size, string expectedCssClass)
-        {
-            var component = this.Render<AvatarComponent>(parameters => parameters
-                .Add(component => component.Text, "OH")
-                .Add(component => component.Size, size));
-
-            Assert.That(component.Find(".mb-avatar").GetAttribute("class"), Does.Contain(expectedCssClass));
-        }
-
-        /// <summary>
         /// Verifies that the avatar defaults to a medium user avatar without custom styles.
         /// </summary>
         [Test]
@@ -96,6 +79,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Avatar
                 Assert.That(avatar.GetAttribute("class"), Does.Contain("mb-avatar--user"));
                 Assert.That(avatar.HasAttribute("style"), Is.False);
             }
+        }
+
+        /// <summary>
+        /// Verifies that the avatar uses the expected size class.
+        /// </summary>
+        /// <param name="size">The avatar size.</param>
+        /// <param name="expectedCssClass">The expected CSS class.</param>
+        [TestCase(AvatarSize.Small, "mb-avatar--small")]
+        [TestCase(AvatarSize.Medium, "mb-avatar--medium")]
+        [TestCase(AvatarSize.Large, "mb-avatar--large")]
+        public void Render_UsesExpectedSizeClass(AvatarSize size, string expectedCssClass)
+        {
+            var component = this.Render<AvatarComponent>(parameters => parameters
+                .Add(component => component.Text, "OH")
+                .Add(component => component.Size, size));
+
+            Assert.That(component.Find(".mb-avatar").GetAttribute("class"), Does.Contain(expectedCssClass));
         }
     }
 }

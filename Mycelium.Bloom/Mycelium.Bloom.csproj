@@ -19,7 +19,12 @@
         <PreserveCompilationContext>true</PreserveCompilationContext>
         <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     </PropertyGroup>
-
+    <ItemGroup>
+        <Content Include="Resources\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+    </ItemGroup>
     <ItemGroup>
         <Folder Include="Components\Core\"/>
         <Folder Include="Components\Features\Auth\"/>
@@ -28,6 +33,13 @@
         <Folder Include="Components\UI\Shared\"/>
         <Folder Include="Components\UI\Templates\"/>
         <Folder Include="wwwroot\css\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenTelemetry" Version="1.16.0"/>
+        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.16.0"/>
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0"/>
+        <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.22.0"/>
     </ItemGroup>
 
 </Project>
