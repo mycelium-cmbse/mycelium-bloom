@@ -19,13 +19,31 @@ namespace Mycelium.Bloom.Core.ModelLoading
     /// <summary>
     /// Provides operations to load SysML model files.
     /// </summary>
-    public sealed partial class ModelLoaderService : IModelLoaderService
+    public sealed class ModelLoaderService : IModelLoaderService
     {
+        /// <summary>
+        /// The cache key used for the loaded Quantities standard library model.
+        /// </summary>
         private const string QuantitiesModelCacheKey = "SysML2.QuantitiesModel";
 
+        /// <summary>
+        /// The host environment used to resolve application content paths.
+        /// </summary>
         private readonly IHostEnvironment hostEnvironment;
+
+        /// <summary>
+        /// The logger used to write model loading messages.
+        /// </summary>
         private readonly ILogger<ModelLoaderService> logger;
+
+        /// <summary>
+        /// The logger factory passed to the SysML XMI deserializer.
+        /// </summary>
         private readonly ILoggerFactory loggerFactory;
+
+        /// <summary>
+        /// The memory cache used to cache loaded standard library models.
+        /// </summary>
         private readonly IMemoryCache memoryCache;
 
         /// <summary>
@@ -58,7 +76,13 @@ namespace Mycelium.Bloom.Core.ModelLoading
             var model = deSerializer.DeSerialize(modelUri);
             stopwatch.Stop();
 
-            LogModelLoaded(this.logger, modelUri, stopwatch.ElapsedMilliseconds);
+            if (this.logger.IsEnabled(LogLevel.Information))
+            {
+                this.logger.LogInformation(
+                    "Loaded SysML model from {ModelUri} in {ElapsedMilliseconds} ms",
+                    modelUri,
+                    stopwatch.ElapsedMilliseconds);
+            }
 
             return model;
         }
@@ -94,11 +118,5 @@ namespace Mycelium.Bloom.Core.ModelLoading
 
             return model;
         }
-
-        [LoggerMessage(
-            EventId = 1,
-            Level = LogLevel.Information,
-            Message = "Loaded SysML model from {ModelUri} in {ElapsedMilliseconds} ms")]
-        private static partial void LogModelLoaded(ILogger logger, Uri modelUri, long elapsedMilliseconds);
     }
 }
