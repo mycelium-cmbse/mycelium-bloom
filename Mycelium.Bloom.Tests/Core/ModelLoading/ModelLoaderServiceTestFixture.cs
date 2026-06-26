@@ -12,9 +12,11 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
     using System;
     using System.IO;
 
-    using Microsoft.AspNetCore.Builder;
     using Microsoft.Extensions.Caching.Memory;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+
+    using Moq;
 
     using Mycelium.Bloom.Core.ModelLoading;
 
@@ -33,18 +35,13 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
             var repositoryPath = GetRepositoryPath();
             var applicationPath = Path.Combine(repositoryPath, "Mycelium.Bloom");
 
-            var webApplicationBuilder = WebApplication.CreateBuilder(
-                new WebApplicationOptions
-                {
-                    ApplicationName = "Mycelium.Bloom",
-                    ContentRootPath = applicationPath,
-                    EnvironmentName = "Development"
-                });
+            var hostEnvironment = new Mock<IHostEnvironment>();
+            hostEnvironment.Setup(x => x.ContentRootPath).Returns(applicationPath);
 
             using var memoryCache = new MemoryCache(new MemoryCacheOptions());
             using var loggerFactory = LoggerFactory.Create(_ => { });
 
-            var service = new ModelLoaderService(webApplicationBuilder.Environment, loggerFactory, memoryCache);
+            var service = new ModelLoaderService(hostEnvironment.Object, loggerFactory, memoryCache);
 
             var model = service.LoadQuantitiesModel();
             var cachedModel = service.LoadQuantitiesModel();

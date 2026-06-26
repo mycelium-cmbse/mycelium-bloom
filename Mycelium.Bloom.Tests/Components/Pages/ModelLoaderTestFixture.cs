@@ -15,6 +15,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
     using Microsoft.Extensions.DependencyInjection;
 
+    using Moq;
+
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.Core.ModelLoading;
 
@@ -42,7 +44,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void Render_WhenModelLoads_DisplaysSuccessResult()
         {
-            this.Services.AddSingleton<IModelLoaderService>(new TestModelLoaderService(new Namespace()));
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService.Setup(x => x.LoadQuantitiesModel()).Returns(new Namespace());
+            this.Services.AddSingleton(modelLoaderService.Object);
 
             var component = this.Render<ModelLoaderTest>();
 
@@ -52,6 +56,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Markup, Does.Contain("Loaded successfully: SysML2.NET.Core.POCO.Root.Namespaces.Namespace"));
                 Assert.That(component.Markup, Does.Contain("Elapsed:"));
             }
+
+            modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
         }
 
         /// <summary>
@@ -60,43 +66,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void Render_WhenModelLoadFails_DisplaysException()
         {
-            this.Services.AddSingleton<IModelLoaderService>(
-                new TestModelLoaderService(new InvalidOperationException("Failed to load test model.")));
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService.Setup(x => x.LoadQuantitiesModel()).Throws(new InvalidOperationException("Failed to load test model."));
+            this.Services.AddSingleton(modelLoaderService.Object);
 
             var component = this.Render<ModelLoaderTest>();
 
             Assert.That(component.Markup, Does.Contain("Failed to load test model."));
-        }
-
-        private sealed class TestModelLoaderService : IModelLoaderService
-        {
-            private readonly INamespace model;
-            private readonly Exception exception;
-
-            public TestModelLoaderService(INamespace model)
-            {
-                this.model = model;
-            }
-
-            public TestModelLoaderService(Exception exception)
-            {
-                this.exception = exception;
-            }
-
-            public INamespace LoadModel(Uri modelUri)
-            {
-                return this.LoadQuantitiesModel();
-            }
-
-            public INamespace LoadQuantitiesModel()
-            {
-                if (this.exception != null)
-                {
-                    throw this.exception;
-                }
-
-                return this.model;
-            }
+            modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
         }
     }
 }
