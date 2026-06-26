@@ -1,4 +1,4 @@
-// ------------------------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="ButtonTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -11,9 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Button
 {
     using Bunit;
 
-    using Microsoft.AspNetCore.Components.Web;
-
-    using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     using ButtonComponent = Mycelium.Bloom.Components.UI.Atoms.Button.Button;
 
@@ -31,6 +29,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Button
         public void TearDown()
         {
             this.Dispose();
+        }
+
+        /// <summary>
+        /// Verifies that clicking the button invokes the click callback.
+        /// </summary>
+        [Test]
+        public void Click_InvokesOnClick()
+        {
+            var clickCount = 0;
+
+            var component = this.Render<ButtonComponent>(parameters => parameters
+                .Add(component => component.OnClick, _ => clickCount++)
+                .AddChildContent("Save"));
+
+            component.Find("button").Click();
+
+            Assert.That(clickCount, Is.EqualTo(1));
         }
 
         /// <summary>
@@ -62,6 +77,29 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Button
                 Assert.That(button.GetAttribute("class"), Does.Contain("custom-button"));
                 Assert.That(component.Find(".mb-button__content").TextContent.Trim(), Is.EqualTo("Delete"));
                 Assert.That(component.FindAll(".mb-button__icon"), Has.Count.EqualTo(2));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that a loading button is disabled and displays the spinner instead of icons.
+        /// </summary>
+        [Test]
+        public void Render_LoadingButtonDisplaysSpinnerAndDisabledState()
+        {
+            var component = this.Render<ButtonComponent>(parameters => parameters
+                .Add(component => component.IsLoading, true)
+                .Add(component => component.StartIcon, "<span>Start</span>")
+                .Add(component => component.EndIcon, "<span>End</span>")
+                .AddChildContent("Saving"));
+
+            var button = component.Find("button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(button.HasAttribute("disabled"), Is.True);
+                Assert.That(button.GetAttribute("class"), Does.Contain("mb-button--disabled"));
+                Assert.That(component.FindAll(".mb-button__spinner"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-button__icon"), Is.Empty);
             }
         }
 
@@ -98,46 +136,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Button
                 .AddChildContent("Action"));
 
             Assert.That(component.Find("button").GetAttribute("class"), Does.Contain(expectedCssClass));
-        }
-
-        /// <summary>
-        /// Verifies that a loading button is disabled and displays the spinner instead of icons.
-        /// </summary>
-        [Test]
-        public void Render_LoadingButtonDisplaysSpinnerAndDisabledState()
-        {
-            var component = this.Render<ButtonComponent>(parameters => parameters
-                .Add(component => component.IsLoading, true)
-                .Add(component => component.StartIcon, "<span>Start</span>")
-                .Add(component => component.EndIcon, "<span>End</span>")
-                .AddChildContent("Saving"));
-
-            var button = component.Find("button");
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(button.HasAttribute("disabled"), Is.True);
-                Assert.That(button.GetAttribute("class"), Does.Contain("mb-button--disabled"));
-                Assert.That(component.FindAll(".mb-button__spinner"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll(".mb-button__icon"), Is.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Verifies that clicking the button invokes the click callback.
-        /// </summary>
-        [Test]
-        public void Click_InvokesOnClick()
-        {
-            var clickCount = 0;
-
-            var component = this.Render<ButtonComponent>(parameters => parameters
-                .Add(component => component.OnClick, (MouseEventArgs _) => clickCount++)
-                .AddChildContent("Save"));
-
-            component.Find("button").Click();
-
-            Assert.That(clickCount, Is.EqualTo(1));
         }
     }
 }

@@ -58,9 +58,9 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             }
 
             var fileName = Path.GetFileName(file);
-            content = NormalizeLineEndings(content);
+            content = NormalizeEmptyCommentLines(NormalizeLineEndings(content));
 
-            var expectedHeader = NormalizeLineEndings(GetExpectedHeader(fileName));
+            var expectedHeader = NormalizeEmptyCommentLines(NormalizeLineEndings(GetExpectedHeader(fileName)));
 
             return content.StartsWith(expectedHeader, StringComparison.Ordinal);
         }
@@ -117,6 +117,11 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         private static string NormalizeLineEndings(string text)
         {
             return text.Replace("\r\n", "\n", StringComparison.Ordinal);
+        }
+
+        private static string NormalizeEmptyCommentLines(string text)
+        {
+            return text.Replace("// \n", "//\n", StringComparison.Ordinal);
         }
 
         private static bool IsCodeRelatedFile(string file)

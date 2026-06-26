@@ -1,4 +1,4 @@
-// ------------------------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="TabsTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -29,6 +29,54 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
         public void TearDown()
         {
             this.Dispose();
+        }
+
+        /// <summary>
+        /// Verifies that clicking a disabled tab does not invoke the active value change callback.
+        /// </summary>
+        [Test]
+        public void Click_DisabledTabDoesNotInvokeActiveValueChanged()
+        {
+            var activeValue = string.Empty;
+
+            var component = this.Render<TabsComponent>(parameters => parameters
+                .Add(component => component.Items, new[]
+                {
+                    new TabItem { Value = "overview", Label = "Overview" },
+                    new TabItem { Value = "history", Label = "History", Disabled = true }
+                })
+                .Add(component => component.ActiveValue, "overview")
+                .Add(component => component.ActiveValueChanged, value => activeValue = value));
+
+            component.FindAll("[role='tab']")[1].Click();
+
+            Assert.That(activeValue, Is.Empty);
+        }
+
+        /// <summary>
+        /// Verifies that clicking an enabled tab invokes the active value change callback.
+        /// </summary>
+        [Test]
+        public void Click_EnabledTabInvokesActiveValueChanged()
+        {
+            var activeValue = string.Empty;
+
+            var component = this.Render<TabsComponent>(parameters => parameters
+                .Add(component => component.Items, new[]
+                {
+                    new TabItem { Value = "overview", Label = "Overview" },
+                    new TabItem { Value = "history", Label = "History" }
+                })
+                .Add(component => component.ActiveValue, "overview")
+                .Add(component => component.ActiveValueChanged, value => activeValue = value));
+
+            component.FindAll("[role='tab']")[1].Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(activeValue, Is.EqualTo("history"));
+                Assert.That(component.FindAll("[role='tab']")[1].GetAttribute("aria-selected"), Is.EqualTo("true"));
+            }
         }
 
         /// <summary>
@@ -65,54 +113,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
                 Assert.That(tabs[1].HasAttribute("disabled"), Is.True);
                 Assert.That(tabs[1].GetAttribute("class"), Does.Contain("mb-tabs__item--disabled"));
             }
-        }
-
-        /// <summary>
-        /// Verifies that clicking an enabled tab invokes the active value change callback.
-        /// </summary>
-        [Test]
-        public void Click_EnabledTabInvokesActiveValueChanged()
-        {
-            var activeValue = string.Empty;
-
-            var component = this.Render<TabsComponent>(parameters => parameters
-                .Add(component => component.Items, new[]
-                {
-                    new TabItem { Value = "overview", Label = "Overview" },
-                    new TabItem { Value = "history", Label = "History" }
-                })
-                .Add(component => component.ActiveValue, "overview")
-                .Add(component => component.ActiveValueChanged, (string value) => activeValue = value));
-
-            component.FindAll("[role='tab']")[1].Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(activeValue, Is.EqualTo("history"));
-                Assert.That(component.FindAll("[role='tab']")[1].GetAttribute("aria-selected"), Is.EqualTo("true"));
-            }
-        }
-
-        /// <summary>
-        /// Verifies that clicking a disabled tab does not invoke the active value change callback.
-        /// </summary>
-        [Test]
-        public void Click_DisabledTabDoesNotInvokeActiveValueChanged()
-        {
-            var activeValue = string.Empty;
-
-            var component = this.Render<TabsComponent>(parameters => parameters
-                .Add(component => component.Items, new[]
-                {
-                    new TabItem { Value = "overview", Label = "Overview" },
-                    new TabItem { Value = "history", Label = "History", Disabled = true }
-                })
-                .Add(component => component.ActiveValue, "overview")
-                .Add(component => component.ActiveValueChanged, (string value) => activeValue = value));
-
-            component.FindAll("[role='tab']")[1].Click();
-
-            Assert.That(activeValue, Is.Empty);
         }
     }
 }

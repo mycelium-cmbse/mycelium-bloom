@@ -1,9 +1,9 @@
 ﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="SearchInput.razor.cs" company="Starion Group S.A.">
-//
+// 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-//
+// 
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -133,29 +133,20 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
-        /// Gets the effective identifier of the search input element.
+        /// Releases asynchronous resources used by the search input component.
         /// </summary>
-        private string GetInputId()
+        /// <returns>A value task representing the asynchronous dispose operation.</returns>
+        public async ValueTask DisposeAsync()
         {
-            var inputId = string.IsNullOrWhiteSpace(this.Id)
-                ? this.generatedId
-                : this.Id;
-
-            return inputId;
+            await this.DisposeAsyncCore();
         }
 
         /// <summary>
-        /// Gets the final CSS class list applied to the search input wrapper.
+        /// Releases synchronous resources used by the search input component.
         /// </summary>
-        private string GetCssClass()
+        public void Dispose()
         {
-            var cssClass = CssClassBuilder.Build(
-                "mb-search-input",
-                CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
-                CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
-                this.Class);
-
-            return cssClass;
+            // The component owns no synchronous resources. JavaScript cleanup is handled by DisposeAsync.
         }
 
         /// <inheritdoc />
@@ -187,6 +178,32 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         }
 
         /// <summary>
+        /// Gets the effective identifier of the search input element.
+        /// </summary>
+        private string GetInputId()
+        {
+            var inputId = string.IsNullOrWhiteSpace(this.Id)
+                ? this.generatedId
+                : this.Id;
+
+            return inputId;
+        }
+
+        /// <summary>
+        /// Gets the final CSS class list applied to the search input wrapper.
+        /// </summary>
+        private string GetCssClass()
+        {
+            var cssClass = CssClassBuilder.Build(
+                "mb-search-input",
+                CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
+                CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
+                this.Class);
+
+            return cssClass;
+        }
+
+        /// <summary>
         /// Handles input changes and forwards the updated value to the parent component.
         /// </summary>
         /// <param name="args">The input change event arguments.</param>
@@ -208,23 +225,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         private async Task HandleKeyDownAsync(KeyboardEventArgs args)
         {
             await this.OnKeyDown.InvokeAsync(args);
-        }
-
-        /// <summary>
-        /// Releases synchronous resources used by the search input component.
-        /// </summary>
-        public void Dispose()
-        {
-            // The component owns no synchronous resources. JavaScript cleanup is handled by DisposeAsync.
-        }
-
-        /// <summary>
-        /// Releases asynchronous resources used by the search input component.
-        /// </summary>
-        /// <returns>A value task representing the asynchronous dispose operation.</returns>
-        public async ValueTask DisposeAsync()
-        {
-            await this.DisposeAsyncCore();
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-// ------------------------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="SectionHeaderTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -30,6 +30,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SectionHeader
         }
 
         /// <summary>
+        /// Verifies that the section header displays action content when provided.
+        /// </summary>
+        [Test]
+        public void Render_DisplaysActionsWhenProvided()
+        {
+            var component = this.Render<SectionHeaderComponent>(parameters => parameters
+                .Add(component => component.Label, "Properties")
+                .Add(component => component.Actions, "<button type=\"button\">Add</button>"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find(".mb-section-header__actions button").TextContent, Is.EqualTo("Add"));
+                Assert.That(component.FindAll(".mb-section-header__actions"), Has.Count.EqualTo(1));
+            }
+        }
+
+        /// <summary>
         /// Verifies that the section header displays the configured label, classes, and attributes.
         /// </summary>
         [Test]
@@ -48,23 +65,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SectionHeader
                 Assert.That(header.GetAttribute("class"), Does.Contain("custom-section-header"));
                 Assert.That(component.Find(".mb-section-header__label").TextContent.Trim(), Is.EqualTo("Properties"));
                 Assert.That(component.FindAll(".mb-section-header__actions"), Is.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Verifies that the section header displays action content when provided.
-        /// </summary>
-        [Test]
-        public void Render_DisplaysActionsWhenProvided()
-        {
-            var component = this.Render<SectionHeaderComponent>(parameters => parameters
-                .Add(component => component.Label, "Properties")
-                .Add(component => component.Actions, "<button type=\"button\">Add</button>"));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find(".mb-section-header__actions button").TextContent, Is.EqualTo("Add"));
-                Assert.That(component.FindAll(".mb-section-header__actions"), Has.Count.EqualTo(1));
             }
         }
     }

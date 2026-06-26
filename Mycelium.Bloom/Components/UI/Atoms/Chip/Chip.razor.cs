@@ -1,9 +1,9 @@
 ﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="Chip.razor.cs" company="Starion Group S.A.">
-//
+// 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-//
+// 
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -12,7 +12,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Chip
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
-    using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Represents a reusable chip component used to display compact labels, statuses, or ownership indicators.

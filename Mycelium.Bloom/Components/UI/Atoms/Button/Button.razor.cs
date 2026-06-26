@@ -1,9 +1,9 @@
 ﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="Button.razor.cs" company="Starion Group S.A.">
-//
+// 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-//
+// 
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -13,7 +13,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.Common;
-    using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Represents a reusable button component with configurable variant, size, icons, loading state, and click handling.

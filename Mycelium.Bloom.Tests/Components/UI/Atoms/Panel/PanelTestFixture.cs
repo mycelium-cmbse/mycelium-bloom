@@ -1,4 +1,4 @@
-// ------------------------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------------------------
 // <copyright file="PanelTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Panel
 {
     using Bunit;
 
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Model;
 
     using PanelComponent = Mycelium.Bloom.Components.UI.Atoms.Panel.Panel;
