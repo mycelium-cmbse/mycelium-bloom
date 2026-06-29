@@ -1,0 +1,31 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="Toolbar.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.StartContent != null)
+    {
+        <div class="mb-toolbar__start">
+            @(this.StartContent)
+        </div>
+    }
+
+    @if (this.ChildContent != null)
+    {
+        <div class="mb-toolbar__center">
+            @(this.ChildContent)
+        </div>
+    }
+
+    @if (this.EndContent != null)
+    {
+        <div class="mb-toolbar__end">
+            @(this.EndContent)
+        </div>
+    }
+</div>

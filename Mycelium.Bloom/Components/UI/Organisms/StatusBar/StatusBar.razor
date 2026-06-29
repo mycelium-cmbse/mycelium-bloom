@@ -1,0 +1,46 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="StatusBar.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.StartContent != null)
+    {
+        <div class="mb-status-bar__start">
+            @(this.StartContent)
+        </div>
+    }
+
+    @if (this.Items.Count > 0)
+    {
+        <div class="mb-status-bar__items">
+            @foreach (var item in this.Items)
+            {
+                <div class="mb-status-bar__item">
+                    @if (item.ShowIndicator)
+                    {
+                        <StatusIndicator Variant="@(item.Variant)" ShowLabel="false" />
+                    }
+
+                    <span class="mb-status-bar__item-label">
+                        @item.Label
+                    </span>
+                    <span class="mb-status-bar__item-value">
+                        @item.Value
+                    </span>
+                </div>
+            }
+        </div>
+    }
+
+    @if (this.EndContent != null)
+    {
+        <div class="mb-status-bar__end">
+            @(this.EndContent)
+        </div>
+    }
+</div>

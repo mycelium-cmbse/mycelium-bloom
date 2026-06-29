@@ -1,0 +1,37 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="EmptyState.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.IconContent != null)
+    {
+        <div class="mb-empty-state__icon">
+            @(this.IconContent)
+        </div>
+    }
+
+    <div class="mb-empty-state__content">
+        <h2 class="mb-empty-state__title">
+            @(this.Title)
+        </h2>
+
+        @if (!string.IsNullOrWhiteSpace(this.Description))
+        {
+            <p class="mb-empty-state__description">
+                @(this.Description)
+            </p>
+        }
+    </div>
+
+    @if (this.ActionsContent != null)
+    {
+        <div class="mb-empty-state__actions">
+            @(this.ActionsContent)
+        </div>
+    }
+</div>

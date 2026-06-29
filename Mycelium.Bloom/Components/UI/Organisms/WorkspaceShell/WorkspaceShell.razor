@@ -1,0 +1,37 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="WorkspaceShell.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.HeaderContent != null)
+    {
+        <header class="mb-workspace-shell__header">
+            @(this.HeaderContent)
+        </header>
+    }
+
+    <div class="mb-workspace-shell__body">
+        @if (this.LeftContent != null && this.ShowLeftPanel)
+        {
+            <aside class="mb-workspace-shell__left">
+                @(this.LeftContent)
+            </aside>
+        }
+
+        <main class="mb-workspace-shell__main">
+            @(this.ChildContent)
+        </main>
+
+        @if (this.RightContent != null && this.ShowRightPanel)
+        {
+            <aside class="mb-workspace-shell__right">
+                @(this.RightContent)
+            </aside>
+        }
+    </div>
+</div>

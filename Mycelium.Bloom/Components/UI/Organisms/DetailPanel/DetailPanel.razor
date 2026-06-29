@@ -1,0 +1,35 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DetailPanel.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.Components.UI.Molecules.DetailPanelHeader
+@using Mycelium.Bloom.Components.UI.Molecules.Tabs
+
+<aside class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <DetailPanelHeader
+        Stereotype="@(this.Stereotype)"
+        Title="@(this.Title)"
+        QualifiedName="@(this.QualifiedName)"
+        Owner="@(this.Owner)"
+        OwnerColor="@(this.OwnerColor)"
+        ShowCollapseButton="@(this.ShowCollapseButton)"
+        OnCollapse="@(this.OnCollapse)"/>
+
+    @if (this.Tabs.Count > 0)
+    {
+        <Tabs
+            Items="@(this.Tabs)"
+            ActiveValue="@(this.ActiveTab)"
+            ActiveValueChanged="@(this.ActiveTabChanged)"
+            FullWidth="true"/>
+    }
+
+    <div class="mb-detail-panel__content">
+        @(this.ChildContent)
+    </div>
+</aside>

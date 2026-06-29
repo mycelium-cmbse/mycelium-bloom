@@ -1,0 +1,21 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="ModelTree.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.Items.Count == 0)
+    {
+        <div class="mb-model-tree__empty">
+            No model elements available.
+        </div>
+    }
+    else
+    {
+        @(this.RenderItems(this.Items, 0))
+    }
+</div>

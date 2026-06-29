@@ -1,0 +1,65 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="SplitButton.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <button
+        type="button"
+        class="mb-split-button__main"
+        disabled="@(this.IsDisabled())"
+        @onclick="this.InvokePrimaryActionAsync">
+        @(this.Text)
+    </button>
+
+    <button
+        type="button"
+        class="mb-split-button__toggle"
+        title="@(this.MenuTitle)"
+        aria-label="@(this.MenuAriaLabel)"
+        aria-haspopup="menu"
+        aria-expanded="@(this.IsOpen ? "true" : "false")"
+        disabled="@(this.IsToggleDisabled())"
+        @onclick="this.ToggleMenu">
+        <span aria-hidden="true">v</span>
+    </button>
+
+    @if (this.IsOpen)
+    {
+        <div class="mb-split-button__menu" role="menu">
+            @foreach (var item in this.Items)
+            {
+                <button
+                    type="button"
+                    class="@(this.GetItemClass(item))"
+                    role="menuitem"
+                    disabled="@(item.Disabled)"
+                    @onclick="() => this.SelectItemAsync(item)">
+                    @if (!string.IsNullOrWhiteSpace(item.Icon))
+                    {
+                        <span class="mb-split-button__item-icon" aria-hidden="true">
+                            @item.Icon
+                        </span>
+                    }
+
+                    <span class="mb-split-button__item-content">
+                        <span class="mb-split-button__item-label">
+                            @item.Label
+                        </span>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <span class="mb-split-button__item-description">
+                                @item.Description
+                            </span>
+                        }
+                    </span>
+                </button>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,52 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DataTable.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <table class="mb-data-table__table">
+        <thead class="mb-data-table__head">
+            <tr class="mb-data-table__row">
+                @foreach (var column in this.Columns)
+                {
+                    <th
+                        class="@(this.GetHeaderClass(column))"
+                        style="@(this.GetColumnStyle(column))"
+                        scope="col">
+                        @column.Header
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody class="mb-data-table__body">
+            @if (this.Items.Count == 0)
+            {
+                <tr class="mb-data-table__row">
+                    <td class="mb-data-table__empty" colspan="@(this.GetColumnSpan())">
+                        @(this.EmptyText)
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var item in this.Items)
+                {
+                    <tr class="mb-data-table__row" @onclick="() => this.SelectRowAsync(item)">
+                        @foreach (var column in this.Columns)
+                        {
+                            <td
+                                class="@(this.GetCellClass(column))"
+                                style="@(this.GetColumnStyle(column))">
+                                @(this.GetCellValue(item, column))
+                            </td>
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,75 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="ModalShell.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@if (this.IsOpen)
+{
+    <div class="mb-modal" role="presentation">
+        <div class="mb-modal__backdrop" @onclick="this.HandleBackdropClickAsync"></div>
+
+        <section
+            id="@(this.GetModalId())"
+            class="@(this.GetCssClass())"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="@(this.GetTitleId())"
+            @onclick:stopPropagation="true"
+            @attributes="this.AdditionalAttributes">
+
+            @if (this.HasHeader())
+            {
+                <header class="mb-modal__header">
+                    @if (this.HeaderContent != null)
+                    {
+                        @(this.HeaderContent)
+                    }
+                    else
+                    {
+                        <div class="mb-modal__heading">
+                            @if (!string.IsNullOrWhiteSpace(this.Title))
+                            {
+                                <h2 id="@(this.GetTitleId())" class="mb-modal__title">
+                                    @(this.Title)
+                                </h2>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(this.Description))
+                            {
+                                <p class="mb-modal__description">
+                                    @(this.Description)
+                                </p>
+                            }
+                        </div>
+                    }
+
+                    @if (this.ShowCloseButton)
+                    {
+                        <button
+                            type="button"
+                            class="mb-modal__close-button"
+                            aria-label="Close modal"
+                            @onclick="this.CloseAsync">
+                            ×
+                        </button>
+                    }
+                </header>
+            }
+
+            <div class="mb-modal__body">
+                @(this.ChildContent)
+            </div>
+
+            @if (this.FooterContent != null)
+            {
+                <footer class="mb-modal__footer">
+                    @(this.FooterContent)
+                </footer>
+            }
+        </section>
+    </div>
+}

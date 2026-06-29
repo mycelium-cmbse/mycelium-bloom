@@ -1,0 +1,57 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="DetailPanelHeader.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<header class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <div class="mb-detail-panel-header__top-row">
+        @if (!string.IsNullOrWhiteSpace(this.Stereotype))
+        {
+            <span class="mb-detail-panel-header__stereotype">
+                «@(this.Stereotype)»
+            </span>
+        }
+
+        @if (this.ShowCollapseButton)
+        {
+            <button
+                type="button"
+                class="mb-detail-panel-header__collapse-button"
+                aria-label="Collapse detail panel"
+                title="Collapse"
+                @onclick="this.OnCollapse">
+                ‹
+            </button>
+        }
+    </div>
+
+    <div class="mb-detail-panel-header__main">
+        <h2 class="mb-detail-panel-header__title">
+            @(this.Title)
+        </h2>
+
+        @if (!string.IsNullOrWhiteSpace(this.QualifiedName))
+        {
+            <p class="mb-detail-panel-header__qualified-name">
+                @(this.QualifiedName)
+            </p>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(this.Owner))
+    {
+        <div class="mb-detail-panel-header__owner-row">
+            <span class="mb-detail-panel-header__owner-label">
+                Owner
+            </span>
+
+            <Chip Variant="ChipVariant.Ownership" Color="@(this.OwnerColor)">
+                @(this.Owner)
+            </Chip>
+        </div>
+    }
+</header>

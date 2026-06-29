@@ -1,0 +1,64 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="AppHeader.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<header class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <div class="mb-app-header__brand">
+        @if (this.BrandContent != null)
+        {
+            @(this.BrandContent)
+        }
+        else
+        {
+            <div class="mb-app-header__brand-mark">
+                M
+            </div>
+
+            <div class="mb-app-header__brand-text">
+                <span class="mb-app-header__title">
+                    @(this.Title)
+                </span>
+
+                @if (!string.IsNullOrWhiteSpace(this.Subtitle))
+                {
+                    <span class="mb-app-header__subtitle">
+                        @(this.Subtitle)
+                    </span>
+                }
+            </div>
+        }
+    </div>
+
+    @if (this.ShowSearch)
+    {
+        <div class="mb-app-header__search">
+            <SearchInput
+                Id="@(this.SearchId)"
+                Value="@(this.SearchValue)"
+                ValueChanged="@(this.SearchValueChanged)"
+                Placeholder="@(this.SearchPlaceholder)"
+                EnableShortcut="@(this.EnableSearchShortcut)"
+                FullWidth="true"/>
+        </div>
+    }
+
+    <div class="mb-app-header__actions">
+        @if (this.ActionsContent != null)
+        {
+            @(this.ActionsContent)
+        }
+
+        @if (this.ShowUserAvatar)
+        {
+            <Avatar
+                Text="@(this.UserInitials)"
+                Title="@(this.UserName)"
+                BackgroundColor="@(this.UserColor)"/>
+        }
+    </div>
+</header>

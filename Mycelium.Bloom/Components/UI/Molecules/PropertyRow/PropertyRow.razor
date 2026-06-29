@@ -1,0 +1,27 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="PropertyRow.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <span class="mb-property-row__label">
+        @(this.Label)
+    </span>
+
+    <div class="mb-property-row__value">
+        @if (this.ValueContent != null)
+        {
+            @(this.ValueContent)
+        }
+        else
+        {
+            <span class="@(this.GetValueCssClass())">
+                @(this.Value)
+            </span>
+        }
+    </div>
+</div>

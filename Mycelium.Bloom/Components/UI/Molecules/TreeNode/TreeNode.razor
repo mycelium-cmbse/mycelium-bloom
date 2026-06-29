@@ -1,0 +1,58 @@
+﻿@* ------------------------------------------------------------------------------------------------
+<copyright file="TreeNode.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<button
+    type="button"
+    class="@(this.GetCssClass())"
+    style="@(this.GetStyle())"
+    title="@(this.Title)"
+    @onclick="this.OnClick"
+    @attributes="this.AdditionalAttributes">
+
+    <span class="mb-tree-node__indent" style="@(this.GetIndentStyle())"></span>
+
+    @if (this.Ownership != TreeNodeOwnership.None)
+    {
+        <span class="mb-tree-node__ownership-stripe"></span>
+    }
+
+    @if (this.HasChildren)
+    {
+        <span class="mb-tree-node__toggle" aria-hidden="true">
+            @(this.IsExpanded ? "▾" : "▸")
+        </span>
+    }
+    else
+    {
+        <span class="mb-tree-node__toggle-spacer"></span>
+    }
+
+    <span class="mb-tree-node__element-icon" aria-hidden="true"></span>
+
+    @if (!string.IsNullOrWhiteSpace(this.Stereotype))
+    {
+        <span class="mb-tree-node__stereotype">
+            «@(this.Stereotype)»
+        </span>
+    }
+
+    <span class="mb-tree-node__title">
+        @(this.Title)
+    </span>
+
+    @if (this.HasComment)
+    {
+        <span class="mb-tree-node__comment-indicator" aria-label="Has comments"></span>
+    }
+
+    @if (this.IsModified)
+    {
+        <span class="mb-tree-node__modified-indicator" aria-label="Modified"></span>
+    }
+</button>

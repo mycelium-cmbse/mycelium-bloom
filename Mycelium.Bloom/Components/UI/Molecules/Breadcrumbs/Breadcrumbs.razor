@@ -1,0 +1,33 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Breadcrumbs.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<nav class="@(this.GetCssClass())" aria-label="Breadcrumb" @attributes="this.AdditionalAttributes">
+    <ol class="mb-breadcrumbs__list">
+        @foreach (var item in this.Items)
+        {
+            <li class="mb-breadcrumbs__item">
+                @if (item.IsCurrent)
+                {
+                    <span class="mb-breadcrumbs__current" aria-current="page">
+                        @item.Label
+                    </span>
+                }
+                else
+                {
+                    <button
+                        type="button"
+                        class="mb-breadcrumbs__button"
+                        @onclick="() => this.SelectItemAsync(item)">
+                        @item.Label
+                    </button>
+                }
+            </li>
+        }
+    </ol>
+</nav>

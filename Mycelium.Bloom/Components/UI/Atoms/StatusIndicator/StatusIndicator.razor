@@ -1,0 +1,19 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="StatusIndicator.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<span class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <span class="mb-status-indicator__dot" aria-hidden="true"></span>
+
+    @if (this.ShowLabel)
+    {
+        <span class="mb-status-indicator__label">
+            @(this.Label)
+        </span>
+    }
+</span>

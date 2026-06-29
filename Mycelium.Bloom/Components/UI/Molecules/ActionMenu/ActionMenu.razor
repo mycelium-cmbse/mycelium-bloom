@@ -1,0 +1,65 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ActionMenu.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <button
+        type="button"
+        class="@(this.GetTriggerClass())"
+        title="@(this.TriggerTitle)"
+        aria-label="@(this.TriggerAriaLabel)"
+        aria-haspopup="menu"
+        aria-expanded="@(this.IsOpen ? "true" : "false")"
+        @onclick="this.ToggleMenu">
+        @if (!this.IsIconOnly)
+        {
+            <span class="mb-action-menu__trigger-text">
+                @(this.TriggerText)
+            </span>
+        }
+
+        <span class="mb-action-menu__trigger-icon" aria-hidden="true">
+            @(this.Icon)
+        </span>
+    </button>
+
+    @if (this.IsOpen)
+    {
+        <div class="@(this.GetMenuClass())" role="menu">
+            @foreach (var item in this.Items)
+            {
+                <button
+                    type="button"
+                    class="@(this.GetItemClass(item))"
+                    role="menuitem"
+                    disabled="@(item.Disabled)"
+                    @onclick="() => this.SelectItemAsync(item)">
+                    @if (!string.IsNullOrWhiteSpace(item.Icon))
+                    {
+                        <span class="mb-action-menu__item-icon" aria-hidden="true">
+                            @item.Icon
+                        </span>
+                    }
+
+                    <span class="mb-action-menu__item-content">
+                        <span class="mb-action-menu__item-label">
+                            @item.Label
+                        </span>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <span class="mb-action-menu__item-description">
+                                @item.Description
+                            </span>
+                        }
+                    </span>
+                </button>
+            }
+        </div>
+    }
+</div>
