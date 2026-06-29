@@ -1,0 +1,66 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectBrowserNode.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@if (this.Node != null)
+{
+    <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())" aria-selected="@(this.Node.IsSelected)">
+        <div class="@(this.GetRowCssClass())" style="@(this.GetRowStyle())">
+            @if (this.Node.HasChildren)
+            {
+                <button
+                    type="button"
+                    class="mb-project-browser-node__toggle"
+                    title="@(this.GetToggleTitle())"
+                    aria-label="@(this.GetToggleTitle())"
+                    @onclick="this.ToggleNodeAsync">
+                    @(this.Node.IsExpanded ? "▾" : "▸")
+                </button>
+            }
+            else
+            {
+                <span class="mb-project-browser-node__toggle-spacer" aria-hidden="true"></span>
+            }
+
+            <button
+                type="button"
+                class="mb-project-browser-node__content"
+                title="@(this.GetTitle())"
+                @onclick="this.SelectNodeAsync">
+                <span class="mb-project-browser-node__kind">
+                    @(this.GetKindLabel())
+                </span>
+
+                <span class="mb-project-browser-node__text">
+                    <span class="mb-project-browser-node__name">
+                        @(this.Node.DisplayName)
+                    </span>
+
+                    <span class="mb-project-browser-node__type">
+                        @(this.Node.RuntimeTypeName)
+                    </span>
+                </span>
+            </button>
+        </div>
+
+        @if (this.Node.IsExpanded)
+        {
+            <div class="mb-project-browser-node__children" role="group">
+                @foreach (var child in this.Node.Children)
+                {
+                    <ProjectBrowserNode
+                        Node="child"
+                        ViewModel="this.ViewModel"
+                        Depth="@(this.Depth + 1)"
+                        OnStateChanged="this.OnStateChanged"
+                        OnNodeSelected="this.OnNodeSelected" />
+                }
+            </div>
+        }
+    </div>
+}

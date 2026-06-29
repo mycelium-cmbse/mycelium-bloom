@@ -1,0 +1,113 @@
+/* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectBrowserNode.razor.css" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ */
+
+.mb-project-browser-node {
+    min-width: max-content;
+}
+
+.mb-project-browser-node__row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 30px;
+    padding-left: calc(var(--mb-spacing-2) + var(--mb-project-browser-node-indent));
+    padding-right: var(--mb-spacing-2);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-project-browser-node__row:hover {
+    background: var(--mb-color-neutral-50);
+}
+
+.mb-project-browser-node__row--selected {
+    background: var(--mb-color-brand-50);
+    color: var(--mb-color-brand-900);
+}
+
+.mb-project-browser-node__row--selected:hover {
+    background: var(--mb-color-brand-100);
+}
+
+.mb-project-browser-node__toggle,
+.mb-project-browser-node__toggle-spacer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin-right: var(--mb-spacing-1);
+}
+
+.mb-project-browser-node__toggle {
+    border: 0;
+    border-radius: var(--mb-radius-sm);
+    background: transparent;
+    color: var(--mb-color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+}
+
+.mb-project-browser-node__toggle:hover {
+    background: var(--mb-color-neutral-100);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-project-browser-node__content {
+    display: inline-flex;
+    align-items: center;
+    flex: auto;
+    min-width: 0;
+    gap: var(--mb-spacing-2);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.mb-project-browser-node__kind {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 18px;
+    border: 1px solid var(--mb-color-border);
+    border-radius: var(--mb-radius-sm);
+    background: var(--mb-color-surface-muted);
+    color: var(--mb-color-text-secondary);
+    font-family: var(--mb-font-family-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 14px;
+}
+
+.mb-project-browser-node__text {
+    display: inline-flex;
+    align-items: baseline;
+    min-width: 0;
+    gap: var(--mb-spacing-2);
+}
+
+.mb-project-browser-node__name {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-project-browser-node__type {
+    flex: none;
+    color: var(--mb-color-text-muted);
+    font-family: var(--mb-font-family-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: var(--mb-font-size-mono-xs);
+    line-height: var(--mb-line-height-mono-xs);
+}
