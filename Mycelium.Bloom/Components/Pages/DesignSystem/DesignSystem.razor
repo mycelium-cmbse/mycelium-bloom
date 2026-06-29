@@ -1,0 +1,400 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DesignSystem.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@page "/design-system"
+@using Mycelium.Bloom.Components.UI.Molecules.Modal
+
+<PageTitle>Bloom Design System</PageTitle>
+
+<div style="min-height: 100vh; padding: 32px; background: var(--mb-color-background);">
+    <header style="max-width: 1280px; margin: 0 auto 24px; display: flex; flex-direction: column; gap: 8px;">
+        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">
+            Internal verification
+        </p>
+
+        <h1 class="mb-text-display-lg" style="color: var(--mb-color-text-primary);">
+            Bloom Design System
+        </h1>
+
+        <p class="mb-text-body-md" style="max-width: 760px; color: var(--mb-color-text-secondary);">
+            Reusable UI components shown with SysML and Mycelium workspace sample data.
+        </p>
+    </header>
+
+    <main style="max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+        <Panel Padding="PanelPadding.Large">
+            <SectionHeader Label="Foundations"/>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <h2 class="mb-text-heading-sm" style="color: var(--mb-color-text-primary);">
+                        Typography
+                    </h2>
+
+                    <p class="mb-text-display-lg" style="color: var(--mb-color-text-primary);">
+                        Satellite Architecture
+                    </p>
+
+                    <p class="mb-text-heading-md" style="color: var(--mb-color-text-primary);">
+                        Model element overview
+                    </p>
+
+                    <p class="mb-text-body-md" style="color: var(--mb-color-text-secondary);">
+                        The active package contains structural, behavioral, requirement, and verification views.
+                    </p>
+
+                    <p class="mb-text-mono-sm" style="color: var(--mb-color-text-muted);">
+                        mission.analysis.orbit::GroundContactWindow
+                    </p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <h2 class="mb-text-heading-sm" style="color: var(--mb-color-text-primary);">
+                        Color Chips
+                    </h2>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">AOCS</Chip>
+                        <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-power)">Power</Chip>
+                        <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-comms)">Comms</Chip>
+                        <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-software)">Software</Chip>
+                        <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">Review</Chip>
+                    </div>
+                </div>
+            </div>
+        </Panel>
+
+        <Panel Padding="PanelPadding.Large">
+            <SectionHeader Label="Atoms"/>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Button</h2>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <Button Variant="ButtonVariant.Primary" Size="ButtonSize.Small">Commit</Button>
+                        <Button Variant="ButtonVariant.Secondary">Compare</Button>
+                        <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Large">Inspect</Button>
+                        <Button Variant="ButtonVariant.Danger">Reject</Button>
+                        <Button Variant="ButtonVariant.Primary" IsLoading="true">Loading</Button>
+                    </div>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">IconButton</h2>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <IconButton AriaLabel="Refresh model" Title="Refresh model">R</IconButton>
+                        <IconButton AriaLabel="Pin panel" Title="Pin panel">P</IconButton>
+                        <IconButton AriaLabel="Open notifications" Title="Open notifications">!</IconButton>
+                        <IconButton AriaLabel="Disabled action" Title="Disabled action" Disabled="true">x</IconButton>
+                    </div>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Chip</h2>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <Chip>Default</Chip>
+                        <Chip Variant="ChipVariant.Success">Validated</Chip>
+                        <Chip Variant="ChipVariant.Warning">Pending review</Chip>
+                        <Chip Variant="ChipVariant.Danger">Conflict</Chip>
+                        <Chip Variant="ChipVariant.Info">Allocated</Chip>
+                    </div>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Avatar</h2>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <Avatar Text="OH" Title="Omrane Haj Mohamed" Size="AvatarSize.Small"/>
+                        <Avatar Text="AT" Title="Antoine Theate" BackgroundColor="var(--mb-color-collaborator-c10)"/>
+                        <Avatar Text="SG" Title="Sam Gerene" Size="AvatarSize.Large" BackgroundColor="var(--mb-color-collaborator-c05)"/>
+                        <Avatar Text="+3" Title="3 more collaborators" Variant="AvatarVariant.More"/>
+                    </div>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">SearchInput</h2>
+
+                    <SearchInput
+                        @bind-Value="this.SearchText"
+                        Placeholder="Search elements, views, or IDs"
+                        FullWidth="true"
+                        Id="design-system-search"/>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Panel</h2>
+
+                    <Panel Padding="PanelPadding.Small">
+                        <p class="mb-text-body-sm" style="color: var(--mb-color-text-secondary);">
+                            Nested reusable surface with compact padding.
+                        </p>
+                    </Panel>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <SectionHeader Label="SectionHeader">
+                        <Actions>
+                            <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small">Edit</Button>
+                        </Actions>
+                    </SectionHeader>
+
+                    <p class="mb-text-body-sm" style="margin-top: 12px; color: var(--mb-color-text-secondary);">
+                        Section label with right-aligned action content.
+                    </p>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">StatusIndicator</h2>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        <StatusIndicator Variant="StatusIndicatorVariant.Success" Label="Synced"/>
+                        <StatusIndicator Variant="StatusIndicatorVariant.Warning" Label="Review"/>
+                        <StatusIndicator Variant="StatusIndicatorVariant.Danger" Label="Conflict"/>
+                        <StatusIndicator Variant="StatusIndicatorVariant.Info" Label="Indexing"/>
+                        <StatusIndicator Variant="StatusIndicatorVariant.Neutral" Label="Idle"/>
+                    </div>
+                </Panel>
+                
+            </div>
+            
+        </Panel>
+
+        <Panel Padding="PanelPadding.Large">
+            <SectionHeader Label="Molecules"/>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Tabs</h2>
+
+                    <Tabs Items="this.DetailTabs" @bind-ActiveValue="this.ActiveDetailTab" FullWidth="true"/>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">PropertyRow</h2>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <PropertyRow Label="Qualified name" Value="spacecraft.adcs.AttitudeController" IsMonospace="true"/>
+                        <PropertyRow Label="Owner" Variant="PropertyRowVariant.Inline">
+                            <ValueContent>
+                                <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">AOCS</Chip>
+                            </ValueContent>
+                        </PropertyRow>
+                    </div>
+                </Panel>
+
+                <Panel Padding="PanelPadding.None">
+                    <Toolbar HasBottomBorder="true">
+                        <StartContent>
+                            <strong class="mb-text-label-md">Toolbar</strong>
+                        </StartContent>
+                        <ChildContent>
+                            <StatusIndicator Variant="StatusIndicatorVariant.Success" Label="Saved"/>
+                        </ChildContent>
+                        <EndContent>
+                            <IconButton AriaLabel="Undo change" Title="Undo change">U</IconButton>
+                            <IconButton AriaLabel="Redo change" Title="Redo change">R</IconButton>
+                            <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Run</Button>
+                        </EndContent>
+                    </Toolbar>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">EmptyState</h2>
+
+                    <EmptyState
+                        Title="No verification cases selected"
+                        Description="Select a verification package to inspect bound requirements and result traces.">
+                        <IconContent>*</IconContent>
+                        <ActionsContent>
+                            <Button Variant="ButtonVariant.Primary" Size="ButtonSize.Small">Create case</Button>
+                            <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Browse library</Button>
+                        </ActionsContent>
+                    </EmptyState>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Breadcrumbs</h2>
+
+                    <Breadcrumbs Items="this.Breadcrumbs"/>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">ActionMenu</h2>
+
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <ActionMenu Items="this.ActionItems" TriggerText="Element actions" IsIconOnly="false" Icon="v" Placement="ActionMenuPlacement.BottomStart"/>
+                        <ActionMenu Items="this.ActionItems" TriggerAriaLabel="Open compact actions" TriggerTitle="Open compact actions"/>
+                    </div>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">SplitButton</h2>
+
+                    <SplitButton Text="Run analysis" Items="this.ActionItems" Variant="ButtonVariant.Primary"/>
+                </Panel>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">ModalShell</h2>
+
+                    <p class="mb-text-body-sm" style="margin-bottom: 12px; color: var(--mb-color-text-secondary);">
+                        Dialog shell for confirming workspace actions or reviewing model changes.
+                    </p>
+
+                    <Button Variant="ButtonVariant.Secondary" OnClick="this.OpenSampleModal">
+                        Open modal
+                    </Button>
+
+                    <ModalShell
+                        @bind-IsOpen="this.IsSampleModalOpen"
+                        Title="Review pending model changes"
+                        Description="Confirm the selected SysML updates before committing them to the shared workspace."
+                        Size="ModalSize.Medium">
+                        <ChildContent>
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <PropertyRow Label="Package" Value="AuroraSat::ADCS" IsMonospace="true"/>
+                                <PropertyRow Label="Changed elements" Value="3"/>
+                                <PropertyRow Label="Validation" Variant="PropertyRowVariant.Inline">
+                                    <ValueContent>
+                                        <StatusIndicator Variant="StatusIndicatorVariant.Warning" Label="1 warning"/>
+                                    </ValueContent>
+                                </PropertyRow>
+                            </div>
+                        </ChildContent>
+                        <FooterContent>
+                            <Button Variant="ButtonVariant.Secondary" OnClick="this.CloseSampleModal">Cancel</Button>
+                            <Button Variant="ButtonVariant.Primary" OnClick="this.CloseSampleModal">Commit changes</Button>
+                        </FooterContent>
+                    </ModalShell>
+                </Panel>
+            </div>
+        </Panel>
+
+        <Panel Padding="PanelPadding.Large">
+            <SectionHeader Label="Organisms"/>
+
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <Panel Padding="PanelPadding.None" OverflowHidden="true">
+                    <AppHeader
+                        Title="Mycelium Bloom"
+                        Subtitle="AuroraSat workspace"
+                        SearchValue="this.HeaderSearchText"
+                        SearchValueChanged="value => this.HeaderSearchText = value"
+                        SearchPlaceholder="Search AuroraSat"
+                        UserName="Omrane Haj Mohamed"
+                        UserInitials="OH">
+                        <ActionsContent>
+                            <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Share</Button>
+                        </ActionsContent>
+                    </AppHeader>
+                </Panel>
+
+                <div style="display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.2fr); gap: 20px;">
+                    <Panel Padding="PanelPadding.None" OverflowHidden="true">
+                        <Toolbar HasBottomBorder="true">
+                            <StartContent>
+                                <strong class="mb-text-label-md">ModelTree</strong>
+                            </StartContent>
+                            <ChildContent></ChildContent>
+                            <EndContent>
+                                <IconButton AriaLabel="Filter model tree" Title="Filter model tree">?</IconButton>
+                            </EndContent>
+                        </Toolbar>
+
+                        <ModelTree
+                            Items="this.ModelTreeItems"
+                            @bind-ActiveItemId="this.ActiveTreeItemId"
+                            ExpandAllByDefault="true"/>
+                    </Panel>
+
+                    <DetailPanel
+                        Stereotype="part def"
+                        Title="AttitudeController"
+                        QualifiedName="AuroraSat::ADCS::AttitudeController"
+                        Owner="AOCS"
+                        OwnerColor="var(--mb-color-ownership-aocs)"
+                        Tabs="this.DetailTabs"
+                        @bind-ActiveTab="this.ActiveDetailTab"
+                        ShowCollapseButton="false">
+                        <ChildContent>
+                            <PropertyRow Label="Lifecycle" Variant="PropertyRowVariant.Inline">
+                                <ValueContent>
+                                    <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In review</Chip>
+                                </ValueContent>
+                            </PropertyRow>
+                            <PropertyRow Label="Allocated requirement" Value="REQ-ADCS-042" IsMonospace="true"/>
+                            <PropertyRow Label="Reviewer" Value="R. Andre"/>
+                        </ChildContent>
+                    </DetailPanel>
+                </div>
+
+                <Panel Padding="PanelPadding.Medium">
+                    <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">DataTable</h2>
+
+                    <DataTable Columns="this.TableColumns" Items="this.TableRows"/>
+                </Panel>
+
+                <Panel Padding="PanelPadding.None" OverflowHidden="true">
+                    <StatusBar Items="this.StatusItems">
+                        <StartContent>
+                            <span>AuroraSat.sysml</span>
+                        </StartContent>
+                        <EndContent>
+                            <span>Branch: review/adcs-controller</span>
+                        </EndContent>
+                    </StatusBar>
+                </Panel>
+
+                <Panel Padding="PanelPadding.None" OverflowHidden="true">
+                    <WorkspaceShell ShowLeftPanel="true" ShowRightPanel="true" style="height: 520px;">
+                        <HeaderContent>
+                            <AppHeader
+                                Title="WorkspaceShell"
+                                Subtitle="Integrated preview"
+                                ShowSearch="false"
+                                ShowUserAvatar="false">
+                                <ActionsContent>
+                                    <Button Variant="ButtonVariant.Primary" Size="ButtonSize.Small">Commit</Button>
+                                </ActionsContent>
+                            </AppHeader>
+                        </HeaderContent>
+                        <LeftContent>
+                            <ModelTree Items="this.ModelTreeItems" ActiveItemId="this.ActiveTreeItemId" ExpandAllByDefault="true"/>
+                        </LeftContent>
+                        <ChildContent>
+                            <EmptyState Title="Diagram canvas" Description="Workspace preview area for blocks, constraints, allocations, and verification traces.">
+                                <IconContent>[]</IconContent>
+                                <ActionsContent>
+                                    <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Open view</Button>
+                                </ActionsContent>
+                            </EmptyState>
+                        </ChildContent>
+                        <RightContent>
+                            <DetailPanel
+                                Stereotype="constraint def"
+                                Title="PointingAccuracy"
+                                QualifiedName="AuroraSat::ADCS::PointingAccuracy"
+                                Owner="AOCS"
+                                Tabs="this.DetailTabs"
+                                ActiveTab="properties"
+                                ShowCollapseButton="false">
+                                <ChildContent>
+                                    <PropertyRow Label="Expression" Value="abs(error) &lt; 0.05 deg" IsMonospace="true"/>
+                                    <PropertyRow Label="Source" Value="REQ-ADCS-011" IsMonospace="true"/>
+                                </ChildContent>
+                            </DetailPanel>
+                        </RightContent>
+                    </WorkspaceShell>
+                </Panel>
+            </div>
+        </Panel>
+    </main>
+</div>

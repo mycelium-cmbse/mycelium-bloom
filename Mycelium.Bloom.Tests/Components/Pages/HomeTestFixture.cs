@@ -11,7 +11,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 {
     using Bunit;
 
+    using Microsoft.Extensions.DependencyInjection;
+
     using Mycelium.Bloom.Components.Pages;
+    using Mycelium.Bloom.Core.ModelLoading;
+
+    using Moq;
+
+    using SysML2.NET.Core.POCO.Root.Namespaces;
 
     /// <summary>
     /// Tests the <see cref="Home" /> page.
@@ -56,6 +63,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             registerHandler.SetVoidResult();
             disposeHandler.SetVoidResult();
+            this.Services.AddSingleton(CreateModelLoaderService());
 
             var component = this.Render<Home>();
 
@@ -63,9 +71,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("h1").TextContent.Trim(), Is.EqualTo("Welcome To Mycelium Bloom"));
+                Assert.That(component.Markup, Does.Contain("AuroraSat collaborative workspace"));
+                Assert.That(component.Markup, Does.Contain("Quantities"));
+                Assert.That(component.Markup, Does.Contain("AttitudeController"));
+                Assert.That(component.Markup, Does.Contain("Requirement Trace"));
                 Assert.That(component.Find("input").GetAttribute("id"), Is.EqualTo("global-search"));
-                Assert.That(component.Markup, Does.Contain("Search value: model"));
                 Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
                 Assert.That(GetPropertyValue(shortcutOptions, "key"), Is.EqualTo("k"));
                 Assert.That(GetPropertyValue(shortcutOptions, "requiresControlOrMeta"), Is.True);
@@ -85,6 +95,21 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var property = instance.GetType().GetProperty(propertyName);
 
             return property!.GetValue(instance);
+        }
+
+        private static IModelLoaderService CreateModelLoaderService()
+        {
+            var modelLoaderService = new Mock<IModelLoaderService>();
+
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(new Namespace
+                {
+                    ElementId = "quantities",
+                    DeclaredName = "Quantities"
+                });
+
+            return modelLoaderService.Object;
         }
     }
 }

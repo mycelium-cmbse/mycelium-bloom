@@ -1,4 +1,4 @@
-﻿@* ------------------------------------------------------------------------------------------------
+@* ------------------------------------------------------------------------------------------------
 <copyright file="Home.razor" company="Starion Group S.A.">
 
   Copyright 2026 Starion Group S.A.
@@ -10,79 +10,116 @@
 @page "/"
 
 <PageTitle>Mycelium - Bloom</PageTitle>
-<div class="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-(--mb-color-background)">
-    <h1 class="mb-text-display-lg text-(--mb-color-text-primary)">
-        Welcome To Mycelium Bloom
-    </h1>
 
-    <div class="flex flex-wrap items-center justify-center gap-3">
-        <Button Variant="ButtonVariant.Primary">
-            Save changes
-        </Button>
+<WorkspaceShell style="height: calc(100vh - 112px); min-height: 680px;">
+    <HeaderContent>
+        <AppHeader
+            Title="Mycelium Bloom"
+            Subtitle="AuroraSat collaborative workspace"
+            SearchId="global-search"
+            @bind-SearchValue="this.SearchText"
+            SearchPlaceholder="Search model elements"
+            EnableSearchShortcut="true"
+            UserName="Omrane Haj Mohamed"
+            UserInitials="OH">
+            <ActionsContent>
+                <StatusIndicator Variant="StatusIndicatorVariant.Success" Label="Synced"/>
+                <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Share</Button>
+                <Button Variant="ButtonVariant.Primary" Size="ButtonSize.Small">Commit</Button>
+            </ActionsContent>
+        </AppHeader>
+    </HeaderContent>
 
-        <Button Variant="ButtonVariant.Secondary">
-            Cancel
-        </Button>
+    <LeftContent>
+        <Toolbar HasBottomBorder="true">
+            <StartContent>
+                <strong class="mb-text-label-md">Model</strong>
+            </StartContent>
+            <ChildContent></ChildContent>
+            <EndContent>
+                <IconButton AriaLabel="Filter model" Title="Filter model">?</IconButton>
+            </EndContent>
+        </Toolbar>
 
-        <Button Variant="ButtonVariant.Danger" Disabled="true">
-            Delete
-        </Button>
-
-        <IconButton AriaLabel="Open notifications" Title="Notifications">
-            <span>🔔</span>
-        </IconButton>
-    </div>
-
-    <div class="w-full max-w-sm">
-        <Button Variant="ButtonVariant.Primary" FullWidth="true">
-            Continue
-        </Button>
-    </div>
-    <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">
-        AOCS
-    </Chip>
-    <div class="flex items-center gap-3">
-        <Avatar Text="RA" Title="Rami Ahmed"/>
-
-        <Avatar
-            Text="JK"
-            Size="AvatarSize.Small"
-            BackgroundColor="var(--mb-color-brand-700)"
-            BorderColor="#2B66C9"
-            Title="John Keller"/>
-
-        <Avatar
-            Text="+2"
-            Size="AvatarSize.Small"
-            Variant="AvatarVariant.More"
-            Title="2 more users"/>
-        <div class="w-full max-w-xs">
-            <SearchInput @bind-Value="this.SearchText" FullWidth="true"
-                         Id="global-search"
-                         EnableShortcut="true"/>
+        <div style="height: calc(100% - 45px); min-height: 0;">
+            <ProjectBrowser
+                ViewModel="this.ProjectBrowserViewModel"
+                SelectedNodeChanged="this.SelectProjectBrowserNodeAsync"/>
         </div>
+    </LeftContent>
 
-        <p class="mb-text-body-sm text-(--mb-color-text-secondary)">
-            Search value: @(this.SearchText)
-        </p>
+    <ChildContent>
+        <div style="height: 100%; display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto;">
+            <Panel Padding="PanelPadding.Medium">
+                <SectionHeader Label="Workspace"/>
 
-    </div>
+                <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                    <Panel Padding="PanelPadding.Small">
+                        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">Package</p>
+                        <p class="mb-text-heading-xs" style="color: var(--mb-color-text-primary);">AuroraSat</p>
+                    </Panel>
 
-    <Panel Class="w-full max-w-md" Padding="PanelPadding.Medium">
-        <h2 class="mb-text-heading-xs text-(--mb-color-text-primary)">
-            Project workspace
-        </h2>
+                    <Panel Padding="PanelPadding.Small">
+                        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">Selected</p>
+                        <p class="mb-text-heading-xs" style="color: var(--mb-color-text-primary);">@(this.SelectedProjectBrowserNodeName)</p>
+                    </Panel>
 
-        <p class="mb-text-body-sm text-(--mb-color-text-secondary)">
-            This panel now matches the reusable white bordered surfaces from the Figma.
-        </p>
-    </Panel>
-</div>
+                    <Panel Padding="PanelPadding.Small">
+                        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">Review</p>
+                        <p class="mb-text-heading-xs" style="color: var(--mb-color-text-primary);">2 pending</p>
+                    </Panel>
+                </div>
+            </Panel>
 
+            <Panel Padding="PanelPadding.Medium">
+                <SectionHeader Label="Requirement Trace"/>
 
+                <div style="margin-top: 16px;">
+                    <DataTable Columns="this.TableColumns" Items="this.TableRows"/>
+                </div>
+            </Panel>
 
-@code {
+            <Panel Padding="PanelPadding.Medium">
+                <EmptyState
+                    Title="Diagram canvas prototype"
+                    Description="This workspace area is reserved for the interactive model view as the app prototype evolves.">
+                    <IconContent>[]</IconContent>
+                    <ActionsContent>
+                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Open block view</Button>
+                    </ActionsContent>
+                </EmptyState>
+            </Panel>
+        </div>
+    </ChildContent>
 
-    private string SearchText { get; set; } = string.Empty;
+    <RightContent>
+        <DetailPanel
+            Stereotype="part"
+            Title="AttitudeController"
+            QualifiedName="AuroraSat::ADCS::AttitudeController"
+            Owner="AOCS"
+            OwnerColor="var(--mb-color-ownership-aocs)"
+            Tabs="this.DetailTabs"
+            @bind-ActiveTab="this.ActiveDetailTab">
+            <ChildContent>
+                <PropertyRow Label="Lifecycle" Variant="PropertyRowVariant.Inline">
+                    <ValueContent>
+                        <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In review</Chip>
+                    </ValueContent>
+                </PropertyRow>
+                <PropertyRow Label="Allocated requirement" Value="REQ-ADCS-042" IsMonospace="true"/>
+                <PropertyRow Label="Owner" Value="AOCS"/>
+                <PropertyRow Label="Modified by" Value="Omrane Haj Mohamed"/>
+            </ChildContent>
+        </DetailPanel>
+    </RightContent>
+</WorkspaceShell>
 
-}
+<StatusBar Items="this.StatusItems">
+    <StartContent>
+        <span>AuroraSat.sysml</span>
+    </StartContent>
+    <EndContent>
+        <span>Branch: review/adcs-controller</span>
+    </EndContent>
+</StatusBar>
