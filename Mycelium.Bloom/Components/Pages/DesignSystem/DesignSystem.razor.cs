@@ -20,6 +20,34 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
     /// </summary>
     public partial class DesignSystem : ComponentBase
     {
+        private const string ReactionWheelAssemblyName = "ReactionWheelAssembly";
+        private const string ReactionWheelAssemblyId = "reaction-wheel-assembly";
+        private const string SpacecraftName = "Spacecraft";
+        private const string AocsName = "AOCS";
+        private const string AocsPackageQualifiedName = SpacecraftName + "::" + AocsName;
+        private const string ReactionWheelAssemblyQualifiedName = AocsPackageQualifiedName + "::" + ReactionWheelAssemblyName;
+        private const string SearchInputPlaceholder = "Search " + SpacecraftName + ", " + AocsName + ", or " + ReactionWheelAssemblyName;
+        private const string ReviewLabel = "Review";
+        private const string ProjectAdminName = "Project Admin";
+        private const string ProjectAdminInitials = "PA";
+        private const string AocsLeadName = "AOCS Lead";
+        private const string OwnershipAocsColor = "var(--mb-color-ownership-aocs)";
+        private const string ProjectAdminColor = "var(--mb-color-collaborator-c08)";
+        private const string AocsLeadColor = "var(--mb-color-collaborator-c10)";
+        private const string PackageElementKind = "package";
+        private const string OwnerColumnKey = "owner";
+        private const string LinksColumnKey = "links";
+
+        /// <summary>
+        /// The sample active canvas tool.
+        /// </summary>
+        protected CanvasTool ActiveCanvasTool = CanvasTool.Select;
+
+        /// <summary>
+        /// The sample canvas zoom percentage.
+        /// </summary>
+        protected int CanvasZoomPercentage = 100;
+
         /// <summary>
         /// Gets or sets the project browser view model service.
         /// </summary>
@@ -74,7 +102,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// <summary>
         /// Gets or sets the sample default text input value.
         /// </summary>
-        protected string DefaultTextInputValue { get; set; } = "ReactionWheelAssembly";
+        protected string DefaultTextInputValue { get; set; } = ReactionWheelAssemblyName;
 
         /// <summary>
         /// Gets or sets the sample text input value with help text.
@@ -179,17 +207,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// <summary>
         /// Gets or sets the active tree item shown in model tree samples.
         /// </summary>
-        protected string ActiveTreeItemId { get; set; } = "reaction-wheel-assembly";
-
-        /// <summary>
-        /// The sample canvas zoom percentage.
-        /// </summary>
-        protected int CanvasZoomPercentage = 100;
-
-        /// <summary>
-        /// The sample active canvas tool.
-        /// </summary>
-        protected CanvasTool ActiveCanvasTool = CanvasTool.Select;
+        protected string ActiveTreeItemId { get; set; } = ReactionWheelAssemblyId;
 
         /// <summary>
         /// Gets the sample typography rows.
@@ -231,7 +249,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             {
                 Label = "AOCS",
                 Variant = ChipVariant.Ownership,
-                Color = "var(--mb-color-ownership-aocs)"
+                Color = OwnershipAocsColor
             },
             new()
             {
@@ -253,7 +271,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Label = "Review",
+                Label = ReviewLabel,
                 Variant = ChipVariant.Lifecycle,
                 Color = "var(--mb-color-lifecycle-review)"
             }
@@ -271,7 +289,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Label = "Review",
+                Label = ReviewLabel,
                 Variant = StatusIndicatorVariant.Warning
             },
             new()
@@ -403,19 +421,19 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Id = "collaborator-project-admin",
-                Name = "Project Admin",
+                Name = ProjectAdminName,
                 Initials = "PA",
-                Color = "var(--mb-color-collaborator-c08)",
-                Role = "Project Admin",
+                Color = ProjectAdminColor,
+                Role = ProjectAdminName,
                 IsOnline = true,
                 IsCurrentUser = true
             },
             new()
             {
                 Id = "collaborator-aocs-lead",
-                Name = "AOCS Lead",
+                Name = AocsLeadName,
                 Initials = "AL",
-                Color = "var(--mb-color-collaborator-c10)",
+                Color = AocsLeadColor,
                 Role = "Subsystem owner",
                 IsOnline = true
             },
@@ -455,9 +473,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Id = "comment-multiplicity",
-                AuthorName = "AOCS Lead",
+                AuthorName = AocsLeadName,
                 AuthorInitials = "AL",
-                AuthorColor = "var(--mb-color-collaborator-c10)",
+                AuthorColor = AocsLeadColor,
                 CreatedAtText = "12 min ago",
                 Body = "Can we verify the commandedAxis multiplicity before this part definition is committed?",
                 IsEdited = true
@@ -465,9 +483,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Id = "comment-sysml-check",
-                AuthorName = "Project Admin",
+                AuthorName = ProjectAdminName,
                 AuthorInitials = "PA",
-                AuthorColor = "var(--mb-color-collaborator-c08)",
+                AuthorColor = ProjectAdminColor,
                 CreatedAtText = "8 min ago",
                 Body = "I will check it against the loaded SysML model and align the property row if the source differs.",
                 IsCurrentUser = true
@@ -475,9 +493,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Id = "comment-resolved-trace",
-                AuthorName = "AOCS Lead",
+                AuthorName = AocsLeadName,
                 AuthorInitials = "AL",
-                AuthorColor = "var(--mb-color-collaborator-c10)",
+                AuthorColor = AocsLeadColor,
                 CreatedAtText = "Yesterday",
                 Body = "Resolved the requirement trace after linking REQ-ADCS-042 to the verification case.",
                 IsResolved = true
@@ -494,9 +512,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 Id = "history-created-reaction-wheel-assembly",
                 Title = "Created ReactionWheelAssembly",
                 Description = "Added the part definition under Spacecraft::AOCS for wheel cluster modeling.",
-                ActorName = "Project Admin",
+                ActorName = ProjectAdminName,
                 ActorInitials = "PA",
-                ActorColor = "var(--mb-color-collaborator-c08)",
+                ActorColor = ProjectAdminColor,
                 TimestampText = "Today, 09:12",
                 Variant = HistoryTimelineItemVariant.Created
             },
@@ -505,9 +523,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 Id = "history-updated-multiplicity",
                 Title = "Updated multiplicity",
                 Description = "Changed wheel[3..4] to wheel[4] after subsystem owner review.",
-                ActorName = "AOCS Lead",
+                ActorName = AocsLeadName,
                 ActorInitials = "AL",
-                ActorColor = "var(--mb-color-collaborator-c10)",
+                ActorColor = AocsLeadColor,
                 TimestampText = "Today, 09:38",
                 Variant = HistoryTimelineItemVariant.Updated
             },
@@ -527,7 +545,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 Id = "history-reviewed-project-admin",
                 Title = "Reviewed by Project Admin",
                 Description = "Approved the ADCS package change for the current review baseline.",
-                ActorName = "Project Admin",
+                ActorName = ProjectAdminName,
                 ActorInitials = "PA",
                 ActorColor = "var(--mb-color-brand-700)",
                 TimestampText = "Today, 10:26",
@@ -556,11 +574,11 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 Id = "activity-created-reaction-wheel-assembly",
                 Title = "Project Admin created ReactionWheelAssembly",
                 Description = "Added the reaction wheel assembly to the active ADCS workspace.",
-                ActorName = "Project Admin",
+                ActorName = ProjectAdminName,
                 ActorInitials = "PA",
-                ActorColor = "var(--mb-color-collaborator-c08)",
+                ActorColor = ProjectAdminColor,
                 TimestampText = "Today, 09:12",
-                TargetName = "ReactionWheelAssembly",
+                TargetName = ReactionWheelAssemblyName,
                 TargetQualifiedName = "Spacecraft::AOCS::ReactionWheelAssembly",
                 Variant = ActivityFeedItemVariant.Created
             },
@@ -569,9 +587,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 Id = "activity-reviewed-aocs-package",
                 Title = "AOCS Lead reviewed AOCS package",
                 Description = "Marked the current package changes ready for project administrator approval.",
-                ActorName = "AOCS Lead",
+                ActorName = AocsLeadName,
                 ActorInitials = "AL",
-                ActorColor = "var(--mb-color-collaborator-c10)",
+                ActorColor = AocsLeadColor,
                 TimestampText = "Today, 09:46",
                 TargetName = "AOCS",
                 TargetQualifiedName = "Spacecraft::AOCS",
@@ -587,7 +605,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 ActorColor = "var(--mb-color-brand-700)",
                 TimestampText = "Today, 10:02",
                 TargetName = "Workspace model",
-                TargetQualifiedName = "Spacecraft",
+                TargetQualifiedName = SpacecraftName,
                 Variant = ActivityFeedItemVariant.Synced
             },
             new()
@@ -613,7 +631,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 ActorColor = "var(--mb-color-success-500)",
                 TimestampText = "Today, 10:28",
                 TargetName = "Spacecraft workspace",
-                TargetQualifiedName = "Spacecraft",
+                TargetQualifiedName = SpacecraftName,
                 Variant = ActivityFeedItemVariant.Joined
             }
         ];
@@ -636,7 +654,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Value = "review",
-                Label = "Review"
+                Label = ReviewLabel
             },
             new()
             {
@@ -718,7 +736,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Value = "package",
+                Value = PackageElementKind,
                 Label = "Package"
             }
         ];
@@ -759,7 +777,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Value = "project",
-                Label = "Spacecraft"
+                Label = SpacecraftName
             },
             new()
             {
@@ -768,8 +786,8 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Value = "reaction-wheel-assembly",
-                Label = "ReactionWheelAssembly",
+                Value = ReactionWheelAssemblyId,
+                Label = ReactionWheelAssemblyName,
                 IsCurrent = true
             }
         ];
@@ -782,7 +800,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Value = "spacecraft",
-                Label = "Spacecraft"
+                Label = SpacecraftName
             },
             new()
             {
@@ -791,8 +809,8 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Value = "reaction-wheel-assembly",
-                Label = "ReactionWheelAssembly",
+                Value = ReactionWheelAssemblyId,
+                Label = ReactionWheelAssemblyName,
                 IsCurrent = true
             }
         ];
@@ -881,7 +899,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 Id = "spacecraft-model",
                 Name = "Spacecraft Model",
                 Description = "Active collaborative SysML workspace",
-                Lifecycle = "Review"
+                Lifecycle = ReviewLabel
             },
             new()
             {
@@ -915,39 +933,39 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             new()
             {
                 Id = "spacecraft",
-                Title = "Spacecraft",
-                Stereotype = "package",
+                Title = SpacecraftName,
+                Stereotype = PackageElementKind,
                 ElementColor = "var(--mb-color-sysml-structure-header)",
                 Children =
                 [
-                    new()
+                    new ModelTreeItem
                     {
                         Id = "aocs",
                         Title = "AOCS",
-                        Stereotype = "package",
+                        Stereotype = PackageElementKind,
                         Ownership = TreeNodeOwnership.Mine,
-                        OwnershipColor = "var(--mb-color-ownership-aocs)",
+                        OwnershipColor = OwnershipAocsColor,
                         HasComment = true,
                         Children =
                         [
-                            new()
+                            new ModelTreeItem
                             {
-                                Id = "reaction-wheel-assembly",
-                                Title = "ReactionWheelAssembly",
+                                Id = ReactionWheelAssemblyId,
+                                Title = ReactionWheelAssemblyName,
                                 Stereotype = "part def",
                                 Ownership = TreeNodeOwnership.Mine,
-                                OwnershipColor = "var(--mb-color-ownership-aocs)",
+                                OwnershipColor = OwnershipAocsColor,
                                 IsModified = true
                             },
-                            new()
+                            new ModelTreeItem
                             {
                                 Id = "attitude-controller",
                                 Title = "AttitudeController",
                                 Stereotype = "part",
                                 Ownership = TreeNodeOwnership.Mine,
-                                OwnershipColor = "var(--mb-color-ownership-aocs)"
+                                OwnershipColor = OwnershipAocsColor
                             },
-                            new()
+                            new ModelTreeItem
                             {
                                 Id = "pointing-accuracy",
                                 Title = "PointingAccuracy",
@@ -956,22 +974,22 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                             }
                         ]
                     },
-                    new()
+                    new ModelTreeItem
                     {
                         Id = "power",
                         Title = "PowerSubsystem",
-                        Stereotype = "package",
+                        Stereotype = PackageElementKind,
                         Ownership = TreeNodeOwnership.Others,
                         OwnershipColor = "var(--mb-color-ownership-power)",
                         Children =
                         [
-                            new()
+                            new ModelTreeItem
                             {
                                 Id = "battery",
                                 Title = "BatteryAssembly",
                                 Stereotype = "part"
                             },
-                            new()
+                            new ModelTreeItem
                             {
                                 Id = "solar-array",
                                 Title = "SolarArray",
@@ -1007,12 +1025,12 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Key = "owner",
+                Key = OwnerColumnKey,
                 Header = "Owner"
             },
             new()
             {
-                Key = "links",
+                Key = LinksColumnKey,
                 Header = "Links",
                 IsRightAligned = true,
                 Width = "80px"
@@ -1029,24 +1047,24 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
                 ["id"] = "REQ-ADCS-011",
                 ["name"] = "Pointing accuracy",
                 ["type"] = "requirement",
-                ["owner"] = "AOCS",
-                ["links"] = "4"
+                [OwnerColumnKey] = "AOCS",
+                [LinksColumnKey] = "4"
             },
             new Dictionary<string, string>
             {
                 ["id"] = "BLK-ADCS-002",
-                ["name"] = "ReactionWheelAssembly",
+                ["name"] = ReactionWheelAssemblyName,
                 ["type"] = "part",
-                ["owner"] = "AOCS",
-                ["links"] = "7"
+                [OwnerColumnKey] = "AOCS",
+                [LinksColumnKey] = "7"
             },
             new Dictionary<string, string>
             {
                 ["id"] = "VER-ADCS-018",
                 ["name"] = "Slew response case",
                 ["type"] = "verification",
-                ["owner"] = "Analysis",
-                ["links"] = "3"
+                [OwnerColumnKey] = "Analysis",
+                [LinksColumnKey] = "3"
             }
         ];
 
@@ -1064,7 +1082,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
             },
             new()
             {
-                Label = "Review",
+                Label = ReviewLabel,
                 Value = "2 pending",
                 Variant = StatusIndicatorVariant.Warning,
                 ShowIndicator = true
@@ -1176,7 +1194,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// Handles cancelling a sample confirmation dialog.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleConfirmDialogCancelled()
+        protected static Task HandleConfirmDialogCancelled()
         {
             return Task.CompletedTask;
         }
@@ -1186,7 +1204,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// </summary>
         /// <param name="commentBody">The submitted comment body.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleCommentSubmitted(string commentBody)
+        protected static Task HandleCommentSubmitted(string commentBody)
         {
             _ = commentBody;
 
@@ -1198,7 +1216,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// </summary>
         /// <param name="commentId">The resolved comment identifier.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleCommentResolved(string commentId)
+        protected static Task HandleCommentResolved(string commentId)
         {
             _ = commentId;
 
@@ -1210,11 +1228,9 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// </summary>
         /// <param name="commentId">The deleted comment identifier.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleCommentDeleted(string commentId)
+        protected static Task HandleCommentDeleted(string commentId)
         {
-            _ = commentId;
-
-            return Task.CompletedTask;
+            return Task.FromResult(commentId);
         }
 
         /// <summary>
@@ -1246,7 +1262,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// </summary>
         /// <param name="breadcrumbValue">The selected breadcrumb value.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleCanvasBreadcrumbSelected(string breadcrumbValue)
+        protected static Task HandleCanvasBreadcrumbSelected(string breadcrumbValue)
         {
             _ = breadcrumbValue;
 
@@ -1257,7 +1273,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// Handles fitting the sample canvas to view.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleCanvasFitToView()
+        protected static Task HandleCanvasFitToView()
         {
             return Task.CompletedTask;
         }
@@ -1267,7 +1283,7 @@ namespace Mycelium.Bloom.Components.Pages.DesignSystem
         /// </summary>
         /// <param name="node">The selected project browser node.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
+        protected static Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
             _ = node;
 

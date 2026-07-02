@@ -8,8 +8,6 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @page "/design-system"
-@using Mycelium.Bloom.Components.UI.Molecules.DetailPanelHeader
-@using Mycelium.Bloom.Components.UI.Molecules.Modal
 
 <PageTitle>Bloom Design System</PageTitle>
 
@@ -24,7 +22,8 @@
         </h1>
 
         <p class="mb-text-body-md" style="max-width: 760px; color: var(--mb-color-text-secondary);">
-            Reusable UI components shown with Mycelium Bloom workspace, SysML, model sync, and Fabric connection sample data.
+            Reusable UI components shown with Mycelium Bloom workspace, SysML, model sync, and Fabric connection sample
+            data.
         </p>
     </header>
 
@@ -86,7 +85,9 @@
                         <IconButton AriaLabel="Refresh model" Title="Refresh model">R</IconButton>
                         <IconButton AriaLabel="Pin detail panel" Title="Pin detail panel">P</IconButton>
                         <IconButton AriaLabel="Open notifications" Title="Open notifications">!</IconButton>
-                        <IconButton AriaLabel="Disabled workspace action" Title="Disabled workspace action" Disabled="true">x</IconButton>
+                        <IconButton AriaLabel="Disabled workspace action" Title="Disabled workspace action"
+                                    Disabled="true">x
+                        </IconButton>
                     </div>
                 </Panel>
 
@@ -106,9 +107,10 @@
                     <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">Avatar</h2>
 
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <Avatar Text="PA" Title="Project Admin" Size="AvatarSize.Small"/>
-                        <Avatar Text="AL" Title="AOCS Lead" BackgroundColor="var(--mb-color-collaborator-c10)"/>
-                        <Avatar Text="FS" Title="Fabric Sync" Size="AvatarSize.Large" BackgroundColor="var(--mb-color-brand-700)"/>
+                        <Avatar Text="@ProjectAdminInitials" Title="@ProjectAdminName" Size="AvatarSize.Small"/>
+                        <Avatar Text="AL" Title="@AocsLeadName" BackgroundColor="@AocsLeadColor"/>
+                        <Avatar Text="FS" Title="Fabric Sync" Size="AvatarSize.Large"
+                                BackgroundColor="var(--mb-color-brand-700)"/>
                         <Avatar Text="+3" Title="3 more collaborators" Variant="AvatarVariant.More"/>
                     </div>
                 </Panel>
@@ -118,7 +120,7 @@
 
                     <SearchInput
                         @bind-Value="this.SearchText"
-                        Placeholder="Search Spacecraft, AOCS, or ReactionWheelAssembly"
+                        Placeholder="@SearchInputPlaceholder"
                         FullWidth="true"
                         Id="design-system-search"/>
                 </Panel>
@@ -186,10 +188,11 @@
                     <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">PropertyRow</h2>
 
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <PropertyRow Label="Qualified name" Value="Spacecraft::AOCS::ReactionWheelAssembly" IsMonospace="true"/>
+                        <PropertyRow Label="Qualified name" Value="@ReactionWheelAssemblyQualifiedName"
+                                     IsMonospace="true"/>
                         <PropertyRow Label="Owner" Variant="PropertyRowVariant.Inline">
                             <ValueContent>
-                                <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">AOCS</Chip>
+                                <Chip Variant="ChipVariant.Ownership" Color="@OwnershipAocsColor">@AocsName</Chip>
                             </ValueContent>
                         </PropertyRow>
                         <PropertyRow Label="Fabric connection" Value="Model sync ready"/>
@@ -216,8 +219,10 @@
                     <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">ActionMenu</h2>
 
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <ActionMenu Items="this.ActionItems" TriggerText="Element actions" IsIconOnly="false" Icon="v" Placement="ActionMenuPlacement.BottomStart"/>
-                        <ActionMenu Items="this.ActionItems" TriggerAriaLabel="Open compact element actions" TriggerTitle="Open compact element actions"/>
+                        <ActionMenu Items="this.ActionItems" TriggerText="Element actions" IsIconOnly="false" Icon="v"
+                                    Placement="ActionMenuPlacement.BottomStart"/>
+                        <ActionMenu Items="this.ActionItems" TriggerAriaLabel="Open compact element actions"
+                                    TriggerTitle="Open compact element actions"/>
                     </div>
                 </Panel>
 
@@ -239,10 +244,10 @@
                     <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">UserMenu</h2>
 
                     <UserMenu
-                        UserName="Project Admin"
-                        UserInitials="PA"
+                        UserName="@ProjectAdminName"
+                        UserInitials="@ProjectAdminInitials"
                         UserEmail="project.admin@example.invalid"
-                        UserRole="Project Admin"
+                        UserRole="@ProjectAdminName"
                         Items="this.UserMenuItems"/>
                 </Panel>
 
@@ -252,7 +257,7 @@
                     <ZoomControls
                         ZoomPercentage="this.CanvasZoomPercentage"
                         ZoomPercentageChanged="this.HandleCanvasZoomPercentageChanged"
-                        FitToView="this.HandleCanvasFitToView"/>
+                        FitToView="HandleCanvasFitToView"/>
                 </Panel>
 
                 <Panel Padding="PanelPadding.Medium">
@@ -260,10 +265,10 @@
 
                     <DetailPanelHeader
                         Stereotype="part def"
-                        Title="ReactionWheelAssembly"
-                        QualifiedName="Spacecraft::AOCS::ReactionWheelAssembly"
-                        Owner="AOCS"
-                        OwnerColor="var(--mb-color-ownership-aocs)"
+                        Title="@ReactionWheelAssemblyName"
+                        QualifiedName="@ReactionWheelAssemblyQualifiedName"
+                        Owner="@AocsName"
+                        OwnerColor="@OwnershipAocsColor"
                         ShowCollapseButton="false"/>
                 </Panel>
 
@@ -285,7 +290,7 @@
                         Size="ModalSize.Medium">
                         <ChildContent>
                             <div style="display: flex; flex-direction: column; gap: 12px;">
-                                <PropertyRow Label="Package" Value="Spacecraft::AOCS" IsMonospace="true"/>
+                                <PropertyRow Label="Package" Value="@AocsPackageQualifiedName" IsMonospace="true"/>
                                 <PropertyRow Label="Changed elements" Value="3"/>
                                 <PropertyRow Label="Validation" Variant="PropertyRowVariant.Inline">
                                     <ValueContent>
@@ -296,7 +301,8 @@
                         </ChildContent>
                         <FooterContent>
                             <Button Variant="ButtonVariant.Secondary" OnClick="this.CloseSampleModal">Cancel</Button>
-                            <Button Variant="ButtonVariant.Primary" OnClick="this.CloseSampleModal">Commit changes</Button>
+                            <Button Variant="ButtonVariant.Primary" OnClick="this.CloseSampleModal">Commit changes
+                            </Button>
                         </FooterContent>
                     </ModalShell>
                 </Panel>
@@ -314,8 +320,8 @@
                         SearchValue="this.HeaderSearchText"
                         SearchValueChanged="value => this.HeaderSearchText = value"
                         SearchPlaceholder="Search Spacecraft"
-                        UserName="Project Admin"
-                        UserInitials="PA">
+                        UserName="@ProjectAdminName"
+                        UserInitials="@ProjectAdminInitials">
                         <BrandContent>
                             <div class="mb-app-header__brand-mark">
                                 M
@@ -335,12 +341,12 @@
                 <Panel Padding="PanelPadding.None" OverflowHidden="true">
                     <CanvasToolbar
                         BreadcrumbItems="this.CanvasBreadcrumbs"
-                        BreadcrumbSelected="this.HandleCanvasBreadcrumbSelected"
+                        BreadcrumbSelected="HandleCanvasBreadcrumbSelected"
                         ActiveTool="this.ActiveCanvasTool"
                         ActiveToolChanged="this.HandleActiveCanvasToolChanged"
                         ZoomPercentage="this.CanvasZoomPercentage"
                         ZoomPercentageChanged="this.HandleCanvasZoomPercentageChanged"
-                        FitToView="this.HandleCanvasFitToView">
+                        FitToView="HandleCanvasFitToView">
                         <EndContent>
                             <CollaboratorStack Items="this.CollaboratorStackItems" MaxVisible="3"/>
                         </EndContent>
@@ -366,21 +372,23 @@
 
                     <DetailPanel
                         Stereotype="part def"
-                        Title="ReactionWheelAssembly"
-                        QualifiedName="Spacecraft::AOCS::ReactionWheelAssembly"
-                        Owner="AOCS"
-                        OwnerColor="var(--mb-color-ownership-aocs)"
+                        Title="@ReactionWheelAssemblyName"
+                        QualifiedName="@ReactionWheelAssemblyQualifiedName"
+                        Owner="@AocsName"
+                        OwnerColor="@OwnershipAocsColor"
                         Tabs="this.DetailTabs"
                         @bind-ActiveTab="this.ActiveDetailTab"
                         ShowCollapseButton="false">
                         <ChildContent>
                             <PropertyRow Label="Lifecycle" Variant="PropertyRowVariant.Inline">
                                 <ValueContent>
-                                    <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In review</Chip>
+                                    <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In
+                                        review
+                                    </Chip>
                                 </ValueContent>
                             </PropertyRow>
                             <PropertyRow Label="Allocated requirement" Value="REQ-ADCS-042" IsMonospace="true"/>
-                            <PropertyRow Label="Reviewer" Value="Project Admin"/>
+                            <PropertyRow Label="Reviewer" Value="@ProjectAdminName"/>
                         </ChildContent>
                     </DetailPanel>
                 </div>
@@ -397,7 +405,7 @@
 
                     <ProjectBrowser
                         ViewModel="this.ProjectBrowserViewModel"
-                        SelectedNodeChanged="this.HandleProjectBrowserNodeSelectedAsync"/>
+                        SelectedNodeChanged="HandleProjectBrowserNodeSelectedAsync"/>
                 </Panel>
 
                 <Panel Padding="PanelPadding.Medium">
@@ -431,7 +439,8 @@
                             </AppHeader>
                         </HeaderContent>
                         <LeftContent>
-                            <ModelTree Items="this.ModelTreeItems" ActiveItemId="this.ActiveTreeItemId" ExpandAllByDefault="true"/>
+                            <ModelTree Items="this.ModelTreeItems" ActiveItemId="this.ActiveTreeItemId"
+                                       ExpandAllByDefault="true"/>
                         </LeftContent>
                         <ChildContent>
                             <div style="height: 100%; padding: 16px;">
@@ -439,12 +448,14 @@
                                     BreadcrumbItems="this.CanvasBreadcrumbs"
                                     ActiveTool="this.ActiveCanvasTool"
                                     ZoomPercentage="this.CanvasZoomPercentage"
-                                    FitToView="this.HandleCanvasFitToView"/>
+                                    FitToView="HandleCanvasFitToView"/>
 
-                                <EmptyState Title="Diagram canvas" Description="Workspace preview area for AOCS blocks, constraints, allocations, and verification traces.">
+                                <EmptyState Title="Diagram canvas"
+                                            Description="Workspace preview area for AOCS blocks, constraints, allocations, and verification traces.">
                                     <IconContent>RW</IconContent>
                                     <ActionsContent>
-                                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Open view</Button>
+                                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Open view
+                                        </Button>
                                     </ActionsContent>
                                 </EmptyState>
                             </div>
@@ -459,7 +470,8 @@
                                 ActiveTab="properties"
                                 ShowCollapseButton="false">
                                 <ChildContent>
-                                    <PropertyRow Label="Expression" Value="abs(error) &lt; 0.05 deg" IsMonospace="true"/>
+                                    <PropertyRow Label="Expression" Value="abs(error) &lt; 0.05 deg"
+                                                 IsMonospace="true"/>
                                     <PropertyRow Label="Source" Value="REQ-ADCS-011" IsMonospace="true"/>
                                 </ChildContent>
                             </DetailPanel>
@@ -544,13 +556,16 @@
                     <h2 class="mb-text-heading-xs" style="margin-bottom: 12px;">ConfirmDialog</h2>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.OpenDefaultConfirmDialog">
+                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small"
+                                OnClick="this.OpenDefaultConfirmDialog">
                             Default
                         </Button>
-                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.OpenWarningConfirmDialog">
+                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small"
+                                OnClick="this.OpenWarningConfirmDialog">
                             Warning
                         </Button>
-                        <Button Variant="ButtonVariant.Danger" Size="ButtonSize.Small" OnClick="this.OpenDangerConfirmDialog">
+                        <Button Variant="ButtonVariant.Danger" Size="ButtonSize.Small"
+                                OnClick="this.OpenDangerConfirmDialog">
                             Danger
                         </Button>
                     </div>
@@ -562,7 +577,7 @@
                         Message="Commit the selected SysML updates to the shared workspace?"
                         ConfirmText="Commit"
                         Confirmed="this.HandleDefaultConfirmDialogConfirmed"
-                        Cancelled="this.HandleConfirmDialogCancelled"/>
+                        Cancelled="HandleConfirmDialogCancelled"/>
 
                     <ConfirmDialog
                         IsOpen="this.IsWarningConfirmDialogOpen"
@@ -572,7 +587,7 @@
                         ConfirmText="Continue"
                         Variant="ConfirmDialogVariant.Warning"
                         Confirmed="this.HandleWarningConfirmDialogConfirmed"
-                        Cancelled="this.HandleConfirmDialogCancelled"/>
+                        Cancelled="HandleConfirmDialogCancelled"/>
 
                     <ConfirmDialog
                         IsOpen="this.IsDangerConfirmDialogOpen"
@@ -582,7 +597,7 @@
                         ConfirmText="Delete"
                         Variant="ConfirmDialogVariant.Danger"
                         Confirmed="this.HandleDangerConfirmDialogConfirmed"
-                        Cancelled="this.HandleConfirmDialogCancelled"/>
+                        Cancelled="HandleConfirmDialogCancelled"/>
                 </Panel>
             </div>
         </Panel>
@@ -811,9 +826,9 @@
                     <CommentThread
                         Comments="this.CommentItems"
                         @bind-NewCommentValue="this.NewCommentValue"
-                        CommentSubmitted="this.HandleCommentSubmitted"
-                        CommentResolved="this.HandleCommentResolved"
-                        CommentDeleted="this.HandleCommentDeleted"/>
+                        CommentSubmitted="HandleCommentSubmitted"
+                        CommentResolved="HandleCommentResolved"
+                        CommentDeleted="HandleCommentDeleted"/>
                 </Panel>
 
                 <Panel Padding="PanelPadding.Medium">
