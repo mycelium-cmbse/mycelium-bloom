@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Tests.Common;
 
     using TabsComponent = Mycelium.Bloom.Components.UI.Molecules.Tabs.Tabs;
 
@@ -22,7 +23,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class TabsTestFixture : BunitContext
+    public sealed class TabsTestFixture : KeyboardNavigationBunitContext
     {
         /// <summary>
         /// Disposes the bUnit test context after each test.
@@ -31,15 +32,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
         public void TearDown()
         {
             this.Dispose();
-        }
-
-        /// <summary>
-        /// Sets up JavaScript interop used by keyboard navigation.
-        /// </summary>
-        [SetUp]
-        public void SetUp()
-        {
-            SetupKeyboardNavigationModule(this);
         }
 
         /// <summary>
@@ -154,18 +146,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
                 Assert.That(tabs[1].HasAttribute("disabled"), Is.True);
                 Assert.That(tabs[1].GetAttribute("class"), Does.Contain("mb-tabs__item--disabled"));
             }
-        }
-
-        /// <summary>
-        /// Sets up the keyboard navigation JavaScript module.
-        /// </summary>
-        /// <param name="context">The bUnit test context.</param>
-        private static void SetupKeyboardNavigationModule(BunitContext context)
-        {
-            var module = context.JSInterop.SetupModule("/js/keyboardNavigation.js");
-
-            module.SetupVoid("registerNavigationKeyPrevention", _ => true).SetVoidResult();
-            module.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
         }
     }
 }

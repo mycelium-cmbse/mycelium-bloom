@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
 
     using Moq;
 
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using DesignSystemComponent = Mycelium.Bloom.Components.Pages.DesignSystem.DesignSystem;
@@ -27,7 +28,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class DesignSystemTestFixture : BunitContext
+    public sealed class DesignSystemTestFixture : KeyboardNavigationBunitContext
     {
         /// <summary>
         /// Disposes the bUnit test context after each test.
@@ -45,7 +46,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
         public void VerifyRenderDisplaysDesignSystemSamples()
         {
             var projectBrowserViewModelService = this.RegisterProjectBrowserViewModelService();
-            SetupKeyboardNavigationModule(this);
 
             var component = this.Render<DesignSystemComponent>();
 
@@ -91,18 +91,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
         {
             return component.FindAll("button")
                 .First(button => button.TextContent.Contains(text));
-        }
-
-        /// <summary>
-        /// Sets up the keyboard navigation JavaScript module.
-        /// </summary>
-        /// <param name="context">The bUnit test context.</param>
-        private static void SetupKeyboardNavigationModule(BunitContext context)
-        {
-            var module = context.JSInterop.SetupModule("/js/keyboardNavigation.js");
-
-            module.SetupVoid("registerNavigationKeyPrevention", _ => true).SetVoidResult();
-            module.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
         }
 
         /// <summary>

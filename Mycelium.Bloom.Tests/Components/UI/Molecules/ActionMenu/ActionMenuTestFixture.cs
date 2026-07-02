@@ -16,6 +16,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Tests.Common;
 
     using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
 
@@ -24,7 +25,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class ActionMenuTestFixture : BunitContext
+    public sealed class ActionMenuTestFixture : KeyboardNavigationBunitContext
     {
         /// <summary>
         /// Disposes the bUnit test context after each test.
@@ -33,15 +34,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
         public void TearDown()
         {
             this.Dispose();
-        }
-
-        /// <summary>
-        /// Sets up JavaScript interop used by keyboard navigation.
-        /// </summary>
-        [SetUp]
-        public void SetUp()
-        {
-            SetupKeyboardNavigationModule(this);
         }
 
         /// <summary>
@@ -93,18 +85,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 new() { Value = "disabled", Label = "Disabled", Disabled = true },
                 new() { Value = "preferences", Label = "Preferences" }
             ];
-        }
-
-        /// <summary>
-        /// Sets up the keyboard navigation JavaScript module.
-        /// </summary>
-        /// <param name="context">The bUnit test context.</param>
-        private static void SetupKeyboardNavigationModule(BunitContext context)
-        {
-            var module = context.JSInterop.SetupModule("/js/keyboardNavigation.js");
-
-            module.SetupVoid("registerNavigationKeyPrevention", _ => true).SetVoidResult();
-            module.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
         }
     }
 }

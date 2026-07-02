@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.Tests.Common;
 
     using UserMenuComponent = Mycelium.Bloom.Components.UI.Molecules.UserMenu.UserMenu;
 
@@ -23,7 +24,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class UserMenuTestFixture : BunitContext
+    public sealed class UserMenuTestFixture : KeyboardNavigationBunitContext
     {
         /// <summary>
         /// Disposes the bUnit test context after each test.
@@ -32,15 +33,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         public void TearDown()
         {
             this.Dispose();
-        }
-
-        /// <summary>
-        /// Sets up JavaScript interop used by keyboard navigation.
-        /// </summary>
-        [SetUp]
-        public void SetUp()
-        {
-            SetupKeyboardNavigationModule(this);
         }
 
         /// <summary>
@@ -195,18 +187,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
                 Assert.That(component.Find(".mb-user-menu__trigger").GetAttribute("aria-expanded"), Is.EqualTo("false"));
                 Assert.That(component.FindAll(".mb-user-menu__menu"), Is.Empty);
             }
-        }
-
-        /// <summary>
-        /// Sets up the keyboard navigation JavaScript module.
-        /// </summary>
-        /// <param name="context">The bUnit test context.</param>
-        private static void SetupKeyboardNavigationModule(BunitContext context)
-        {
-            var module = context.JSInterop.SetupModule("/js/keyboardNavigation.js");
-
-            module.SetupVoid("registerNavigationKeyPrevention", _ => true).SetVoidResult();
-            module.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
         }
     }
 }
