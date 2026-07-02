@@ -1,0 +1,41 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ZoomControls.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" role="group" aria-label="Canvas zoom controls" @attributes="this.AdditionalAttributes">
+    <IconButton
+        AriaLabel="Zoom out"
+        Title="Zoom out"
+        Class="mb-zoom-controls__button"
+        Disabled="@(this.IsZoomOutDisabled())"
+        OnClick="this.ZoomOutAsync">
+        -
+    </IconButton>
+
+    <span class="mb-zoom-controls__value" aria-live="polite">
+        @(this.GetZoomLabel())
+    </span>
+
+    <IconButton
+        AriaLabel="Zoom in"
+        Title="Zoom in"
+        Class="mb-zoom-controls__button"
+        Disabled="@(this.IsZoomInDisabled())"
+        OnClick="this.ZoomInAsync">
+        +
+    </IconButton>
+
+    <IconButton
+        AriaLabel="Fit canvas to view"
+        Title="Fit to view"
+        Class="mb-zoom-controls__button"
+        Disabled="@(this.Disabled)"
+        OnClick="this.FitToViewAsync">
+        []
+    </IconButton>
+</div>

@@ -1,0 +1,46 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="CollaboratorStack.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@if (this.Items.Count > 0)
+{
+    <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+        @foreach (var item in this.GetVisibleItems())
+        {
+            <span class="@(this.GetItemCssClass(item))" title="@(this.GetItemTitle(item))" @key="item.Id">
+                <Avatar
+                    Text="@(item.Initials)"
+                    Title="@(this.GetItemTitle(item))"
+                    BackgroundColor="@(item.Color)"
+                    Size="AvatarSize.Small"
+                    Class="mb-collaborator-stack__avatar"/>
+
+                @if (this.ShowOnlineIndicator)
+                {
+                    <span
+                        class="@(this.GetStatusCssClass(item))"
+                        title="@(this.GetStatusTitle(item))"
+                        aria-label="@(this.GetStatusTitle(item))">
+                    </span>
+                }
+            </span>
+        }
+
+        @if (this.HiddenCount > 0)
+        {
+            <span class="mb-collaborator-stack__item mb-collaborator-stack__more" title="@(this.GetMoreTitle())">
+                <Avatar
+                    Text="@(this.GetMoreText())"
+                    Title="@(this.GetMoreTitle())"
+                    Variant="AvatarVariant.More"
+                    Size="AvatarSize.Small"
+                    Class="mb-collaborator-stack__avatar"/>
+            </span>
+        }
+    </div>
+}

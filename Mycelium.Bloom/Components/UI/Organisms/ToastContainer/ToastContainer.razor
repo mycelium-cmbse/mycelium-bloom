@@ -1,0 +1,18 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ToastContainer.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@if (this.HasNotifications())
+{
+    <section class="@(this.GetCssClass())" aria-live="polite" aria-label="Notifications" @attributes="this.AdditionalAttributes">
+        @foreach (var notification in this.Notifications)
+        {
+            <NotificationToast Notification="notification" Dismissed="this.Dismissed"/>
+        }
+    </section>
+}

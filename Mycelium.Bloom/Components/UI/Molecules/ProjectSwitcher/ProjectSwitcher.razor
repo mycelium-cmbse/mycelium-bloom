@@ -1,0 +1,89 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectSwitcher.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div
+    class="@(this.GetCssClass())"
+    @onfocusin="this.HandleFocusIn"
+    @onfocusout="this.HandleFocusOutAsync"
+    @attributes="this.AdditionalAttributes">
+    <button
+        type="button"
+        class="mb-project-switcher__trigger"
+        disabled="@(this.Disabled)"
+        aria-haspopup="listbox"
+        aria-expanded="@(this.IsOpen ? "true" : "false")"
+        @onclick="this.ToggleDropdown">
+        <span class="mb-project-switcher__icon" aria-hidden="true">
+            P
+        </span>
+
+        <span class="mb-project-switcher__content">
+            @if (this.GetSelectedProject() is { } selectedProject)
+            {
+                <span class="mb-project-switcher__label">
+                    @(selectedProject.Name)
+                </span>
+
+                @if (!string.IsNullOrWhiteSpace(selectedProject.Lifecycle))
+                {
+                    <span class="mb-project-switcher__meta">
+                        @(selectedProject.Lifecycle)
+                    </span>
+                }
+            }
+            else
+            {
+                <span class="mb-project-switcher__placeholder">
+                    @(this.Placeholder)
+                </span>
+            }
+        </span>
+
+        <span class="mb-project-switcher__chevron" aria-hidden="true">
+            v
+        </span>
+    </button>
+
+    @if (this.IsOpen)
+    {
+        <div class="mb-project-switcher__menu" role="listbox" aria-label="Projects">
+            @foreach (var item in this.Items)
+            {
+                <button
+                    type="button"
+                    class="@(this.GetItemClass(item))"
+                    role="option"
+                    aria-selected="@(this.IsSelected(item) ? "true" : "false")"
+                    aria-disabled="@(item.Disabled ? "true" : "false")"
+                    disabled="@(item.Disabled)"
+                    @onclick="() => this.SelectItemAsync(item)">
+                    <span class="mb-project-switcher__item-content">
+                        <span class="mb-project-switcher__item-name">
+                            @(item.Name)
+                        </span>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <span class="mb-project-switcher__item-description">
+                                @(item.Description)
+                            </span>
+                        }
+                    </span>
+
+                    @if (!string.IsNullOrWhiteSpace(item.Lifecycle))
+                    {
+                        <span class="mb-project-switcher__item-lifecycle">
+                            @(item.Lifecycle)
+                        </span>
+                    }
+                </button>
+            }
+        </div>
+    }
+</div>

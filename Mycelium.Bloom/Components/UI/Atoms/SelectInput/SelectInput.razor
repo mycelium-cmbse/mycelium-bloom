@@ -1,0 +1,106 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="SelectInput.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())">
+    @if (this.HasLabel())
+    {
+        <label class="mb-select-input__label" for="@(this.GetButtonId())">
+            <span>@(this.Label)</span>
+
+            @if (this.Required)
+            {
+                <span class="mb-select-input__required" aria-hidden="true">*</span>
+            }
+        </label>
+    }
+
+    <div class="mb-select-input__control">
+        @if (this.StartContent is not null)
+        {
+            <span class="mb-select-input__start">
+                @(this.StartContent)
+            </span>
+        }
+
+        <button
+            @attributes="this.AdditionalAttributes"
+            id="@(this.GetButtonId())"
+            class="mb-select-input__button"
+            type="button"
+            disabled="@(this.Disabled)"
+            aria-haspopup="listbox"
+            aria-expanded="@(this.GetAriaExpanded())"
+            aria-controls="@(this.GetListboxId())"
+            aria-invalid="@(this.GetAriaInvalid())"
+            aria-required="@(this.GetAriaRequired())"
+            aria-describedby="@(this.GetDescriptionId())"
+            @onclick="this.ToggleOpen">
+            @if (this.HasSelectedOption())
+            {
+                <span class="mb-select-input__value">
+                    @(this.GetSelectedOptionLabel())
+                </span>
+            }
+            else if (this.ShouldShowPlaceholder())
+            {
+                <span class="mb-select-input__placeholder">
+                    @(this.GetPlaceholderText())
+                </span>
+            }
+            else
+            {
+                <span class="mb-select-input__value">
+                    @(this.Value)
+                </span>
+            }
+
+            <span class="mb-select-input__chevron" aria-hidden="true"></span>
+        </button>
+
+        @if (this.IsOpen)
+        {
+            <div
+                id="@(this.GetListboxId())"
+                class="mb-select-input__menu"
+                role="listbox"
+                aria-labelledby="@(this.GetButtonId())">
+                @foreach (var option in this.Options)
+                {
+                    <button
+                        type="button"
+                        class="@(this.GetOptionCssClass(option))"
+                        role="option"
+                        aria-selected="@(this.GetAriaSelected(option))"
+                        disabled="@(option.Disabled)"
+                        @onclick="() => this.SelectOptionAsync(option)">
+                        @(option.Label)
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    @if (this.HasName())
+    {
+        <input type="hidden" name="@(this.Name)" value="@(this.Value)"/>
+    }
+
+    @if (this.HasError())
+    {
+        <p id="@(this.GetErrorId())" class="mb-select-input__error">
+            @(this.ErrorText)
+        </p>
+    }
+    else if (this.HasHelpText())
+    {
+        <p id="@(this.GetHelpId())" class="mb-select-input__help">
+            @(this.HelpText)
+        </p>
+    }
+</div>

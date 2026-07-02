@@ -1,0 +1,15 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Skeleton.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @for (var lineIndex = 0; lineIndex < this.GetLineCount(); lineIndex++)
+    {
+        <span class="mb-skeleton__line" style="@(this.GetLineStyle())" aria-hidden="true"></span>
+    }
+</div>

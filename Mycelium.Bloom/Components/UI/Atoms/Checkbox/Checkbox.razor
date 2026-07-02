@@ -1,0 +1,50 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Checkbox.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<label class="@(this.GetCssClass())">
+    <input
+        @attributes="this.AdditionalAttributes"
+        id="@(this.GetCheckboxId())"
+        name="@(this.GetCheckboxName())"
+        class="mb-checkbox__input"
+        type="checkbox"
+        checked="@(this.Checked)"
+        disabled="@(this.Disabled)"
+        required="@(this.Required)"
+        aria-describedby="@(this.GetDescriptionId())"
+        @onchange="this.HandleChangedAsync"/>
+
+    <span class="mb-checkbox__box" aria-hidden="true">
+        <span class="mb-checkbox__check"></span>
+    </span>
+
+    @if (this.HasContent())
+    {
+        <span class="mb-checkbox__content">
+            @if (this.HasLabel())
+            {
+                <span class="mb-checkbox__label">
+                    <span>@(this.Label)</span>
+
+                    @if (this.Required)
+                    {
+                        <span class="mb-checkbox__required" aria-hidden="true">*</span>
+                    }
+                </span>
+            }
+
+            @if (this.HasDescription())
+            {
+                <span id="@(this.GetDescriptionId())" class="mb-checkbox__description">
+                    @(this.Description)
+                </span>
+            }
+        </span>
+    }
+</label>

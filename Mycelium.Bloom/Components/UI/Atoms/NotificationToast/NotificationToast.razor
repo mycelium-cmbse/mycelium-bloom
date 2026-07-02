@@ -1,0 +1,34 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="NotificationToast.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<article class="@(this.GetCssClass())" role="status" @attributes="this.AdditionalAttributes">
+    <span class="mb-notification-toast__marker" aria-hidden="true"></span>
+
+    <div class="mb-notification-toast__content">
+        <h2 class="mb-notification-toast__title">
+            @(this.Notification.Title)
+        </h2>
+
+        <p class="mb-notification-toast__message">
+            @(this.Notification.Message)
+        </p>
+    </div>
+
+    @if (this.Notification.IsDismissible)
+    {
+        <button
+            type="button"
+            class="mb-notification-toast__close"
+            aria-label="@(this.GetDismissLabel())"
+            title="@(this.GetDismissLabel())"
+            @onclick="this.HandleDismissAsync">
+            x
+        </button>
+    }
+</article>

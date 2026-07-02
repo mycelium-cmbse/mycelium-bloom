@@ -1,0 +1,66 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="TextInput.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())">
+    @if (this.HasLabel())
+    {
+        <label class="mb-text-input__label" for="@(this.GetInputId())">
+            <span>@(this.Label)</span>
+
+            @if (this.Required)
+            {
+                <span class="mb-text-input__required" aria-hidden="true">*</span>
+            }
+        </label>
+    }
+
+    <div class="mb-text-input__control">
+        @if (this.StartContent is not null)
+        {
+            <span class="mb-text-input__start">
+                @(this.StartContent)
+            </span>
+        }
+
+        <input
+            @attributes="this.AdditionalAttributes"
+            id="@(this.GetInputId())"
+            name="@(this.GetInputName())"
+            class="mb-text-input__field"
+            type="@(this.Type)"
+            value="@(this.Value)"
+            placeholder="@(this.Placeholder)"
+            disabled="@(this.Disabled)"
+            required="@(this.Required)"
+            readonly="@(this.ReadOnly)"
+            aria-invalid="@(this.GetAriaInvalid())"
+            aria-describedby="@(this.GetDescriptionId())"
+            @oninput="this.HandleInputAsync"/>
+
+        @if (this.EndContent is not null)
+        {
+            <span class="mb-text-input__end">
+                @(this.EndContent)
+            </span>
+        }
+    </div>
+
+    @if (this.HasError())
+    {
+        <p id="@(this.GetErrorId())" class="mb-text-input__error">
+            @(this.ErrorText)
+        </p>
+    }
+    else if (this.HasHelpText())
+    {
+        <p id="@(this.GetHelpId())" class="mb-text-input__help">
+            @(this.HelpText)
+        </p>
+    }
+</div>

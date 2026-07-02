@@ -1,0 +1,64 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="HistoryTimeline.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<section class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.Items.Count == 0)
+    {
+        <p class="mb-history-timeline__empty">
+            @(this.EmptyText)
+        </p>
+    }
+    else
+    {
+        <div class="mb-history-timeline__list">
+            @foreach (var item in this.Items)
+            {
+                <article class="mb-history-timeline__item" @key="item.Id">
+                    <div class="mb-history-timeline__rail" aria-hidden="true">
+                        <span class="@(this.GetMarkerCssClass(item))"></span>
+                    </div>
+
+                    <div class="mb-history-timeline__content">
+                        <div class="mb-history-timeline__header">
+                            <h3 class="mb-history-timeline__title">
+                                @(item.Title)
+                            </h3>
+
+                            <span class="mb-history-timeline__timestamp">
+                                @(item.TimestampText)
+                            </span>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <p class="mb-history-timeline__description">
+                                @(item.Description)
+                            </p>
+                        }
+
+                        <div class="mb-history-timeline__actor">
+                            @if (!string.IsNullOrWhiteSpace(item.ActorInitials))
+                            {
+                                <Avatar
+                                    Text="@(item.ActorInitials)"
+                                    Title="@(item.ActorName)"
+                                    BackgroundColor="@(item.ActorColor)"
+                                    Size="AvatarSize.Small"/>
+                            }
+
+                            <span class="mb-history-timeline__actor-name" title="@(item.ActorName)">
+                                @(item.ActorName)
+                            </span>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>

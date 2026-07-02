@@ -1,0 +1,53 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ConfirmDialog.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.Components.UI.Molecules.Modal
+
+<ModalShell
+    IsOpen="@(this.IsOpen)"
+    IsOpenChanged="this.IsOpenChanged"
+    Title="@(this.Title)"
+    Size="ModalSize.Small"
+    ShowCloseButton="false"
+    CloseOnBackdropClick="false"
+    Class="@(this.GetCssClass())"
+    @attributes="this.AdditionalAttributes">
+    <ChildContent>
+        <div class="mb-confirm-dialog__body">
+            <span class="@(this.GetIconCssClass())" aria-hidden="true">
+                @(this.GetIconText())
+            </span>
+
+            <p class="mb-confirm-dialog__message">
+                @(this.Message)
+            </p>
+        </div>
+    </ChildContent>
+
+    <FooterContent>
+        <div class="mb-confirm-dialog__footer">
+            <Button
+                Variant="ButtonVariant.Secondary"
+                Size="ButtonSize.Small"
+                Disabled="@(this.IsConfirming)"
+                OnClick="this.HandleCancelAsync">
+                @(this.CancelText)
+            </Button>
+
+            <Button
+                Variant="@(this.GetConfirmButtonVariant())"
+                Size="ButtonSize.Small"
+                Disabled="@(this.IsConfirming)"
+                IsLoading="@(this.IsConfirming)"
+                OnClick="this.HandleConfirmAsync">
+                @(this.ConfirmText)
+            </Button>
+        </div>
+    </FooterContent>
+</ModalShell>

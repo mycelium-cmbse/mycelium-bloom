@@ -1,0 +1,77 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ActivityFeed.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<section class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.Items.Count == 0)
+    {
+        <p class="mb-activity-feed__empty">
+            @(this.EmptyText)
+        </p>
+    }
+    else
+    {
+        <div class="mb-activity-feed__list">
+            @foreach (var item in this.Items)
+            {
+                <article class="mb-activity-feed__item" @key="item.Id">
+                    <span class="@(this.GetMarkerCssClass(item))" aria-hidden="true"></span>
+
+                    @if (!string.IsNullOrWhiteSpace(item.ActorInitials))
+                    {
+                        <Avatar
+                            Text="@(item.ActorInitials)"
+                            Title="@(item.ActorName)"
+                            BackgroundColor="@(item.ActorColor)"
+                            Size="AvatarSize.Small"
+                            Class="mb-activity-feed__avatar"/>
+                    }
+
+                    <div class="mb-activity-feed__content">
+                        <div class="mb-activity-feed__header">
+                            <h3 class="mb-activity-feed__title">
+                                @(item.Title)
+                            </h3>
+
+                            <span class="mb-activity-feed__timestamp">
+                                @(item.TimestampText)
+                            </span>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <p class="mb-activity-feed__description">
+                                @(item.Description)
+                            </p>
+                        }
+
+                        <div class="mb-activity-feed__meta">
+                            <span class="mb-activity-feed__actor" title="@(item.ActorName)">
+                                @(item.ActorName)
+                            </span>
+
+                            @if (!string.IsNullOrWhiteSpace(item.TargetName))
+                            {
+                                <span class="mb-activity-feed__target" title="@(item.TargetName)">
+                                    @(item.TargetName)
+                                </span>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(item.TargetQualifiedName))
+                            {
+                                <span class="mb-activity-feed__qualified-name" title="@(item.TargetQualifiedName)">
+                                    @(item.TargetQualifiedName)
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>

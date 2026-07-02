@@ -1,0 +1,105 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="CommentThread.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<section class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <div class="mb-comment-thread__list">
+        @if (this.Comments.Count == 0)
+        {
+            <p class="mb-comment-thread__empty">
+                @(this.EmptyText)
+            </p>
+        }
+        else
+        {
+            @foreach (var comment in this.Comments)
+            {
+                <article class="@(this.GetCommentCssClass(comment))">
+                    <Avatar
+                        Text="@(comment.AuthorInitials)"
+                        Title="@(comment.AuthorName)"
+                        BackgroundColor="@(comment.AuthorColor)"
+                        Size="AvatarSize.Small"
+                        Class="mb-comment-thread__avatar"/>
+
+                    <div class="mb-comment-thread__content">
+                        <div class="mb-comment-thread__header">
+                            <div class="mb-comment-thread__meta">
+                                <span class="mb-comment-thread__author">
+                                    @(comment.AuthorName)
+                                </span>
+
+                                <span>
+                                    @(comment.CreatedAtText)
+                                </span>
+
+                                @if (comment.IsEdited)
+                                {
+                                    <span class="mb-comment-thread__edited">
+                                        edited
+                                    </span>
+                                }
+                            </div>
+
+                            @if (this.ShouldShowActions(comment))
+                            {
+                                <div class="mb-comment-thread__actions">
+                                    @if (!comment.IsResolved)
+                                    {
+                                        <Button
+                                            Variant="ButtonVariant.Ghost"
+                                            Size="ButtonSize.Small"
+                                            Disabled="@(this.Disabled)"
+                                            OnClick="@(() => this.HandleResolveAsync(comment.Id))">
+                                            Resolve
+                                        </Button>
+                                    }
+
+                                    @if (comment.IsCurrentUser)
+                                    {
+                                        <Button
+                                            Variant="ButtonVariant.Ghost"
+                                            Size="ButtonSize.Small"
+                                            Disabled="@(this.Disabled)"
+                                            OnClick="@(() => this.HandleDeleteAsync(comment.Id))">
+                                            Delete
+                                        </Button>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <p class="mb-comment-thread__body">
+                            @(comment.Body)
+                        </p>
+                    </div>
+                </article>
+            }
+        }
+    </div>
+
+    <div class="mb-comment-thread__composer">
+        <TextArea
+            Value="@(this.NewCommentValue)"
+            ValueChanged="@(this.NewCommentValueChanged)"
+            Placeholder="@(this.Placeholder)"
+            Disabled="@(this.Disabled)"
+            Rows="3"
+            Size="TextAreaSize.Small"/>
+
+        <div class="mb-comment-thread__composer-actions">
+            <Button
+                Variant="ButtonVariant.Primary"
+                Size="ButtonSize.Small"
+                Disabled="@(this.IsSubmitDisabled())"
+                OnClick="@(this.HandleSubmitAsync)">
+                Submit
+            </Button>
+        </div>
+    </div>
+</section>

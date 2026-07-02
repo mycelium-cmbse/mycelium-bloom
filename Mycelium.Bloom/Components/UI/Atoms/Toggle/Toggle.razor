@@ -1,0 +1,53 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Toggle.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<label class="@(this.GetCssClass())">
+    <input
+        @attributes="this.AdditionalAttributes"
+        id="@(this.GetToggleId())"
+        name="@(this.GetToggleName())"
+        class="mb-toggle__input"
+        type="checkbox"
+        role="switch"
+        checked="@(this.Checked)"
+        disabled="@(this.Disabled)"
+        aria-checked="@(this.GetAriaChecked())"
+        aria-describedby="@(this.GetDescriptionId())"
+        @onchange="this.HandleChangedAsync"/>
+
+    <span class="mb-toggle__track" aria-hidden="true">
+        <span class="mb-toggle__thumb"></span>
+    </span>
+
+    @if (this.HasStateText())
+    {
+        <span class="mb-toggle__state-text">
+            @(this.GetStateText())
+        </span>
+    }
+
+    @if (this.HasContent())
+    {
+        <span class="mb-toggle__content">
+            @if (this.HasLabel())
+            {
+                <span class="mb-toggle__label">
+                    @(this.Label)
+                </span>
+            }
+
+            @if (this.HasDescription())
+            {
+                <span id="@(this.GetDescriptionId())" class="mb-toggle__description">
+                    @(this.Description)
+                </span>
+            }
+        </span>
+    }
+</label>

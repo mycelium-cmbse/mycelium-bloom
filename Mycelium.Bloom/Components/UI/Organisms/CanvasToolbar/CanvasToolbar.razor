@@ -1,0 +1,49 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="CanvasToolbar.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <div class="mb-canvas-toolbar__start">
+        @if (this.StartContent is not null)
+        {
+            @(this.StartContent)
+        }
+        else if (this.BreadcrumbItems.Count > 0)
+        {
+            <Breadcrumbs Items="this.BreadcrumbItems" SelectedValueChanged="this.BreadcrumbSelected"/>
+        }
+    </div>
+
+    <div class="mb-canvas-toolbar__tools" role="toolbar" aria-label="Canvas tools">
+        @foreach (var tool in this.Tools)
+        {
+            var isActive = this.IsActiveTool(tool);
+
+            <IconButton
+                AriaLabel="@(this.GetToolAriaLabel(tool))"
+                Title="@(this.GetToolTitle(tool))"
+                Class="@(this.GetToolCssClass(tool))"
+                aria-pressed="@(isActive ? "true" : "false")"
+                OnClick="() => this.SelectToolAsync(tool)">
+                @(this.GetToolIcon(tool))
+            </IconButton>
+        }
+    </div>
+
+    <div class="mb-canvas-toolbar__end">
+        <ZoomControls
+            ZoomPercentage="this.ZoomPercentage"
+            ZoomPercentageChanged="this.ZoomPercentageChanged"
+            FitToView="this.FitToView"/>
+
+        @if (this.EndContent is not null)
+        {
+            @(this.EndContent)
+        }
+    </div>
+</div>
