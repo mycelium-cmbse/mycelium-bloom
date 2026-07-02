@@ -2951,9 +2951,8 @@
     }
 
     .mb-collaborator-stack__item--current-user .mb-collaborator-stack__avatar {
-        box-shadow:
-            0 0 0 1px var(--mb-color-brand-700),
-            0 0 0 3px var(--mb-color-surface);
+        box-shadow: 0 0 0 1px var(--mb-color-brand-700),
+        0 0 0 3px var(--mb-color-surface);
     }
 
     .mb-collaborator-stack__status {
@@ -4130,10 +4129,10 @@
         inset: 0;
         content: "";
         background: linear-gradient(
-            90deg,
-            transparent,
-            rgb(255 255 255 / 0.62),
-            transparent
+                90deg,
+                transparent,
+                rgb(255 255 255 / 0.62),
+                transparent
         );
         transform: translateX(-100%);
         animation: mb-skeleton-shimmer 1400ms ease-in-out infinite;

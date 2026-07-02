@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------------------------
 // <copyright file="ProjectBrowser.razor.cs" company="Starion Group S.A.">
-//
+// 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-//
+// 
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -86,7 +86,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             return this.ViewModel.IsLoading
-                || (!this.ViewModel.IsLoaded && string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage));
+                   || (!this.ViewModel.IsLoaded && string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage));
         }
 
         private bool ShouldShowErrorState()
