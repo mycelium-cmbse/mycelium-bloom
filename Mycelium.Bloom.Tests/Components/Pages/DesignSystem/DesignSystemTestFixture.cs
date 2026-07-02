@@ -11,15 +11,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
 {
     using System.Collections.Generic;
     using System.Linq;
-    using System.Threading.Tasks;
 
     using Bunit;
 
     using Microsoft.Extensions.DependencyInjection;
 
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Moq;
 
-    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using DesignSystemComponent = Mycelium.Bloom.Components.Pages.DesignSystem.DesignSystem;
 
@@ -45,7 +44,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
         [Test]
         public void VerifyRenderDisplaysDesignSystemSamples()
         {
-            this.Services.AddSingleton<IProjectBrowserViewModelService>(new ProjectBrowserViewModelServiceStub());
+            var projectBrowserViewModelService = this.RegisterProjectBrowserViewModelService();
             SetupKeyboardNavigationModule(this);
 
             var component = this.Render<DesignSystemComponent>();
@@ -68,6 +67,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
                 Assert.That(component.FindAll(".mb-panel"), Is.Not.Empty);
                 Assert.That(component.FindAll(".mb-button"), Is.Not.Empty);
                 Assert.That(component.FindAll(".mb-model-tree"), Is.Not.Empty);
+                projectBrowserViewModelService.Verify(x => x.CreateQuantitiesProjectBrowserViewModel(), Times.Once);
             }
 
             component.Find(".mb-modal__close-button").Click();
@@ -105,53 +105,30 @@ namespace Mycelium.Bloom.Tests.Components.Pages.DesignSystem
             module.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
         }
 
-        private sealed class ProjectBrowserViewModelServiceStub : IProjectBrowserViewModelService
+        /// <summary>
+        /// Registers the mocked project browser ViewModel service required by the design-system page.
+        /// </summary>
+        /// <returns>The registered project browser ViewModel service mock.</returns>
+        private Mock<IProjectBrowserViewModelService> RegisterProjectBrowserViewModelService()
         {
-            public IProjectBrowserViewModel CreateQuantitiesProjectBrowserViewModel()
-            {
-                return new ProjectBrowserViewModelStub();
-            }
+            IReadOnlyList<ProjectBrowserNodeViewModel> rootNodes = [];
 
-            public IProjectBrowserViewModel CreateFromNamespace(INamespace namespaceRoot)
-            {
-                _ = namespaceRoot;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
 
-                return new ProjectBrowserViewModelStub();
-            }
-        }
+            viewModel.SetupGet(x => x.RootNodes).Returns(rootNodes);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
 
-        private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
-        {
-            public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; } = [];
+            var projectBrowserViewModelService = new Mock<IProjectBrowserViewModelService>(MockBehavior.Strict);
 
-            public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
+            projectBrowserViewModelService
+                .Setup(x => x.CreateQuantitiesProjectBrowserViewModel())
+                .Returns(viewModel.Object);
 
-            public bool IsLoading => false;
+            this.Services.AddSingleton(projectBrowserViewModelService.Object);
 
-            public bool IsLoaded => true;
-
-            public string ErrorMessage => string.Empty;
-
-            public Task InitializeAsync()
-            {
-                return Task.CompletedTask;
-            }
-
-            public void Initialize(INamespace model)
-            {
-                _ = model;
-            }
-
-            public void ToggleNode(ProjectBrowserNodeViewModel node)
-            {
-                node.IsExpanded = !node.IsExpanded;
-            }
-
-            public void SelectNode(ProjectBrowserNodeViewModel node)
-            {
-                this.SelectedNode = node;
-                node.IsSelected = true;
-            }
+            return projectBrowserViewModelService;
         }
     }
 }
