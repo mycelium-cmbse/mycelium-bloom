@@ -55,10 +55,11 @@
 
         @if (this.ShowUserAvatar)
         {
-            <Avatar
-                Text="@(this.UserInitials)"
-                Title="@(this.UserName)"
-                BackgroundColor="@(this.UserColor)"/>
+            <UserMenu
+                UserName="@(this.UserName)"
+                UserInitials="@(this.UserInitials)"
+                UserColor="@(this.UserColor)"
+                ShowUserText="false"/>
         }
     </div>
 </header>

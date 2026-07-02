@@ -9,14 +9,17 @@
 
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
     using Bunit;
 
     using Microsoft.Extensions.DependencyInjection;
 
-    using Mycelium.Bloom.Components.Pages;
-    using Mycelium.Bloom.Core.ModelLoading;
-
     using Moq;
+
+    using Mycelium.Bloom.Components.Pages;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
@@ -44,6 +47,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         {
             object shortcutOptions = null;
 
+            var projectBrowserService = this.RegisterProjectBrowserServices();
+
             var module = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
             var registerHandler = module.SetupVoid(
                 "registerSearchShortcut",
@@ -63,7 +68,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             registerHandler.SetVoidResult();
             disposeHandler.SetVoidResult();
-            this.Services.AddSingleton(CreateModelLoaderService());
+
+            var keyboardNavigationModule = this.JSInterop.SetupModule("/js/keyboardNavigation.js");
+
+            keyboardNavigationModule.SetupVoid("registerNavigationKeyPrevention", _ => true).SetVoidResult();
+            keyboardNavigationModule.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
 
             var component = this.Render<Home>();
 
@@ -71,16 +80,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Markup, Does.Contain("AuroraSat collaborative workspace"));
+                Assert.That(component.Markup, Does.Contain("Quantities model workspace"));
                 Assert.That(component.Markup, Does.Contain("Quantities"));
-                Assert.That(component.Markup, Does.Contain("AttitudeController"));
-                Assert.That(component.Markup, Does.Contain("Requirement Trace"));
+                Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
+                Assert.That(component.Markup, Does.Contain("Workspace in progress"));
+                Assert.That(component.Markup, Does.Contain("Details in progress"));
+                Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
+                Assert.That(component.Find(".mb-project-browser__tree"), Is.Not.Null);
                 Assert.That(component.Find("input").GetAttribute("id"), Is.EqualTo("global-search"));
                 Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
                 Assert.That(GetPropertyValue(shortcutOptions, "key"), Is.EqualTo("k"));
                 Assert.That(GetPropertyValue(shortcutOptions, "requiresControlOrMeta"), Is.True);
                 Assert.That(GetPropertyValue(shortcutOptions, "requiresAlt"), Is.False);
                 Assert.That(GetPropertyValue(shortcutOptions, "requiresShift"), Is.False);
+                projectBrowserService.Verify(x => x.CreateQuantitiesProjectBrowserViewModel(), Times.Once);
             }
         }
 
@@ -94,22 +107,59 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         {
             var property = instance.GetType().GetProperty(propertyName);
 
-            return property!.GetValue(instance);
+            Assert.That(property, Is.Not.Null);
+
+            return property.GetValue(instance);
         }
 
-        private static IModelLoaderService CreateModelLoaderService()
+        private Mock<IProjectBrowserViewModelService> RegisterProjectBrowserServices()
         {
-            var modelLoaderService = new Mock<IModelLoaderService>();
+            var viewModel = new ProjectBrowserViewModelStub
+            {
+                IsLoading = true
+            };
 
-            modelLoaderService
-                .Setup(x => x.LoadQuantitiesModel())
-                .Returns(new Namespace
-                {
-                    ElementId = "quantities",
-                    DeclaredName = "Quantities"
-                });
+            var projectBrowserService = new Mock<IProjectBrowserViewModelService>();
 
-            return modelLoaderService.Object;
+            projectBrowserService
+                .Setup(x => x.CreateQuantitiesProjectBrowserViewModel())
+                .Returns(viewModel);
+
+            this.Services.AddSingleton(projectBrowserService.Object);
+
+            return projectBrowserService;
+        }
+
+        private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
+        {
+            public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; } = [];
+
+            public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
+
+            public bool IsLoading { get; set; }
+
+            public bool IsLoaded { get; set; }
+
+            public string ErrorMessage { get; set; } = string.Empty;
+
+            public Task InitializeAsync()
+            {
+                return Task.CompletedTask;
+            }
+
+            public void Initialize(INamespace model)
+            {
+                this.IsLoaded = true;
+            }
+
+            public void ToggleNode(ProjectBrowserNodeViewModel node)
+            {
+            }
+
+            public void SelectNode(ProjectBrowserNodeViewModel node)
+            {
+                this.SelectedNode = node;
+            }
         }
     }
 }

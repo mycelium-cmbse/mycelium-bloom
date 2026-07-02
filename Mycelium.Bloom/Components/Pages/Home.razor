@@ -11,115 +11,98 @@
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
-<WorkspaceShell style="height: calc(100vh - 112px); min-height: 680px;">
+<WorkspaceShell style="height: calc(100vh - 32px); max-height: calc(100vh - 32px); min-height: 0;">
     <HeaderContent>
         <AppHeader
             Title="Mycelium Bloom"
-            Subtitle="AuroraSat collaborative workspace"
+            Subtitle="Quantities model workspace"
             SearchId="global-search"
             @bind-SearchValue="this.SearchText"
             SearchPlaceholder="Search model elements"
             EnableSearchShortcut="true"
-            UserName="Omrane Haj Mohamed"
-            UserInitials="OH">
+            UserName="Project Admin"
+            UserInitials="PA">
             <ActionsContent>
-                <StatusIndicator Variant="StatusIndicatorVariant.Success" Label="Synced"/>
-                <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Share</Button>
-                <Button Variant="ButtonVariant.Primary" Size="ButtonSize.Small">Commit</Button>
+                <StatusIndicator Variant="StatusIndicatorVariant.Success" Label="Quantities loaded"/>
             </ActionsContent>
         </AppHeader>
     </HeaderContent>
 
     <LeftContent>
-        <Toolbar HasBottomBorder="true">
-            <StartContent>
-                <strong class="mb-text-label-md">Model</strong>
-            </StartContent>
-            <ChildContent></ChildContent>
-            <EndContent>
-                <IconButton AriaLabel="Filter model" Title="Filter model">?</IconButton>
-            </EndContent>
-        </Toolbar>
+        <div style="height: 100%; max-height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+            <Toolbar HasBottomBorder="true">
+                <StartContent>
+                    <strong class="mb-text-label-md">Model</strong>
+                </StartContent>
+                <ChildContent>
+                    <StatusIndicator Variant="StatusIndicatorVariant.Info" Label="Quantities"/>
+                </ChildContent>
+                <EndContent>
+                    <IconButton AriaLabel="Filter model" Title="Filter model">?</IconButton>
+                </EndContent>
+            </Toolbar>
 
-        <div style="height: calc(100% - 45px); min-height: 0;">
-            <ProjectBrowser
-                ViewModel="this.ProjectBrowserViewModel"
-                SelectedNodeChanged="this.SelectProjectBrowserNodeAsync"/>
+            <div style="flex: 1 1 auto; height: 100%; max-height: 100%; min-height: 0; overflow: hidden;">
+                <ProjectBrowser
+                    ViewModel="this.ProjectBrowserViewModel"
+                    SelectedNodeChanged="this.HandleProjectBrowserNodeSelectedAsync"/>
+            </div>
         </div>
     </LeftContent>
 
     <ChildContent>
-        <div style="height: 100%; display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto;">
+        <div style="height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto;">
             <Panel Padding="PanelPadding.Medium">
                 <SectionHeader Label="Workspace"/>
 
-                <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-                    <Panel Padding="PanelPadding.Small">
-                        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">Package</p>
-                        <p class="mb-text-heading-xs" style="color: var(--mb-color-text-primary);">AuroraSat</p>
-                    </Panel>
-
-                    <Panel Padding="PanelPadding.Small">
-                        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">Selected</p>
-                        <p class="mb-text-heading-xs" style="color: var(--mb-color-text-primary);">@(this.SelectedProjectBrowserNodeName)</p>
-                    </Panel>
-
-                    <Panel Padding="PanelPadding.Small">
-                        <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">Review</p>
-                        <p class="mb-text-heading-xs" style="color: var(--mb-color-text-primary);">2 pending</p>
-                    </Panel>
-                </div>
-            </Panel>
-
-            <Panel Padding="PanelPadding.Medium">
-                <SectionHeader Label="Requirement Trace"/>
-
                 <div style="margin-top: 16px;">
-                    <DataTable Columns="this.TableColumns" Items="this.TableRows"/>
+                    <p class="mb-text-label-xs" style="color: var(--mb-color-text-muted);">
+                        Selected element
+                    </p>
+
+                    <p class="mb-text-heading-xs" style="margin-top: 4px; color: var(--mb-color-text-primary);">
+                        @(this.SelectedModelElementName)
+                    </p>
                 </div>
             </Panel>
 
             <Panel Padding="PanelPadding.Medium">
-                <EmptyState
-                    Title="Diagram canvas prototype"
-                    Description="This workspace area is reserved for the interactive model view as the app prototype evolves.">
-                    <IconContent>[]</IconContent>
-                    <ActionsContent>
-                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Open block view</Button>
-                    </ActionsContent>
-                </EmptyState>
+                <LoadingState
+                    Title="Workspace in progress"
+                    Description="Project Browser integration is the active workspace prototype."
+                    ShowSpinner="false"
+                    ShowSkeleton="true">
+                    <SkeletonContent>
+                        <Skeleton Lines="2"/>
+                        <Skeleton Variant="SkeletonVariant.Rectangle" Height="220px"/>
+                    </SkeletonContent>
+                </LoadingState>
             </Panel>
         </div>
     </ChildContent>
 
     <RightContent>
-        <DetailPanel
-            Stereotype="part"
-            Title="AttitudeController"
-            QualifiedName="AuroraSat::ADCS::AttitudeController"
-            Owner="AOCS"
-            OwnerColor="var(--mb-color-ownership-aocs)"
-            Tabs="this.DetailTabs"
-            @bind-ActiveTab="this.ActiveDetailTab">
-            <ChildContent>
-                <PropertyRow Label="Lifecycle" Variant="PropertyRowVariant.Inline">
-                    <ValueContent>
-                        <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In review</Chip>
-                    </ValueContent>
-                </PropertyRow>
-                <PropertyRow Label="Allocated requirement" Value="REQ-ADCS-042" IsMonospace="true"/>
-                <PropertyRow Label="Owner" Value="AOCS"/>
-                <PropertyRow Label="Modified by" Value="Omrane Haj Mohamed"/>
-            </ChildContent>
-        </DetailPanel>
+        <div style="height: 100%; min-height: 0; padding: 16px; overflow: auto;">
+            <Panel Padding="PanelPadding.Medium">
+                <SectionHeader Label="Details"/>
+
+                <div style="margin-top: 16px;">
+                    <EmptyState
+                        Title="Details in progress"
+                        Description="Element properties will use the selected Project Browser node.">
+                        <IconContent>PB</IconContent>
+                    </EmptyState>
+                </div>
+            </Panel>
+        </div>
     </RightContent>
 </WorkspaceShell>
 
 <StatusBar Items="this.StatusItems">
     <StartContent>
-        <span>AuroraSat.sysml</span>
+        <span>Quantities.sysmlx</span>
     </StartContent>
     <EndContent>
-        <span>Branch: review/adcs-controller</span>
+        <span>Issue #8 Project Browser</span>
     </EndContent>
 </StatusBar>

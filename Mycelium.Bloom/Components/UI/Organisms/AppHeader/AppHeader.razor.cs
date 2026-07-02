@@ -88,7 +88,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.AppHeader
         /// Gets or sets the user avatar background color.
         /// </summary>
         [Parameter]
-        public string UserColor { get; set; } = "var(--mb-color-collaborator-08)";
+        public string UserColor { get; set; } = "var(--mb-color-collaborator-c08, #3b82f6)";
 
         /// <summary>
         /// Gets or sets optional custom brand content.

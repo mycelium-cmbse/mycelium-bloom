@@ -89,34 +89,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelTree
         {
             return builder =>
             {
-                var sequence = 0;
-
                 foreach (var item in items)
                 {
                     var hasChildren = item.Children.Count > 0;
                     var isExpanded = this.IsExpanded(item);
 
-                    builder.OpenComponent<TreeNode>(sequence++);
-                    builder.AddAttribute(sequence++, "Title", item.Title);
-                    builder.AddAttribute(sequence++, "Stereotype", item.Stereotype);
-                    builder.AddAttribute(sequence++, "IsActive", this.IsActive(item));
-                    builder.AddAttribute(sequence++, "HasChildren", hasChildren);
-                    builder.AddAttribute(sequence++, "IsExpanded", isExpanded);
-                    builder.AddAttribute(sequence++, "HasComment", item.HasComment);
-                    builder.AddAttribute(sequence++, "IsModified", item.IsModified);
-                    builder.AddAttribute(sequence++, "IndentLevel", indentLevel);
-                    builder.AddAttribute(sequence++, "Ownership", item.Ownership);
-                    builder.AddAttribute(sequence++, "OwnershipColor", item.OwnershipColor);
-                    builder.AddAttribute(sequence++, "ElementColor", item.ElementColor);
+                    builder.OpenComponent<TreeNode>(0);
+                    builder.AddAttribute(1, "Title", item.Title);
+                    builder.AddAttribute(2, "Stereotype", item.Stereotype);
+                    builder.AddAttribute(3, "IsActive", this.IsActive(item));
+                    builder.AddAttribute(4, "HasChildren", hasChildren);
+                    builder.AddAttribute(5, "IsExpanded", isExpanded);
+                    builder.AddAttribute(6, "HasComment", item.HasComment);
+                    builder.AddAttribute(7, "IsModified", item.IsModified);
+                    builder.AddAttribute(8, "IndentLevel", indentLevel);
+                    builder.AddAttribute(9, "Ownership", item.Ownership);
+                    builder.AddAttribute(10, "OwnershipColor", item.OwnershipColor);
+                    builder.AddAttribute(11, "ElementColor", item.ElementColor);
 
-                    builder.AddAttribute(sequence++, "OnClick",
+                    builder.AddAttribute(12, "OnClick",
                         EventCallback.Factory.Create<MouseEventArgs>(this, () => this.SelectItemAsync(item)));
 
                     builder.CloseComponent();
 
                     if (hasChildren && isExpanded)
                     {
-                        builder.AddContent(sequence++, this.RenderItems(item.Children, indentLevel + 1));
+                        builder.AddContent(13, this.RenderItems(item.Children, indentLevel + 1));
                     }
                 }
             };

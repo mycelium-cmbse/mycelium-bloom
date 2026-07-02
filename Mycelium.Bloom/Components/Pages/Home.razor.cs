@@ -11,7 +11,6 @@ namespace Mycelium.Bloom.Components.Pages
 {
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -22,101 +21,33 @@ namespace Mycelium.Bloom.Components.Pages
     public partial class Home : ComponentBase
     {
         /// <summary>
+        /// Gets or sets the project browser view model service.
+        /// </summary>
+        [Inject]
+        public IProjectBrowserViewModelService ProjectBrowserViewModelService { get; set; }
+
+        /// <summary>
         /// Gets or sets the current workspace search text.
         /// </summary>
         private string SearchText { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the active detail panel tab.
+        /// Gets the selected model element name.
         /// </summary>
-        private string ActiveDetailTab { get; set; } = "properties";
-
-        /// <summary>
-        /// Gets or sets the model loader service.
-        /// </summary>
-        [Inject]
-        public IModelLoaderService ModelLoaderService { get; set; }
-
-        /// <summary>
-        /// Gets the project browser view model.
-        /// </summary>
-        private ProjectBrowserViewModel ProjectBrowserViewModel { get; } = new();
-
-        /// <summary>
-        /// Gets or sets the selected project browser node name.
-        /// </summary>
-        private string SelectedProjectBrowserNodeName { get; set; } = "None";
-
-        /// <summary>
-        /// Gets the detail panel tabs.
-        /// </summary>
-        private IReadOnlyList<TabItem> DetailTabs { get; } =
-        [
-            new()
+        private string SelectedModelElementName
+        {
+            get
             {
-                Value = "properties",
-                Label = "Properties"
-            },
-            new()
-            {
-                Value = "relations",
-                Label = "Relations"
-            },
-            new()
-            {
-                Value = "history",
-                Label = "History"
+                var title = this.ProjectBrowserViewModel?.SelectedNode?.DisplayName;
+
+                return string.IsNullOrWhiteSpace(title) ? "None" : title;
             }
-        ];
+        }
 
         /// <summary>
-        /// Gets the requirement trace table columns.
+        /// Gets or sets the project browser view model.
         /// </summary>
-        private IReadOnlyList<DataTableColumn> TableColumns { get; } =
-        [
-            new()
-            {
-                Key = "id",
-                Header = "ID",
-                IsMonospace = true,
-                Width = "140px"
-            },
-            new()
-            {
-                Key = "name",
-                Header = "Trace"
-            },
-            new()
-            {
-                Key = "status",
-                Header = "Status"
-            }
-        ];
-
-        /// <summary>
-        /// Gets the requirement trace table rows.
-        /// </summary>
-        private IReadOnlyList<IReadOnlyDictionary<string, string>> TableRows { get; } =
-        [
-            new Dictionary<string, string>
-            {
-                ["id"] = "REQ-ADCS-011",
-                ["name"] = "Pointing accuracy",
-                ["status"] = "Satisfied"
-            },
-            new Dictionary<string, string>
-            {
-                ["id"] = "VER-ADCS-018",
-                ["name"] = "Slew response case",
-                ["status"] = "Pending review"
-            },
-            new Dictionary<string, string>
-            {
-                ["id"] = "ALLOC-ADCS-004",
-                ["name"] = "Controller to flight software",
-                ["status"] = "Linked"
-            }
-        ];
+        private IProjectBrowserViewModel ProjectBrowserViewModel { get; set; }
 
         /// <summary>
         /// Gets the workspace status bar items.
@@ -125,38 +56,41 @@ namespace Mycelium.Bloom.Components.Pages
         [
             new()
             {
-                Label = "Sync",
-                Value = "Up to date",
+                Label = "Model",
+                Value = "Quantities",
                 Variant = StatusIndicatorVariant.Success,
                 ShowIndicator = true
             },
             new()
             {
-                Label = "Review",
-                Value = "2 pending",
-                Variant = StatusIndicatorVariant.Warning,
+                Label = "Browser",
+                Value = "Tree view",
+                Variant = StatusIndicatorVariant.Info,
                 ShowIndicator = true
             },
             new()
             {
-                Label = "Elements",
-                Value = "1,248"
+                Label = "Source",
+                Value = "SysML2.NET"
             }
         ];
 
         /// <summary>
-        /// Initializes the page model tree from the cached Quantities model.
+        /// Initializes the workspace page state.
         /// </summary>
         protected override void OnInitialized()
         {
-            var model = this.ModelLoaderService.LoadQuantitiesModel();
-
-            this.ProjectBrowserViewModel.Initialize(model);
+            this.ProjectBrowserViewModel = this.ProjectBrowserViewModelService.CreateQuantitiesProjectBrowserViewModel();
         }
 
-        private Task SelectProjectBrowserNodeAsync(ProjectBrowserNodeViewModel node)
+        /// <summary>
+        /// Handles selecting a project browser node.
+        /// </summary>
+        /// <param name="node">The selected project browser node.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
-            this.SelectedProjectBrowserNodeName = node.DisplayName;
+            _ = node;
 
             return Task.CompletedTask;
         }

@@ -14,6 +14,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.PropertyRow
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Model.Enum;
 
+    /// <summary>
+    /// Reusable compact property row for selected model element details.
+    /// </summary>
     public partial class PropertyRow : ComponentBase
     {
         /// <summary>
@@ -56,7 +59,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.PropertyRow
         /// Gets or sets unmatched attributes passed to the row element.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; }
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         private string GetCssClass()
         {
