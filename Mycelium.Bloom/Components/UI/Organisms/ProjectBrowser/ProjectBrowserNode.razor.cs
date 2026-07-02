@@ -13,7 +13,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
@@ -31,7 +30,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// Gets or sets the project browser view model.
         /// </summary>
         [Parameter]
-        public ProjectBrowserViewModel ViewModel { get; set; }
+        public IProjectBrowserViewModel ViewModel { get; set; }
 
         /// <summary>
         /// Gets or sets the tree depth of this node.
@@ -51,65 +50,73 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> OnNodeSelected { get; set; }
 
-        private async Task ToggleNodeAsync()
+        private async Task SelectNodeAsync()
         {
-            this.ViewModel.ToggleNode(this.Node);
+            if (this.Node.HasChildren)
+            {
+                this.ViewModel.ToggleNode(this.Node);
+            }
+
+            this.ViewModel.SelectNode(this.Node);
+
+            await this.OnNodeSelected.InvokeAsync(this.Node);
             await this.OnStateChanged.InvokeAsync();
         }
 
-        private async Task SelectNodeAsync()
+        private string GetStereotype()
         {
-            this.ViewModel.SelectNode(this.Node);
-            await this.OnNodeSelected.InvokeAsync(this.Node);
+            return this.GetTypeLabel();
         }
 
-        private string GetRowCssClass()
+        private string GetElementColor()
         {
-            var cssClass = CssClassBuilder.Build(
-                "mb-project-browser-node__row",
-                CssClassBuilder.When("mb-project-browser-node__row--selected", this.Node.IsSelected));
+            var color = this.Node.ElementKind switch
+            {
+                ProjectBrowserElementKind.Namespace => "var(--mb-color-sysml-structure-header)",
+                ProjectBrowserElementKind.Import => "var(--mb-color-sysml-allocations-header)",
+                ProjectBrowserElementKind.Membership => "var(--mb-color-sysml-metadata-header)",
+                ProjectBrowserElementKind.Relationship => "var(--mb-color-sysml-connections-header)",
+                ProjectBrowserElementKind.Definition => "var(--mb-color-sysml-attributes-header)",
+                ProjectBrowserElementKind.Usage => "var(--mb-color-sysml-behavior-header)",
+                ProjectBrowserElementKind.Feature => "var(--mb-color-sysml-requirements-header)",
+                ProjectBrowserElementKind.Type => "var(--mb-color-sysml-verification-header)",
+                ProjectBrowserElementKind.Annotation => "var(--mb-color-info-500)",
+                _ => "var(--mb-color-neutral-600)"
+            };
 
-            return cssClass;
+            return color;
         }
 
-        private string GetRowStyle()
+        private string GetTooltip()
         {
-            var depth = Math.Max(0, this.Depth);
-            var indent = depth * 16;
-            var style = string.Create(CultureInfo.InvariantCulture, $"--mb-project-browser-node-indent: {indent}px;");
+            var suffix = this.GetTypeLabel();
 
-            return style;
-        }
-
-        private string GetKindLabel()
-        {
-            var kindName = this.Node.ElementKind.ToString();
-            var label = kindName.Length <= 3 ? kindName : kindName[..3];
-
-            return label.ToUpperInvariant();
-        }
-
-        private string GetTitle()
-        {
             if (!string.IsNullOrWhiteSpace(this.Node.QualifiedName))
             {
-                return this.Node.QualifiedName;
+                return string.Create(CultureInfo.InvariantCulture, $"{this.Node.QualifiedName} - {suffix}");
             }
 
             if (!string.IsNullOrWhiteSpace(this.Node.ElementId))
             {
-                return this.Node.ElementId;
+                return string.Create(CultureInfo.InvariantCulture, $"{this.Node.ElementId} - {suffix}");
             }
 
-            return this.Node.RuntimeTypeName;
+            return suffix;
         }
 
-        private string GetToggleTitle()
+        private string GetTypeLabel()
         {
-            var action = this.Node.IsExpanded ? "Collapse" : "Expand";
-            var title = string.Create(CultureInfo.InvariantCulture, $"{action} {this.Node.DisplayName}");
+            if (!string.IsNullOrWhiteSpace(this.Node.RuntimeTypeName))
+            {
+                return this.Node.RuntimeTypeName;
+            }
 
-            return title;
+            if (this.Node.ElementKind != ProjectBrowserElementKind.Unknown)
+            {
+                return this.Node.ElementKind.ToString();
+            }
+
+            return ProjectBrowserElementKind.Unknown.ToString();
         }
 
         private string GetAriaExpanded()
@@ -120,6 +127,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             return this.Node.IsExpanded.ToString().ToLowerInvariant();
+        }
+
+        private string GetAriaSelected()
+        {
+            return this.Node.IsSelected.ToString().ToLowerInvariant();
         }
     }
 }

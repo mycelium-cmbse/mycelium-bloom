@@ -27,6 +27,12 @@ namespace Mycelium.Bloom.Components.UI.Molecules.TreeNode
         public string Title { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets the tooltip text shown for the node.
+        /// </summary>
+        [Parameter]
+        public string Tooltip { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets or sets the SysML stereotype text.
         /// </summary>
         [Parameter]
@@ -114,6 +120,15 @@ namespace Mycelium.Bloom.Components.UI.Molecules.TreeNode
                 this.Class);
 
             return cssClass;
+        }
+
+        private string GetTitle()
+        {
+            var title = string.IsNullOrWhiteSpace(this.Tooltip)
+                ? this.Title
+                : this.Tooltip;
+
+            return title;
         }
 
         private string GetStyle()

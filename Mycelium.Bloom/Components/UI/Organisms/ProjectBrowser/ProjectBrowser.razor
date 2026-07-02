@@ -7,23 +7,59 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-<div class="@(this.GetCssClass())" role="tree" aria-label="Project browser" @attributes="this.AdditionalAttributes">
-    @if (this.ViewModel.RootNodes.Count == 0)
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.ShouldShowLoadingState())
     {
-        <div class="mb-project-browser__empty">
-            No model elements available.
+        <div class="mb-model-tree mb-project-browser__tree">
+            <LoadingState
+                Title="Loading Quantities model"
+                Description="Preparing the SysML project browser..."
+                ShowSkeleton="true">
+                <SkeletonContent>
+                    <Skeleton Lines="3"/>
+                    <Skeleton Variant="SkeletonVariant.Rectangle" Height="120px"/>
+                </SkeletonContent>
+            </LoadingState>
+        </div>
+    }
+    else if (this.ShouldShowErrorState())
+    {
+        <div class="mb-model-tree mb-project-browser__tree">
+            <div class="mb-model-tree__empty" role="alert" aria-live="assertive">
+                <strong style="display: block; color: var(--mb-color-text-primary);">
+                    Unable to load project browser
+                </strong>
+
+                @if (!string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage))
+                {
+                    <p style="margin: 4px 0 0; overflow-wrap: anywhere;">
+                        @(this.ViewModel.ErrorMessage)
+                    </p>
+                }
+            </div>
         </div>
     }
     else
     {
-        @foreach (var node in this.ViewModel.RootNodes)
-        {
-            <ProjectBrowserNode
-                Node="node"
-                ViewModel="this.ViewModel"
-                Depth="0"
-                OnStateChanged="this.HandleStateChangedAsync"
-                OnNodeSelected="this.HandleNodeSelectedAsync" />
-        }
+        <div class="mb-model-tree mb-project-browser__tree" role="tree" aria-label="Project browser">
+            @if (this.ViewModel.RootNodes.Count == 0)
+            {
+                <div class="mb-model-tree__empty">
+                    No model elements available.
+                </div>
+            }
+            else
+            {
+                @foreach (var node in this.ViewModel.RootNodes)
+                {
+                    <ProjectBrowserNode
+                        Node="node"
+                        ViewModel="this.ViewModel"
+                        Depth="0"
+                        OnStateChanged="this.HandleStateChangedAsync"
+                        OnNodeSelected="this.HandleNodeSelectedAsync" />
+                }
+            }
+        </div>
     }
 </div>
