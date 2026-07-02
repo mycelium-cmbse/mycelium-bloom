@@ -45,13 +45,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var node = new ProjectBrowserNodeViewModel(
                 "quantities",
-                "quantities",
                 "Quantities",
-                "Quantities",
-                "LibraryPackage",
-                ProjectBrowserElementKind.Unknown,
-                [],
-                new LibraryPackage());
+                new ProjectBrowserNodeMetadata(
+                    "quantities",
+                    "Quantities",
+                    "LibraryPackage",
+                    ProjectBrowserElementKind.Unknown,
+                    new LibraryPackage()),
+                []);
 
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(component => component.Node, node)

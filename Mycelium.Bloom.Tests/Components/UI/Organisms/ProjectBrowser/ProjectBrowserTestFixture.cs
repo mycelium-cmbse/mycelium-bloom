@@ -146,13 +146,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             return new ProjectBrowserNodeViewModel(
                 nodeId,
-                nodeId,
                 displayName,
-                displayName,
-                "Namespace",
-                ProjectBrowserElementKind.Namespace,
-                [],
-                new Namespace());
+                new ProjectBrowserNodeMetadata(
+                    nodeId,
+                    displayName,
+                    "Namespace",
+                    ProjectBrowserElementKind.Namespace,
+                    new Namespace()),
+                []);
         }
 
         private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
