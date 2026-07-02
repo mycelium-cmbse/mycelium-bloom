@@ -109,7 +109,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CommentThread
         /// </summary>
         /// <param name="comment">The comment item.</param>
         /// <returns>The comment item CSS class list.</returns>
-        private string GetCommentCssClass(CommentThreadItem comment)
+        private static string GetCommentCssClass(CommentThreadItem comment)
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-comment-thread__item",
@@ -124,7 +124,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CommentThread
         /// </summary>
         /// <param name="comment">The comment item.</param>
         /// <returns>True when an action is available; otherwise, false.</returns>
-        private bool ShouldShowActions(CommentThreadItem comment)
+        private static bool ShouldShowActions(CommentThreadItem comment)
         {
             var shouldShowActions = !comment.IsResolved || comment.IsCurrentUser;
 
@@ -138,8 +138,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CommentThread
         private bool IsSubmitDisabled()
         {
             var isSubmitDisabled = this.Disabled
-                || !this.AllowSubmit
-                || string.IsNullOrWhiteSpace(this.NewCommentValue);
+                                   || !this.AllowSubmit
+                                   || string.IsNullOrWhiteSpace(this.NewCommentValue);
 
             return isSubmitDisabled;
         }

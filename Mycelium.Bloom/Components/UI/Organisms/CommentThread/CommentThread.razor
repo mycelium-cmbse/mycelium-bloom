@@ -19,7 +19,7 @@
         {
             @foreach (var comment in this.Comments)
             {
-                <article class="@(this.GetCommentCssClass(comment))">
+                <article class="@(GetCommentCssClass(comment))">
                     <Avatar
                         Text="@(comment.AuthorInitials)"
                         Title="@(comment.AuthorName)"
@@ -46,7 +46,7 @@
                                 }
                             </div>
 
-                            @if (this.ShouldShowActions(comment))
+                            @if (ShouldShowActions(comment))
                             {
                                 <div class="mb-comment-thread__actions">
                                     @if (!comment.IsResolved)

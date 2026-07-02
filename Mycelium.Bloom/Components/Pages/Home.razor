@@ -29,7 +29,8 @@
     </HeaderContent>
 
     <LeftContent>
-        <div style="height: 100%; max-height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+        <div
+            style="height: 100%; max-height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
             <Toolbar HasBottomBorder="true">
                 <StartContent>
                     <strong class="mb-text-label-md">Model</strong>
@@ -45,13 +46,14 @@
             <div style="flex: 1 1 auto; height: 100%; max-height: 100%; min-height: 0; overflow: hidden;">
                 <ProjectBrowser
                     ViewModel="this.ProjectBrowserViewModel"
-                    SelectedNodeChanged="this.HandleProjectBrowserNodeSelectedAsync"/>
+                    SelectedNodeChanged="HandleProjectBrowserNodeSelectedAsync"/>
             </div>
         </div>
     </LeftContent>
 
     <ChildContent>
-        <div style="height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto;">
+        <div
+            style="height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: auto;">
             <Panel Padding="PanelPadding.Medium">
                 <SectionHeader Label="Workspace"/>
 

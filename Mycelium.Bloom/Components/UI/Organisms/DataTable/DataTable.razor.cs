@@ -87,7 +87,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DataTable
         /// </summary>
         /// <param name="column">The column definition.</param>
         /// <returns>The header cell CSS class.</returns>
-        private string GetHeaderClass(DataTableColumn column)
+        private static string GetHeaderClass(DataTableColumn column)
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-data-table__header",
@@ -101,7 +101,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DataTable
         /// </summary>
         /// <param name="column">The column definition.</param>
         /// <returns>The body cell CSS class.</returns>
-        private string GetCellClass(DataTableColumn column)
+        private static string GetCellClass(DataTableColumn column)
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-data-table__cell",
@@ -116,7 +116,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DataTable
         /// </summary>
         /// <param name="column">The column definition.</param>
         /// <returns>The column width style.</returns>
-        private string GetColumnStyle(DataTableColumn column)
+        private static string GetColumnStyle(DataTableColumn column)
         {
             var style = !string.IsNullOrWhiteSpace(column.Width)
                 ? $"width: {column.Width};"
@@ -131,7 +131,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DataTable
         /// <param name="item">The row item.</param>
         /// <param name="column">The column definition.</param>
         /// <returns>The cell value.</returns>
-        private string GetCellValue(IReadOnlyDictionary<string, string> item, DataTableColumn column)
+        private static string GetCellValue(IReadOnlyDictionary<string, string> item, DataTableColumn column)
         {
             var value = item.TryGetValue(column.Key, out var itemValue)
                 ? itemValue

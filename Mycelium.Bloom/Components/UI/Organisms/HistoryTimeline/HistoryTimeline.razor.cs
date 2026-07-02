@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.HistoryTimeline
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-history-timeline__marker",
-                this.GetMarkerVariantCssClass(item.Variant));
+                GetMarkerVariantCssClass(item.Variant));
 
             return cssClass;
         }
@@ -83,7 +83,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.HistoryTimeline
         /// </summary>
         /// <param name="variant">The history item variant.</param>
         /// <returns>The marker variant CSS class.</returns>
-        private string GetMarkerVariantCssClass(HistoryTimelineItemVariant variant)
+        private static string GetMarkerVariantCssClass(HistoryTimelineItemVariant variant)
         {
             var cssClass = variant switch
             {

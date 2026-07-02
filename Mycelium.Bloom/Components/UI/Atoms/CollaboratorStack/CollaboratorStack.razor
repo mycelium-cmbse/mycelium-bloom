@@ -12,10 +12,10 @@
     <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
         @foreach (var item in this.GetVisibleItems())
         {
-            <span class="@(this.GetItemCssClass(item))" title="@(this.GetItemTitle(item))" @key="item.Id">
+            <span class="@(this.GetItemCssClass(item))" title="@(GetItemTitle(item))" @key="item.Id">
                 <Avatar
                     Text="@(item.Initials)"
-                    Title="@(this.GetItemTitle(item))"
+                    Title="@(GetItemTitle(item))"
                     BackgroundColor="@(item.Color)"
                     Size="AvatarSize.Small"
                     Class="mb-collaborator-stack__avatar"/>
@@ -23,9 +23,9 @@
                 @if (this.ShowOnlineIndicator)
                 {
                     <span
-                        class="@(this.GetStatusCssClass(item))"
-                        title="@(this.GetStatusTitle(item))"
-                        aria-label="@(this.GetStatusTitle(item))">
+                        class="@(GetStatusCssClass(item))"
+                        title="@(GetStatusTitle(item))"
+                        aria-label="@(GetStatusTitle(item))">
                     </span>
                 }
             </span>

@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ActivityFeed
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-activity-feed__marker",
-                this.GetMarkerVariantCssClass(item.Variant));
+                GetMarkerVariantCssClass(item.Variant));
 
             return cssClass;
         }
@@ -83,7 +83,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ActivityFeed
         /// </summary>
         /// <param name="variant">The activity item variant.</param>
         /// <returns>The marker variant CSS class.</returns>
-        private string GetMarkerVariantCssClass(ActivityFeedItemVariant variant)
+        private static string GetMarkerVariantCssClass(ActivityFeedItemVariant variant)
         {
             var cssClass = variant switch
             {

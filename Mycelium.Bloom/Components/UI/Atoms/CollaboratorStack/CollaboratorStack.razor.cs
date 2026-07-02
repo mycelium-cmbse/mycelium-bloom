@@ -107,7 +107,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.CollaboratorStack
         /// </summary>
         /// <param name="item">The collaborator stack item.</param>
         /// <returns>The collaborator status CSS class list.</returns>
-        private string GetStatusCssClass(CollaboratorStackItem item)
+        private static string GetStatusCssClass(CollaboratorStackItem item)
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-collaborator-stack__status",
@@ -123,7 +123,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.CollaboratorStack
         /// </summary>
         /// <param name="item">The collaborator stack item.</param>
         /// <returns>The collaborator tooltip text.</returns>
-        private string GetItemTitle(CollaboratorStackItem item)
+        private static string GetItemTitle(CollaboratorStackItem item)
         {
             var title = string.IsNullOrWhiteSpace(item.Role)
                 ? item.Name
@@ -137,7 +137,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.CollaboratorStack
         /// </summary>
         /// <param name="item">The collaborator stack item.</param>
         /// <returns>The collaborator status title.</returns>
-        private string GetStatusTitle(CollaboratorStackItem item)
+        private static string GetStatusTitle(CollaboratorStackItem item)
         {
             var status = item.IsOnline ? "Online" : "Offline";
 

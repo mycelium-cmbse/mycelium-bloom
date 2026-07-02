@@ -88,7 +88,7 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         /// <param name="node">The selected project browser node.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        private Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
+        private static Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
             _ = node;
 
