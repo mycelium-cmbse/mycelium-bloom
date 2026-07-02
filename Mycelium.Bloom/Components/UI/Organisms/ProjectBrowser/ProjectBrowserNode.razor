@@ -9,7 +9,8 @@
 
 @if (this.Node != null)
 {
-    <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())" aria-selected="@(this.GetAriaSelected())">
+    <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
+         aria-selected="@(this.GetAriaSelected())">
         <TreeNode
             Title="@(this.Node.DisplayName)"
             Tooltip="@(this.GetTooltip())"
@@ -19,7 +20,7 @@
             IsExpanded="@(this.Node.IsExpanded)"
             IndentLevel="@(this.Depth)"
             ElementColor="@(this.GetElementColor())"
-            OnClick="this.SelectNodeAsync" />
+            OnClick="this.SelectNodeAsync"/>
 
         @if (this.Node.IsExpanded)
         {
@@ -31,7 +32,7 @@
                         ViewModel="this.ViewModel"
                         Depth="@(this.Depth + 1)"
                         OnStateChanged="this.OnStateChanged"
-                        OnNodeSelected="this.OnNodeSelected" />
+                        OnNodeSelected="this.OnNodeSelected"/>
                 }
             </div>
         }

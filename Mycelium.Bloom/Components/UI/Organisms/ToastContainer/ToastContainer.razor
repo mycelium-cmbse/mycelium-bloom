@@ -9,7 +9,8 @@
 
 @if (this.HasNotifications())
 {
-    <section class="@(this.GetCssClass())" aria-live="polite" aria-label="Notifications" @attributes="this.AdditionalAttributes">
+    <section class="@(this.GetCssClass())" aria-live="polite" aria-label="Notifications"
+             @attributes="this.AdditionalAttributes">
         @foreach (var notification in this.Notifications)
         {
             <NotificationToast Notification="notification" Dismissed="this.Dismissed"/>
