@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------------------------
 // <copyright file="ProjectBrowserViewModel.cs" company="Starion Group S.A.">
-//
+// 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-//
+// 
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -184,15 +184,18 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var qualifiedName = ToDisplayString(element.qualifiedName);
             var elementKind = GetElementKind(runtimeTypeName);
 
-            var node = new ProjectBrowserNodeViewModel(
-                nodeId,
+            var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
-                displayName,
-                qualifiedName,  
+                qualifiedName,
                 runtimeTypeName,
                 elementKind,
-                children,
                 element);
+
+            var node = new ProjectBrowserNodeViewModel(
+                nodeId,
+                displayName,
+                metadata,
+                children);
 
             return node;
         }
@@ -203,7 +206,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="element">The SysML element whose owned elements should be mapped.</param>
         /// <param name="parentNodeId">The identifier of the parent project browser node.</param>
         /// <returns>The child project browser nodes for the provided SysML element.</returns>
-        private IReadOnlyList<ProjectBrowserNodeViewModel> BuildChildren(IElement element, string parentNodeId)
+        private List<ProjectBrowserNodeViewModel> BuildChildren(IElement element, string parentNodeId)
         {
             var children = new List<ProjectBrowserNodeViewModel>();
 

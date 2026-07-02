@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------------------------
 // <copyright file="ProjectBrowserNodeViewModel.cs" company="Starion Group S.A.">
-//
+// 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-//
+// 
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -20,31 +20,25 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Initializes a new instance of the <see cref="ProjectBrowserNodeViewModel" /> class.
         /// </summary>
         /// <param name="id">The unique node identifier used by the project browser.</param>
-        /// <param name="elementId">The SysML element identifier, when available.</param>
         /// <param name="displayName">The display name shown for the node.</param>
-        /// <param name="qualifiedName">The qualified SysML name, when available.</param>
-        /// <param name="runtimeTypeName">The runtime SysML POCO type name.</param>
-        /// <param name="elementKind">The broad SysML element kind.</param>
+        /// <param name="metadata">The SysML metadata associated with the node.</param>
         /// <param name="children">The child nodes built from the SysML owned element hierarchy.</param>
-        /// <param name="sourceElement">The source SysML element represented by the node.</param>
         public ProjectBrowserNodeViewModel(
             string id,
-            string elementId,
             string displayName,
-            string qualifiedName,
-            string runtimeTypeName,
-            ProjectBrowserElementKind elementKind,
-            IReadOnlyList<ProjectBrowserNodeViewModel> children,
-            IElement sourceElement)
+            ProjectBrowserNodeMetadata metadata,
+            IReadOnlyList<ProjectBrowserNodeViewModel> children)
         {
+            ArgumentNullException.ThrowIfNull(metadata);
+
             this.Id = id;
-            this.ElementId = elementId;
             this.DisplayName = displayName;
-            this.QualifiedName = qualifiedName;
-            this.RuntimeTypeName = runtimeTypeName;
-            this.ElementKind = elementKind;
+            this.ElementId = metadata.ElementId;
+            this.QualifiedName = metadata.QualifiedName;
+            this.RuntimeTypeName = metadata.RuntimeTypeName;
+            this.ElementKind = metadata.ElementKind;
             this.Children = children;
-            this.SourceElement = sourceElement;
+            this.SourceElement = metadata.SourceElement;
         }
 
         /// <summary>
