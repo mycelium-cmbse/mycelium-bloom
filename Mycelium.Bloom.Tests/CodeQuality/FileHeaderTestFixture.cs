@@ -14,6 +14,8 @@ namespace Mycelium.Bloom.Tests.CodeQuality
     using System.Linq;
     using System.Text;
 
+    using Mycelium.Bloom.Tests.Common;
+
     /// <summary>
     /// Verifies that code-related files contain the expected file header.
     /// </summary>
@@ -28,7 +30,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         [Test]
         public void CodeRelatedFiles_HaveExpectedFileHeader()
         {
-            var repositoryPath = GetRepositoryPath();
+            var repositoryPath = TestRepository.GetRootPath();
             var sourceFiles = new[]
                 {
                     Path.Combine(repositoryPath, "Mycelium.Bloom"),
@@ -95,23 +97,6 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 "// ------------------------------------------------------------------------------------------------",
                 string.Empty,
                 string.Empty);
-        }
-
-        private static string GetRepositoryPath()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Mycelium.Bloom.sln")))
-            {
-                directory = directory.Parent;
-            }
-
-            if (directory == null)
-            {
-                throw new DirectoryNotFoundException("Could not locate repository root from the test output directory.");
-            }
-
-            return directory.FullName;
         }
 
         private static string NormalizeLineEndings(string text)

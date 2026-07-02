@@ -20,6 +20,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using Moq;
 
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -223,7 +224,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
         private static INamespace LoadQuantitiesModel()
         {
-            var repositoryPath = GetRepositoryPath();
+            var repositoryPath = TestRepository.GetRootPath();
             var applicationPath = Path.Combine(repositoryPath, "Mycelium.Bloom");
 
             var hostEnvironment = new Mock<IHostEnvironment>();
@@ -235,23 +236,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var modelLoaderService = new ModelLoaderService(hostEnvironment.Object, loggerFactory, memoryCache);
 
             return modelLoaderService.LoadQuantitiesModel();
-        }
-
-        private static string GetRepositoryPath()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Mycelium.Bloom.sln")))
-            {
-                directory = directory.Parent;
-            }
-
-            if (directory == null)
-            {
-                throw new DirectoryNotFoundException("Could not locate repository root from the test output directory.");
-            }
-
-            return directory.FullName;
         }
     }
 }
