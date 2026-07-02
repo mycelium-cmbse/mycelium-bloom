@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // <copyright file="TabsTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -10,6 +10,8 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
 {
     using Bunit;
+
+    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Model;
 
@@ -29,6 +31,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
         public void TearDown()
         {
             this.Dispose();
+        }
+
+        /// <summary>
+        /// Sets up JavaScript interop used by keyboard navigation.
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            SetupKeyboardNavigationModule(this);
         }
 
         /// <summary>
@@ -80,6 +91,34 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
         }
 
         /// <summary>
+        /// Verifies that ArrowRight selects the next enabled tab.
+        /// </summary>
+        [Test]
+        public void VerifyKeyDownArrowRightSelectsNextEnabledTab()
+        {
+            var activeValue = string.Empty;
+
+            var component = this.Render<TabsComponent>(parameters => parameters
+                .Add(component => component.Items, new[]
+                {
+                    new TabItem { Value = "overview", Label = "Overview" },
+                    new TabItem { Value = "history", Label = "History", Disabled = true },
+                    new TabItem { Value = "properties", Label = "Properties" }
+                })
+                .Add(component => component.ActiveValue, "overview")
+                .Add(component => component.ActiveValueChanged, value => activeValue = value));
+
+            component.FindAll("[role='tab']")[0].KeyDown(new KeyboardEventArgs { Key = "ArrowRight" });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(activeValue, Is.EqualTo("properties"));
+                Assert.That(component.FindAll("[role='tab']")[2].GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(component.FindAll("[role='tab']")[2].GetAttribute("tabindex"), Is.EqualTo("0"));
+            }
+        }
+
+        /// <summary>
         /// Verifies that tabs display configured items, classes, selection state, and attributes.
         /// </summary>
         [Test]
@@ -107,12 +146,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
                 Assert.That(tabs, Has.Count.EqualTo(2));
                 Assert.That(tabs[0].TextContent.Trim(), Is.EqualTo("Overview"));
                 Assert.That(tabs[0].GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(tabs[0].GetAttribute("tabindex"), Is.EqualTo("0"));
                 Assert.That(tabs[0].GetAttribute("class"), Does.Contain("mb-tabs__item--active"));
                 Assert.That(tabs[1].TextContent.Trim(), Is.EqualTo("History"));
                 Assert.That(tabs[1].GetAttribute("aria-selected"), Is.EqualTo("false"));
+                Assert.That(tabs[1].GetAttribute("tabindex"), Is.EqualTo("-1"));
                 Assert.That(tabs[1].HasAttribute("disabled"), Is.True);
                 Assert.That(tabs[1].GetAttribute("class"), Does.Contain("mb-tabs__item--disabled"));
             }
+        }
+
+        /// <summary>
+        /// Sets up the keyboard navigation JavaScript module.
+        /// </summary>
+        /// <param name="context">The bUnit test context.</param>
+        private static void SetupKeyboardNavigationModule(BunitContext context)
+        {
+            var module = context.JSInterop.SetupModule("/js/keyboardNavigation.js");
+
+            module.SetupVoid("registerNavigationKeyPrevention", _ => true).SetVoidResult();
+            module.SetupVoid("disposeNavigationKeyPrevention", _ => true).SetVoidResult();
         }
     }
 }

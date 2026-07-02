@@ -7,14 +7,21 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+<div
+    @ref="this.RootElement"
+    class="@(this.GetCssClass())"
+    @onfocusin="this.HandleFocusIn"
+    @onfocusout="this.HandleFocusOutAsync"
+    @attributes="this.AdditionalAttributes">
     <button
+        @ref="this.TriggerElement"
         type="button"
         class="@(this.GetTriggerClass())"
         title="@(this.TriggerTitle)"
         aria-label="@(this.TriggerAriaLabel)"
         aria-haspopup="menu"
         aria-expanded="@(this.IsOpen ? "true" : "false")"
+        @onkeydown="this.HandleTriggerKeyDownAsync"
         @onclick="this.ToggleMenu">
         @if (!this.IsIconOnly)
         {
@@ -31,13 +38,18 @@
     @if (this.IsOpen)
     {
         <div class="@(this.GetMenuClass())" role="menu">
-            @foreach (var item in this.Items)
+            @for (var index = 0; index < this.Items.Count; index++)
             {
+                var itemIndex = index;
+                var item = this.Items[itemIndex];
+
                 <button
+                    @ref="this.ItemElements[itemIndex]"
                     type="button"
                     class="@(this.GetItemClass(item))"
                     role="menuitem"
                     disabled="@(item.Disabled)"
+                    @onkeydown="args => this.HandleItemKeyDownAsync(args, itemIndex)"
                     @onclick="() => this.SelectItemAsync(item)">
                     @if (!string.IsNullOrWhiteSpace(item.Icon))
                     {

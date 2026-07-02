@@ -1,0 +1,130 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="UserMenu.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div
+    @ref="this.RootElement"
+    class="@(this.GetCssClass())"
+    @onfocusin="this.HandleFocusIn"
+    @onfocusout="this.HandleFocusOutAsync"
+    @attributes="this.AdditionalAttributes">
+    <button
+        @ref="this.TriggerElement"
+        type="button"
+        class="mb-user-menu__trigger"
+        title="@(this.GetTriggerTitle())"
+        aria-label="@(this.GetTriggerAriaLabel())"
+        aria-haspopup="menu"
+        aria-expanded="@(this.IsOpen ? "true" : "false")"
+        @onkeydown="this.HandleTriggerKeyDownAsync"
+        @onclick="this.ToggleMenu">
+        <Avatar
+            Text="@(this.UserInitials)"
+            Title="@(this.GetAvatarTitle())"
+            BackgroundColor="@(this.UserColor)"
+            Size="AvatarSize.Small"/>
+
+        @if (this.ShowUserText)
+        {
+            <span class="mb-user-menu__identity">
+                @if (!string.IsNullOrWhiteSpace(this.UserName))
+                {
+                    <span class="mb-user-menu__name">
+                        @(this.UserName)
+                    </span>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(this.GetUserMeta()))
+                {
+                    <span class="mb-user-menu__meta">
+                        @(this.GetUserMeta())
+                    </span>
+                }
+            </span>
+        }
+
+        <span class="mb-user-menu__chevron" aria-hidden="true">
+            v
+        </span>
+    </button>
+
+    @if (this.IsOpen)
+    {
+        <div class="mb-user-menu__menu" role="menu">
+            <div class="mb-user-menu__summary">
+                <Avatar
+                    Text="@(this.UserInitials)"
+                    Title="@(this.GetAvatarTitle())"
+                    BackgroundColor="@(this.UserColor)"/>
+
+                <div class="mb-user-menu__summary-text">
+                    @if (!string.IsNullOrWhiteSpace(this.UserName))
+                    {
+                        <span class="mb-user-menu__summary-name">
+                            @(this.UserName)
+                        </span>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(this.UserEmail))
+                    {
+                        <span class="mb-user-menu__summary-email">
+                            @(this.UserEmail)
+                        </span>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(this.UserRole))
+                    {
+                        <span class="mb-user-menu__summary-role">
+                            @(this.UserRole)
+                        </span>
+                    }
+                </div>
+            </div>
+
+            @if (this.Items.Count > 0)
+            {
+                <div class="mb-user-menu__items">
+                    @for (var index = 0; index < this.Items.Count; index++)
+                    {
+                        var itemIndex = index;
+                        var item = this.Items[itemIndex];
+
+                        <button
+                            @ref="this.ItemElements[itemIndex]"
+                            type="button"
+                            class="@(this.GetItemClass(item))"
+                            role="menuitem"
+                            disabled="@(item.Disabled)"
+                            @onkeydown="args => this.HandleItemKeyDownAsync(args, itemIndex)"
+                            @onclick="() => this.SelectItemAsync(item)">
+                            @if (!string.IsNullOrWhiteSpace(item.Icon))
+                            {
+                                <span class="mb-user-menu__item-icon" aria-hidden="true">
+                                    @item.Icon
+                                </span>
+                            }
+
+                            <span class="mb-user-menu__item-content">
+                                <span class="mb-user-menu__item-label">
+                                    @item.Label
+                                </span>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <span class="mb-user-menu__item-description">
+                                        @item.Description
+                                    </span>
+                                }
+                            </span>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

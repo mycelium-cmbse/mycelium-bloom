@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ActionMenu.razor.cs" company="Starion Group S.A.">
+// <copyright file="UserMenu.razor.cs" company="Starion Group S.A.">
 // 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -7,7 +7,7 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
+namespace Mycelium.Bloom.Components.UI.Molecules.UserMenu
 {
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
@@ -18,9 +18,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
-    /// Reusable Bloom action menu for compact toolbar and header actions.
+    /// Reusable Bloom user menu for app header account actions.
     /// </summary>
-    public partial class ActionMenu : ComponentBase, IAsyncDisposable
+    public partial class UserMenu : ComponentBase, IAsyncDisposable
     {
         /// <summary>
         /// The JavaScript module used to prevent browser scrolling for handled navigation keys.
@@ -44,52 +44,52 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         private ElementReference RootElement { get; set; }
 
         /// <summary>
-        /// Gets or sets the available action menu items.
+        /// Gets or sets the user display name.
+        /// </summary>
+        [Parameter]
+        public string UserName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the user initials shown inside the avatar.
+        /// </summary>
+        [Parameter]
+        public string UserInitials { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the user email address.
+        /// </summary>
+        [Parameter]
+        public string UserEmail { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the user role.
+        /// </summary>
+        [Parameter]
+        public string UserRole { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the user avatar background color.
+        /// </summary>
+        [Parameter]
+        public string UserColor { get; set; } = "var(--mb-color-collaborator-c08, #3b82f6)";
+
+        /// <summary>
+        /// Gets or sets the available menu items.
         /// </summary>
         [Parameter]
         public IReadOnlyList<ActionMenuItem> Items { get; set; } = [];
 
         /// <summary>
-        /// Gets or sets the trigger text rendered when the trigger is not icon-only.
-        /// </summary>
-        [Parameter]
-        public string TriggerText { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the trigger title.
-        /// </summary>
-        [Parameter]
-        public string TriggerTitle { get; set; } = "Open menu";
-
-        /// <summary>
-        /// Gets or sets the trigger aria-label.
-        /// </summary>
-        [Parameter]
-        public string TriggerAriaLabel { get; set; } = "Open menu";
-
-        /// <summary>
-        /// Gets or sets whether the trigger should render only the icon.
-        /// </summary>
-        [Parameter]
-        public bool IsIconOnly { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the trigger icon text.
-        /// </summary>
-        [Parameter]
-        public string Icon { get; set; } = "⋯";
-
-        /// <summary>
-        /// Gets or sets the menu placement relative to the trigger.
-        /// </summary>
-        [Parameter]
-        public ActionMenuPlacement Placement { get; set; } = ActionMenuPlacement.BottomEnd;
-
-        /// <summary>
-        /// Gets or sets the callback invoked when an enabled action item is selected.
+        /// Gets or sets the callback invoked when an enabled menu item is selected.
         /// </summary>
         [Parameter]
         public EventCallback<ActionMenuItem> ItemSelected { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the trigger should show the user name and metadata.
+        /// </summary>
+        [Parameter]
+        public bool ShowUserText { get; set; } = true;
 
         /// <summary>
         /// Gets or sets additional CSS classes.
@@ -98,18 +98,18 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         public string Class { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets unmatched attributes passed to the action menu wrapper.
+        /// Gets or sets unmatched attributes passed to the user menu wrapper.
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
-        /// Gets or sets whether the menu is currently open.
+        /// Gets or sets whether the dropdown menu is currently open.
         /// </summary>
         private bool IsOpen { get; set; }
 
         /// <summary>
-        /// Gets or sets whether focus is currently inside the action menu.
+        /// Gets or sets whether focus is currently inside the user menu.
         /// </summary>
         private bool HasFocusWithin { get; set; }
 
@@ -134,7 +134,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         private ElementReference[] ItemElements { get; set; } = [];
 
         /// <summary>
-        /// Releases asynchronous resources used by the action menu.
+        /// Releases asynchronous resources used by the user menu.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
         public async ValueTask DisposeAsync()
@@ -181,73 +181,84 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Gets the final CSS class list applied to the action menu wrapper.
+        /// Gets the final CSS class list applied to the user menu wrapper.
         /// </summary>
-        /// <returns>The action menu CSS class list.</returns>
+        /// <returns>The user menu CSS class list.</returns>
         private string GetCssClass()
         {
             var cssClass = CssClassBuilder.Build(
-                "mb-action-menu",
+                "mb-user-menu",
                 this.Class);
 
             return cssClass;
         }
 
         /// <summary>
-        /// Gets the CSS class list applied to the trigger button.
+        /// Gets the CSS class list applied to a menu item.
         /// </summary>
-        /// <returns>The trigger CSS class list.</returns>
-        private string GetTriggerClass()
-        {
-            var cssClass = CssClassBuilder.Build(
-                "mb-action-menu__trigger",
-                CssClassBuilder.When("mb-action-menu__trigger--icon-only", this.IsIconOnly));
-
-            return cssClass;
-        }
-
-        /// <summary>
-        /// Gets the CSS class list applied to the menu.
-        /// </summary>
-        /// <returns>The menu CSS class list.</returns>
-        private string GetMenuClass()
-        {
-            var cssClass = CssClassBuilder.Build(
-                "mb-action-menu__menu",
-                this.GetPlacementClass());
-
-            return cssClass;
-        }
-
-        /// <summary>
-        /// Gets the CSS class matching the selected menu placement.
-        /// </summary>
-        /// <returns>The menu placement CSS class.</returns>
-        private string GetPlacementClass()
-        {
-            var cssClass = this.Placement switch
-            {
-                ActionMenuPlacement.BottomStart => "mb-action-menu__menu--bottom-start",
-                _ => "mb-action-menu__menu--bottom-end"
-            };
-
-            return cssClass;
-        }
-
-        /// <summary>
-        /// Gets the CSS class list applied to an action item.
-        /// </summary>
-        /// <param name="item">The action item.</param>
-        /// <returns>The action item CSS class list.</returns>
+        /// <param name="item">The menu item.</param>
+        /// <returns>The menu item CSS class list.</returns>
         private string GetItemClass(ActionMenuItem item)
         {
             var cssClass = CssClassBuilder.Build(
-                "mb-action-menu__item",
-                CssClassBuilder.When("mb-action-menu__item--danger", item.Variant == ActionMenuItemVariant.Danger),
-                CssClassBuilder.When("mb-action-menu__item--disabled", item.Disabled),
-                CssClassBuilder.When("mb-action-menu__item--separator", item.SeparatorBefore));
+                "mb-user-menu__item",
+                CssClassBuilder.When("mb-user-menu__item--danger", item.Variant == ActionMenuItemVariant.Danger),
+                CssClassBuilder.When("mb-user-menu__item--disabled", item.Disabled),
+                CssClassBuilder.When("mb-user-menu__item--separator", item.SeparatorBefore));
 
             return cssClass;
+        }
+
+        /// <summary>
+        /// Gets the metadata shown in the compact trigger.
+        /// </summary>
+        /// <returns>The user role when available; otherwise, the user email address.</returns>
+        private string GetUserMeta()
+        {
+            var userMeta = !string.IsNullOrWhiteSpace(this.UserRole)
+                ? this.UserRole
+                : this.UserEmail;
+
+            return userMeta;
+        }
+
+        /// <summary>
+        /// Gets the avatar title.
+        /// </summary>
+        /// <returns>The avatar title.</returns>
+        private string GetAvatarTitle()
+        {
+            var title = !string.IsNullOrWhiteSpace(this.UserName)
+                ? this.UserName
+                : this.UserEmail;
+
+            return title;
+        }
+
+        /// <summary>
+        /// Gets the trigger title.
+        /// </summary>
+        /// <returns>The trigger title.</returns>
+        private string GetTriggerTitle()
+        {
+            var title = !string.IsNullOrWhiteSpace(this.UserName)
+                ? $"Open user menu for {this.UserName}"
+                : "Open user menu";
+
+            return title;
+        }
+
+        /// <summary>
+        /// Gets the trigger aria-label.
+        /// </summary>
+        /// <returns>The trigger aria-label.</returns>
+        private string GetTriggerAriaLabel()
+        {
+            var ariaLabel = !string.IsNullOrWhiteSpace(this.UserName)
+                ? $"Open user menu for {this.UserName}"
+                : "Open user menu";
+
+            return ariaLabel;
         }
 
         /// <summary>
@@ -266,9 +277,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Selects the provided action item when it is enabled.
+        /// Selects the provided menu item when it is enabled.
         /// </summary>
-        /// <param name="item">The selected action item.</param>
+        /// <param name="item">The selected menu item.</param>
         private async Task SelectItemAsync(ActionMenuItem item)
         {
             if (!item.Disabled)
@@ -337,7 +348,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Tracks focus entering the action menu.
+        /// Tracks focus entering the user menu.
         /// </summary>
         private void HandleFocusIn()
         {
@@ -345,7 +356,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Closes the menu when focus leaves the action menu.
+        /// Closes the menu when focus leaves the user menu.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleFocusOutAsync()
@@ -391,7 +402,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Checks whether an action item is enabled.
+        /// Checks whether a menu item is enabled.
         /// </summary>
         /// <param name="item">The item to check.</param>
         /// <returns>A value indicating whether the item is enabled.</returns>

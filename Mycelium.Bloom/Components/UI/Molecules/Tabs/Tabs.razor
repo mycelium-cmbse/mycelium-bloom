@@ -1,4 +1,4 @@
-﻿@* ------------------------------------------------------------------------------------------------
+@* ------------------------------------------------------------------------------------------------
 <copyright file="Tabs.razor" company="Starion Group S.A.">
 
   Copyright 2026 Starion Group S.A.
@@ -7,17 +7,27 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-<div class="@(this.GetCssClass())" role="tablist" @attributes="this.AdditionalAttributes">
-    @foreach (var item in this.Items)
+<div
+    @ref="this.RootElement"
+    class="@(this.GetCssClass())"
+    role="tablist"
+    aria-orientation="horizontal"
+    @attributes="this.AdditionalAttributes">
+    @for (var index = 0; index < this.Items.Count; index++)
     {
+        var itemIndex = index;
+        var item = this.Items[itemIndex];
         var isActive = this.IsActive(item);
 
         <button
+            @ref="this.TabElements[itemIndex]"
             type="button"
             class="@(this.GetTabClass(item))"
             role="tab"
             aria-selected="@(isActive ? "true" : "false")"
+            tabindex="@(this.GetTabIndex(item))"
             disabled="@item.Disabled"
+            @onkeydown="args => this.HandleTabKeyDownAsync(args, itemIndex)"
             @onclick="() => this.SelectTabAsync(item)">
             @item.Label
         </button>
