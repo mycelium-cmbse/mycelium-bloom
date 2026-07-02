@@ -21,6 +21,11 @@ namespace Mycelium.Bloom.Components.UI.Molecules.SplitButton
     public partial class SplitButton : ComponentBase
     {
         /// <summary>
+        /// The base CSS class applied to split button dropdown items.
+        /// </summary>
+        private const string ItemCssClass = "mb-split-button__item";
+
+        /// <summary>
         /// Gets or sets the visible primary action text.
         /// </summary>
         [Parameter]
@@ -164,22 +169,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.SplitButton
                 ButtonSize.Large => "mb-split-button--large",
                 _ => "mb-split-button--medium"
             };
-
-            return cssClass;
-        }
-
-        /// <summary>
-        /// Gets the CSS class list applied to a dropdown item.
-        /// </summary>
-        /// <param name="item">The dropdown action item.</param>
-        /// <returns>The dropdown item CSS class list.</returns>
-        private string GetItemClass(ActionMenuItem item)
-        {
-            var cssClass = CssClassBuilder.Build(
-                "mb-split-button__item",
-                CssClassBuilder.When("mb-split-button__item--danger", item.Variant == ActionMenuItemVariant.Danger),
-                CssClassBuilder.When("mb-split-button__item--disabled", item.Disabled),
-                CssClassBuilder.When("mb-split-button__item--separator", item.SeparatorBefore));
 
             return cssClass;
         }

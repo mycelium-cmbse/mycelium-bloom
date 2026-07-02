@@ -35,7 +35,7 @@
             {
                 <button
                     type="button"
-                    class="@(this.GetItemClass(item))"
+                    class="@(ActionMenuItemHelper.BuildItemCssClass(item, ItemCssClass))"
                     role="menuitem"
                     disabled="@(item.Disabled)"
                     @onclick="() => this.SelectItemAsync(item)">

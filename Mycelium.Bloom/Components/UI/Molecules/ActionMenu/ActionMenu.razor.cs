@@ -23,9 +23,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
     public partial class ActionMenu : ComponentBase, IAsyncDisposable
     {
         /// <summary>
-        /// The JavaScript module used to prevent browser scrolling for handled navigation keys.
+        /// The base CSS class applied to action menu items.
         /// </summary>
-        private const string KeyboardNavigationModulePath = "/js/keyboardNavigation.js";
+        private const string ItemCssClass = "mb-action-menu__item";
 
         /// <summary>
         /// Gets or sets the JavaScript runtime.
@@ -140,6 +140,8 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         public async ValueTask DisposeAsync()
         {
             await this.DisposeAsyncCore();
+
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -162,7 +164,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         {
             if (firstRender)
             {
-                await this.RegisterKeyboardNavigationAsync();
+                this.KeyboardNavigationModule = await KeyboardNavigation.RegisterNavigationKeyPreventionAsync(this.JsRuntime, this.RootElement);
             }
 
             if (this.PendingFocusItemIndex is { } itemIndex && itemIndex >= 0 && itemIndex < this.ItemElements.Length)
@@ -235,22 +237,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Gets the CSS class list applied to an action item.
-        /// </summary>
-        /// <param name="item">The action item.</param>
-        /// <returns>The action item CSS class list.</returns>
-        private string GetItemClass(ActionMenuItem item)
-        {
-            var cssClass = CssClassBuilder.Build(
-                "mb-action-menu__item",
-                CssClassBuilder.When("mb-action-menu__item--danger", item.Variant == ActionMenuItemVariant.Danger),
-                CssClassBuilder.When("mb-action-menu__item--disabled", item.Disabled),
-                CssClassBuilder.When("mb-action-menu__item--separator", item.SeparatorBefore));
-
-            return cssClass;
-        }
-
-        /// <summary>
         /// Toggles whether the menu is open.
         /// </summary>
         private void ToggleMenu()
@@ -290,11 +276,11 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             {
                 case "ArrowDown":
                 case "Down":
-                    this.OpenMenu(KeyboardNavigation.GetFirstEnabledIndex(this.Items, IsItemEnabled));
+                    this.OpenMenu(KeyboardNavigation.GetFirstEnabledIndex(this.Items, ActionMenuItemHelper.IsEnabled));
                     break;
                 case "ArrowUp":
                 case "Up":
-                    this.OpenMenu(KeyboardNavigation.GetLastEnabledIndex(this.Items, IsItemEnabled));
+                    this.OpenMenu(KeyboardNavigation.GetLastEnabledIndex(this.Items, ActionMenuItemHelper.IsEnabled));
                     break;
                 case "Escape":
                     this.CloseMenu();
@@ -316,17 +302,17 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             {
                 case "ArrowDown":
                 case "Down":
-                    this.FocusItem(KeyboardNavigation.GetNextEnabledIndex(this.Items, itemIndex, 1, IsItemEnabled));
+                    this.FocusItem(KeyboardNavigation.GetNextEnabledIndex(this.Items, itemIndex, 1, ActionMenuItemHelper.IsEnabled));
                     break;
                 case "ArrowUp":
                 case "Up":
-                    this.FocusItem(KeyboardNavigation.GetNextEnabledIndex(this.Items, itemIndex, -1, IsItemEnabled));
+                    this.FocusItem(KeyboardNavigation.GetNextEnabledIndex(this.Items, itemIndex, -1, ActionMenuItemHelper.IsEnabled));
                     break;
                 case "Home":
-                    this.FocusItem(KeyboardNavigation.GetFirstEnabledIndex(this.Items, IsItemEnabled));
+                    this.FocusItem(KeyboardNavigation.GetFirstEnabledIndex(this.Items, ActionMenuItemHelper.IsEnabled));
                     break;
                 case "End":
-                    this.FocusItem(KeyboardNavigation.GetLastEnabledIndex(this.Items, IsItemEnabled));
+                    this.FocusItem(KeyboardNavigation.GetLastEnabledIndex(this.Items, ActionMenuItemHelper.IsEnabled));
                     break;
                 case "Escape":
                     this.CloseMenu(true);
@@ -391,31 +377,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Checks whether an action item is enabled.
-        /// </summary>
-        /// <param name="item">The item to check.</param>
-        /// <returns>A value indicating whether the item is enabled.</returns>
-        private static bool IsItemEnabled(ActionMenuItem item)
-        {
-            return !item.Disabled;
-        }
-
-        /// <summary>
-        /// Registers handled navigation keys so the browser does not scroll the page.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task RegisterKeyboardNavigationAsync()
-        {
-            this.KeyboardNavigationModule = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import",
-                KeyboardNavigationModulePath);
-
-            await this.KeyboardNavigationModule.InvokeVoidAsync(
-                "registerNavigationKeyPrevention",
-                this.RootElement);
-        }
-
-        /// <summary>
         /// Asynchronously disposes keyboard navigation JavaScript resources.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
@@ -423,17 +384,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         {
             if (this.KeyboardNavigationModule is not null)
             {
-                try
-                {
-                    await this.KeyboardNavigationModule.InvokeVoidAsync("disposeNavigationKeyPrevention", this.RootElement);
-                    await this.KeyboardNavigationModule.DisposeAsync();
+                await KeyboardNavigation.DisposeNavigationKeyPreventionAsync(this.KeyboardNavigationModule, this.RootElement);
 
-                    this.KeyboardNavigationModule = null;
-                }
-                catch (JSDisconnectedException)
-                {
-                    // The circuit is already disconnected, so there is nothing left to clean up on the client.
-                }
+                this.KeyboardNavigationModule = null;
             }
         }
     }

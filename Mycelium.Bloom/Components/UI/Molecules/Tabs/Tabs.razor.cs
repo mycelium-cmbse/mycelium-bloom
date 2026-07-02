@@ -22,11 +22,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
     public partial class Tabs : ComponentBase, IAsyncDisposable
     {
         /// <summary>
-        /// The JavaScript module used to prevent browser scrolling for handled navigation keys.
-        /// </summary>
-        private const string KeyboardNavigationModulePath = "/js/keyboardNavigation.js";
-
-        /// <summary>
         /// Gets or sets the JavaScript runtime.
         /// </summary>
         [Inject]
@@ -95,6 +90,8 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
         public async ValueTask DisposeAsync()
         {
             await this.DisposeAsyncCore();
+
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -117,7 +114,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
         {
             if (firstRender)
             {
-                await this.RegisterKeyboardNavigationAsync();
+                this.KeyboardNavigationModule = await KeyboardNavigation.RegisterNavigationKeyPreventionAsync(this.JsRuntime, this.RootElement);
             }
 
             if (this.PendingFocusTabIndex is { } tabIndex && tabIndex >= 0 && tabIndex < this.TabElements.Length)
@@ -276,21 +273,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
         }
 
         /// <summary>
-        /// Registers handled navigation keys so the browser does not scroll the page.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task RegisterKeyboardNavigationAsync()
-        {
-            this.KeyboardNavigationModule = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import",
-                KeyboardNavigationModulePath);
-
-            await this.KeyboardNavigationModule.InvokeVoidAsync(
-                "registerNavigationKeyPrevention",
-                this.RootElement);
-        }
-
-        /// <summary>
         /// Asynchronously disposes keyboard navigation JavaScript resources.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
@@ -298,17 +280,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
         {
             if (this.KeyboardNavigationModule is not null)
             {
-                try
-                {
-                    await this.KeyboardNavigationModule.InvokeVoidAsync("disposeNavigationKeyPrevention", this.RootElement);
-                    await this.KeyboardNavigationModule.DisposeAsync();
+                await KeyboardNavigation.DisposeNavigationKeyPreventionAsync(this.KeyboardNavigationModule, this.RootElement);
 
-                    this.KeyboardNavigationModule = null;
-                }
-                catch (JSDisconnectedException)
-                {
-                    // The circuit is already disconnected, so there is nothing left to clean up on the client.
-                }
+                this.KeyboardNavigationModule = null;
             }
         }
     }

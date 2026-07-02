@@ -9,11 +9,19 @@
 
 namespace Mycelium.Bloom.Components.Common
 {
+    using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
+
     /// <summary>
     /// Provides helpers for roving keyboard navigation across child items.
     /// </summary>
     public static class KeyboardNavigation
     {
+        /// <summary>
+        /// The JavaScript module used to prevent browser scrolling for handled navigation keys.
+        /// </summary>
+        private const string KeyboardNavigationModulePath = "/js/keyboardNavigation.js";
+
         /// <summary>
         /// Gets the first enabled item index.
         /// </summary>
@@ -70,11 +78,11 @@ namespace Mycelium.Bloom.Components.Common
                 return null;
             }
 
-            var normalizedIndex = ((currentIndex % items.Count) + items.Count) % items.Count;
+            var normalizedIndex = (currentIndex % items.Count + items.Count) % items.Count;
 
             for (var step = 1; step <= items.Count; step++)
             {
-                var index = (normalizedIndex + (step * direction) + items.Count) % items.Count;
+                var index = (normalizedIndex + step * direction + items.Count) % items.Count;
 
                 if (isEnabled(items[index]))
                 {
@@ -83,6 +91,44 @@ namespace Mycelium.Bloom.Components.Common
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Registers handled navigation keys so the browser does not scroll the page.
+        /// </summary>
+        /// <param name="jsRuntime">The JavaScript runtime.</param>
+        /// <param name="rootElement">The root element that handles keyboard navigation.</param>
+        /// <returns>The JavaScript module reference used to unregister the handler.</returns>
+        public static async ValueTask<IJSObjectReference> RegisterNavigationKeyPreventionAsync(IJSRuntime jsRuntime, ElementReference rootElement)
+        {
+            var module = await jsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                KeyboardNavigationModulePath);
+
+            await module.InvokeVoidAsync(
+                "registerNavigationKeyPrevention",
+                rootElement);
+
+            return module;
+        }
+
+        /// <summary>
+        /// Disposes the JavaScript resources used for handled navigation key prevention.
+        /// </summary>
+        /// <param name="module">The JavaScript module reference.</param>
+        /// <param name="rootElement">The root element that handles keyboard navigation.</param>
+        /// <returns>A value task representing the asynchronous dispose operation.</returns>
+        public static async ValueTask DisposeNavigationKeyPreventionAsync(IJSObjectReference module, ElementReference rootElement)
+        {
+            try
+            {
+                await module.InvokeVoidAsync("disposeNavigationKeyPrevention", rootElement);
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit is already disconnected, so there is nothing left to clean up on the client.
+            }
         }
     }
 }
