@@ -120,6 +120,17 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SelectInput
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
+        /// <inheritdoc />
+        protected override void OnParametersSet()
+        {
+            base.OnParametersSet();
+
+            if (this.Disabled)
+            {
+                this.IsOpen = false;
+            }
+        }
+
         /// <summary>
         /// Gets the final CSS class list applied to the select input wrapper.
         /// </summary>
@@ -444,17 +455,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SelectInput
             this.IsOpen = false;
 
             await this.ValueChanged.InvokeAsync(option.Value);
-        }
-
-        /// <inheritdoc />
-        protected override void OnParametersSet()
-        {
-            base.OnParametersSet();
-
-            if (this.Disabled)
-            {
-                this.IsOpen = false;
-            }
         }
     }
 }
