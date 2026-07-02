@@ -12,8 +12,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CanvasToolbar
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Reusable compact toolbar for workspace canvas surfaces.
@@ -99,7 +99,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CanvasToolbar
         /// <summary>
         /// Gets the available canvas tools.
         /// </summary>
-        private IReadOnlyList<CanvasTool> Tools => AvailableTools;
+        private static IReadOnlyList<CanvasTool> Tools => AvailableTools;
 
         /// <summary>
         /// Gets the final CSS class list applied to the toolbar.
@@ -155,7 +155,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CanvasToolbar
         /// </summary>
         /// <param name="tool">The canvas tool.</param>
         /// <returns>The visual glyph for the tool.</returns>
-        private string GetToolIcon(CanvasTool tool)
+        private static string GetToolIcon(CanvasTool tool)
         {
             var icon = tool switch
             {
@@ -172,7 +172,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CanvasToolbar
         /// </summary>
         /// <param name="tool">The canvas tool.</param>
         /// <returns>The accessible label for the tool.</returns>
-        private string GetToolAriaLabel(CanvasTool tool)
+        private static string GetToolAriaLabel(CanvasTool tool)
         {
             return $"{tool} tool";
         }
@@ -182,7 +182,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.CanvasToolbar
         /// </summary>
         /// <param name="tool">The canvas tool.</param>
         /// <returns>The title for the tool.</returns>
-        private string GetToolTitle(CanvasTool tool)
+        private static string GetToolTitle(CanvasTool tool)
         {
             return tool.ToString();
         }

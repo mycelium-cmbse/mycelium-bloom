@@ -20,17 +20,17 @@
     </div>
 
     <div class="mb-canvas-toolbar__tools" role="toolbar" aria-label="Canvas tools">
-        @foreach (var tool in this.Tools)
+        @foreach (var tool in Tools)
         {
             var isActive = this.IsActiveTool(tool);
 
             <IconButton
-                AriaLabel="@(this.GetToolAriaLabel(tool))"
-                Title="@(this.GetToolTitle(tool))"
+                AriaLabel="@(GetToolAriaLabel(tool))"
+                Title="@(GetToolTitle(tool))"
                 Class="@(this.GetToolCssClass(tool))"
                 aria-pressed="@(isActive ? "true" : "false")"
                 OnClick="() => this.SelectToolAsync(tool)">
-                @(this.GetToolIcon(tool))
+                @(GetToolIcon(tool))
             </IconButton>
         }
     </div>
