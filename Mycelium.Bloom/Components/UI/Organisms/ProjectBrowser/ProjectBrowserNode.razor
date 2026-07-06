@@ -1,0 +1,62 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectBrowserNode.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@if (this.Node != null)
+{
+    <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
+         aria-selected="@(this.GetAriaSelected())">
+        <button
+            type="button"
+            class="@(this.GetNodeCssClass())"
+            style="@(this.GetNodeStyle())"
+            title="@(this.GetTooltip())"
+            @onclick="this.SelectNodeAsync">
+            <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())"></span>
+
+            @if (this.Node.HasChildren)
+            {
+                <span class="mb-project-browser-node__toggle" aria-hidden="true">
+                    @(this.Node.IsExpanded ? "v" : ">")
+                </span>
+            }
+            else
+            {
+                <span class="mb-project-browser-node__toggle-spacer"></span>
+            }
+
+            <span class="mb-project-browser-node__element-icon" aria-hidden="true"></span>
+
+            @if (!string.IsNullOrWhiteSpace(this.GetStereotype()))
+            {
+                <span class="mb-project-browser-node__stereotype">
+                    @(this.GetStereotype())
+                </span>
+            }
+
+            <span class="mb-project-browser-node__title">
+                @(this.Node.DisplayName)
+            </span>
+        </button>
+
+        @if (this.Node.IsExpanded)
+        {
+            <div class="mb-project-browser-node__children" role="group">
+                @foreach (var child in this.Node.Children)
+                {
+                    <ProjectBrowserNode
+                        Node="child"
+                        ViewModel="this.ViewModel"
+                        Depth="@(this.Depth + 1)"
+                        OnStateChanged="this.OnStateChanged"
+                        OnNodeSelected="this.OnNodeSelected"/>
+                }
+            </div>
+        }
+    </div>
+}

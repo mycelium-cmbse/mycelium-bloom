@@ -1,0 +1,64 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectBrowser.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.ShouldShowLoadingState())
+    {
+        <div class="mb-project-browser__tree">
+            <div class="mb-project-browser__state" role="status" aria-live="polite">
+                <strong class="mb-project-browser__state-title">
+                    Loading Quantities model
+                </strong>
+                <p class="mb-project-browser__state-description">
+                    Preparing the SysML project browser...
+                </p>
+            </div>
+        </div>
+    }
+    else if (this.ShouldShowErrorState())
+    {
+        <div class="mb-project-browser__tree">
+            <div class="mb-project-browser__state mb-project-browser__state--error" role="alert" aria-live="assertive">
+                <strong class="mb-project-browser__state-title">
+                    Unable to load project browser
+                </strong>
+
+                @if (!string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage))
+                {
+                    <p class="mb-project-browser__state-description">
+                        @(this.ViewModel.ErrorMessage)
+                    </p>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
+            @if (this.ViewModel.RootNodes.Count == 0)
+            {
+                <div class="mb-project-browser__empty">
+                    No model elements available.
+                </div>
+            }
+            else
+            {
+                @foreach (var node in this.ViewModel.RootNodes)
+                {
+                    <ProjectBrowserNode
+                        Node="node"
+                        ViewModel="this.ViewModel"
+                        Depth="0"
+                        OnStateChanged="this.HandleStateChangedAsync"
+                        OnNodeSelected="this.HandleNodeSelectedAsync"/>
+                }
+            }
+        </div>
+    }
+</div>
