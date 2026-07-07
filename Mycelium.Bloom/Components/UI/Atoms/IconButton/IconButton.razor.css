@@ -1,0 +1,31 @@
+.mb-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 6px;
+    border: 1px solid transparent;
+    border-radius: var(--mb-radius-control);
+    background: transparent;
+    color: var(--mb-color-component-icon);
+    transition: background-color var(--mb-transition-fast),
+    color var(--mb-transition-fast);
+}
+
+.mb-icon-button:hover:not(:disabled) {
+    background: var(--mb-color-neutral-100);
+    color: var(--mb-color-component-text);
+}
+
+.mb-icon-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.mb-icon-button ::deep > svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+}

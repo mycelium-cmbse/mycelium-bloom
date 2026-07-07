@@ -1,0 +1,61 @@
+.mb-project-browser {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+    background: var(--mb-color-surface);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-project-browser__tree {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    min-height: 0;
+    max-height: 100%;
+    padding: var(--mb-spacing-3);
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--mb-color-surface);
+}
+
+.mb-project-browser__state,
+.mb-project-browser__empty {
+    padding: var(--mb-spacing-4);
+    color: var(--mb-color-text-muted);
+    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+}
+
+.mb-project-browser__state {
+    border: 1px solid var(--mb-color-border);
+    border-radius: var(--mb-radius-md);
+    background: var(--mb-color-neutral-50);
+}
+
+.mb-project-browser__state--error {
+    border-color: var(--mb-color-danger-500);
+    background: var(--mb-color-danger-50);
+}
+
+.mb-project-browser__state-title {
+    display: block;
+    color: var(--mb-color-text-primary);
+    font-weight: 600;
+}
+
+.mb-project-browser__state-description {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.mb-project-browser__empty {
+    text-align: center;
+}
