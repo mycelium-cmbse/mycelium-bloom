@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     /// <summary>
     /// Provides tree state and tree-building logic for the project browser.
     /// </summary>
-    public sealed class ProjectBrowserViewModel : IProjectBrowserViewModel
+    public sealed class ProjectBrowserViewModel : BloomBaseViewModel, IProjectBrowserViewModel
     {
         /// <summary>
         /// The model loader service used to retrieve SysML models.
@@ -53,21 +53,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether the project browser is loading.
-        /// </summary>
-        public bool IsLoading { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether the project browser has loaded.
-        /// </summary>
-        public bool IsLoaded { get; private set; }
-
-        /// <summary>
-        /// Gets the project browser loading error message.
-        /// </summary>
-        public string ErrorMessage { get; private set; } = string.Empty;
-
-        /// <summary>
         /// Initializes the project browser tree from the Quantities SysML model.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
@@ -78,8 +63,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 return;
             }
 
-            this.IsLoading = true;
-            this.ErrorMessage = string.Empty;
+            this.StartLoading();
 
             try
             {
@@ -92,12 +76,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 this.RootNodes = [];
                 this.SelectedNode = null;
-                this.IsLoaded = false;
-                this.ErrorMessage = exception.Message;
+                this.SetError(exception.Message);
             }
             finally
             {
-                this.IsLoading = false;
+                this.StopLoading();
             }
         }
 
@@ -116,8 +99,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var rootNode = this.BuildNode(model, "root");
 
             this.RootNodes = [rootNode];
-            this.IsLoaded = true;
-            this.ErrorMessage = string.Empty;
+            this.SetLoaded();
         }
 
         /// <summary>
