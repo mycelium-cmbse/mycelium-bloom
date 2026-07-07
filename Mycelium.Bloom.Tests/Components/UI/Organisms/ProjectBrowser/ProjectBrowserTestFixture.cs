@@ -15,6 +15,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Bunit;
 
+    using Microsoft.Extensions.DependencyInjection;
+
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -48,8 +50,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 IsLoading = true
             };
 
-            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
-                .Add(browser => browser.ViewModel, viewModel));
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>();
 
             using (Assert.EnterMultipleScope())
             {
@@ -71,8 +74,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 ErrorMessage = "Model load failed"
             };
 
-            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
-                .Add(browser => browser.ViewModel, viewModel));
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>();
 
             using (Assert.EnterMultipleScope())
             {
@@ -96,8 +100,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 RootNodes = [node]
             };
 
-            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
-                .Add(browser => browser.ViewModel, viewModel));
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>();
 
             using (Assert.EnterMultipleScope())
             {
@@ -109,10 +114,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that the project browser initializes an unloaded view model after first render.
+        /// Verifies that the project browser initializes an unloaded view model.
         /// </summary>
         [Test]
-        public void VerifyOnAfterRenderAsyncInitializesViewModel()
+        public void VerifyOnInitializedAsyncInitializesViewModel()
         {
             ProjectBrowserNodeViewModel selectedNode = null;
             var node = CreateNode("quantities", "Quantities");
@@ -127,8 +132,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 return Task.CompletedTask;
             };
 
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
             var component = this.Render<ProjectBrowserComponent>(parameters => parameters
-                .Add(browser => browser.ViewModel, viewModel)
                 .Add(browser => browser.SelectedNodeChanged, changedNode =>
                 {
                     selectedNode = changedNode;
@@ -140,6 +146,52 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Quantities")));
 
             Assert.That(selectedNode, Is.SameAs(node));
+        }
+
+        /// <summary>
+        /// Verifies that selecting a parent node expands it and marks it as selected.
+        /// </summary>
+        [Test]
+        public void VerifyHandleNodeSelectedSelectsAndExpandsParentNode()
+        {
+            ProjectBrowserNodeViewModel selectedNode = null;
+            var child = CreateNode("quantities/length", "Length");
+            var node = new ProjectBrowserNodeViewModel(
+                "quantities",
+                "Quantities",
+                new ProjectBrowserNodeMetadata(
+                    "quantities",
+                    "Quantities",
+                    "Namespace",
+                    ProjectBrowserElementKind.Namespace,
+                    new Namespace()),
+                [child]);
+
+            var viewModel = new ProjectBrowserViewModelStub
+            {
+                IsLoaded = true,
+                RootNodes = [node]
+            };
+
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, changedNode =>
+                {
+                    selectedNode = changedNode;
+
+                    return Task.CompletedTask;
+                }));
+
+            component.Find("button").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.IsExpanded, Is.True);
+                Assert.That(node.IsSelected, Is.True);
+                Assert.That(selectedNode, Is.SameAs(node));
+                Assert.That(component.Markup, Does.Contain("Length"));
+            }
         }
 
         private static ProjectBrowserNodeViewModel CreateNode(string nodeId, string displayName)

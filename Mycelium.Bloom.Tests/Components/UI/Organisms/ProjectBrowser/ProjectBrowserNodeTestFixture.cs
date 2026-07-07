@@ -11,8 +11,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
     using Bunit;
 
-    using Moq;
-
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Kernel.Packages;
@@ -54,8 +52,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 []);
 
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
-                .Add(component => component.Node, node)
-                .Add(component => component.ViewModel, new Mock<IProjectBrowserViewModel>(MockBehavior.Strict).Object));
+                .Add(component => component.ViewModel, node));
 
             using (Assert.EnterMultipleScope())
             {
@@ -67,10 +64,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that selecting a parent node expands it and marks it as selected.
+        /// Verifies that selecting a parent node raises the selected node callback.
         /// </summary>
         [Test]
-        public void VerifyRenderSelectsAndExpandsParentNode()
+        public void VerifyRenderRaisesSelectedNode()
         {
             var child = new ProjectBrowserNodeViewModel(
                 "quantities/length",
@@ -94,38 +91,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     new Namespace()),
                 [child]);
 
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
             var selectedNode = default(ProjectBrowserNodeViewModel);
-            var stateChanged = false;
-
-            viewModel
-                .Setup(x => x.ToggleNode(node))
-                .Callback<ProjectBrowserNodeViewModel>(selected => selected.IsExpanded = !selected.IsExpanded);
-
-            viewModel
-                .Setup(x => x.SelectNode(node))
-                .Callback<ProjectBrowserNodeViewModel>(selected => selected.IsSelected = true);
 
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
-                .Add(component => component.Node, node)
-                .Add(component => component.ViewModel, viewModel.Object)
-                .Add(component => component.OnStateChanged, () => stateChanged = true)
+                .Add(component => component.ViewModel, node)
                 .Add(component => component.OnNodeSelected, selected => selectedNode = selected));
 
             component.Find("button").Click();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(node.IsExpanded, Is.True);
-                Assert.That(node.IsSelected, Is.True);
+                Assert.That(node.IsExpanded, Is.False);
+                Assert.That(node.IsSelected, Is.False);
                 Assert.That(selectedNode, Is.SameAs(node));
-                Assert.That(stateChanged, Is.True);
-                Assert.That(component.Markup, Does.Contain("Length"));
+                Assert.That(component.Markup, Does.Not.Contain("Length"));
             }
-
-            viewModel.Verify(x => x.ToggleNode(node), Times.Once);
-            viewModel.Verify(x => x.SelectNode(node), Times.Once);
-            viewModel.VerifyNoOtherCalls();
         }
     }
 }

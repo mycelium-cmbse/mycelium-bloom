@@ -22,7 +22,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Gets or sets the project browser view model.
         /// </summary>
-        [Parameter]
+        [Inject]
         public IProjectBrowserViewModel ViewModel { get; set; }
 
         /// <summary>
@@ -44,15 +44,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
-        /// Starts loading the project browser after the component has rendered once.
+        /// Initializes the project browser view model owned by this component.
         /// </summary>
-        /// <param name="firstRender">A value indicating whether this is the first render.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+        protected override async Task OnInitializedAsync()
         {
-            if (!firstRender
-                || this.ViewModel == null
-                || this.ViewModel.IsLoaded
+            if (this.ViewModel.IsLoaded
                 || this.ViewModel.IsLoading
                 || !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage))
             {
@@ -65,8 +62,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             {
                 await this.SelectedNodeChanged.InvokeAsync(this.ViewModel.SelectedNode);
             }
-
-            await this.InvokeAsync(this.StateHasChanged);
         }
 
         private string GetCssClass()
@@ -80,29 +75,31 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
         private bool ShouldShowLoadingState()
         {
-            if (this.ViewModel == null)
-            {
-                return true;
-            }
-
             return this.ViewModel.IsLoading
                    || (!this.ViewModel.IsLoaded && string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage));
         }
 
         private bool ShouldShowErrorState()
         {
-            return this.ViewModel != null && !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage);
-        }
-
-        private Task HandleStateChangedAsync()
-        {
-            return this.InvokeAsync(this.StateHasChanged);
+            return !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage);
         }
 
         private async Task HandleNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
+            if (node == null)
+            {
+                return;
+            }
+
+            if (node.HasChildren)
+            {
+                this.ViewModel.ToggleNode(node);
+            }
+
+            this.ViewModel.SelectNode(node);
+
             await this.SelectedNodeChanged.InvokeAsync(node);
-            await this.HandleStateChangedAsync();
+            await this.InvokeAsync(this.StateHasChanged);
         }
     }
 }

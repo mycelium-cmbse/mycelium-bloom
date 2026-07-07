@@ -44,7 +44,7 @@ namespace Mycelium.Bloom
 
             // Add application services.
             builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
-            builder.Services.AddScoped<IProjectBrowserViewModelService, ProjectBrowserViewModelService>();
+            builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
 
             var app = builder.Build();
 

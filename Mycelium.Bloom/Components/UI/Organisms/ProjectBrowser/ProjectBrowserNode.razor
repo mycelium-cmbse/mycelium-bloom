@@ -7,7 +7,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@if (this.Node != null)
+@if (this.ViewModel != null)
 {
     <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
          aria-selected="@(this.GetAriaSelected())">
@@ -19,10 +19,10 @@
             @onclick="this.SelectNodeAsync">
             <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())"></span>
 
-            @if (this.Node.HasChildren)
+            @if (this.ViewModel.HasChildren)
             {
                 <span class="mb-project-browser-node__toggle" aria-hidden="true">
-                    @(this.Node.IsExpanded ? "v" : ">")
+                    @(this.ViewModel.IsExpanded ? "v" : ">")
                 </span>
             }
             else
@@ -40,20 +40,18 @@
             }
 
             <span class="mb-project-browser-node__title">
-                @(this.Node.DisplayName)
+                @(this.ViewModel.DisplayName)
             </span>
         </button>
 
-        @if (this.Node.IsExpanded)
+        @if (this.ViewModel.IsExpanded)
         {
             <div class="mb-project-browser-node__children" role="group">
-                @foreach (var child in this.Node.Children)
+                @foreach (var child in this.ViewModel.Children)
                 {
                     <ProjectBrowserNode
-                        Node="child"
-                        ViewModel="this.ViewModel"
+                        ViewModel="child"
                         Depth="@(this.Depth + 1)"
-                        OnStateChanged="this.OnStateChanged"
                         OnNodeSelected="this.OnNodeSelected"/>
                 }
             </div>

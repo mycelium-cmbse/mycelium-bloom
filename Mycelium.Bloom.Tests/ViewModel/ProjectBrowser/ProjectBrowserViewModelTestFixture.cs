@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ProjectBrowserViewModelServiceTestFixture.cs" company="Starion Group S.A.">
-// 
+// <copyright file="ProjectBrowserViewModelTestFixture.cs" company="Starion Group S.A.">
+//
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-// 
+//
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -25,10 +25,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
     /// <summary>
-    /// Tests the <see cref="ProjectBrowserViewModelService" />.
+    /// Tests the <see cref="ProjectBrowserViewModel" />.
     /// </summary>
     [TestFixture]
-    public sealed class ProjectBrowserViewModelServiceTestFixture
+    public sealed class ProjectBrowserViewModelTestFixture
     {
         /// <summary>
         /// Verifies that the constructor rejects a null model loader service.
@@ -37,21 +37,21 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyConstructorThrowsExceptionWhenModelLoaderServiceIsNull()
         {
             Assert.That(
-                () => new ProjectBrowserViewModelService(null),
+                () => new ProjectBrowserViewModel(null),
                 Throws.TypeOf<ArgumentNullException>()
                     .With.Property("ParamName").EqualTo("modelLoaderService"));
         }
 
         /// <summary>
-        /// Verifies that the service can create a project browser view model from a provided namespace.
+        /// Verifies that the view model can initialize from a provided namespace.
         /// </summary>
         [Test]
-        public void VerifyCreateFromNamespaceCreatesViewModel()
+        public void VerifyInitializeBuildsTreeFromNamespace()
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
-            var service = new ProjectBrowserViewModelService(modelLoaderService.Object);
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
 
-            var viewModel = service.CreateFromNamespace(LoadQuantitiesModel());
+            viewModel.Initialize(LoadQuantitiesModel());
 
             using (Assert.EnterMultipleScope())
             {
@@ -66,15 +66,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that the service creates a project browser view model without loading the Quantities model.
+        /// Verifies that constructing the view model does not load the Quantities model.
         /// </summary>
         [Test]
-        public void VerifyCreateQuantitiesProjectBrowserViewModelDefersModelLoading()
+        public void VerifyConstructorDefersModelLoading()
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
-            var service = new ProjectBrowserViewModelService(modelLoaderService.Object);
 
-            var viewModel = service.CreateQuantitiesProjectBrowserViewModel();
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
 
             using (Assert.EnterMultipleScope())
             {
@@ -100,8 +99,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 .Setup(x => x.LoadQuantitiesModel())
                 .Returns(model);
 
-            var service = new ProjectBrowserViewModelService(modelLoaderService.Object);
-            var viewModel = service.CreateQuantitiesProjectBrowserViewModel();
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
 
             await viewModel.InitializeAsync();
 
@@ -121,10 +119,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that the service returns independent project browser view models on repeated calls.
+        /// Verifies that separate project browser view model instances keep independent state.
         /// </summary>
         [Test]
-        public async Task VerifyCreateQuantitiesProjectBrowserViewModelReturnsIndependentViewModels()
+        public async Task VerifyProjectBrowserViewModelsKeepIndependentState()
         {
             var model = LoadQuantitiesModel();
             var modelLoaderService = new Mock<IModelLoaderService>();
@@ -133,10 +131,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 .Setup(x => x.LoadQuantitiesModel())
                 .Returns(model);
 
-            var service = new ProjectBrowserViewModelService(modelLoaderService.Object);
-
-            var firstViewModel = service.CreateQuantitiesProjectBrowserViewModel();
-            var secondViewModel = service.CreateQuantitiesProjectBrowserViewModel();
+            var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
+            var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
 
             await firstViewModel.InitializeAsync();
             await secondViewModel.InitializeAsync();

@@ -22,28 +22,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     public partial class ProjectBrowserNode : ComponentBase
     {
         /// <summary>
-        /// Gets or sets the node to render.
+        /// Gets or sets the project browser node view model.
         /// </summary>
         [Parameter]
-        public ProjectBrowserNodeViewModel Node { get; set; }
-
-        /// <summary>
-        /// Gets or sets the project browser view model.
-        /// </summary>
-        [Parameter]
-        public IProjectBrowserViewModel ViewModel { get; set; }
+        public ProjectBrowserNodeViewModel ViewModel { get; set; }
 
         /// <summary>
         /// Gets or sets the tree depth of this node.
         /// </summary>
         [Parameter]
         public int Depth { get; set; }
-
-        /// <summary>
-        /// Gets or sets the callback invoked after expand or collapse state changes.
-        /// </summary>
-        [Parameter]
-        public EventCallback OnStateChanged { get; set; }
 
         /// <summary>
         /// Gets or sets the callback invoked after the node is selected.
@@ -53,27 +41,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
         private async Task SelectNodeAsync()
         {
-            if (this.Node == null || this.ViewModel == null)
+            if (this.ViewModel == null)
             {
                 return;
             }
 
-            if (this.Node.HasChildren)
-            {
-                this.ViewModel.ToggleNode(this.Node);
-            }
-
-            this.ViewModel.SelectNode(this.Node);
-
-            await this.OnNodeSelected.InvokeAsync(this.Node);
-            await this.OnStateChanged.InvokeAsync();
+            await this.OnNodeSelected.InvokeAsync(this.ViewModel);
         }
 
         private string GetNodeCssClass()
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-project-browser-node__row",
-                CssClassBuilder.When("mb-project-browser-node__row--selected", this.Node.IsSelected));
+                CssClassBuilder.When("mb-project-browser-node__row--selected", this.ViewModel.IsSelected));
 
             return cssClass;
         }
@@ -100,7 +80,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
         private string GetElementColor()
         {
-            var color = this.Node.ElementKind switch
+            var color = this.ViewModel.ElementKind switch
             {
                 ProjectBrowserElementKind.Namespace => "var(--mb-color-sysml-structure-header)",
                 ProjectBrowserElementKind.Import => "var(--mb-color-sysml-allocations-header)",
@@ -121,14 +101,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             var suffix = this.GetTypeLabel();
 
-            if (!string.IsNullOrWhiteSpace(this.Node.QualifiedName))
+            if (!string.IsNullOrWhiteSpace(this.ViewModel.QualifiedName))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{this.Node.QualifiedName} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{this.ViewModel.QualifiedName} - {suffix}");
             }
 
-            if (!string.IsNullOrWhiteSpace(this.Node.ElementId))
+            if (!string.IsNullOrWhiteSpace(this.ViewModel.ElementId))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{this.Node.ElementId} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{this.ViewModel.ElementId} - {suffix}");
             }
 
             return suffix;
@@ -136,14 +116,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
         private string GetTypeLabel()
         {
-            if (!string.IsNullOrWhiteSpace(this.Node.RuntimeTypeName))
+            if (!string.IsNullOrWhiteSpace(this.ViewModel.RuntimeTypeName))
             {
-                return this.Node.RuntimeTypeName;
+                return this.ViewModel.RuntimeTypeName;
             }
 
-            if (this.Node.ElementKind != ProjectBrowserElementKind.Unknown)
+            if (this.ViewModel.ElementKind != ProjectBrowserElementKind.Unknown)
             {
-                return this.Node.ElementKind.ToString();
+                return this.ViewModel.ElementKind.ToString();
             }
 
             return ProjectBrowserElementKind.Unknown.ToString();
@@ -151,17 +131,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
         private string GetAriaExpanded()
         {
-            if (!this.Node.HasChildren)
+            if (!this.ViewModel.HasChildren)
             {
                 return null;
             }
 
-            return this.Node.IsExpanded.ToString().ToLowerInvariant();
+            return this.ViewModel.IsExpanded.ToString().ToLowerInvariant();
         }
 
         private string GetAriaSelected()
         {
-            return this.Node.IsSelected.ToString().ToLowerInvariant();
+            return this.ViewModel.IsSelected.ToString().ToLowerInvariant();
         }
     }
 }

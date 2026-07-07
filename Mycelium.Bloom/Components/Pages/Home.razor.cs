@@ -19,36 +19,22 @@ namespace Mycelium.Bloom.Components.Pages
     public partial class Home : ComponentBase
     {
         /// <summary>
-        /// Gets or sets the project browser view model service.
-        /// </summary>
-        [Inject]
-        public IProjectBrowserViewModelService ProjectBrowserViewModelService { get; set; }
-
-        /// <summary>
         /// Gets the selected model element name.
         /// </summary>
         private string SelectedModelElementName
         {
             get
             {
-                var displayName = this.ProjectBrowserViewModel?.SelectedNode?.DisplayName;
+                var displayName = this.SelectedProjectBrowserNode?.DisplayName;
 
                 return string.IsNullOrWhiteSpace(displayName) ? "None" : displayName;
             }
         }
 
         /// <summary>
-        /// Gets or sets the project browser view model.
+        /// Gets or sets the selected project browser node.
         /// </summary>
-        private IProjectBrowserViewModel ProjectBrowserViewModel { get; set; }
-
-        /// <summary>
-        /// Initializes the project browser state used by the home page.
-        /// </summary>
-        protected override void OnInitialized()
-        {
-            this.ProjectBrowserViewModel = this.ProjectBrowserViewModelService.CreateQuantitiesProjectBrowserViewModel();
-        }
+        private ProjectBrowserNodeViewModel SelectedProjectBrowserNode { get; set; }
 
         /// <summary>
         /// Handles project browser node selection changes.
@@ -57,9 +43,9 @@ namespace Mycelium.Bloom.Components.Pages
         /// <returns>A task representing the asynchronous operation.</returns>
         private Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
-            _ = node;
+            this.SelectedProjectBrowserNode = node;
 
-            return Task.CompletedTask;
+            return this.InvokeAsync(this.StateHasChanged);
         }
     }
 }

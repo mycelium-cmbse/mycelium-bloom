@@ -16,8 +16,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
     using Microsoft.Extensions.DependencyInjection;
 
-    using Moq;
-
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -45,7 +43,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void VerifyRenderDisplaysHomeContent()
         {
-            var projectBrowserViewModelService = this.RegisterProjectBrowserViewModelService();
+            var viewModel = this.RegisterProjectBrowserViewModel();
 
             var component = this.Render<Home>();
 
@@ -56,25 +54,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
                 Assert.That(component.Markup, Does.Contain("Selected element"));
                 Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
-                projectBrowserViewModelService.Verify(x => x.CreateQuantitiesProjectBrowserViewModel(), Times.Once);
+                Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
             }
         }
 
-        private Mock<IProjectBrowserViewModelService> RegisterProjectBrowserViewModelService()
+        private ProjectBrowserViewModelStub RegisterProjectBrowserViewModel()
         {
             var viewModel = new ProjectBrowserViewModelStub
             {
                 IsLoading = true
             };
 
-            var projectBrowserViewModelService = new Mock<IProjectBrowserViewModelService>();
-            projectBrowserViewModelService
-                .Setup(x => x.CreateQuantitiesProjectBrowserViewModel())
-                .Returns(viewModel);
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
 
-            this.Services.AddSingleton(projectBrowserViewModelService.Object);
-
-            return projectBrowserViewModelService;
+            return viewModel;
         }
 
         private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
@@ -89,8 +82,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             public string ErrorMessage { get; } = string.Empty;
 
+            public int InitializeAsyncCallCount { get; private set; }
+
             public Task InitializeAsync()
             {
+                this.InitializeAsyncCallCount++;
+
                 return Task.CompletedTask;
             }
 
