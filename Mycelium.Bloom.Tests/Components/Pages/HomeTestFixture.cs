@@ -9,17 +9,14 @@
 
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-
     using Bunit;
 
     using Microsoft.Extensions.DependencyInjection;
 
+    using Moq;
+
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-
-    using SysML2.NET.Core.POCO.Root.Namespaces;
 
     /// <summary>
     /// Tests the <see cref="Home" /> page.
@@ -54,55 +51,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
                 Assert.That(component.Markup, Does.Contain("Selected element"));
                 Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
-                Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
             }
+
+            viewModel.Verify(x => x.InitializeAsync(), Times.Never);
         }
 
-        private ProjectBrowserViewModelStub RegisterProjectBrowserViewModel()
+        private Mock<IProjectBrowserViewModel> RegisterProjectBrowserViewModel()
         {
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                IsLoading = true
-            };
+            var viewModel = new Mock<IProjectBrowserViewModel>();
+            viewModel.SetupGet(x => x.IsLoading).Returns(true);
 
-            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+            this.Services.AddSingleton(viewModel.Object);
 
             return viewModel;
-        }
-
-        private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
-        {
-            public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; } = [];
-
-            public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
-
-            public bool IsLoading { get; set; }
-
-            public bool IsLoaded { get; }
-
-            public string ErrorMessage { get; } = string.Empty;
-
-            public int InitializeAsyncCallCount { get; private set; }
-
-            public Task InitializeAsync()
-            {
-                this.InitializeAsyncCallCount++;
-
-                return Task.CompletedTask;
-            }
-
-            public void Initialize(INamespace model)
-            {
-            }
-
-            public void ToggleNode(ProjectBrowserNodeViewModel node)
-            {
-            }
-
-            public void SelectNode(ProjectBrowserNodeViewModel node)
-            {
-                this.SelectedNode = node;
-            }
         }
     }
 }
