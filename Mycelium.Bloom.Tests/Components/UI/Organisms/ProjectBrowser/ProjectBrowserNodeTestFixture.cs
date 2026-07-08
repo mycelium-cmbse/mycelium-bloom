@@ -11,10 +11,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
     using Bunit;
 
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Kernel.Packages;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
 
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
 
@@ -69,27 +69,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [Test]
         public void VerifyRenderRaisesSelectedNode()
         {
-            var child = new ProjectBrowserNodeViewModel(
+            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
                 "quantities/length",
                 "Length",
-                new ProjectBrowserNodeMetadata(
-                    "length",
-                    "Quantities::Length",
-                    "Namespace",
-                    ProjectBrowserElementKind.Namespace,
-                    new Namespace()),
-                []);
+                "length",
+                "Quantities::Length");
 
-            var node = new ProjectBrowserNodeViewModel(
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
                 "quantities",
                 "Quantities",
-                new ProjectBrowserNodeMetadata(
-                    "quantities",
-                    "Quantities",
-                    "Namespace",
-                    ProjectBrowserElementKind.Namespace,
-                    new Namespace()),
-                [child]);
+                child);
 
             var selectedNode = default(ProjectBrowserNodeViewModel);
 

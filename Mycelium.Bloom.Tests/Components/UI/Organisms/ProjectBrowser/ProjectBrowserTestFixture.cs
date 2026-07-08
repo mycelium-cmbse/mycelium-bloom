@@ -17,6 +17,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Microsoft.Extensions.DependencyInjection;
 
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -93,7 +94,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [Test]
         public void VerifyRenderDisplaysLoadedTree()
         {
-            var node = CreateNode("quantities", "Quantities");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var viewModel = new ProjectBrowserViewModelStub
             {
                 IsLoaded = true,
@@ -120,7 +121,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         public void VerifyOnInitializedAsyncInitializesViewModel()
         {
             ProjectBrowserNodeViewModel selectedNode = null;
-            var node = CreateNode("quantities", "Quantities");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var viewModel = new ProjectBrowserViewModelStub();
 
             viewModel.InitializeHandler = () =>
@@ -155,17 +156,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         public void VerifyHandleNodeSelectedSelectsAndExpandsParentNode()
         {
             ProjectBrowserNodeViewModel selectedNode = null;
-            var child = CreateNode("quantities/length", "Length");
-            var node = new ProjectBrowserNodeViewModel(
+            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities/length", "Length");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
                 "quantities",
                 "Quantities",
-                new ProjectBrowserNodeMetadata(
-                    "quantities",
-                    "Quantities",
-                    "Namespace",
-                    ProjectBrowserElementKind.Namespace,
-                    new Namespace()),
-                [child]);
+                child);
 
             var viewModel = new ProjectBrowserViewModelStub
             {
@@ -192,20 +187,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(selectedNode, Is.SameAs(node));
                 Assert.That(component.Markup, Does.Contain("Length"));
             }
-        }
-
-        private static ProjectBrowserNodeViewModel CreateNode(string nodeId, string displayName)
-        {
-            return new ProjectBrowserNodeViewModel(
-                nodeId,
-                displayName,
-                new ProjectBrowserNodeMetadata(
-                    nodeId,
-                    displayName,
-                    "Namespace",
-                    ProjectBrowserElementKind.Namespace,
-                    new Namespace()),
-                []);
         }
 
         private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
