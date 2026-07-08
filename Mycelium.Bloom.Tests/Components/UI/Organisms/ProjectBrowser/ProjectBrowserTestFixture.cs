@@ -191,20 +191,32 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
         private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
         {
+            /// <inheritdoc />
             public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; set; } = [];
 
+            /// <inheritdoc />
             public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
 
+            /// <inheritdoc />
             public bool IsLoading { get; set; }
 
+            /// <inheritdoc />
             public bool IsLoaded { get; set; }
 
+            /// <inheritdoc />
             public string ErrorMessage { get; set; } = string.Empty;
 
+            /// <summary>
+            /// Gets the number of times asynchronous initialization was requested.
+            /// </summary>
             public int InitializeAsyncCallCount { get; private set; }
 
+            /// <summary>
+            /// Gets or sets the handler invoked during asynchronous initialization.
+            /// </summary>
             public Func<Task> InitializeHandler { get; set; } = () => Task.CompletedTask;
 
+            /// <inheritdoc />
             public async Task InitializeAsync()
             {
                 this.InitializeAsyncCallCount++;
@@ -220,16 +232,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 }
             }
 
+            /// <inheritdoc />
             public void Initialize(INamespace model)
             {
                 this.IsLoaded = true;
             }
 
+            /// <inheritdoc />
             public void ToggleNode(ProjectBrowserNodeViewModel node)
             {
                 node.IsExpanded = !node.IsExpanded;
             }
 
+            /// <inheritdoc />
             public void SelectNode(ProjectBrowserNodeViewModel node)
             {
                 if (this.SelectedNode != null)

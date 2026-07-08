@@ -76,21 +76,34 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
         private sealed class BloomBaseViewModelStub : BloomBaseViewModel
         {
+            /// <summary>
+            /// Exposes the protected loading start behavior for testing.
+            /// </summary>
             public void StartLoadingState()
             {
                 this.StartLoading();
             }
 
+            /// <summary>
+            /// Exposes the protected loading stop behavior for testing.
+            /// </summary>
             public void StopLoadingState()
             {
                 this.StopLoading();
             }
 
+            /// <summary>
+            /// Exposes the protected loaded state behavior for testing.
+            /// </summary>
             public void SetLoadedState()
             {
                 this.SetLoaded();
             }
 
+            /// <summary>
+            /// Exposes the protected error state behavior for testing.
+            /// </summary>
+            /// <param name="errorMessage">The error message to apply.</param>
             public void SetErrorState(string errorMessage)
             {
                 this.SetError(errorMessage);

@@ -56,6 +56,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             viewModel.Verify(x => x.InitializeAsync(), Times.Never);
         }
 
+        /// <summary>
+        /// Registers a loading project browser view model mock.
+        /// </summary>
+        /// <returns>The registered project browser view model mock.</returns>
         private Mock<IProjectBrowserViewModel> RegisterProjectBrowserViewModel()
         {
             var viewModel = new Mock<IProjectBrowserViewModel>();

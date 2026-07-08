@@ -64,6 +64,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
         }
 
+        /// <summary>
+        /// Gets the final CSS class list applied to the project browser.
+        /// </summary>
+        /// <returns>The project browser CSS class list.</returns>
         private string GetCssClass()
         {
             var cssClass = CssClassBuilder.Build(
@@ -73,17 +77,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return cssClass;
         }
 
+        /// <summary>
+        /// Checks whether the loading state should be rendered.
+        /// </summary>
+        /// <returns>A value indicating whether the loading state should be shown.</returns>
         private bool ShouldShowLoadingState()
         {
             return this.ViewModel.IsLoading
                    || (!this.ViewModel.IsLoaded && string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage));
         }
 
+        /// <summary>
+        /// Checks whether the error state should be rendered.
+        /// </summary>
+        /// <returns>A value indicating whether the error state should be shown.</returns>
         private bool ShouldShowErrorState()
         {
             return !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage);
         }
 
+        /// <summary>
+        /// Handles node selection and forwards the selected node to the parent component.
+        /// </summary>
+        /// <param name="node">The selected project browser node.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
             if (node == null)
