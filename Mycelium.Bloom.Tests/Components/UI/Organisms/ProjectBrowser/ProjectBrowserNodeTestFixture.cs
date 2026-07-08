@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
     using Bunit;
 
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -47,7 +48,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     "quantities",
                     "Quantities",
                     "LibraryPackage",
-                    ProjectBrowserElementKind.Unknown,
+                    SysmlModelElementKind.Unknown,
                     new LibraryPackage()),
                 []);
 

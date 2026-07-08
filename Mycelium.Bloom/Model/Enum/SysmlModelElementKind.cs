@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ProjectBrowserElementKind.cs" company="Starion Group S.A.">
+// <copyright file="SysmlModelElementKind.cs" company="Starion Group S.A.">
 // 
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -7,12 +7,12 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.ViewModel.ProjectBrowser
+namespace Mycelium.Bloom.Model.Enum
 {
     /// <summary>
-    /// Identifies the broad kind of SysML element displayed by the project browser.
+    /// Identifies the broad kind of SysML model element.
     /// </summary>
-    public enum ProjectBrowserElementKind
+    public enum SysmlModelElementKind
     {
         /// <summary>
         /// The element kind could not be inferred from the SysML runtime type.

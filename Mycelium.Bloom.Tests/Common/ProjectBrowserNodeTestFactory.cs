@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Common
 {
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -61,7 +62,7 @@ namespace Mycelium.Bloom.Tests.Common
                     elementId,
                     qualifiedName,
                     "Namespace",
-                    ProjectBrowserElementKind.Namespace,
+                    SysmlModelElementKind.Namespace,
                     new Namespace()),
                 children);
         }

@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using Mycelium.Bloom.Model.Enum;
+
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
@@ -28,7 +30,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             string elementId,
             string qualifiedName,
             string runtimeTypeName,
-            ProjectBrowserElementKind elementKind,
+            SysmlModelElementKind elementKind,
             IElement sourceElement)
         {
             this.ElementId = elementId;
@@ -56,7 +58,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets the broad SysML element kind.
         /// </summary>
-        public ProjectBrowserElementKind ElementKind { get; }
+        public SysmlModelElementKind ElementKind { get; }
 
         /// <summary>
         /// Gets the source SysML element represented by the node.

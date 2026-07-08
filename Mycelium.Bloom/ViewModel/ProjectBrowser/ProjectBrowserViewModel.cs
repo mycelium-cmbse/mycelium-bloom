@@ -12,9 +12,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Globalization;
 
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Model.Enum;
 
+    using SysML2.NET.Core.POCO.Core.Features;
+    using SysML2.NET.Core.POCO.Core.Types;
+    using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
 
     /// <summary>
     /// Provides tree state and tree-building logic for the project browser.
@@ -164,7 +169,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var children = this.BuildChildren(element, nodeId);
             var displayName = GetDisplayName(element, runtimeTypeName);
             var qualifiedName = ToDisplayString(element.qualifiedName);
-            var elementKind = GetElementKind(runtimeTypeName);
+            var elementKind = GetElementKind(element);
 
             var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
@@ -271,61 +276,27 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the broad project browser element kind for a SysML runtime type name.
+        /// Gets the broad SysML model element kind for a SysML element.
         /// </summary>
-        /// <param name="runtimeTypeName">The SysML runtime type name.</param>
-        /// <returns>The inferred project browser element kind.</returns>
-        private static ProjectBrowserElementKind GetElementKind(string runtimeTypeName)
+        /// <param name="element">The SysML element.</param>
+        /// <returns>The inferred SysML model element kind.</returns>
+        private static SysmlModelElementKind GetElementKind(IElement element)
         {
-            if (runtimeTypeName.EndsWith("Namespace", StringComparison.Ordinal)
-                || runtimeTypeName.EndsWith("Package", StringComparison.Ordinal))
+            var elementKind = element switch
             {
-                return ProjectBrowserElementKind.Namespace;
-            }
+                IDocumentation or IComment or IAnnotation or IAnnotatingElement => SysmlModelElementKind.Annotation,
+                IImport => SysmlModelElementKind.Import,
+                IMembership => SysmlModelElementKind.Membership,
+                IRelationship => SysmlModelElementKind.Relationship,
+                IDefinition => SysmlModelElementKind.Definition,
+                IUsage => SysmlModelElementKind.Usage,
+                IFeature => SysmlModelElementKind.Feature,
+                IType => SysmlModelElementKind.Type,
+                INamespace => SysmlModelElementKind.Namespace,
+                _ => SysmlModelElementKind.Unknown
+            };
 
-            if (runtimeTypeName.Contains("Import", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Import;
-            }
-
-            if (runtimeTypeName.Contains("Membership", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Membership;
-            }
-
-            if (runtimeTypeName.Contains("Relationship", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Relationship;
-            }
-
-            if (runtimeTypeName.EndsWith("Definition", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Definition;
-            }
-
-            if (runtimeTypeName.EndsWith("Usage", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Usage;
-            }
-
-            if (runtimeTypeName.Contains("Feature", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Feature;
-            }
-
-            if (runtimeTypeName.Contains("Type", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Type;
-            }
-
-            if (runtimeTypeName.Contains("Annotation", StringComparison.Ordinal)
-                || runtimeTypeName.Contains("Documentation", StringComparison.Ordinal)
-                || runtimeTypeName.Contains("Comment", StringComparison.Ordinal))
-            {
-                return ProjectBrowserElementKind.Annotation;
-            }
-
-            return ProjectBrowserElementKind.Unknown;
+            return elementKind;
         }
 
         /// <summary>

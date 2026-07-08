@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
@@ -104,21 +105,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The design token color for the node element kind.</returns>
         private string GetElementColor()
         {
-            var color = this.ViewModel.ElementKind switch
-            {
-                ProjectBrowserElementKind.Namespace => "var(--mb-color-sysml-structure-header)",
-                ProjectBrowserElementKind.Import => "var(--mb-color-sysml-allocations-header)",
-                ProjectBrowserElementKind.Membership => "var(--mb-color-sysml-metadata-header)",
-                ProjectBrowserElementKind.Relationship => "var(--mb-color-sysml-connections-header)",
-                ProjectBrowserElementKind.Definition => "var(--mb-color-sysml-attributes-header)",
-                ProjectBrowserElementKind.Usage => "var(--mb-color-sysml-behavior-header)",
-                ProjectBrowserElementKind.Feature => "var(--mb-color-sysml-requirements-header)",
-                ProjectBrowserElementKind.Type => "var(--mb-color-sysml-verification-header)",
-                ProjectBrowserElementKind.Annotation => "var(--mb-color-info-500)",
-                _ => "var(--mb-color-neutral-600)"
-            };
-
-            return color;
+            return this.ViewModel.ElementKind.ToColorToken();
         }
 
         /// <summary>
@@ -153,12 +140,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 return this.ViewModel.RuntimeTypeName;
             }
 
-            if (this.ViewModel.ElementKind != ProjectBrowserElementKind.Unknown)
+            if (this.ViewModel.ElementKind != SysmlModelElementKind.Unknown)
             {
                 return this.ViewModel.ElementKind.ToString();
             }
 
-            return ProjectBrowserElementKind.Unknown.ToString();
+            return SysmlModelElementKind.Unknown.ToString();
         }
 
         /// <summary>

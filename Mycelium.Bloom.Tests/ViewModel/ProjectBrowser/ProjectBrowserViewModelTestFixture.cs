@@ -19,6 +19,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using Moq;
 
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -57,6 +58,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
                 Assert.That(viewModel.RootNodes[0].DisplayName, Is.Not.Empty);
+                Assert.That(viewModel.RootNodes[0].ElementKind, Is.EqualTo(SysmlModelElementKind.Namespace));
                 Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.IsLoading, Is.False);
@@ -217,6 +219,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
+        /// <summary>
+        /// Loads the real Quantities model from application resources.
+        /// </summary>
+        /// <returns>The loaded Quantities namespace model.</returns>
         private static INamespace LoadQuantitiesModel()
         {
             var applicationPath = TestRepository.GetDirectoryPath("Mycelium.Bloom");

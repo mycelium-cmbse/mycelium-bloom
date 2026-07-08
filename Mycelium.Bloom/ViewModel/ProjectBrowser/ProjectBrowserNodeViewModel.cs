@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using Mycelium.Bloom.Model.Enum;
+
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
@@ -69,7 +71,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets the broad SysML element kind.
         /// </summary>
-        public ProjectBrowserElementKind ElementKind { get; }
+        public SysmlModelElementKind ElementKind { get; }
 
         /// <summary>
         /// Gets the child nodes built from the SysML owned element hierarchy.
