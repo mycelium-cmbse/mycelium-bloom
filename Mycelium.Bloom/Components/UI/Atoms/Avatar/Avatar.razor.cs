@@ -12,12 +12,13 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Represents a reusable avatar component used to display initials, users, or overflow indicators.
     /// </summary>
-    public partial class Avatar : ComponentBase
+    public partial class Avatar : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the text displayed inside the avatar.
@@ -54,18 +55,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
         /// </summary>
         [Parameter]
         public AvatarVariant Variant { get; set; } = AvatarVariant.User;
-
-        /// <summary>
-        /// Gets or sets additional CSS classes applied to the avatar.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the avatar element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the inline style containing custom avatar CSS variables.

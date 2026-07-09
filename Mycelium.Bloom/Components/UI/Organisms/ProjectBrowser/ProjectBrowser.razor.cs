@@ -12,12 +12,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public partial class ProjectBrowser : ComponentBase
+    public partial class ProjectBrowser : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the project browser view model.
@@ -30,18 +31,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> SelectedNodeChanged { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional CSS classes.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets unmatched attributes passed to the tree container.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Initializes the project browser view model owned by this component.
