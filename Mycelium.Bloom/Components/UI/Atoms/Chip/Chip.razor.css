@@ -1,0 +1,73 @@
+.mb-chip {
+    --mb-chip-color: currentColor;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: 100%;
+    min-height: 24px;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0;
+    white-space: nowrap;
+    color: var(--mb-color-text-secondary);
+    background: var(--mb-color-neutral-100);
+}
+
+.mb-chip__dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: var(--mb-radius-full);
+    background: var(--mb-chip-color);
+}
+
+.mb-chip--default {
+    background: var(--mb-color-neutral-100);
+    color: var(--mb-color-text-secondary);
+}
+
+.mb-chip--success {
+    background: var(--mb-color-success-50);
+    border-color: var(--mb-color-success-500);
+    color: var(--mb-color-success-700);
+}
+
+.mb-chip--warning {
+    background: var(--mb-color-warning-50);
+    border-color: var(--mb-color-warning-500);
+    color: var(--mb-color-warning-700);
+}
+
+.mb-chip--danger {
+    background: var(--mb-color-danger-50);
+    border-color: var(--mb-color-danger-500);
+    color: var(--mb-color-danger-700);
+}
+
+.mb-chip--info {
+    background: var(--mb-color-info-50);
+    border-color: var(--mb-color-info-500);
+    color: var(--mb-color-info-700);
+}
+
+.mb-chip--ownership {
+    background: var(--mb-color-neutral-100);
+    color: var(--mb-color-text-secondary);
+}
+
+.mb-chip--lifecycle {
+    min-height: 18px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    line-height: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}

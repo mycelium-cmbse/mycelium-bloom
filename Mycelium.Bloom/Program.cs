@@ -11,6 +11,7 @@ namespace Mycelium.Bloom
 {
     using Mycelium.Bloom.Components;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using OpenTelemetry.Resources;
 
@@ -41,8 +42,10 @@ namespace Mycelium.Bloom
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
-            //Add ModelLoaderService
+            // Add application services.
             builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
+            builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

@@ -9,9 +9,6 @@
 
 namespace Mycelium.Bloom.Tests.Core.ModelLoading
 {
-    using System;
-    using System.IO;
-
     using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -19,6 +16,7 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
     using Moq;
 
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Tests.Common;
 
     /// <summary>
     /// Integration tests for the <see cref="ModelLoaderService" />.
@@ -32,8 +30,7 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
         [Test]
         public void LoadQuantitiesModel_LoadsRealModelAndReusesCachedInstance()
         {
-            var repositoryPath = GetRepositoryPath();
-            var applicationPath = Path.Combine(repositoryPath, "Mycelium.Bloom");
+            var applicationPath = TestRepository.GetDirectoryPath("Mycelium.Bloom");
 
             var hostEnvironment = new Mock<IHostEnvironment>();
             hostEnvironment.Setup(x => x.ContentRootPath).Returns(applicationPath);
@@ -52,23 +49,6 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
                 Assert.That(model.GetType().FullName, Is.EqualTo("SysML2.NET.Core.POCO.Root.Namespaces.Namespace"));
                 Assert.That(cachedModel, Is.SameAs(model));
             }
-        }
-
-        private static string GetRepositoryPath()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-            while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Mycelium.Bloom.sln")))
-            {
-                directory = directory.Parent;
-            }
-
-            if (directory == null)
-            {
-                throw new DirectoryNotFoundException("Could not locate repository root from the test output directory.");
-            }
-
-            return directory.FullName;
         }
     }
 }
