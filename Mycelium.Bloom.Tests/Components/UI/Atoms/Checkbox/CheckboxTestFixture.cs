@@ -110,6 +110,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Checkbox
         {
             var component = this.Render<CheckboxComponent>(parameters => parameters
                 .Add(component => component.Id, "agreement")
+                .Add(component => component.Label, "Agreement")
                 .Add(component => component.Disabled, true)
                 .Add(component => component.Required, true)
                 .Add(component => component.ErrorText, "Agreement is required."));
@@ -122,6 +123,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Checkbox
                 Assert.That(input.HasAttribute("required"), Is.True);
                 Assert.That(input.GetAttribute("aria-invalid"), Is.EqualTo("true"));
                 Assert.That(input.GetAttribute("aria-describedby"), Is.EqualTo("agreement-error"));
+                Assert.That(component.Find(".mb-checkbox__required").TextContent, Is.EqualTo("*"));
                 Assert.That(component.Find("#agreement-error").TextContent, Is.EqualTo("Agreement is required."));
             }
         }

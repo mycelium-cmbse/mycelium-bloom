@@ -120,8 +120,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
             {
                 Assert.That(GetProtectedPropertyValue(component.Instance, "FieldId"), Is.EqualTo("field-id"));
                 Assert.That(GetProtectedPropertyValue(component.Instance, "FieldName"), Is.EqualTo("field-name"));
-                Assert.That(GetProtectedPropertyValue(component.Instance, "HasLabel"), Is.EqualTo(true));
-                Assert.That(GetProtectedPropertyValue(component.Instance, "HasHelpText"), Is.EqualTo(true));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "HasLabel"), Is.True);
+                Assert.That(GetProtectedPropertyValue(component.Instance, "HasHelpText"), Is.True);
                 Assert.That(GetProtectedPropertyValue(component.Instance, "HelpTextId"), Is.EqualTo("field-id-help"));
                 Assert.That(GetProtectedPropertyValue(component.Instance, "ErrorTextId"), Is.EqualTo("field-id-error"));
                 Assert.That(GetProtectedPropertyValue(component.Instance, "DescribedBy"), Is.EqualTo("field-id-help field-id-error"));

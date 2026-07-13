@@ -75,12 +75,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common.FieldShell
         {
             var component = this.Render<FieldShellComponent>(parameters => parameters
                 .AddChildContent("<input />"));
+            var root = component.Find(".mb-field-shell");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindAll("label"), Is.Empty);
                 Assert.That(component.FindAll("p"), Is.Empty);
-                Assert.That(component.Find(".mb-field-shell").ClassList, Is.EquivalentTo(new[] { "mb-field-shell" }));
+                Assert.That(root.ClassList, Has.Count.EqualTo(1));
+                Assert.That(root.ClassList, Does.Contain("mb-field-shell"));
             }
         }
     }
