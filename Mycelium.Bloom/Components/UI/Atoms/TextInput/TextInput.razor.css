@@ -1,0 +1,30 @@
+.mb-text-input__control {
+    display: flex;
+    align-items: center;
+    gap: var(--mb-spacing-2);
+    padding: 0 var(--mb-spacing-3);
+}
+
+.mb-text-input__field {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+}
+
+.mb-text-input__leading,
+.mb-text-input__trailing {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    color: var(--mb-color-component-icon);
+}
+
+.mb-text-input__leading ::deep svg,
+.mb-text-input__trailing ::deep svg {
+    width: 16px;
+    height: 16px;
+}

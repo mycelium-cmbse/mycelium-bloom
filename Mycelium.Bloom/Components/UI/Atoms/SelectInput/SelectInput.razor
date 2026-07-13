@@ -1,0 +1,50 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="SelectInput.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomFieldComponentBase
+
+<FieldShell
+    ControlId="@(this.FieldId)"
+    Label="@(this.Label)"
+    HelpText="@(this.HelpText)"
+    HelpTextId="@(this.HelpTextId)"
+    ErrorText="@(this.ErrorText)"
+    ErrorTextId="@(this.ErrorTextId)"
+    Disabled="@(this.Disabled)"
+    Required="@(this.Required)"
+    Class="@(this.GetCssClass())">
+    <div class="mb-select-input__control">
+        <select
+            @attributes="this.AdditionalAttributes"
+            id="@(this.FieldId)"
+            name="@(this.FieldName)"
+            class="mb-select-input__field mb-field-control mb-field-control--single-line mb-field-control__native"
+            disabled="@(this.Disabled)"
+            required="@(this.Required)"
+            aria-invalid="@(this.AriaInvalid)"
+            aria-describedby="@(this.DescribedBy)"
+            @onchange="this.HandleValueChangedAsync">
+            @if (this.HasPlaceholder())
+            {
+                <option value="" disabled="@(this.Required)" selected="@(this.IsPlaceholderSelected())">
+                    @(this.Placeholder)
+                </option>
+            }
+
+            @foreach (var option in this.Options)
+            {
+                <option value="@(option.Value)" disabled="@(option.Disabled)" selected="@(this.IsSelected(option))">
+                    @(option.Label)
+                </option>
+            }
+        </select>
+
+        <span class="mb-select-input__chevron" aria-hidden="true"></span>
+    </div>
+</FieldShell>

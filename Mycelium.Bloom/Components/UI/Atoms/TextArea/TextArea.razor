@@ -1,0 +1,37 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="TextArea.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomFieldComponentBase
+
+<FieldShell
+    ControlId="@(this.FieldId)"
+    Label="@(this.Label)"
+    HelpText="@(this.HelpText)"
+    HelpTextId="@(this.HelpTextId)"
+    ErrorText="@(this.ErrorText)"
+    ErrorTextId="@(this.ErrorTextId)"
+    Disabled="@(this.Disabled)"
+    Required="@(this.Required)"
+    ReadOnly="@(this.ReadOnly)"
+    Class="@(this.GetCssClass())">
+    <textarea
+        @attributes="this.AdditionalAttributes"
+        id="@(this.FieldId)"
+        name="@(this.FieldName)"
+        class="@(this.GetFieldCssClass())"
+        placeholder="@(this.Placeholder)"
+        rows="@(this.GetRows())"
+        maxlength="@(this.GetMaxLength())"
+        disabled="@(this.Disabled)"
+        required="@(this.Required)"
+        readonly="@(this.ReadOnly)"
+        aria-invalid="@(this.AriaInvalid)"
+        aria-describedby="@(this.DescribedBy)"
+        @oninput="this.HandleInputAsync">@(this.Value)</textarea>
+</FieldShell>

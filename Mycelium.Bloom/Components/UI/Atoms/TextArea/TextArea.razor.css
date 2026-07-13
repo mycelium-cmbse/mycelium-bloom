@@ -1,0 +1,9 @@
+.mb-text-area__field {
+    min-height: 72px;
+    padding: var(--mb-spacing-2) var(--mb-spacing-3);
+    resize: vertical;
+}
+
+.mb-text-area__field--fixed {
+    resize: none;
+}
