@@ -24,6 +24,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// </summary>
         private bool isClosing;
 
+        /// <summary>
+        /// Provides a stable generated identifier when no modal identifier is configured.
+        /// </summary>
         private readonly string generatedId = $"mb-modal-{Guid.NewGuid():N}";
 
         /// <summary>
