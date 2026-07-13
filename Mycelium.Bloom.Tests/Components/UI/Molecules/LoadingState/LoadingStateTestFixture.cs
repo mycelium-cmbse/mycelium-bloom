@@ -11,7 +11,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.LoadingState
 {
     using Bunit;
 
+    using Mycelium.Bloom.Model.Enum;
+
     using LoadingStateComponent = Mycelium.Bloom.Components.UI.Molecules.LoadingState.LoadingState;
+    using SkeletonComponent = Mycelium.Bloom.Components.UI.Atoms.Skeleton.Skeleton;
 
     /// <summary>
     /// Tests the <see cref="LoadingStateComponent" /> component.
@@ -80,6 +83,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.LoadingState
             {
                 Assert.That(component.FindAll(".mb-loading-state__spinner"), Has.Count.EqualTo(1));
                 Assert.That(component.Find(".custom-skeleton").TextContent, Is.EqualTo("Placeholder"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that enabling skeleton content without a custom fragment renders the default placeholders.
+        /// </summary>
+        [Test]
+        public void VerifyDefaultSkeletonContentRenders()
+        {
+            var component = this.Render<LoadingStateComponent>(parameters => parameters
+                .Add(component => component.ShowSkeleton, true));
+
+            var skeletons = component.FindComponents<SkeletonComponent>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(skeletons, Has.Count.EqualTo(2));
+                Assert.That(skeletons[0].Instance.Lines, Is.EqualTo(3));
+                Assert.That(skeletons[1].Instance.Variant, Is.EqualTo(SkeletonVariant.Rectangle));
+                Assert.That(skeletons[1].Instance.Height, Is.EqualTo("72px"));
             }
         }
     }

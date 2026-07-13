@@ -73,6 +73,31 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         }
 
         /// <summary>
+        /// Verifies that the configured identifier labels the default title and description elements.
+        /// </summary>
+        [Test]
+        public void VerifyConfiguredIdLabelsDefaultHeadingContent()
+        {
+            var component = this.Render<ModalShellComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.Id, "edit-dialog")
+                .Add(component => component.Title, "Edit selection")
+                .Add(component => component.Description, "Update the selected item.")
+                .Add(component => component.ShowCloseButton, false));
+
+            var dialog = component.Find("[role='dialog']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dialog.Id, Is.EqualTo("edit-dialog"));
+                Assert.That(dialog.GetAttribute("aria-labelledby"), Is.EqualTo("edit-dialog-title"));
+                Assert.That(dialog.GetAttribute("aria-describedby"), Is.EqualTo("edit-dialog-description"));
+                Assert.That(component.Find("#edit-dialog-title").TextContent, Is.EqualTo("Edit selection"));
+                Assert.That(component.Find("#edit-dialog-description").TextContent, Is.EqualTo("Update the selected item."));
+            }
+        }
+
+        /// <summary>
         /// Verifies that the close button invokes both close callbacks.
         /// </summary>
         [Test]

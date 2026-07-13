@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ToastContainer
 {
     using System;
+    using System.Collections.Generic;
 
     using Bunit;
 
@@ -91,6 +92,34 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ToastContainer
                 Assert.That(component.FindAll(".mb-toast-container__item"), Is.Empty);
                 Assert.That(component.FindAll("article.mb-notification-toast"), Is.Empty);
             }
+        }
+
+        /// <summary>
+        /// Verifies that a null notification collection is rejected before rendering.
+        /// </summary>
+        [Test]
+        public void VerifyNullCollectionIsRejected()
+        {
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                this.Render<ToastContainerComponent>(parameters => parameters
+                    .Add(component => component.Notifications, default(IReadOnlyList<ToastNotification>))));
+
+            Assert.That(exception.Message, Does.Contain("cannot be null"));
+        }
+
+        /// <summary>
+        /// Verifies that null notification items are rejected before rendering.
+        /// </summary>
+        [Test]
+        public void VerifyNullNotificationItemIsRejected()
+        {
+            var notifications = new ToastNotification[] { null };
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                this.Render<ToastContainerComponent>(parameters => parameters
+                    .Add(component => component.Notifications, notifications)));
+
+            Assert.That(exception.Message, Does.Contain("cannot contain null items"));
         }
 
         /// <summary>

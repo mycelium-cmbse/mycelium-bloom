@@ -102,6 +102,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
         }
 
         /// <summary>
+        /// Verifies that the optional confirmation description renders when provided.
+        /// </summary>
+        [Test]
+        public void VerifyDescriptionRendersWhenProvided()
+        {
+            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.Description, "This action cannot be undone."));
+
+            Assert.That(
+                component.Find(".mb-confirm-dialog__description").TextContent,
+                Is.EqualTo("This action cannot be undone."));
+        }
+
+        /// <summary>
         /// Verifies that repeated actions are ignored while confirmation is pending.
         /// </summary>
         [Test]
