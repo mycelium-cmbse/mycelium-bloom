@@ -104,6 +104,51 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         }
 
         /// <summary>
+        /// Verifies that accessible field metadata uses the configured identifier and rendered descriptions.
+        /// </summary>
+        [Test]
+        public void VerifyAccessibleFieldMetadata()
+        {
+            var component = this.Render<BloomFieldComponentBase>(parameters => parameters
+                .Add(component => component.Id, "field-id")
+                .Add(component => component.Name, "field-name")
+                .Add(component => component.Label, "Field label")
+                .Add(component => component.HelpText, "Helpful text")
+                .Add(component => component.ErrorText, "Required field"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(GetProtectedPropertyValue(component.Instance, "FieldId"), Is.EqualTo("field-id"));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "FieldName"), Is.EqualTo("field-name"));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "HasLabel"), Is.EqualTo(true));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "HasHelpText"), Is.EqualTo(true));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "HelpTextId"), Is.EqualTo("field-id-help"));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "ErrorTextId"), Is.EqualTo("field-id-error"));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "DescribedBy"), Is.EqualTo("field-id-help field-id-error"));
+                Assert.That(GetProtectedPropertyValue(component.Instance, "AriaInvalid"), Is.EqualTo("true"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that generated field identifiers are stable and unique between component instances.
+        /// </summary>
+        [Test]
+        public void VerifyGeneratedFieldIdentifiers()
+        {
+            var firstComponent = this.Render<BloomFieldComponentBase>();
+            var secondComponent = this.Render<BloomFieldComponentBase>();
+            var firstId = GetProtectedPropertyValue(firstComponent.Instance, "FieldId");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstId, Is.EqualTo(GetProtectedPropertyValue(firstComponent.Instance, "FieldId")));
+                Assert.That(firstId, Is.Not.EqualTo(GetProtectedPropertyValue(secondComponent.Instance, "FieldId")));
+                Assert.That(GetProtectedPropertyValue(firstComponent.Instance, "DescribedBy"), Is.Null);
+                Assert.That(GetProtectedPropertyValue(firstComponent.Instance, "AriaInvalid"), Is.Null);
+            }
+        }
+
+        /// <summary>
         /// Verifies that shared field properties are configured as Blazor parameters.
         /// </summary>
         [Test]
@@ -165,6 +210,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
             Assert.That(parameterAttribute, Is.Not.Null);
 
             return parameterAttribute;
+        }
+
+        /// <summary>
+        /// Gets a protected property value from the field component base class.
+        /// </summary>
+        /// <param name="component">The field component.</param>
+        /// <param name="propertyName">The protected property name.</param>
+        /// <returns>The protected property value.</returns>
+        private static object GetProtectedPropertyValue(BloomFieldComponentBase component, string propertyName)
+        {
+            var property = typeof(BloomFieldComponentBase).GetProperty(
+                propertyName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(property, Is.Not.Null);
+
+            return property.GetValue(component);
         }
     }
 }

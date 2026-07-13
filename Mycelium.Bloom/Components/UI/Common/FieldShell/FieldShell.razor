@@ -1,0 +1,36 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="FieldShell.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div @attributes="this.AdditionalAttributes" class="@(this.GetCssClass())">
+    @if (this.HasLabel())
+    {
+        <label class="mb-field-shell__label" for="@(this.ControlId)">
+            <span>@(this.Label)</span>
+
+            @if (this.Required)
+            {
+                <span class="mb-field-shell__required" aria-hidden="true">*</span>
+            }
+        </label>
+    }
+
+    @(this.ChildContent)
+
+    @if (this.HasHelpText())
+    {
+        <p id="@(this.HelpTextId)" class="mb-field-shell__help">@(this.HelpText)</p>
+    }
+
+    @if (this.HasError())
+    {
+        <p id="@(this.ErrorTextId)" class="mb-field-shell__error">@(this.ErrorText)</p>
+    }
+</div>
