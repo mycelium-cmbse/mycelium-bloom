@@ -81,6 +81,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         }
 
         /// <summary>
+        /// Verifies that root CSS classes include the configured custom class.
+        /// </summary>
+        [Test]
+        public void VerifyBuildRootCssClassAppendsCustomClass()
+        {
+            var component = new TestBloomComponent("custom-component");
+
+            var cssClass = component.BuildRootCssClassForTest("mb-component", "mb-component--active");
+
+            Assert.That(cssClass, Is.EqualTo("mb-component mb-component--active custom-component"));
+        }
+
+        /// <summary>
         /// Gets the parameter attribute for a shared component property.
         /// </summary>
         /// <param name="propertyName">The property name.</param>
@@ -96,6 +109,31 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
             Assert.That(parameterAttribute, Is.Not.Null);
 
             return parameterAttribute;
+        }
+
+        /// <summary>
+        /// Exposes protected <see cref="BloomComponentBase" /> behavior for testing.
+        /// </summary>
+        private sealed class TestBloomComponent : BloomComponentBase
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TestBloomComponent" /> class.
+            /// </summary>
+            /// <param name="cssClass">The custom root CSS class.</param>
+            public TestBloomComponent(string cssClass)
+            {
+                this.Class = cssClass;
+            }
+
+            /// <summary>
+            /// Builds root CSS classes through the component base implementation.
+            /// </summary>
+            /// <param name="cssClasses">The component-owned CSS classes.</param>
+            /// <returns>The root CSS class list.</returns>
+            public string BuildRootCssClassForTest(params string[] cssClasses)
+            {
+                return this.BuildRootCssClass(cssClasses);
+            }
         }
     }
 }
