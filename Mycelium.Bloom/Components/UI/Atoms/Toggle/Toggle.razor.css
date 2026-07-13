@@ -1,0 +1,84 @@
+.mb-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--mb-spacing-2);
+    min-width: 0;
+    color: var(--mb-color-component-text);
+    cursor: pointer;
+}
+
+.mb-toggle__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.mb-toggle__track {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 18px;
+    margin-top: 1px;
+    padding: 2px;
+    border: var(--mb-border-width-sm) solid var(--mb-color-component-border-strong);
+    border-radius: var(--mb-radius-full);
+    background: var(--mb-color-neutral-300);
+    transition: background-color var(--mb-transition-fast), border-color var(--mb-transition-fast), box-shadow var(--mb-transition-fast);
+}
+
+.mb-toggle__thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--mb-radius-full);
+    background: var(--mb-color-surface);
+    box-shadow: var(--mb-shadow-sm);
+    transform: translateX(0);
+    transition: transform var(--mb-transition-fast);
+}
+
+.mb-toggle__input:checked + .mb-toggle__track {
+    border-color: var(--mb-color-brand-action);
+    background: var(--mb-color-brand-action);
+}
+
+.mb-toggle__input:checked + .mb-toggle__track .mb-toggle__thumb {
+    transform: translateX(14px);
+}
+
+.mb-toggle__input:focus-visible + .mb-toggle__track {
+    border-color: var(--mb-color-focus-ring);
+    box-shadow: 0 0 0 2px var(--mb-color-brand-100);
+}
+
+.mb-toggle__content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.mb-toggle__label {
+    color: var(--mb-color-component-text);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+}
+
+.mb-toggle__description {
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+}
+
+.mb-toggle--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}

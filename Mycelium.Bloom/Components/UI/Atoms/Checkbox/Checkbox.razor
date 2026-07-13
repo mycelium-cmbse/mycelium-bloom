@@ -1,0 +1,68 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Checkbox.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomFieldComponentBase
+
+<label class="@(this.GetCssClass())" for="@(this.FieldId)">
+    <input
+        @attributes="this.AdditionalAttributes"
+        id="@(this.FieldId)"
+        name="@(this.FieldName)"
+        class="mb-checkbox__input"
+        type="checkbox"
+        checked="@(this.Checked)"
+        disabled="@(this.Disabled)"
+        required="@(this.Required)"
+        aria-invalid="@(this.AriaInvalid)"
+        aria-describedby="@(this.GetDescribedBy())"
+        @onchange="this.HandleCheckedChangedAsync" />
+
+    @if (this.HasContent())
+    {
+        <span class="mb-checkbox__content">
+            @if (this.HasLabel || this.LabelContent is not null)
+            {
+                <span class="mb-checkbox__label">
+                    @if (this.LabelContent is not null)
+                    {
+                        @(this.LabelContent)
+                    }
+                    else
+                    {
+                        @(this.Label)
+                    }
+
+                    @if (this.Required)
+                    {
+                        <span class="mb-checkbox__required" aria-hidden="true">*</span>
+                    }
+                </span>
+            }
+
+            @if (this.HasDescription())
+            {
+                <span id="@(this.HelpTextId)" class="mb-checkbox__description">
+                    @if (this.DescriptionContent is not null)
+                    {
+                        @(this.DescriptionContent)
+                    }
+                    else
+                    {
+                        @(this.HelpText)
+                    }
+                </span>
+            }
+
+            @if (this.HasError)
+            {
+                <span id="@(this.ErrorTextId)" class="mb-checkbox__error">@(this.ErrorText)</span>
+            }
+        </span>
+    }
+</label>
