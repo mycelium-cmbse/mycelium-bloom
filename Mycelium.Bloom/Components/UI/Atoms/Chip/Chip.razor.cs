@@ -12,12 +12,13 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Chip
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Represents a reusable chip component used to display compact labels, statuses, or ownership indicators.
     /// </summary>
-    public partial class Chip : ComponentBase
+    public partial class Chip : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the visual variant of the chip.
@@ -32,22 +33,10 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Chip
         public string Color { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets additional CSS classes applied to the chip.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
         /// Gets or sets the content rendered inside the chip.
         /// </summary>
         [Parameter]
         public RenderFragment ChildContent { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the chip element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the inline style containing the optional custom chip color.

@@ -12,12 +12,13 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Panel
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Represents a reusable panel component used to wrap content with consistent spacing and layout behavior.
     /// </summary>
-    public partial class Panel : ComponentBase
+    public partial class Panel : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the padding applied inside the panel.
@@ -38,23 +39,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Panel
         public bool OverflowHidden { get; set; }
 
         /// <summary>
-        /// Gets or sets additional CSS classes applied to the panel.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
         /// Gets or sets the content rendered inside the panel.
         /// </summary>
         [Parameter]
         [EditorRequired]
         public RenderFragment ChildContent { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the panel element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the final CSS class list applied to the panel.

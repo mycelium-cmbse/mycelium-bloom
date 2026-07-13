@@ -12,12 +12,13 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model;
 
     /// <summary>
     /// Reusable Bloom tabs component for switching between compact workspace sections.
     /// </summary>
-    public partial class Tabs : ComponentBase
+    public partial class Tabs : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the available tab items.
@@ -42,18 +43,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
         /// </summary>
         [Parameter]
         public bool FullWidth { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional CSS classes.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets unmatched attributes passed to the tab list element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; }
 
         /// <summary>
         /// Gets the final CSS class list applied to the tabs.

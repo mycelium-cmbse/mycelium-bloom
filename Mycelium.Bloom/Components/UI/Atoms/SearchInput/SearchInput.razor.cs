@@ -14,11 +14,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
     using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
 
     /// <summary>
     /// Represents a reusable search input component with optional shortcut and icon support.
     /// </summary>
-    public sealed partial class SearchInput : ComponentBase, IDisposable, IAsyncDisposable
+    public sealed partial class SearchInput : BloomFieldComponentBase, IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The generated fallback identifier of the search input element.
@@ -29,12 +30,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// The JavaScript module used to manage the search shortcut.
         /// </summary>
         private IJSObjectReference module;
-
-        /// <summary>
-        /// Gets or sets the identifier of the search input element.
-        /// </summary>
-        [Parameter]
-        public string Id { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the current search value.
@@ -103,18 +98,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         public bool FullWidth { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the search input is disabled.
-        /// </summary>
-        [Parameter]
-        public bool Disabled { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional CSS classes applied to the search input wrapper.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
         /// Gets or sets optional content rendered before the search input.
         /// </summary>
         [Parameter]
@@ -125,12 +108,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// </summary>
         [Parameter]
         public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the search input element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Releases asynchronous resources used by the search input component.

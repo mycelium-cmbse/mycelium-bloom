@@ -13,12 +13,13 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Represents a reusable button component with configurable variant, size, icons, loading state, and click handling.
     /// </summary>
-    public partial class Button : ComponentBase
+    public partial class Button : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the visual variant of the button.
@@ -57,12 +58,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
         public bool FullWidth { get; set; }
 
         /// <summary>
-        /// Gets or sets additional CSS classes applied to the button.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
         /// Gets or sets optional content rendered before the button content.
         /// </summary>
         [Parameter]
@@ -85,12 +80,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
         /// </summary>
         [Parameter]
         public EventCallback<MouseEventArgs> OnClick { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the button element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets a value indicating whether the button should be rendered as disabled.

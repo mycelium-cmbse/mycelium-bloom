@@ -13,11 +13,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
 
     /// <summary>
     /// Represents a reusable icon-only button component with accessibility support.
     /// </summary>
-    public partial class IconButton : ComponentBase
+    public partial class IconButton : BloomComponentBase
     {
         /// <summary>
         /// Gets or sets the HTML button type.
@@ -45,12 +46,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         public bool Disabled { get; set; }
 
         /// <summary>
-        /// Gets or sets additional CSS classes applied to the icon button.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
         /// Gets or sets the icon content rendered inside the button.
         /// </summary>
         [Parameter]
@@ -62,12 +57,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         /// </summary>
         [Parameter]
         public EventCallback<MouseEventArgs> OnClick { get; set; }
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the button element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets the final CSS class list applied to the icon button.
