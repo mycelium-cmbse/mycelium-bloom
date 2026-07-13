@@ -228,9 +228,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
         /// <returns>A value indicating whether an action is already in progress.</returns>
         private bool IsActionInProgress()
         {
-            var isActionInProgress = this.IsConfirming || this.isActionInProgress;
+            var actionInProgress = this.IsConfirming || this.isActionInProgress;
 
-            return isActionInProgress;
+            return actionInProgress;
         }
     }
 }
