@@ -12,7 +12,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
 
-    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
 
     /// <summary>
@@ -63,9 +62,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
-                "mb-icon-button",
-                this.Class);
+            var cssClass = this.BuildRootCssClass("mb-icon-button");
 
             return cssClass;
         }

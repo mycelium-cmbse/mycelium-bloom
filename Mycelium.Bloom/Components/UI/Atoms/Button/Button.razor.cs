@@ -96,13 +96,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Button
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
+            var cssClass = this.BuildRootCssClass(
                 "mb-button",
                 this.GetVariantClass(),
                 this.GetSizeClass(),
                 CssClassBuilder.When("mb-button--full-width", this.FullWidth),
-                CssClassBuilder.When("mb-button--disabled", this.IsDisabled()),
-                this.Class);
+                CssClassBuilder.When("mb-button--disabled", this.IsDisabled()));
 
             return cssClass;
         }

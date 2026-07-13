@@ -1,0 +1,58 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="LoadingState.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())"
+     role="status"
+     aria-live="polite"
+     aria-busy="true"
+     @attributes="this.AdditionalAttributes">
+    @if (this.ShowSpinner)
+    {
+        <span class="mb-loading-state__spinner" aria-hidden="true"></span>
+    }
+
+    @if (this.HasTextContent())
+    {
+        <div class="mb-loading-state__content">
+            @if (!string.IsNullOrWhiteSpace(this.Title))
+            {
+                <h2 class="mb-loading-state__title">@(this.Title)</h2>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(this.Description))
+            {
+                <p class="mb-loading-state__description">@(this.Description)</p>
+            }
+        </div>
+    }
+
+    @if (this.ChildContent is not null)
+    {
+        <div class="mb-loading-state__custom-content">
+            @(this.ChildContent)
+        </div>
+    }
+
+    @if (this.ShowSkeleton)
+    {
+        <div class="mb-loading-state__skeleton">
+            @if (this.SkeletonContent is not null)
+            {
+                @(this.SkeletonContent)
+            }
+            else
+            {
+                <Skeleton Lines="3" />
+                <Skeleton Variant="SkeletonVariant.Rectangle" Height="72px" />
+            }
+        </div>
+    }
+</div>

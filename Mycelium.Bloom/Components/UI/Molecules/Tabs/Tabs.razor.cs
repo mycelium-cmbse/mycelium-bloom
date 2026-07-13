@@ -49,10 +49,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.Tabs
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
+            var cssClass = this.BuildRootCssClass(
                 "mb-tabs",
-                CssClassBuilder.When("mb-tabs--full-width", this.FullWidth),
-                this.Class);
+                CssClassBuilder.When("mb-tabs--full-width", this.FullWidth));
 
             return cssClass;
         }

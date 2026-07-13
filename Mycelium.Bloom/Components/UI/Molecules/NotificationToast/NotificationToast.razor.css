@@ -1,0 +1,73 @@
+.mb-notification-toast {
+    display: grid;
+    grid-template-columns: 4px minmax(0, 1fr) auto;
+    align-items: flex-start;
+    gap: var(--mb-spacing-3);
+    width: 340px;
+    max-width: 100%;
+    min-width: 0;
+    padding: var(--mb-spacing-3);
+    overflow: hidden;
+    border: 1px solid var(--mb-color-border);
+    border-radius: var(--mb-radius-md);
+    background: var(--mb-color-surface);
+    box-shadow: var(--mb-shadow-md);
+    color: var(--mb-color-text-primary);
+    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
+}
+
+.mb-notification-toast__marker {
+    width: 4px;
+    min-height: 42px;
+    border-radius: var(--mb-radius-full);
+    background: var(--mb-color-info-500);
+}
+
+.mb-notification-toast--success .mb-notification-toast__marker {
+    background: var(--mb-color-success-500);
+}
+
+.mb-notification-toast--warning .mb-notification-toast__marker {
+    background: var(--mb-color-warning-500);
+}
+
+.mb-notification-toast--danger .mb-notification-toast__marker {
+    background: var(--mb-color-danger-500);
+}
+
+.mb-notification-toast__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+}
+
+.mb-notification-toast__title {
+    margin: 0;
+    overflow: hidden;
+    color: var(--mb-color-text-primary);
+    font-size: var(--mb-font-size-label-md);
+    line-height: var(--mb-line-height-label-md);
+    font-weight: var(--mb-font-weight-label-md);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-notification-toast__message {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--mb-color-text-secondary);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.mb-notification-toast__dismiss {
+    display: flex;
+    flex: 0 0 auto;
+    margin-top: -2px;
+    margin-right: -2px;
+}

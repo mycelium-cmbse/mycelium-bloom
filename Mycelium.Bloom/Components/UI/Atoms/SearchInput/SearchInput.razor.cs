@@ -171,11 +171,10 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
+            var cssClass = this.BuildRootCssClass(
                 "mb-search-input",
                 CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
-                CssClassBuilder.When("mb-search-input--disabled", this.Disabled),
-                this.Class);
+                CssClassBuilder.When("mb-search-input--disabled", this.Disabled));
 
             return cssClass;
         }

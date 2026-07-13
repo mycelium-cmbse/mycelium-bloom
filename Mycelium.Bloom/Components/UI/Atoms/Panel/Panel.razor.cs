@@ -50,12 +50,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Panel
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
+            var cssClass = this.BuildRootCssClass(
                 "mb-panel",
                 this.GetPaddingClass(),
                 CssClassBuilder.When("mb-panel--full-height", this.FullHeight),
-                CssClassBuilder.When("mb-panel--overflow-hidden", this.OverflowHidden),
-                this.Class);
+                CssClassBuilder.When("mb-panel--overflow-hidden", this.OverflowHidden));
 
             return cssClass;
         }

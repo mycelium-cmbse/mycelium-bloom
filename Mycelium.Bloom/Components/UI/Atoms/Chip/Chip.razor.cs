@@ -43,9 +43,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Chip
         /// </summary>
         private string GetStyle()
         {
-            var style = !string.IsNullOrWhiteSpace(this.Color)
-                ? $"--mb-chip-color: {this.Color};"
-                : string.Empty;
+            var style = CssStyleBuilder.Build(("--mb-chip-color", this.Color));
 
             return style;
         }
@@ -55,12 +53,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Chip
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
+            var cssClass = this.BuildRootCssClass(
                 "mb-chip",
                 this.GetVariantClass(),
                 CssClassBuilder.When("mb-chip--custom-color",
-                    !string.IsNullOrWhiteSpace(this.Color)),
-                this.Class);
+                    !string.IsNullOrWhiteSpace(this.Color)));
 
             return cssClass;
         }

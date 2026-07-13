@@ -1,0 +1,20 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Skeleton.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())"
+     aria-busy="true"
+     aria-label="Loading content"
+     @attributes="this.AdditionalAttributes">
+    @for (var lineIndex = 0; lineIndex < this.GetLineCount(); lineIndex++)
+    {
+        <span class="mb-skeleton__item" style="@(this.GetItemStyle())" aria-hidden="true"></span>
+    }
+</div>

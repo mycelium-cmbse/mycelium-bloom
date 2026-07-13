@@ -61,23 +61,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
         /// </summary>
         private string GetStyle()
         {
-            var styles = new List<string>();
+            var style = CssStyleBuilder.Build(
+                ("--mb-avatar-background", this.BackgroundColor),
+                ("--mb-avatar-border", this.BorderColor));
 
-            if (!string.IsNullOrWhiteSpace(this.BackgroundColor))
-            {
-                styles.Add($"--mb-avatar-background: {this.BackgroundColor}");
-            }
-
-            if (!string.IsNullOrWhiteSpace(this.BorderColor))
-            {
-                styles.Add($"--mb-avatar-border: {this.BorderColor}");
-            }
-
-            var style = styles.Count > 0
-                ? string.Join("; ", styles)
-                : null;
-
-            return style;
+            return string.IsNullOrWhiteSpace(style) ? null : style;
         }
 
         /// <summary>
@@ -85,11 +73,10 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Avatar
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
+            var cssClass = this.BuildRootCssClass(
                 "mb-avatar",
                 this.GetSizeClass(),
-                this.GetVariantClass(),
-                this.Class);
+                this.GetVariantClass());
 
             return cssClass;
         }

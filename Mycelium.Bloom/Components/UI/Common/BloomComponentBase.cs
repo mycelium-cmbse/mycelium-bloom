@@ -11,6 +11,8 @@ namespace Mycelium.Bloom.Components.UI.Common
 {
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Components.Common;
+
     /// <summary>
     /// Provides common parameters shared by reusable Bloom UI components.
     /// </summary>
@@ -27,5 +29,17 @@ namespace Mycelium.Bloom.Components.UI.Common
         /// </summary>
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Builds the CSS class list for a component root and appends the configured custom class.
+        /// </summary>
+        /// <param name="cssClasses">The component-owned CSS classes.</param>
+        /// <returns>The root CSS classes separated by spaces.</returns>
+        protected string BuildRootCssClass(params string[] cssClasses)
+        {
+            var rootCssClass = CssClassBuilder.Build([.. cssClasses, this.Class]);
+
+            return rootCssClass;
+        }
     }
 }

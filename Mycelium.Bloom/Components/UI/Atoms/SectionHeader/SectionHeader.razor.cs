@@ -11,7 +11,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SectionHeader
 {
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
 
     /// <summary>
@@ -36,9 +35,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SectionHeader
         /// </summary>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
-                "mb-section-header",
-                this.Class);
+            var cssClass = this.BuildRootCssClass("mb-section-header");
 
             return cssClass;
         }
