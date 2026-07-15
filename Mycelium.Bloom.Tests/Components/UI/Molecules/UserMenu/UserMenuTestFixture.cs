@@ -42,7 +42,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
                 .Add(component => component.DisplayName, "Alex Morgan")
                 .Add(component => component.Subtitle, "alex@example.test")
                 .Add(component => component.AvatarText, "AM")
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             using (Assert.EnterMultipleScope())
             {
@@ -61,7 +61,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         public void VerifyActionSelectionIsForwarded()
         {
             ActionMenuItem selectedItem = null;
-            var items = this.CreateItems();
+            var items = CreateItems();
 
             var component = this.Render<UserMenuComponent>(parameters => parameters
                 .Add(component => component.DisplayName, "Alex Morgan")
@@ -90,7 +90,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
             var component = this.Render<UserMenuComponent>(parameters => parameters
                 .Add(component => component.DisplayName, "Alex Morgan")
                 .Add(component => component.Compact, true)
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             using (Assert.EnterMultipleScope())
             {
@@ -102,6 +102,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         }
 
         /// <summary>
+        /// Verifies that an explicit accessible label overrides the generated user-menu label.
+        /// </summary>
+        [Test]
+        public void VerifyExplicitMenuAriaLabelRenders()
+        {
+            var component = this.Render<UserMenuComponent>(parameters => parameters
+                .Add(component => component.DisplayName, "Alex Morgan")
+                .Add(component => component.MenuAriaLabel, "Account actions")
+                .Add(component => component.Items, CreateItems()));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("button").GetAttribute("aria-label"), Is.EqualTo("Account actions"));
+                Assert.That(component.Find("button").GetAttribute("title"), Is.EqualTo("Account actions"));
+            }
+        }
+
+        /// <summary>
         /// Verifies that separate user-menu instances do not share menu state.
         /// </summary>
         [Test]
@@ -109,10 +127,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         {
             var first = this.Render<UserMenuComponent>(parameters => parameters
                 .Add(component => component.DisplayName, "Alex Morgan")
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
             var second = this.Render<UserMenuComponent>(parameters => parameters
                 .Add(component => component.DisplayName, "Jordan Lee")
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             first.Find("button").Click();
 
@@ -127,7 +145,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         /// Creates standard user-menu actions.
         /// </summary>
         /// <returns>The user-menu actions.</returns>
-        private ActionMenuItem[] CreateItems()
+        private static ActionMenuItem[] CreateItems()
         {
             return
             [

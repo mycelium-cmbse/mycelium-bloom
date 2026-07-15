@@ -46,7 +46,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
             var lastOpenState = false;
 
             var component = this.Render<ActionMenuComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.TriggerAriaLabel, "Element actions")
                 .Add(component => component.IsOpenChanged, isOpen =>
                 {
@@ -94,7 +94,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
         public void VerifyEnabledActionInvokesCallbackAndClosesMenu()
         {
             ActionMenuItem selectedItem = null;
-            var items = this.CreateItems();
+            var items = CreateItems();
 
             var component = this.Render<ActionMenuComponent>(parameters => parameters
                 .Add(component => component.Items, items)
@@ -143,10 +143,48 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
         public void VerifyEscapeClosesMenu()
         {
             var component = this.Render<ActionMenuComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             component.Find("button").Click();
             component.Find("[role='menuitem']").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+
+            Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+        }
+
+        /// <summary>
+        /// Verifies that trigger keyboard commands open from the final enabled item and safely close an open or closed menu.
+        /// </summary>
+        [Test]
+        public void VerifyTriggerKeyboardCommandsOpenFromEndAndCloseSafely()
+        {
+            this.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var component = this.Render<ActionMenuComponent>(parameters => parameters
+                .Add(component => component.Items, CreateItems()));
+
+            component.Find("button").KeyDown(new KeyboardEventArgs { Key = "ArrowUp" });
+
+            var items = component.FindAll("[role='menuitem']");
+
+            Assert.That(items[1].GetAttribute("tabindex"), Is.EqualTo("0"));
+
+            component.Find("button").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+            component.Find("button").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+
+            Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+        }
+
+        /// <summary>
+        /// Verifies that a disabled trigger ignores keyboard requests to open the menu.
+        /// </summary>
+        [Test]
+        public void VerifyDisabledTriggerIgnoresKeyboardOpen()
+        {
+            var component = this.Render<ActionMenuComponent>(parameters => parameters
+                .Add(component => component.Items, CreateItems())
+                .Add(component => component.Disabled, true));
+
+            component.Find("button").KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
 
             Assert.That(component.FindAll("[role='menu']"), Is.Empty);
         }
@@ -189,6 +227,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
             items[1].KeyDown(new KeyboardEventArgs { Key = "End" });
             items = component.FindAll("[role='menuitem']");
             Assert.That(items[2].GetAttribute("tabindex"), Is.EqualTo("0"));
+
+            items[2].KeyDown(new KeyboardEventArgs { Key = "ArrowUp" });
+            items = component.FindAll("[role='menuitem']");
+            Assert.That(items[1].GetAttribute("tabindex"), Is.EqualTo("0"));
         }
 
         /// <summary>
@@ -199,7 +241,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
         {
             this.JSInterop.Mode = JSRuntimeMode.Loose;
 
-            var items = this.CreateItems();
+            var items = CreateItems();
             var component = this.Render<ActionMenuComponent>(parameters => parameters
                 .Add(component => component.Items, items)
                 .Add(component => component.IsOpen, true));
@@ -240,7 +282,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
             var releaseCallback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var component = this.Render<ActionMenuComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.ItemSelected, async _ =>
                 {
                     selectionCount++;
@@ -281,9 +323,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
         public void VerifyInstancesMaintainIndependentOpenState()
         {
             var first = this.Render<ActionMenuComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
             var second = this.Render<ActionMenuComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             first.Find("button").Click();
 
@@ -339,7 +381,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
         /// Creates a standard enabled action list.
         /// </summary>
         /// <returns>The action items.</returns>
-        private ActionMenuItem[] CreateItems()
+        private static ActionMenuItem[] CreateItems()
         {
             return
             [

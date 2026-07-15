@@ -49,7 +49,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
                 .Add(component => component.PrimaryText, "Publish")
                 .Add(component => component.Variant, ButtonVariant.Danger)
                 .Add(component => component.Size, ButtonSize.Large)
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.PrimaryAction, () => primaryActionCount++));
 
             component.Find("button").Click();
@@ -68,13 +68,43 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
         }
 
         /// <summary>
+        /// Verifies additional supported variant and size combinations.
+        /// </summary>
+        /// <param name="variant">The configured button variant.</param>
+        /// <param name="size">The configured button size.</param>
+        /// <param name="variantClass">The expected split-button variant class.</param>
+        /// <param name="sizeClass">The expected split-button size class.</param>
+        [TestCase(ButtonVariant.Secondary, ButtonSize.Small, "mb-split-button--secondary", "mb-split-button--small")]
+        [TestCase(ButtonVariant.Ghost, ButtonSize.Medium, "mb-split-button--ghost", "mb-split-button--medium")]
+        public void VerifyAdditionalAppearances(
+            ButtonVariant variant,
+            ButtonSize size,
+            string variantClass,
+            string sizeClass)
+        {
+            var component = this.Render<SplitButtonComponent>(parameters => parameters
+                .Add(component => component.PrimaryText, "Publish")
+                .Add(component => component.Variant, variant)
+                .Add(component => component.Size, size)
+                .Add(component => component.Items, CreateItems()));
+
+            var rootClass = component.Find(".mb-split-button").GetAttribute("class");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(rootClass, Does.Contain(variantClass));
+                Assert.That(rootClass, Does.Contain(sizeClass));
+            }
+        }
+
+        /// <summary>
         /// Verifies that the secondary trigger opens ActionMenu and forwards the selected action.
         /// </summary>
         [Test]
         public void VerifySecondaryActionIsForwarded()
         {
             ActionMenuItem selectedItem = null;
-            var items = this.CreateItems();
+            var items = CreateItems();
 
             var component = this.Render<SplitButtonComponent>(parameters => parameters
                 .Add(component => component.PrimaryText, "Publish")
@@ -103,7 +133,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
             var component = this.Render<SplitButtonComponent>(parameters => parameters
                 .Add(component => component.PrimaryText, "Publish")
                 .Add(component => component.Disabled, true)
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.PrimaryAction, () => primaryActionCount++)
                 .Add(component => component.ItemSelected, _ => selectionCount++));
 
@@ -130,7 +160,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
             var component = this.Render<SplitButtonComponent>(parameters => parameters
                 .Add(component => component.PrimaryText, "Publishing")
                 .Add(component => component.IsLoading, true)
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             var buttons = component.FindAll("button");
 
@@ -154,7 +184,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
 
             var component = this.Render<SplitButtonComponent>(parameters => parameters
                 .Add(component => component.PrimaryText, "Publish")
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.PrimaryAction, async () =>
                 {
                     primaryActionCount++;
@@ -194,10 +224,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
         {
             var first = this.Render<SplitButtonComponent>(parameters => parameters
                 .Add(component => component.PrimaryText, "Publish")
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
             var second = this.Render<SplitButtonComponent>(parameters => parameters
                 .Add(component => component.PrimaryText, "Export")
-                .Add(component => component.Items, this.CreateItems()));
+                .Add(component => component.Items, CreateItems()));
 
             first.FindAll("button")[1].Click();
 
@@ -212,7 +242,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
         /// Creates standard secondary actions.
         /// </summary>
         /// <returns>The secondary actions.</returns>
-        private ActionMenuItem[] CreateItems()
+        private static ActionMenuItem[] CreateItems()
         {
             return
             [

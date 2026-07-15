@@ -103,6 +103,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Breadcrumbs
         }
 
         /// <summary>
+        /// Verifies that custom separator content replaces the default separator text.
+        /// </summary>
+        [Test]
+        public void VerifyCustomSeparatorContentRenders()
+        {
+            var component = this.Render<BreadcrumbsComponent>(parameters => parameters
+                .Add(component => component.Items, new[]
+                {
+                    new BreadcrumbItem { Id = "workspace", Label = "Workspace" },
+                    new BreadcrumbItem { Id = "element", Label = "Element", IsCurrent = true }
+                })
+                .Add(component => component.SeparatorContent,
+                    builder => builder.AddContent(0, "Custom separator")));
+
+            Assert.That(
+                component.Find(".mb-breadcrumbs__separator").TextContent.Trim(),
+                Is.EqualTo("Custom separator"));
+        }
+
+        /// <summary>
         /// Verifies that an empty collection renders an empty semantic trail without failing.
         /// </summary>
         [Test]

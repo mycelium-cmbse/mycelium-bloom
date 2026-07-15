@@ -38,7 +38,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
         public void VerifyCurrentProjectAndOptionsRender()
         {
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.SelectedProjectId, "project-a"));
 
             var trigger = component.Find("button");
@@ -75,7 +75,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
             var selectedProjectId = string.Empty;
 
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.SelectedProjectId, "project-a")
                 .Add(component => component.SelectedProjectIdChanged, id => selectedProjectId = id));
 
@@ -97,7 +97,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
         public void VerifyDisabledProjectCannotBeSelected()
         {
             var selectionCount = 0;
-            var items = this.CreateItems();
+            var items = CreateItems();
             items[1].Disabled = true;
 
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
@@ -117,16 +117,53 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
         }
 
         /// <summary>
+        /// Verifies placeholder rendering and generated initials when no project is selected.
+        /// </summary>
+        [Test]
+        public void VerifyPlaceholderAndGeneratedInitialsRender()
+        {
+            var items = new[]
+            {
+                new ProjectSwitcherItem { Id = "guidance", Name = "guidance" },
+                new ProjectSwitcherItem { Id = "unnamed", Name = string.Empty }
+            };
+
+            var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
+                .Add(component => component.Items, items)
+                .Add(component => component.Placeholder, "Choose project"));
+
+            var trigger = component.Find("button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find(".mb-project-switcher__placeholder").TextContent,
+                    Is.EqualTo("Choose project"));
+                Assert.That(component.Find(".mb-project-switcher__initial").TextContent.Trim(), Is.EqualTo("P"));
+                Assert.That(trigger.GetAttribute("aria-label"), Is.EqualTo("Select project"));
+            }
+
+            trigger.Click();
+
+            var icons = component.FindAll(".mb-action-menu__item-icon");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(icons[0].TextContent, Is.EqualTo("G"));
+                Assert.That(icons[1].TextContent, Is.EqualTo("P"));
+            }
+        }
+
+        /// <summary>
         /// Verifies that separate switcher instances do not share menu state.
         /// </summary>
         [Test]
         public void VerifyInstancesMaintainIndependentOpenState()
         {
             var first = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.SelectedProjectId, "project-a"));
             var second = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, this.CreateItems())
+                .Add(component => component.Items, CreateItems())
                 .Add(component => component.SelectedProjectId, "project-b"));
 
             first.Find("button").Click();
@@ -142,7 +179,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
         /// Creates standard project options.
         /// </summary>
         /// <returns>The project options.</returns>
-        private ProjectSwitcherItem[] CreateItems()
+        private static ProjectSwitcherItem[] CreateItems()
         {
             return
             [

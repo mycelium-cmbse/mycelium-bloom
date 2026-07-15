@@ -99,10 +99,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         [Test]
         public void VerifyCreateGeneratedIdUsesPrefixAndUniqueValue()
         {
-            var component = new TestBloomComponent(string.Empty);
-
-            var firstId = component.CreateGeneratedIdForTest("mb-component");
-            var secondId = component.CreateGeneratedIdForTest("mb-component");
+            var firstId = TestBloomComponent.CreateGeneratedIdForTest("mb-component");
+            var secondId = TestBloomComponent.CreateGeneratedIdForTest("mb-component");
 
             using (Assert.EnterMultipleScope())
             {
@@ -159,7 +157,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
             /// </summary>
             /// <param name="prefix">The identifier prefix.</param>
             /// <returns>The generated component identifier.</returns>
-            public string CreateGeneratedIdForTest(string prefix)
+            public static string CreateGeneratedIdForTest(string prefix)
             {
                 return CreateGeneratedId(prefix);
             }
