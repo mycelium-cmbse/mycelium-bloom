@@ -1,0 +1,22 @@
+.mb-select-input__control {
+    position: relative;
+    min-width: 0;
+}
+
+.mb-select-input__field {
+    padding: 0 34px 0 var(--mb-spacing-3);
+    appearance: none;
+}
+
+.mb-select-input__chevron {
+    position: absolute;
+    top: 50%;
+    right: var(--mb-spacing-3);
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    color: var(--mb-color-component-icon);
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+}

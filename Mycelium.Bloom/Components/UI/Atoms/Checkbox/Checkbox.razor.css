@@ -1,0 +1,94 @@
+.mb-checkbox {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--mb-spacing-2);
+    min-width: 0;
+    color: var(--mb-color-component-text);
+    cursor: pointer;
+}
+
+.mb-checkbox__input {
+    position: relative;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 1px 0 0;
+    border: var(--mb-border-width-sm) solid var(--mb-color-component-border-strong);
+    border-radius: var(--mb-radius-sm);
+    outline: 0;
+    appearance: none;
+    background: var(--mb-color-surface);
+    cursor: pointer;
+    transition: background-color var(--mb-transition-fast), border-color var(--mb-transition-fast), box-shadow var(--mb-transition-fast);
+}
+
+.mb-checkbox__input::after {
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    width: 5px;
+    height: 9px;
+    border-right: 2px solid var(--mb-color-text-inverted);
+    border-bottom: 2px solid var(--mb-color-text-inverted);
+    content: "";
+    opacity: 0;
+    transform: rotate(45deg);
+}
+
+.mb-checkbox__input:checked {
+    border-color: var(--mb-color-brand-action);
+    background: var(--mb-color-brand-action);
+}
+
+.mb-checkbox__input:checked::after {
+    opacity: 1;
+}
+
+.mb-checkbox__input:focus-visible {
+    border-color: var(--mb-color-focus-ring);
+    box-shadow: 0 0 0 2px var(--mb-color-brand-100);
+}
+
+.mb-checkbox--error .mb-checkbox__input {
+    border-color: var(--mb-color-danger-500);
+}
+
+.mb-checkbox__content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.mb-checkbox__label {
+    display: inline-flex;
+    gap: 2px;
+    color: var(--mb-color-component-text);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+}
+
+.mb-checkbox__required,
+.mb-checkbox__error {
+    color: var(--mb-color-danger-700);
+}
+
+.mb-checkbox__description,
+.mb-checkbox__error {
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+}
+
+.mb-checkbox__description {
+    color: var(--mb-color-text-muted);
+}
+
+.mb-checkbox--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.mb-checkbox--disabled .mb-checkbox__input {
+    cursor: not-allowed;
+}
