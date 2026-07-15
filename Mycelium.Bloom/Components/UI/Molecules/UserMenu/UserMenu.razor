@@ -1,0 +1,44 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="UserMenu.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <ActionMenu
+        TriggerClass="mb-user-menu__trigger"
+        TriggerAriaLabel="@(this.GetMenuAriaLabel())"
+        TriggerTitle="@(this.GetMenuAriaLabel())"
+        Items="@(this.Items)"
+        Disabled="@(this.Disabled)"
+        Alignment="ActionMenuAlignment.End"
+        ItemSelected="this.HandleItemSelectedAsync">
+        <TriggerContent>
+            <Avatar
+                Text="@(this.GetAvatarText())"
+                Title="@(this.DisplayName)"
+                BackgroundColor="@(this.AvatarBackgroundColor)"
+                BorderColor="@(this.AvatarBorderColor)"
+                Size="AvatarSize.Small" />
+
+            @if (!this.Compact)
+            {
+                <span class="mb-user-menu__identity">
+                    <span class="mb-user-menu__name">@this.DisplayName</span>
+
+                    @if (!string.IsNullOrWhiteSpace(this.Subtitle))
+                    {
+                        <span class="mb-user-menu__subtitle">@this.Subtitle</span>
+                    }
+                </span>
+            }
+
+            <span class="mb-user-menu__chevron" aria-hidden="true">⌄</span>
+        </TriggerContent>
+    </ActionMenu>
+</div>

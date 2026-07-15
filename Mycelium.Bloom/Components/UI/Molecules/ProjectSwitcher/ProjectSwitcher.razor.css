@@ -1,0 +1,78 @@
+.mb-project-switcher {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 320px;
+}
+
+.mb-project-switcher ::deep .mb-project-switcher__trigger {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: var(--mb-control-height-md);
+    padding: var(--mb-spacing-1) var(--mb-spacing-2);
+    border-color: var(--mb-color-component-border);
+    background: var(--mb-color-surface);
+}
+
+.mb-project-switcher ::deep .mb-project-switcher__trigger:hover:not(:disabled) {
+    border-color: var(--mb-color-component-border-strong);
+    background: var(--mb-color-component-soft);
+}
+
+.mb-project-switcher__initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--mb-radius-control);
+    background: var(--mb-color-brand-100);
+    color: var(--mb-color-brand-800);
+    font-size: var(--mb-font-size-label-sm);
+    line-height: var(--mb-line-height-label-sm);
+    font-weight: 700;
+}
+
+.mb-project-switcher__content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    text-align: left;
+}
+
+.mb-project-switcher__name,
+.mb-project-switcher__description,
+.mb-project-switcher__placeholder {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-project-switcher__name,
+.mb-project-switcher__placeholder {
+    color: var(--mb-color-component-text);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    font-weight: 600;
+}
+
+.mb-project-switcher__description {
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-label-xs);
+    line-height: var(--mb-line-height-label-xs);
+}
+
+.mb-project-switcher__chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: var(--mb-color-component-icon);
+    font-size: 14px;
+    line-height: 1;
+}
+
+.mb-project-switcher--disabled {
+    opacity: 0.55;
+}

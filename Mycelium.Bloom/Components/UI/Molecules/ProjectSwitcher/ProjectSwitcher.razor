@@ -1,0 +1,46 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectSwitcher.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <ActionMenu
+        TriggerClass="mb-project-switcher__trigger"
+        TriggerAriaLabel="@(this.GetTriggerAriaLabel())"
+        TriggerTitle="@(this.GetTriggerAriaLabel())"
+        Items="@(this.ActionItems)"
+        Disabled="@(this.Disabled)"
+        IsSelectionMenu="true"
+        Alignment="ActionMenuAlignment.Start"
+        ItemSelected="this.HandleActionSelectedAsync">
+        <TriggerContent>
+            <span class="mb-project-switcher__initial" aria-hidden="true">
+                @this.GetCurrentInitial()
+            </span>
+
+            <span class="mb-project-switcher__content">
+                @if (this.GetSelectedProject() is { } selectedProject)
+                {
+                    <span class="mb-project-switcher__name">@selectedProject.Name</span>
+
+                    @if (!string.IsNullOrWhiteSpace(selectedProject.Description))
+                    {
+                        <span class="mb-project-switcher__description">@selectedProject.Description</span>
+                    }
+                }
+                else
+                {
+                    <span class="mb-project-switcher__placeholder">@this.Placeholder</span>
+                }
+            </span>
+
+            <span class="mb-project-switcher__chevron" aria-hidden="true">⌄</span>
+        </TriggerContent>
+    </ActionMenu>
+</div>

@@ -1,0 +1,78 @@
+.mb-split-button {
+    display: inline-flex;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.mb-split-button ::deep .mb-split-button__primary {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.mb-split-button ::deep .mb-split-button__actions {
+    margin-left: -1px;
+}
+
+.mb-split-button ::deep .mb-split-button__toggle {
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0 var(--mb-radius-control) var(--mb-radius-control) 0;
+}
+
+.mb-split-button--small ::deep .mb-split-button__toggle {
+    width: var(--mb-control-height-xs);
+}
+
+.mb-split-button--medium ::deep .mb-split-button__toggle {
+    width: var(--mb-control-height-sm);
+}
+
+.mb-split-button--large ::deep .mb-split-button__toggle {
+    width: var(--mb-control-height-md);
+}
+
+.mb-split-button--primary ::deep .mb-split-button__toggle {
+    border-color: var(--mb-color-brand-action);
+    border-left-color: color-mix(in srgb, var(--mb-color-text-inverted) 35%, transparent);
+    background: var(--mb-color-brand-action);
+    color: var(--mb-color-text-inverted);
+}
+
+.mb-split-button--primary ::deep .mb-split-button__toggle:hover:not(:disabled),
+.mb-split-button--primary ::deep .mb-split-button__toggle.mb-action-menu__trigger--open {
+    background: var(--mb-color-brand-action-hover);
+}
+
+.mb-split-button--secondary ::deep .mb-split-button__toggle {
+    border-color: var(--mb-color-component-border);
+    background: var(--mb-color-surface);
+    color: var(--mb-color-component-text);
+}
+
+.mb-split-button--ghost ::deep .mb-split-button__toggle {
+    background: transparent;
+    color: var(--mb-color-component-icon);
+}
+
+.mb-split-button--danger ::deep .mb-split-button__toggle {
+    border-color: var(--mb-color-danger-500);
+    border-left-color: color-mix(in srgb, var(--mb-color-text-inverted) 35%, transparent);
+    background: var(--mb-color-danger-500);
+    color: var(--mb-color-text-inverted);
+}
+
+.mb-split-button--danger ::deep .mb-split-button__toggle:hover:not(:disabled) {
+    background: var(--mb-color-danger-700);
+}
+
+.mb-split-button--disabled {
+    opacity: 0.55;
+}
+
+.mb-split-button__chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+}
