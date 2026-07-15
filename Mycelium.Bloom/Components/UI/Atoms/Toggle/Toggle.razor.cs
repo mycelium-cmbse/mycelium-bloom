@@ -22,7 +22,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Toggle
         /// <summary>
         /// The generated fallback identifier of the toggle input.
         /// </summary>
-        private readonly string generatedId = $"mb-toggle-{Guid.NewGuid():N}";
+        private readonly string generatedId = CreateGeneratedId("mb-toggle");
 
         /// <summary>
         /// Gets or sets the identifier of the toggle input.

@@ -24,7 +24,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// <summary>
         /// The generated fallback identifier of the search input element.
         /// </summary>
-        private readonly string generatedId = $"mb-search-input-{Guid.NewGuid():N}";
+        private readonly string generatedId = CreateGeneratedId("mb-search-input");
 
         /// <summary>
         /// The JavaScript module used to manage the search shortcut.

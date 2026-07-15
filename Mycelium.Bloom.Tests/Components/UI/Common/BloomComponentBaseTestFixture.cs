@@ -94,6 +94,25 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         }
 
         /// <summary>
+        /// Verifies that generated component identifiers preserve their prefix and remain unique.
+        /// </summary>
+        [Test]
+        public void VerifyCreateGeneratedIdUsesPrefixAndUniqueValue()
+        {
+            var component = new TestBloomComponent(string.Empty);
+
+            var firstId = component.CreateGeneratedIdForTest("mb-component");
+            var secondId = component.CreateGeneratedIdForTest("mb-component");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstId, Does.StartWith("mb-component-"));
+                Assert.That(secondId, Does.StartWith("mb-component-"));
+                Assert.That(secondId, Is.Not.EqualTo(firstId));
+            }
+        }
+
+        /// <summary>
         /// Gets the parameter attribute for a shared component property.
         /// </summary>
         /// <param name="propertyName">The property name.</param>
@@ -133,6 +152,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
             public string BuildRootCssClassForTest(params string[] cssClasses)
             {
                 return this.BuildRootCssClass(cssClasses);
+            }
+
+            /// <summary>
+            /// Creates a generated component identifier through the component base implementation.
+            /// </summary>
+            /// <param name="prefix">The identifier prefix.</param>
+            /// <returns>The generated component identifier.</returns>
+            public string CreateGeneratedIdForTest(string prefix)
+            {
+                return CreateGeneratedId(prefix);
             }
         }
     }
