@@ -1,0 +1,54 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Breadcrumbs.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<nav class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+    <ol class="mb-breadcrumbs__list">
+        @for (var index = 0; index < this.Items.Count; index++)
+        {
+            var item = this.Items[index];
+
+            <li class="mb-breadcrumbs__item">
+                @if (index > 0)
+                {
+                    <span class="mb-breadcrumbs__separator" aria-hidden="true">
+                        @if (this.SeparatorContent is not null)
+                        {
+                            @(this.SeparatorContent)
+                        }
+                        else
+                        {
+                            @this.Separator
+                        }
+                    </span>
+                }
+
+                @if (item.IsCurrent)
+                {
+                    <span class="mb-breadcrumbs__label mb-breadcrumbs__label--current" aria-current="page">
+                        @item.Label
+                    </span>
+                }
+                else if (item.Disabled)
+                {
+                    <span class="mb-breadcrumbs__label mb-breadcrumbs__label--disabled" aria-disabled="true">
+                        @item.Label
+                    </span>
+                }
+                else
+                {
+                    <button type="button" class="mb-breadcrumbs__button" @onclick="() => this.SelectItemAsync(item)">
+                        @item.Label
+                    </button>
+                }
+            </li>
+        }
+    </ol>
+</nav>

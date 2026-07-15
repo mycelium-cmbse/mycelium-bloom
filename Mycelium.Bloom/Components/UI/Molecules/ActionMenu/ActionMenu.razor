@@ -1,0 +1,97 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ActionMenu.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.TriggerContent is null)
+    {
+        <IconButton
+            id="@(this.TriggerId)"
+            Class="@(this.GetTriggerCssClass())"
+            AriaLabel="@(this.TriggerAriaLabel)"
+            Title="@(this.TriggerTitle)"
+            Disabled="@(this.IsTriggerDisabled())"
+            OnClick="this.ToggleMenuAsync"
+            aria-haspopup="menu"
+            aria-expanded="@(this.IsOpen ? "true" : "false")"
+            aria-controls="@(this.MenuId)"
+            @onkeydown="this.HandleTriggerKeyDownAsync">
+            <span aria-hidden="true">•••</span>
+        </IconButton>
+    }
+    else
+    {
+        <button
+            id="@(this.TriggerId)"
+            type="button"
+            class="@(this.GetTriggerCssClass())"
+            title="@(this.TriggerTitle)"
+            aria-label="@(this.TriggerAriaLabel)"
+            aria-haspopup="menu"
+            aria-expanded="@(this.IsOpen ? "true" : "false")"
+            aria-controls="@(this.MenuId)"
+            disabled="@(this.IsTriggerDisabled())"
+            @onkeydown="this.HandleTriggerKeyDownAsync"
+            @onclick="this.ToggleMenuAsync">
+            @(this.TriggerContent)
+        </button>
+    }
+
+    @if (this.IsOpen)
+    {
+        <div
+            id="@(this.MenuId)"
+            class="@(this.GetMenuCssClass())"
+            role="menu"
+            aria-labelledby="@(this.TriggerId)">
+            @for (var index = 0; index < this.Items.Count; index++)
+            {
+                var itemIndex = index;
+                var item = this.Items[itemIndex];
+
+                @if (item.SeparatorBefore)
+                {
+                    <div class="mb-action-menu__separator" role="separator"></div>
+                }
+
+                <button
+                    @ref="this.itemElements[itemIndex]"
+                    type="button"
+                    class="@(this.GetItemCssClass(item))"
+                    role="@(this.GetItemRole())"
+                    aria-disabled="@(item.Disabled ? "true" : "false")"
+                    aria-checked="@(this.GetAriaChecked(item))"
+                    disabled="@(item.Disabled)"
+                    tabindex="@(this.GetItemTabIndex(itemIndex))"
+                    @onkeydown="args => this.HandleItemKeyDownAsync(args, itemIndex)"
+                    @onclick="() => this.SelectItemAsync(item)">
+                    @if (!string.IsNullOrWhiteSpace(item.Icon))
+                    {
+                        <span class="mb-action-menu__item-icon" aria-hidden="true">@item.Icon</span>
+                    }
+
+                    <span class="mb-action-menu__item-content">
+                        <span class="mb-action-menu__item-label">@item.Label</span>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <span class="mb-action-menu__item-description">@item.Description</span>
+                        }
+                    </span>
+
+                    @if (this.IsSelectionMenu && item.IsSelected)
+                    {
+                        <span class="mb-action-menu__selection" aria-hidden="true">✓</span>
+                    }
+                </button>
+            }
+        </div>
+    }
+</div>
