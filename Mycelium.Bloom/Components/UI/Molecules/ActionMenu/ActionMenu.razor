@@ -64,7 +64,7 @@
                 <button
                     @ref="this.itemElements[itemIndex]"
                     type="button"
-                    class="@(this.GetItemCssClass(item))"
+                    class="@(GetItemCssClass(item))"
                     role="@(this.GetItemRole())"
                     aria-disabled="@(item.Disabled ? "true" : "false")"
                     aria-checked="@(this.GetAriaChecked(item))"

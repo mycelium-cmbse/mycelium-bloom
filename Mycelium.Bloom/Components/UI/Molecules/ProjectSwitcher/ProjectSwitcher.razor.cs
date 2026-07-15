@@ -70,7 +70,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher
                     Id = item.Id,
                     Label = item.Name,
                     Description = item.Description,
-                    Icon = this.GetInitial(item),
+                    Icon = GetInitial(item),
                     Disabled = item.Disabled,
                     IsSelected = string.Equals(item.Id, this.SelectedProjectId, StringComparison.Ordinal)
                 })
@@ -106,7 +106,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher
         {
             var selectedProject = this.GetSelectedProject();
 
-            return selectedProject is null ? "P" : this.GetInitial(selectedProject);
+            return selectedProject is null ? "P" : GetInitial(selectedProject);
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher
         /// </summary>
         /// <param name="item">The project option.</param>
         /// <returns>The configured initial, the first name character, or a neutral fallback.</returns>
-        private string GetInitial(ProjectSwitcherItem item)
+        private static string GetInitial(ProjectSwitcherItem item)
         {
             if (!string.IsNullOrWhiteSpace(item.Initial))
             {

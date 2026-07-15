@@ -141,7 +141,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                 this.FocusedItemIndex = -1;
                 this.pendingFocusIndex = null;
             }
-            else if (this.IsOpen && !this.IsEnabledIndex(this.FocusedItemIndex))
+            else if (!this.IsEnabledIndex(this.FocusedItemIndex))
             {
                 this.FocusedItemIndex = this.FindEnabledIndex(0, 1);
             }
@@ -203,7 +203,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// </summary>
         /// <param name="item">The action item.</param>
         /// <returns>The item CSS class list.</returns>
-        private string GetItemCssClass(ActionMenuItem item)
+        private static string GetItemCssClass(ActionMenuItem item)
         {
             return CssClassBuilder.Build(
                 "mb-action-menu__item",
@@ -237,7 +237,12 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// <returns>The selected state, or null for a standard action menu.</returns>
         private string GetAriaChecked(ActionMenuItem item)
         {
-            return this.IsSelectionMenu ? (item.IsSelected ? "true" : "false") : null;
+            if (!this.IsSelectionMenu)
+            {
+                return null;
+            }
+
+            return item.IsSelected ? "true" : "false";
         }
 
         /// <summary>
