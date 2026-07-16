@@ -1,0 +1,62 @@
+.mb-breadcrumbs {
+    display: block;
+    min-width: 0;
+    color: var(--mb-color-component-text);
+    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+}
+
+.mb-breadcrumbs__list {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mb-breadcrumbs__item {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.mb-breadcrumbs__separator {
+    flex: 0 0 auto;
+    margin: 0 var(--mb-spacing-2);
+    color: var(--mb-color-text-subtle);
+    user-select: none;
+}
+
+.mb-breadcrumbs__button,
+.mb-breadcrumbs__label {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    font: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-breadcrumbs__button {
+    padding: 2px;
+    border: 0;
+    border-radius: var(--mb-radius-sm);
+    background: transparent;
+    color: var(--mb-color-text-secondary);
+}
+
+.mb-breadcrumbs__button:hover {
+    color: var(--mb-color-brand-700);
+    text-decoration: underline;
+}
+
+.mb-breadcrumbs__label--current {
+    color: var(--mb-color-text-primary);
+    font-weight: 600;
+}
+
+.mb-breadcrumbs__label--disabled {
+    color: var(--mb-color-text-subtle);
+}

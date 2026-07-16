@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.Components.UI.Common
         /// <summary>
         /// The generated fallback identifier of the form field element.
         /// </summary>
-        private readonly string generatedId = $"mb-field-{Guid.NewGuid():N}";
+        private readonly string generatedId = CreateGeneratedId("mb-field");
 
         /// <summary>
         /// Gets or sets the identifier of the form field element.

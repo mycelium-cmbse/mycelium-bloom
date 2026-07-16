@@ -1,0 +1,136 @@
+.mb-action-menu {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+}
+
+.mb-action-menu__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: var(--mb-control-height-xs);
+    gap: var(--mb-spacing-2);
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--mb-radius-control);
+    background: transparent;
+    color: var(--mb-color-component-text);
+    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+}
+
+.mb-action-menu__trigger:hover:not(:disabled),
+.mb-action-menu__trigger--open {
+    background: var(--mb-color-component-soft);
+}
+
+.mb-action-menu ::deep .mb-action-menu__trigger--open {
+    background: var(--mb-color-component-soft);
+}
+
+.mb-action-menu__menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + var(--mb-spacing-1));
+    display: flex;
+    flex-direction: column;
+    width: max-content;
+    min-width: 184px;
+    max-width: min(320px, calc(100vw - (2 * var(--mb-spacing-4))));
+    padding: var(--mb-spacing-1);
+    border: 1px solid var(--mb-color-component-border);
+    border-radius: var(--mb-radius-control);
+    background: var(--mb-color-surface);
+    box-shadow: var(--mb-shadow-md);
+}
+
+.mb-action-menu__menu--start {
+    left: 0;
+}
+
+.mb-action-menu__menu--end {
+    right: 0;
+}
+
+.mb-action-menu__item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: var(--mb-spacing-2);
+    padding: 7px 8px;
+    border: 0;
+    border-radius: var(--mb-radius-sm);
+    background: transparent;
+    color: var(--mb-color-component-text);
+    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: left;
+}
+
+.mb-action-menu__item:hover:not(:disabled),
+.mb-action-menu__item--selected {
+    background: var(--mb-color-component-soft);
+}
+
+.mb-action-menu__item--destructive {
+    color: var(--mb-color-danger-700);
+}
+
+.mb-action-menu__item--destructive:hover:not(:disabled) {
+    background: var(--mb-color-danger-50);
+}
+
+.mb-action-menu__item--disabled {
+    opacity: 0.5;
+}
+
+.mb-action-menu__item-icon,
+.mb-action-menu__selection {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    color: currentColor;
+    font-size: 12px;
+}
+
+.mb-action-menu__item-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mb-action-menu__item-label,
+.mb-action-menu__item-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-action-menu__item-label {
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    font-weight: 500;
+}
+
+.mb-action-menu__item-description {
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-label-xs);
+    line-height: var(--mb-line-height-label-xs);
+}
+
+.mb-action-menu__selection {
+    margin-left: auto;
+    color: var(--mb-color-brand-700);
+}
+
+.mb-action-menu__separator {
+    height: 1px;
+    margin: var(--mb-spacing-1) var(--mb-spacing-2);
+    background: var(--mb-color-component-border);
+}

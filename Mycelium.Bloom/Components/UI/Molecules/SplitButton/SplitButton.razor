@@ -1,0 +1,36 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="SplitButton.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <Button
+        Class="mb-split-button__primary"
+        Variant="@(this.Variant)"
+        Size="@(this.Size)"
+        Disabled="@(this.IsDisabled())"
+        IsLoading="@(this.IsActionInProgress())"
+        OnClick="this.HandlePrimaryActionAsync">
+        @this.PrimaryText
+    </Button>
+
+    <ActionMenu
+        Class="mb-split-button__actions"
+        TriggerClass="mb-split-button__toggle"
+        TriggerAriaLabel="@(this.MenuAriaLabel)"
+        TriggerTitle="@(this.MenuAriaLabel)"
+        Items="@(this.Items)"
+        Disabled="@(this.IsDisabled())"
+        Alignment="ActionMenuAlignment.End"
+        ItemSelected="this.HandleItemSelectedAsync">
+        <TriggerContent>
+            <span class="mb-split-button__chevron" aria-hidden="true">⌄</span>
+        </TriggerContent>
+    </ActionMenu>
+</div>

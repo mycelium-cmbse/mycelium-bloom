@@ -41,5 +41,15 @@ namespace Mycelium.Bloom.Components.UI.Common
 
             return rootCssClass;
         }
+
+        /// <summary>
+        /// Creates a unique component identifier using the provided prefix.
+        /// </summary>
+        /// <param name="prefix">The component-specific identifier prefix.</param>
+        /// <returns>The generated component identifier.</returns>
+        protected static string CreateGeneratedId(string prefix)
+        {
+            return $"{prefix}-{Guid.NewGuid():N}";
+        }
     }
 }

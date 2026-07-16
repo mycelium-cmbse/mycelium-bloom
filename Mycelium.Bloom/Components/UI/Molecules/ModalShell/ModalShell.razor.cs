@@ -27,7 +27,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// <summary>
         /// Provides a stable generated identifier when no modal identifier is configured.
         /// </summary>
-        private readonly string generatedId = $"mb-modal-{Guid.NewGuid():N}";
+        private readonly string generatedId = CreateGeneratedId("mb-modal");
 
         /// <summary>
         /// Gets or sets a value indicating whether the modal is open.
