@@ -25,6 +25,28 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     public sealed class DesignSystemTestFixture : BunitContext
     {
         /// <summary>
+        /// The expected top-level showcase section order.
+        /// </summary>
+        private static readonly string[] ExpectedSectionOrder =
+        [
+            "foundation",
+            "atoms",
+            "molecules",
+            "organisms"
+        ];
+
+        /// <summary>
+        /// The expected in-page showcase navigation targets.
+        /// </summary>
+        private static readonly string[] ExpectedSectionLinks =
+        [
+            "/design-system#foundation-heading",
+            "/design-system#atoms-heading",
+            "/design-system#molecules-heading",
+            "/design-system#organisms-heading"
+        ];
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -61,14 +83,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.FindAll("[data-section='atoms']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-section='molecules']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-section='organisms']"), Has.Count.EqualTo(1));
-                Assert.That(sectionOrder, Is.EqualTo(new[] { "foundation", "atoms", "molecules", "organisms" }));
-                Assert.That(sectionLinks, Is.EqualTo(new[]
-                {
-                    "/design-system#foundation-heading",
-                    "/design-system#atoms-heading",
-                    "/design-system#molecules-heading",
-                    "/design-system#organisms-heading"
-                }));
+                Assert.That(sectionOrder, Is.EqualTo(ExpectedSectionOrder));
+                Assert.That(sectionLinks, Is.EqualTo(ExpectedSectionLinks));
                 Assert.That(component.FindAll(".mb-avatar"), Is.Not.Empty);
                 Assert.That(component.FindAll(".mb-tabs"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='toast-container']"), Has.Count.EqualTo(1));
