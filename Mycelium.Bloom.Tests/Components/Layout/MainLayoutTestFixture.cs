@@ -45,6 +45,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find("article").TextContent.Trim(), Is.EqualTo("Workspace content"));
+                Assert.That(component.Find("a[href='design-system'] span:last-child").TextContent, Is.EqualTo("Design System"));
                 Assert.That(component.Find("a[href='https://learn.microsoft.com/aspnet/core/']").TextContent.Trim(), Is.EqualTo("About"));
                 Assert.That(component.Find("#blazor-error-ui").TextContent, Does.Contain("An unhandled error has occurred."));
             }
