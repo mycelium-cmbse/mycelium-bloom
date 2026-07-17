@@ -1,0 +1,570 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DesignSystem.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@page "/design-system"
+
+@using Mycelium.Bloom.Components.UI.Molecules.Tabs
+
+<PageTitle>Bloom Design System</PageTitle>
+
+<main class="mb-design-system">
+    <header class="mb-design-system__page-header">
+        <div class="mb-design-system__header-copy">
+            <p class="mb-design-system__eyebrow">Development reference</p>
+            <h1>Bloom design system</h1>
+            <p class="mb-design-system__intro">
+                Interactive examples of the reusable components available to Bloom application developers.
+            </p>
+        </div>
+
+        <Chip Variant="ChipVariant.Info">Local sample data</Chip>
+
+        <nav class="mb-design-system__section-nav" aria-label="Design system sections">
+            <a href="/design-system#foundation-heading">01 Foundation</a>
+            <a href="/design-system#atoms-heading">02 Atoms</a>
+            <a href="/design-system#molecules-heading">03 Molecules</a>
+            <a href="/design-system#organisms-heading">04 Organisms</a>
+        </nav>
+    </header>
+
+    <section class="mb-design-system__section" data-section="foundation" aria-labelledby="foundation-heading">
+        <div class="mb-design-system__section-heading">
+            <p class="mb-design-system__section-index">01</p>
+            <div>
+                <h2 id="foundation-heading">Foundation</h2>
+                <p>Typography, surfaces, color, radius, and spacing rendered from Bloom design variables.</p>
+            </div>
+        </div>
+
+        <div class="mb-design-system__grid mb-design-system__grid--foundation">
+            <article class="mb-design-system__example">
+                <header class="mb-design-system__example-heading">
+                    <h3>Typography</h3>
+                    <p>Compact hierarchy for engineering workspaces.</p>
+                </header>
+
+                <div class="mb-design-system__typography">
+                    <p class="mb-design-system__type-display">Workspace overview</p>
+                    <p class="mb-design-system__type-heading">System architecture</p>
+                    <p class="mb-design-system__type-body">Body text presents dense technical information without losing readability.</p>
+                    <p class="mb-design-system__type-label">PROPERTY LABEL</p>
+                    <code>part def Payload</code>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example">
+                <header class="mb-design-system__example-heading">
+                    <h3>Surfaces</h3>
+                    <p>Neutral layers with subtle borders and a restrained accent.</p>
+                </header>
+
+                <div class="mb-design-system__surface-row">
+                    <div class="mb-design-system__surface mb-design-system__surface--background">Background</div>
+                    <div class="mb-design-system__surface mb-design-system__surface--surface">Surface</div>
+                    <div class="mb-design-system__surface mb-design-system__surface--muted">Muted</div>
+                    <div class="mb-design-system__surface mb-design-system__surface--accent">Accent</div>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example">
+                <header class="mb-design-system__example-heading">
+                    <h3>Spacing and radius</h3>
+                    <p>A compact sample of the shared four-pixel scale.</p>
+                </header>
+
+                <div class="mb-design-system__spacing-list" aria-label="Spacing scale examples">
+                    <span class="mb-design-system__spacing mb-design-system__spacing--one">4</span>
+                    <span class="mb-design-system__spacing mb-design-system__spacing--two">8</span>
+                    <span class="mb-design-system__spacing mb-design-system__spacing--three">12</span>
+                    <span class="mb-design-system__spacing mb-design-system__spacing--four">16</span>
+                    <span class="mb-design-system__spacing mb-design-system__spacing--six">24</span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="mb-design-system__section" data-section="atoms" aria-labelledby="atoms-heading">
+        <div class="mb-design-system__section-heading">
+            <p class="mb-design-system__section-index">02</p>
+            <div>
+                <h2 id="atoms-heading">Atoms</h2>
+                <p>Small controls and presentation primitives used throughout Bloom.</p>
+            </div>
+        </div>
+
+        <div class="mb-design-system__grid">
+            <article class="mb-design-system__example" data-component="avatar">
+                <header class="mb-design-system__example-heading">
+                    <h3>Avatar</h3>
+                    <p>Initials and collaborator overflow at every supported size.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <Avatar Text="AL" Title="Alex Lee" Size="AvatarSize.Small" BackgroundColor="var(--mb-color-collaborator-c06)" />
+                    <Avatar Text="MO" Title="Morgan Ortiz" Size="AvatarSize.Medium" BackgroundColor="var(--mb-color-collaborator-c08)" />
+                    <Avatar Text="SK" Title="Sam Kim" Size="AvatarSize.Large" BackgroundColor="var(--mb-color-collaborator-c10)" />
+                    <Avatar Text="+4" Title="Four more collaborators" Size="AvatarSize.Medium" Variant="AvatarVariant.More" />
+                </div>
+            </article>
+
+            <article class="mb-design-system__example" data-component="button">
+                <header class="mb-design-system__example-heading">
+                    <h3>Button</h3>
+                    <p>Variants, sizes, progress, disabled state, and optional icons.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <div class="mb-design-system__inline-group">
+                        <Button Variant="ButtonVariant.Primary">Primary</Button>
+                        <Button Variant="ButtonVariant.Secondary">Secondary</Button>
+                        <Button Variant="ButtonVariant.Ghost">Ghost</Button>
+                        <Button Variant="ButtonVariant.Danger">Danger</Button>
+                    </div>
+                    <div class="mb-design-system__inline-group">
+                        <Button Size="ButtonSize.Small">Small</Button>
+                        <Button Size="ButtonSize.Medium">Medium</Button>
+                        <Button Size="ButtonSize.Large">Large</Button>
+                        <Button Disabled="true">Disabled</Button>
+                        <Button IsLoading="true">Loading</Button>
+                    </div>
+                    <div class="mb-design-system__inline-group">
+                        <Button Variant="ButtonVariant.Secondary">
+                            <StartIcon><span aria-hidden="true">+</span></StartIcon>
+                            <ChildContent>Add element</ChildContent>
+                        </Button>
+                        <Button Variant="ButtonVariant.Ghost">
+                            <ChildContent>Continue</ChildContent>
+                            <EndIcon><span aria-hidden="true">→</span></EndIcon>
+                        </Button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example" data-component="chip">
+                <header class="mb-design-system__example-heading">
+                    <h3>Chip</h3>
+                    <p>Status, ownership, lifecycle, and custom-color labels.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <Chip>Default</Chip>
+                    <Chip Variant="ChipVariant.Info">Info</Chip>
+                    <Chip Variant="ChipVariant.Success">Success</Chip>
+                    <Chip Variant="ChipVariant.Warning">Warning</Chip>
+                    <Chip Variant="ChipVariant.Danger">Danger</Chip>
+                    <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">AOCS</Chip>
+                    <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In review</Chip>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example" data-component="icon-button">
+                <header class="mb-design-system__example-heading">
+                    <h3>IconButton</h3>
+                    <p>Accessible icon-only actions in enabled and disabled states.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <IconButton AriaLabel="Add model element" Title="Add model element"><span aria-hidden="true">+</span></IconButton>
+                    <IconButton AriaLabel="Edit selection" Title="Edit selection"><span aria-hidden="true">✎</span></IconButton>
+                    <IconButton AriaLabel="Remove selection" Title="Remove selection"><span aria-hidden="true">×</span></IconButton>
+                    <IconButton AriaLabel="Unavailable action" Title="Unavailable action" Disabled="true"><span aria-hidden="true">⋯</span></IconButton>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example" data-component="panel">
+                <header class="mb-design-system__example-heading">
+                    <h3>Panel</h3>
+                    <p>Surface composition with supported padding options.</p>
+                </header>
+
+                <div class="mb-design-system__panel-grid">
+                    <Panel Padding="PanelPadding.Small">
+                        <p class="mb-design-system__compact-copy">Small padding for dense supporting content.</p>
+                    </Panel>
+                    <Panel Padding="PanelPadding.Medium">
+                        <SectionHeader Label="Properties">
+                            <Actions><Chip Variant="ChipVariant.Info">12</Chip></Actions>
+                        </SectionHeader>
+                        <p class="mb-design-system__compact-copy">Header and content composed inside the default panel.</p>
+                    </Panel>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example" data-component="search-input">
+                <header class="mb-design-system__example-heading">
+                    <h3>SearchInput</h3>
+                    <p>Empty, populated, disabled, and live-bound search states.</p>
+                </header>
+
+                <div class="mb-design-system__form-grid">
+                    <div>
+                        <span class="mb-design-system__state-label">Empty</span>
+                        <SearchInput Id="showcase-search-empty" Placeholder="Search elements" ShowShortcut="false" FullWidth="true" />
+                    </div>
+                    <div>
+                        <span class="mb-design-system__state-label">Interactive</span>
+                        <SearchInput Id="showcase-search-input" Value="@this.SearchValue" ValueChanged="this.HandleSearchValueChanged" ShowShortcut="false" FullWidth="true" />
+                    </div>
+                    <div>
+                        <span class="mb-design-system__state-label">Disabled</span>
+                        <SearchInput Id="showcase-search-disabled" Value="requirements" Disabled="true" ShowShortcut="false" FullWidth="true" />
+                    </div>
+                </div>
+                <p id="search-input-result" class="mb-design-system__result">Current search: @this.SearchValue</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="section-header">
+                <header class="mb-design-system__example-heading">
+                    <h3>SectionHeader</h3>
+                    <p>Compact section labels with optional supporting actions.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <SectionHeader Label="Relationships" />
+                    <SectionHeader Label="Owned elements">
+                        <Actions>
+                            <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small">Add</Button>
+                        </Actions>
+                    </SectionHeader>
+                </div>
+            </article>
+
+            <article class="mb-design-system__example" data-component="skeleton">
+                <header class="mb-design-system__example-heading">
+                    <h3>Skeleton</h3>
+                    <p>Text, circle, rectangle, multiple lines, and custom dimensions.</p>
+                </header>
+
+                <div class="mb-design-system__skeleton-layout">
+                    <Skeleton Variant="SkeletonVariant.Circle" Width="40px" Height="40px" />
+                    <div class="mb-design-system__skeleton-copy">
+                        <Skeleton Lines="3" />
+                    </div>
+                    <Skeleton Variant="SkeletonVariant.Rectangle" Width="96px" Height="56px" />
+                </div>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="text-input">
+                <header class="mb-design-system__example-heading">
+                    <h3>TextInput</h3>
+                    <p>Labels, guidance, validation, access states, adornments, and live binding.</p>
+                </header>
+
+                <div class="mb-design-system__form-grid">
+                    <TextInput Id="showcase-text-input" Label="Element name" Value="@this.TextInputValue" ValueChanged="this.HandleTextInputValueChanged" HelpText="Use a concise engineering name." Required="true">
+                        <LeadingContent><span aria-hidden="true">#</span></LeadingContent>
+                        <TrailingContent><span aria-hidden="true">✓</span></TrailingContent>
+                    </TextInput>
+                    <TextInput Id="showcase-text-placeholder" Label="Owner" Placeholder="Select an owner" />
+                    <TextInput Id="showcase-text-error" Label="Identifier" Value="invalid value" ErrorText="Use letters, numbers, and hyphens only." />
+                    <TextInput Id="showcase-text-disabled" Label="Generated ID" Value="SYS-042" Disabled="true" />
+                    <TextInput Id="showcase-text-readonly" Label="Qualified name" Value="Platform::Thermal" ReadOnly="true" />
+                </div>
+                <p id="text-input-result" class="mb-design-system__result">Current value: @this.TextInputValue</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="select-input">
+                <header class="mb-design-system__example-heading">
+                    <h3>SelectInput</h3>
+                    <p>Placeholder, selection, disabled option, validation, and disabled state.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <SelectInput Id="showcase-select-input" Label="Lifecycle state" Placeholder="Choose a state" Options="this.SelectOptions" Value="@this.SelectValue" ValueChanged="this.HandleSelectValueChanged" />
+                    <SelectInput Id="showcase-select-error" Label="Review state" Placeholder="Choose a state" Options="this.SelectOptions" ErrorText="A lifecycle state is required." Required="true" />
+                    <SelectInput Id="showcase-select-disabled" Label="Locked state" Options="this.SelectOptions" Value="archived" Disabled="true" />
+                </div>
+                <p id="select-input-result" class="mb-design-system__result">Selected value: @this.SelectValue</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="text-area">
+                <header class="mb-design-system__example-heading">
+                    <h3>TextArea</h3>
+                    <p>Help, validation, disabled, read-only, and bound-value states.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <TextArea Id="showcase-text-area" Label="Review note" Value="@this.TextAreaValue" ValueChanged="this.HandleTextAreaValueChanged" HelpText="Keep the note focused on the selected element." Rows="3" />
+                    <TextArea Id="showcase-text-area-error" Label="Required rationale" ErrorText="Provide a rationale before continuing." Rows="2" />
+                    <div class="mb-design-system__form-grid">
+                        <TextArea Id="showcase-text-area-disabled" Label="Disabled" Value="Unavailable" Disabled="true" Rows="2" />
+                        <TextArea Id="showcase-text-area-readonly" Label="Read-only" Value="Approved baseline" ReadOnly="true" Rows="2" />
+                    </div>
+                </div>
+                <p id="text-area-result" class="mb-design-system__result">Current note: @this.TextAreaValue</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="checkbox">
+                <header class="mb-design-system__example-heading">
+                    <h3>Checkbox</h3>
+                    <p>Checked, unchecked, disabled, descriptive, and live-bound states.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <Checkbox Id="showcase-checkbox" Label="Show inherited members" HelpText="Includes properties inherited from parent definitions." Checked="@this.CheckboxChecked" CheckedChanged="this.HandleCheckboxChanged" />
+                    <Checkbox Id="showcase-checkbox-unchecked" Label="Include archived elements" />
+                    <Checkbox Id="showcase-checkbox-disabled" Label="Protected baseline" Checked="true" Disabled="true" />
+                </div>
+                <p id="checkbox-result" class="mb-design-system__result">Inherited members: @(this.CheckboxChecked ? "shown" : "hidden")</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="toggle">
+                <header class="mb-design-system__example-heading">
+                    <h3>Toggle</h3>
+                    <p>Checked, unchecked, disabled, descriptive, and live-bound states.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <Toggle Id="showcase-toggle" Label="Live collaboration" Description="Display collaborator presence in this workspace." Checked="@this.ToggleChecked" CheckedChanged="this.HandleToggleChanged" />
+                    <Toggle Id="showcase-toggle-checked" Label="Automatic layout" Checked="true" />
+                    <Toggle Id="showcase-toggle-disabled" Label="Protected branch" Description="Controlled by project policy." Checked="true" Disabled="true" />
+                </div>
+                <p id="toggle-result" class="mb-design-system__result">Live collaboration: @(this.ToggleChecked ? "on" : "off")</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="mb-design-system__section" data-section="molecules" aria-labelledby="molecules-heading">
+        <div class="mb-design-system__section-heading">
+            <p class="mb-design-system__section-index">03</p>
+            <div>
+                <h2 id="molecules-heading">Molecules</h2>
+                <p>Composed controls for navigation, feedback, menus, and modal workflows.</p>
+            </div>
+        </div>
+
+        <div class="mb-design-system__grid">
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="tabs">
+                <header class="mb-design-system__example-heading">
+                    <h3>Tabs</h3>
+                    <p>Controlled selection with a disabled destination.</p>
+                </header>
+
+                <Tabs Items="this.TabItems" ActiveValue="@this.ActiveTabValue" ActiveValueChanged="this.HandleTabChanged" />
+                <p id="tabs-result" class="mb-design-system__result">Selected tab: @this.ActiveTabValue</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="loading-state">
+                <header class="mb-design-system__example-heading">
+                    <h3>LoadingState</h3>
+                    <p>Spinner, title, description, custom content, and skeleton area.</p>
+                </header>
+
+                <LoadingState Title="Loading architecture" Description="Mapping local element relationships." ShowSkeleton="true">
+                    <ChildContent><Chip Variant="ChipVariant.Info">Local operation</Chip></ChildContent>
+                    <SkeletonContent>
+                        <Skeleton Lines="2" />
+                        <Skeleton Variant="SkeletonVariant.Rectangle" Height="48px" />
+                    </SkeletonContent>
+                </LoadingState>
+            </article>
+
+            <article class="mb-design-system__example" data-component="empty-state">
+                <header class="mb-design-system__example-heading">
+                    <h3>EmptyState</h3>
+                    <p>Basic content with optional icon and action composition.</p>
+                </header>
+
+                <EmptyState Title="No relationships" Description="Connect this element to show its dependencies.">
+                    <IconContent><span aria-hidden="true">◇</span></IconContent>
+                    <ActionContent><Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Add relationship</Button></ActionContent>
+                </EmptyState>
+            </article>
+
+            <article class="mb-design-system__example" data-component="modal-shell">
+                <header class="mb-design-system__example-heading">
+                    <h3>ModalShell</h3>
+                    <p>Interactive small and wide shells with header, body, footer, and backdrop closing.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <Button id="open-compact-modal" Size="ButtonSize.Small" OnClick="() => this.OpenModal(ModalSize.Small)">Open compact modal</Button>
+                    <Button id="open-wide-modal" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="() => this.OpenModal(ModalSize.Wide)">Open wide modal</Button>
+                </div>
+                <p id="modal-result" class="mb-design-system__result">@this.LastModalAction</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="confirm-dialog">
+                <header class="mb-design-system__example-heading">
+                    <h3>ConfirmDialog</h3>
+                    <p>Default, warning, and danger confirmation workflows.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <Button id="open-default-confirm" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Default)">Default</Button>
+                    <Button id="open-warning-confirm" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Warning)">Warning</Button>
+                    <Button id="open-danger-confirm" Variant="ButtonVariant.Danger" Size="ButtonSize.Small" OnClick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Danger)">Danger</Button>
+                </div>
+                <p id="confirm-result" class="mb-design-system__result">Latest result: @this.LastConfirmationAction</p>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="notification-toast">
+                <header class="mb-design-system__example-heading">
+                    <h3>NotificationToast</h3>
+                    <p>Info, success, warning, and danger states with dismissible and persistent behavior.</p>
+                </header>
+
+                <div class="mb-design-system__toast-gallery">
+                    @foreach (var notification in this.StandaloneNotifications)
+                    {
+                        <NotificationToast Notification="notification" Dismissed="this.DismissStandaloneNotification" />
+                    }
+                </div>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="breadcrumbs">
+                <header class="mb-design-system__example-heading">
+                    <h3>Breadcrumbs</h3>
+                    <p>Interactive, disabled, and current destinations.</p>
+                </header>
+
+                <Breadcrumbs Items="this.BreadcrumbItems" AriaLabel="Showcase hierarchy" ItemSelected="this.HandleBreadcrumbSelected" />
+                <p id="breadcrumbs-result" class="mb-design-system__result">Latest selection: @this.LastBreadcrumbSelection</p>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="toolbar">
+                <header class="mb-design-system__example-heading">
+                    <h3>Toolbar</h3>
+                    <p>Leading context, primary actions, trailing controls, and compact spacing.</p>
+                </header>
+
+                <Toolbar AriaLabel="Element editing tools" Compact="true">
+                    <LeadingContent><Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-open)">Open</Chip></LeadingContent>
+                    <ChildContent>
+                        <Button Size="ButtonSize.Small">Save</Button>
+                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Validate</Button>
+                        <IconButton AriaLabel="Undo latest edit" Title="Undo"><span aria-hidden="true">↶</span></IconButton>
+                    </ChildContent>
+                    <TrailingContent><span class="mb-design-system__toolbar-status">Saved locally</span></TrailingContent>
+                </Toolbar>
+            </article>
+
+            <article class="mb-design-system__example" data-component="action-menu">
+                <header class="mb-design-system__example-heading">
+                    <h3>ActionMenu</h3>
+                    <p>Normal, disabled, destructive, and independent menu instances.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group mb-design-system__menu-row">
+                    <ActionMenu data-testid="action-menu-primary" Items="this.ActionMenuItems" TriggerAriaLabel="Open primary showcase actions" TriggerTitle="Primary actions" IsOpen="@this.PrimaryActionMenuOpen" IsOpenChanged="this.HandlePrimaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected" />
+                    <ActionMenu data-testid="action-menu-secondary" Items="this.ActionMenuItems" TriggerAriaLabel="Open secondary showcase actions" TriggerTitle="Secondary actions" Alignment="ActionMenuAlignment.Start" IsOpen="@this.SecondaryActionMenuOpen" IsOpenChanged="this.HandleSecondaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected">
+                        <TriggerContent><span>Actions</span><span aria-hidden="true">⌄</span></TriggerContent>
+                    </ActionMenu>
+                </div>
+                <p id="action-menu-result" class="mb-design-system__result">Latest action: @this.LastMenuAction</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="split-button">
+                <header class="mb-design-system__example-heading">
+                    <h3>SplitButton</h3>
+                    <p>Primary, secondary, and disabled connected actions.</p>
+                </header>
+
+                <div class="mb-design-system__stack">
+                    <SplitButton PrimaryText="Save" Items="this.SplitButtonItems" PrimaryAction="this.HandleSplitButtonPrimaryAction" ItemSelected="this.HandleSplitButtonItemSelected" MenuAriaLabel="Open save options" />
+                    <SplitButton PrimaryText="Unavailable" Items="this.SplitButtonItems" Disabled="true" MenuAriaLabel="Unavailable save options" />
+                </div>
+                <p id="split-button-result" class="mb-design-system__result">Latest action: @this.LastSplitButtonAction</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="user-menu">
+                <header class="mb-design-system__example-heading">
+                    <h3>UserMenu</h3>
+                    <p>Local identity presentation, normal and destructive actions, and compact mode.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group mb-design-system__menu-row">
+                    <UserMenu DisplayName="Alex Morgan" Subtitle="alex@example.test" AvatarText="AM" Items="this.UserMenuItems" ItemSelected="this.HandleUserMenuItemSelected" />
+                    <UserMenu DisplayName="Sam Lee" Subtitle="sam@example.test" AvatarText="SL" Items="this.UserMenuItems" Compact="true" ItemSelected="this.HandleUserMenuItemSelected" />
+                </div>
+                <p id="user-menu-result" class="mb-design-system__result">Latest action: @this.LastUserMenuAction</p>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="project-switcher">
+                <header class="mb-design-system__example-heading">
+                    <h3>ProjectSwitcher</h3>
+                    <p>Controlled local project choices, a disabled project, and independent instances.</p>
+                </header>
+
+                <div class="mb-design-system__switcher-grid">
+                    <ProjectSwitcher data-testid="project-switcher-primary" Items="this.ProjectItems" SelectedProjectId="@this.PrimaryProjectId" SelectedProjectIdChanged="this.HandlePrimaryProjectChanged" AriaLabel="Select primary showcase project" />
+                    <ProjectSwitcher data-testid="project-switcher-secondary" Items="this.ProjectItems" SelectedProjectId="@this.SecondaryProjectId" SelectedProjectIdChanged="this.HandleSecondaryProjectChanged" AriaLabel="Select secondary showcase project" />
+                </div>
+                <p id="project-switcher-result" class="mb-design-system__result">Latest selection: @this.LastProjectSelection</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="mb-design-system__section" data-section="organisms" aria-labelledby="organisms-heading">
+        <div class="mb-design-system__section-heading">
+            <p class="mb-design-system__section-index">04</p>
+            <div>
+                <h2 id="organisms-heading">Organisms</h2>
+                <p>Application-level compositions demonstrated without services or production data.</p>
+            </div>
+        </div>
+
+        <div class="mb-design-system__grid">
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="toast-container">
+                <header class="mb-design-system__example-heading">
+                    <h3>ToastContainer</h3>
+                    <p>Add, reset, stack, and dismiss local notifications.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <Button id="add-toast-notification" Size="ButtonSize.Small" OnClick="this.AddToastNotification">Add notification</Button>
+                    <Button id="reset-toast-notifications" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.ResetToastNotifications">Reset sample stack</Button>
+                </div>
+                <p id="toast-count-result" class="mb-design-system__result">
+                    Visible notifications: @this.ToastNotifications.Count. The fixed container stays hidden until a sample is requested.
+                </p>
+
+                <ToastContainer Notifications="this.ToastNotifications" Dismissed="this.DismissToastNotification" />
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="project-browser-future">
+                <header class="mb-design-system__example-heading">
+                    <h3>ProjectBrowser</h3>
+                    <p>Reserved for a future feature showcase because the production component requires loaded SysML model data.</p>
+                </header>
+
+                <EmptyState Title="Not included in this showcase" Description="A future scenario can provide an isolated loaded-model fixture without coupling this page to production loading." />
+            </article>
+        </div>
+    </section>
+</main>
+
+<ModalShell Id="showcase-modal"
+            IsOpen="@this.ModalOpen"
+            IsOpenChanged="this.HandleModalOpenChanged"
+            Title="Inspect local component state"
+            Description="This dialog uses deterministic page-owned data."
+            Size="@this.ActiveModalSize"
+            CloseOnBackdropClick="true">
+    <ChildContent>
+        <p class="mb-design-system__modal-copy">
+            The modal body can compose any reusable Bloom controls without adding routing, services, or business logic.
+        </p>
+        <TextInput Label="Modal field" Value="Sample value" ReadOnly="true" />
+    </ChildContent>
+    <FooterContent>
+        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.CloseModal">Close</Button>
+        <Button Size="ButtonSize.Small" OnClick="this.CloseModal">Apply locally</Button>
+    </FooterContent>
+</ModalShell>
+
+<ConfirmDialog IsOpen="@this.ConfirmDialogOpen"
+               IsOpenChanged="this.HandleConfirmDialogOpenChanged"
+               Title="Confirm showcase action"
+               Description="This action only updates local display state."
+               Variant="@this.ActiveConfirmDialogVariant"
+               ConfirmText="Confirm action"
+               CancelText="Cancel action"
+               Confirmed="this.HandleConfirmed"
+               Cancelled="this.HandleCancelled" />
