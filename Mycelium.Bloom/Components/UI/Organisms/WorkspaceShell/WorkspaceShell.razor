@@ -1,0 +1,53 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="WorkspaceShell.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<section class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+    @if (this.Header is not null)
+    {
+        <div class="mb-workspace-shell__header" role="region" aria-label="@(this.HeaderAriaLabel)">
+            @(this.Header)
+        </div>
+    }
+
+    <div class="mb-workspace-shell__body">
+        @if (this.ShouldRenderLeftPanel())
+        {
+            <aside class="mb-workspace-shell__left-panel" aria-label="@(this.LeftPanelAriaLabel)">
+                @(this.LeftPanel)
+            </aside>
+        }
+
+        <main class="mb-workspace-shell__main" aria-label="@(this.MainContentAriaLabel)">
+            @(this.MainContent)
+        </main>
+
+        @if (this.ShouldRenderRightPanel())
+        {
+            <aside class="mb-workspace-shell__right-panel" aria-label="@(this.RightPanelAriaLabel)">
+                @(this.RightPanel)
+            </aside>
+        }
+    </div>
+
+    @if (this.StatusBar is not null)
+    {
+        <div class="mb-workspace-shell__status" role="region" aria-label="@(this.StatusBarAriaLabel)">
+            @(this.StatusBar)
+        </div>
+    }
+
+    @if (this.OverlayContent is not null)
+    {
+        <div class="mb-workspace-shell__overlay">
+            @(this.OverlayContent)
+        </div>
+    }
+</section>

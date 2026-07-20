@@ -1,0 +1,90 @@
+.mb-workspace-shell {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+    border: 1px solid var(--mb-color-component-border);
+    border-radius: var(--mb-radius-md);
+    background: var(--mb-color-background);
+    color: var(--mb-color-component-text);
+}
+
+.mb-workspace-shell__header,
+.mb-workspace-shell__status {
+    min-width: 0;
+}
+
+.mb-workspace-shell__body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mb-workspace-shell__left-panel,
+.mb-workspace-shell__right-panel,
+.mb-workspace-shell__main {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+.mb-workspace-shell__left-panel,
+.mb-workspace-shell__right-panel {
+    width: var(--mb-sidebar-width);
+    max-width: 35%;
+    background: var(--mb-color-surface);
+}
+
+.mb-workspace-shell__left-panel {
+    border-right: 1px solid var(--mb-color-component-border);
+}
+
+.mb-workspace-shell__right-panel {
+    border-left: 1px solid var(--mb-color-component-border);
+}
+
+.mb-workspace-shell__main {
+    background: var(--mb-color-background);
+}
+
+.mb-workspace-shell__overlay {
+    position: absolute;
+    z-index: 10;
+    inset: 0;
+    min-width: 0;
+    min-height: 0;
+    pointer-events: none;
+}
+
+.mb-workspace-shell__overlay ::deep > * {
+    pointer-events: auto;
+}
+
+@media (max-width: 720px) {
+    .mb-workspace-shell__body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(12rem, 1fr) auto;
+    }
+
+    .mb-workspace-shell__left-panel,
+    .mb-workspace-shell__right-panel {
+        width: auto;
+        max-width: none;
+        max-height: 12rem;
+    }
+
+    .mb-workspace-shell__left-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--mb-color-component-border);
+    }
+
+    .mb-workspace-shell__right-panel {
+        border-top: 1px solid var(--mb-color-component-border);
+        border-left: 0;
+    }
+}
