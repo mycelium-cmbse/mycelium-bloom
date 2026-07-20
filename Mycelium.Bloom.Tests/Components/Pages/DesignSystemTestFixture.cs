@@ -32,7 +32,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "foundation",
             "atoms",
             "molecules",
-            "organisms"
+            "organisms",
+            "workspace"
         ];
 
         /// <summary>
@@ -43,7 +44,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "/design-system#foundation-heading",
             "/design-system#atoms-heading",
             "/design-system#molecules-heading",
-            "/design-system#organisms-heading"
+            "/design-system#organisms-heading",
+            "/design-system#workspace-heading"
         ];
 
         /// <summary>
@@ -83,12 +85,75 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.FindAll("[data-section='atoms']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-section='molecules']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-section='organisms']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-section='workspace']"), Has.Count.EqualTo(1));
                 Assert.That(sectionOrder, Is.EqualTo(ExpectedSectionOrder));
                 Assert.That(sectionLinks, Is.EqualTo(ExpectedSectionLinks));
                 Assert.That(component.FindAll(".mb-avatar"), Is.Not.Empty);
                 Assert.That(component.FindAll(".mb-tabs"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='toast-container']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll(".mb-toast-container"), Is.Empty);
+                Assert.That(component.FindAll("[data-component='app-header']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='workspace-shell']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='canvas-toolbar']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='zoom-controls']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='status-bar']"), Has.Count.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that workspace showcase controls update local zoom, action, search, and panel state.
+        /// </summary>
+        [Test]
+        public void VerifyWorkspaceExamplesUpdateLocalState()
+        {
+            var component = this.Render<DesignSystem>();
+            var zoomExample = component.Find("[data-component='zoom-controls']");
+
+            zoomExample.QuerySelector("button[aria-label='Zoom in']").Click();
+            component.Find("#workspace-header-search").Input("interfaces");
+            component.Find("[data-component='canvas-toolbar'] button[aria-label='Select element']").Click();
+            component.Find("[data-component='status-bar'] button[aria-label='Open status details']").Click();
+            component.Find("#toggle-workspace-left-panel").Click();
+            component.Find("#toggle-workspace-right-panel").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("125%"));
+                Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("interfaces"));
+                Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Select"));
+                Assert.That(component.Find("#status-bar-result").TextContent, Does.Contain("requested"));
+                Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__left-panel"), Is.Empty);
+                Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__right-panel"), Is.Empty);
+                Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Left panel: hidden"));
+                Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Right panel: hidden"));
+                Assert.That(component.Find("[data-component='workspace-shell'] main").TextContent,
+                    Does.Contain("Thermal control"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies reset and fit-to-view callbacks update the shared local zoom value.
+        /// </summary>
+        [Test]
+        public void VerifyZoomExampleResetAndFitActions()
+        {
+            var component = this.Render<DesignSystem>();
+            var zoomExample = component.Find("[data-component='zoom-controls']");
+
+            zoomExample.QuerySelector("button[aria-label='Zoom in']").Click();
+            zoomExample = component.Find("[data-component='zoom-controls']");
+            zoomExample.QuerySelector("button[aria-label='Reset zoom']").Click();
+
+            Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("reset to 100%"));
+
+            zoomExample = component.Find("[data-component='zoom-controls']");
+            zoomExample.QuerySelector("button[aria-label='Fit to view']").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("75%"));
+                Assert.That(component.Find("[data-component='zoom-controls'] output").TextContent.Trim(),
+                    Is.EqualTo("75%"));
             }
         }
 

@@ -30,6 +30,7 @@
             <a href="/design-system#atoms-heading">02 Atoms</a>
             <a href="/design-system#molecules-heading">03 Molecules</a>
             <a href="/design-system#organisms-heading">04 Organisms</a>
+            <a href="/design-system#workspace-heading">05 Workspace</a>
         </nav>
     </header>
 
@@ -535,6 +536,254 @@
                 </header>
 
                 <EmptyState Title="Not included in this showcase" Description="A future scenario can provide an isolated loaded-model fixture without coupling this page to production loading." />
+            </article>
+        </div>
+    </section>
+
+    <section class="mb-design-system__section" data-section="workspace" aria-labelledby="workspace-heading">
+        <div class="mb-design-system__section-heading">
+            <p class="mb-design-system__section-index">05</p>
+            <div>
+                <h2 id="workspace-heading">Workspace</h2>
+                <p>Composable layout regions and canvas controls for compact engineering workspaces.</p>
+            </div>
+        </div>
+
+        <div class="mb-design-system__grid">
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="app-header">
+                <header class="mb-design-system__example-heading">
+                    <h3>AppHeader</h3>
+                    <p>Product identity, project context, search, actions, account content, and compact composition.</p>
+                </header>
+
+                <div class="mb-design-system__workspace-header-stack">
+                    <AppHeader AriaLabel="Showcase application header">
+                        <BrandContent>
+                            <span class="mb-design-system__brand-mark" aria-hidden="true">B</span>
+                            <strong>Bloom</strong>
+                        </BrandContent>
+                        <NavigationContent>
+                            <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small">Projects</Button>
+                        </NavigationContent>
+                        <ContextContent><span class="mb-design-system__workspace-context">Architecture</span></ContextContent>
+                        <ProjectContent>
+                            <ProjectSwitcher Items="this.ProjectItems"
+                                             SelectedProjectId="@this.WorkspaceProjectId"
+                                             SelectedProjectIdChanged="this.HandleWorkspaceProjectChanged"
+                                             AriaLabel="Select header showcase project" />
+                        </ProjectContent>
+                        <CenterContent>
+                            <SearchInput Id="workspace-header-search"
+                                         Value="@this.WorkspaceSearchValue"
+                                         ValueChanged="this.HandleWorkspaceSearchValueChanged"
+                                         Placeholder="Search workspace"
+                                         ShowShortcut="false"
+                                         FullWidth="true" />
+                        </CenterContent>
+                        <ActionsContent>
+                            <IconButton AriaLabel="Share workspace" Title="Share workspace" OnClick="this.HandleShareWorkspace">
+                                <span aria-hidden="true">↗</span>
+                            </IconButton>
+                            <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.HandleValidateWorkspace">Validate</Button>
+                        </ActionsContent>
+                        <UserContent>
+                            <UserMenu DisplayName="Alex Morgan"
+                                      AvatarText="AM"
+                                      Items="this.UserMenuItems"
+                                      Compact="true"
+                                      ItemSelected="this.HandleUserMenuItemSelected" />
+                        </UserContent>
+                    </AppHeader>
+
+                    <AppHeader Compact="true" AriaLabel="Compact showcase application header">
+                        <BrandContent><strong>Bloom compact</strong></BrandContent>
+                        <ContextContent><Chip Variant="ChipVariant.Info">Review</Chip></ContextContent>
+                        <ActionsContent>
+                            <IconButton AriaLabel="Open compact header action" Title="Compact action" OnClick="this.HandleCompactHeaderAction">
+                                <span aria-hidden="true">⋯</span>
+                            </IconButton>
+                        </ActionsContent>
+                    </AppHeader>
+                </div>
+                <p id="app-header-result" class="mb-design-system__result">
+                    Search: @this.WorkspaceSearchValue. Latest action: @this.LastWorkspaceAction
+                </p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="canvas-toolbar">
+                <header class="mb-design-system__example-heading">
+                    <h3>CanvasToolbar</h3>
+                    <p>Horizontal and vertical toolbar composition without imposing canvas positioning.</p>
+                </header>
+
+                <div class="mb-design-system__canvas-toolbar-gallery">
+                    <CanvasToolbar AriaLabel="Horizontal canvas tools" Compact="true">
+                        <IconButton AriaLabel="Select element" Title="Select" OnClick='() => this.HandleCanvasToolbarAction("Select")'>
+                            <span aria-hidden="true">↖</span>
+                        </IconButton>
+                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick='() => this.HandleCanvasToolbarAction("Connect")'>Connect</Button>
+                        <IconButton AriaLabel="Add note" Title="Add note" OnClick='() => this.HandleCanvasToolbarAction("Note")'>
+                            <span aria-hidden="true">+</span>
+                        </IconButton>
+                    </CanvasToolbar>
+
+                    <CanvasToolbar AriaLabel="Vertical canvas tools"
+                                   Orientation="ToolbarOrientation.Vertical"
+                                   Compact="true">
+                        <IconButton AriaLabel="Move canvas" Title="Move" OnClick='() => this.HandleCanvasToolbarAction("Move")'>
+                            <span aria-hidden="true">✥</span>
+                        </IconButton>
+                        <IconButton AriaLabel="Center selection" Title="Center selection" OnClick='() => this.HandleCanvasToolbarAction("Center")'>
+                            <span aria-hidden="true">◎</span>
+                        </IconButton>
+                    </CanvasToolbar>
+                </div>
+                <p id="canvas-toolbar-result" class="mb-design-system__result">Latest tool: @this.LastCanvasToolbarAction</p>
+            </article>
+
+            <article class="mb-design-system__example" data-component="zoom-controls">
+                <header class="mb-design-system__example-heading">
+                    <h3>ZoomControls</h3>
+                    <p>Controlled zoom value with minimum, maximum, reset, and fit-to-view actions.</p>
+                </header>
+
+                <ZoomControls Zoom="@this.WorkspaceZoom"
+                              ZoomChanged="this.HandleWorkspaceZoomChanged"
+                              MinimumZoom="50"
+                              MaximumZoom="150"
+                              ZoomStep="25"
+                              OnResetZoom="this.HandleResetWorkspaceZoom"
+                              OnFitToView="this.HandleFitWorkspaceToView"
+                              Compact="true" />
+                <p id="zoom-controls-result" class="mb-design-system__result">@this.LastZoomAction</p>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="status-bar">
+                <header class="mb-design-system__example-heading">
+                    <h3>StatusBar</h3>
+                    <p>Leading state, long central information, and keyboard-accessible trailing actions.</p>
+                </header>
+
+                <StatusBar AriaLabel="Standalone showcase status" Compact="true">
+                    <LeadingContent><Chip Variant="ChipVariant.Success">Ready</Chip></LeadingContent>
+                    <ChildContent>
+                        <span>
+                            Selected interface path: Platform / Thermal control / Radiator assembly / Temperature sensor allocation
+                        </span>
+                    </ChildContent>
+                    <TrailingContent>
+                        <span>125, 84</span>
+                        <IconButton AriaLabel="Open status details" Title="Status details" OnClick="this.HandleStatusDetails">
+                            <span aria-hidden="true">ⓘ</span>
+                        </IconButton>
+                    </TrailingContent>
+                </StatusBar>
+                <p id="status-bar-result" class="mb-design-system__result">@this.LastStatusAction</p>
+            </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="workspace-shell">
+                <header class="mb-design-system__example-heading">
+                    <h3>WorkspaceShell</h3>
+                    <p>Independent header, panel, canvas, status, overlay, visibility, and scrolling regions.</p>
+                </header>
+
+                <div class="mb-design-system__inline-group">
+                    <Button id="toggle-workspace-left-panel"
+                            Variant="ButtonVariant.Secondary"
+                            Size="ButtonSize.Small"
+                            OnClick="this.ToggleWorkspaceLeftPanel">
+                        @(this.WorkspaceLeftPanelVisible ? "Hide left panel" : "Show left panel")
+                    </Button>
+                    <Button id="toggle-workspace-right-panel"
+                            Variant="ButtonVariant.Secondary"
+                            Size="ButtonSize.Small"
+                            OnClick="this.ToggleWorkspaceRightPanel">
+                        @(this.WorkspaceRightPanelVisible ? "Hide right panel" : "Show right panel")
+                    </Button>
+                </div>
+
+                <div class="mb-design-system__workspace-shell-frame">
+                    <WorkspaceShell AriaLabel="Showcase model workspace"
+                                    LeftPanelVisible="@this.WorkspaceLeftPanelVisible"
+                                    RightPanelVisible="@this.WorkspaceRightPanelVisible"
+                                    LeftPanelAriaLabel="Sample element navigation"
+                                    MainContentAriaLabel="Sample model canvas"
+                                    RightPanelAriaLabel="Sample element details">
+                        <Header>
+                            <AppHeader Compact="true" AriaLabel="Workspace shell sample header">
+                                <BrandContent><strong>Bloom</strong></BrandContent>
+                                <ContextContent><span>Orbital Platform / Architecture</span></ContextContent>
+                                <ActionsContent><Chip Variant="ChipVariant.Info">Local sample</Chip></ActionsContent>
+                            </AppHeader>
+                        </Header>
+                        <LeftPanel>
+                            <div class="mb-design-system__workspace-panel-content">
+                                <strong>Model elements</strong>
+                                @foreach (var item in this.WorkspaceNavigationItems)
+                                {
+                                    <button type="button" class="mb-design-system__workspace-row">@item</button>
+                                }
+                            </div>
+                        </LeftPanel>
+                        <MainContent>
+                            <div class="mb-design-system__canvas-sample">
+                                <div class="mb-design-system__canvas-toolbar-position">
+                                    <CanvasToolbar AriaLabel="Workspace shell canvas tools" Compact="true">
+                                        <IconButton AriaLabel="Select shell element" Title="Select"><span aria-hidden="true">↖</span></IconButton>
+                                        <IconButton AriaLabel="Connect shell elements" Title="Connect"><span aria-hidden="true">⌁</span></IconButton>
+                                    </CanvasToolbar>
+                                </div>
+                                <div class="mb-design-system__diagram-node mb-design-system__diagram-node--primary">
+                                    <strong>Vehicle</strong>
+                                    <span>part definition</span>
+                                </div>
+                                <div class="mb-design-system__diagram-connector" aria-hidden="true"></div>
+                                <div class="mb-design-system__diagram-node mb-design-system__diagram-node--secondary">
+                                    <strong>Thermal control</strong>
+                                    <span>subsystem</span>
+                                </div>
+                                <div class="mb-design-system__canvas-zoom-position">
+                                    <ZoomControls Zoom="@this.WorkspaceZoom"
+                                                  ZoomChanged="this.HandleWorkspaceZoomChanged"
+                                                  MinimumZoom="50"
+                                                  MaximumZoom="150"
+                                                  ZoomStep="25"
+                                                  OnResetZoom="this.HandleResetWorkspaceZoom"
+                                                  OnFitToView="this.HandleFitWorkspaceToView"
+                                                  Compact="true" />
+                                </div>
+                            </div>
+                        </MainContent>
+                        <RightPanel>
+                            <div class="mb-design-system__workspace-panel-content">
+                                <strong>Properties</strong>
+                                @foreach (var item in this.WorkspacePropertyItems)
+                                {
+                                    <div class="mb-design-system__property-row">
+                                        <span>@item</span>
+                                        <strong>Sample value</strong>
+                                    </div>
+                                }
+                            </div>
+                        </RightPanel>
+                        <StatusBar>
+                            <Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar Compact="true" AriaLabel="Workspace shell sample status">
+                                <LeadingContent><Chip Variant="ChipVariant.Success">Ready</Chip></LeadingContent>
+                                <ChildContent><span>2 elements selected</span></ChildContent>
+                                <TrailingContent><span>@this.WorkspaceZoom%</span></TrailingContent>
+                            </Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar>
+                        </StatusBar>
+                        <OverlayContent>
+                            <div class="mb-design-system__workspace-overlay-note">
+                                <Chip Variant="ChipVariant.Warning">Review sample</Chip>
+                            </div>
+                        </OverlayContent>
+                    </WorkspaceShell>
+                </div>
+                <p id="workspace-shell-result" class="mb-design-system__result">
+                    Left panel: @(this.WorkspaceLeftPanelVisible ? "shown" : "hidden").
+                    Right panel: @(this.WorkspaceRightPanelVisible ? "shown" : "hidden").
+                </p>
             </article>
         </div>
     </section>

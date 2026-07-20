@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Components.Pages
 {
+    using System.Globalization;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Model;
@@ -107,6 +109,48 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets the notifications currently displayed by the toast-container example.
         /// </summary>
         private List<ToastNotification> ToastNotifications { get; } = [];
+
+        /// <summary>
+        /// Gets the deterministic element names used to demonstrate left-panel scrolling.
+        /// </summary>
+        private IReadOnlyList<string> WorkspaceNavigationItems { get; } =
+        [
+            "Vehicle",
+            "Mission",
+            "Payload",
+            "Thermal control",
+            "Power distribution",
+            "Communications",
+            "Attitude control",
+            "Structures",
+            "Propulsion",
+            "Flight software",
+            "Ground segment",
+            "Interfaces",
+            "Requirements",
+            "Verification",
+            "Allocations",
+            "Views"
+        ];
+
+        /// <summary>
+        /// Gets the deterministic property labels used to demonstrate right-panel scrolling.
+        /// </summary>
+        private IReadOnlyList<string> WorkspacePropertyItems { get; } =
+        [
+            "Name",
+            "Identifier",
+            "Definition",
+            "Owner",
+            "Lifecycle",
+            "Multiplicity",
+            "Direction",
+            "Type",
+            "Documentation",
+            "Constraints",
+            "Relationships",
+            "Modified"
+        ];
 
         /// <summary>
         /// Gets or sets the interactive search value.
@@ -224,6 +268,51 @@ namespace Mycelium.Bloom.Components.Pages
         private int NextToastNumber { get; set; } = 1;
 
         /// <summary>
+        /// Gets or sets the search value used by the workspace header example.
+        /// </summary>
+        private string WorkspaceSearchValue { get; set; } = "thermal";
+
+        /// <summary>
+        /// Gets or sets the controlled project used by the workspace header example.
+        /// </summary>
+        private string WorkspaceProjectId { get; set; } = "orbital";
+
+        /// <summary>
+        /// Gets or sets the controlled zoom percentage used by workspace examples.
+        /// </summary>
+        private double WorkspaceZoom { get; set; } = 100d;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the workspace example shows its left panel.
+        /// </summary>
+        private bool WorkspaceLeftPanelVisible { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the workspace example shows its right panel.
+        /// </summary>
+        private bool WorkspaceRightPanelVisible { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the latest application-header callback result.
+        /// </summary>
+        private string LastWorkspaceAction { get; set; } = "None";
+
+        /// <summary>
+        /// Gets or sets the latest canvas-toolbar callback result.
+        /// </summary>
+        private string LastCanvasToolbarAction { get; set; } = "None";
+
+        /// <summary>
+        /// Gets or sets the latest zoom-controls callback result.
+        /// </summary>
+        private string LastZoomAction { get; set; } = "Zoom is 100%";
+
+        /// <summary>
+        /// Gets or sets the latest status-bar callback result.
+        /// </summary>
+        private string LastStatusAction { get; set; } = "No status action selected";
+
+        /// <summary>
         /// Updates the interactive search value.
         /// </summary>
         /// <param name="value">The updated value.</param>
@@ -275,6 +364,110 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleToggleChanged(bool isChecked)
         {
             this.ToggleChecked = isChecked;
+        }
+
+        /// <summary>
+        /// Updates the workspace-header search value.
+        /// </summary>
+        /// <param name="value">The updated local search value.</param>
+        private void HandleWorkspaceSearchValueChanged(string value)
+        {
+            this.WorkspaceSearchValue = value;
+        }
+
+        /// <summary>
+        /// Updates the workspace-header project selection and result text.
+        /// </summary>
+        /// <param name="projectId">The selected local project identifier.</param>
+        private void HandleWorkspaceProjectChanged(string projectId)
+        {
+            this.WorkspaceProjectId = projectId;
+            this.LastWorkspaceAction = $"Selected {this.GetProjectName(projectId)}";
+        }
+
+        /// <summary>
+        /// Records the workspace-header share action.
+        /// </summary>
+        private void HandleShareWorkspace()
+        {
+            this.LastWorkspaceAction = "Share requested";
+        }
+
+        /// <summary>
+        /// Records the workspace-header validation action.
+        /// </summary>
+        private void HandleValidateWorkspace()
+        {
+            this.LastWorkspaceAction = "Validation requested";
+        }
+
+        /// <summary>
+        /// Records the compact-header action.
+        /// </summary>
+        private void HandleCompactHeaderAction()
+        {
+            this.LastWorkspaceAction = "Compact action requested";
+        }
+
+        /// <summary>
+        /// Records the selected canvas-toolbar action.
+        /// </summary>
+        /// <param name="action">The local tool label.</param>
+        private void HandleCanvasToolbarAction(string action)
+        {
+            this.LastCanvasToolbarAction = action;
+        }
+
+        /// <summary>
+        /// Updates the parent-owned workspace zoom percentage.
+        /// </summary>
+        /// <param name="zoom">The requested zoom percentage.</param>
+        private void HandleWorkspaceZoomChanged(double zoom)
+        {
+            this.WorkspaceZoom = zoom;
+            this.LastZoomAction = $"Zoom changed to {zoom.ToString("0.#", CultureInfo.InvariantCulture)}%";
+        }
+
+        /// <summary>
+        /// Resets the local workspace zoom percentage.
+        /// </summary>
+        private void HandleResetWorkspaceZoom()
+        {
+            this.WorkspaceZoom = 100d;
+            this.LastZoomAction = "Zoom reset to 100%";
+        }
+
+        /// <summary>
+        /// Applies a deterministic fit-to-view zoom percentage.
+        /// </summary>
+        private void HandleFitWorkspaceToView()
+        {
+            this.WorkspaceZoom = 75d;
+            this.LastZoomAction = "Fit to view at 75%";
+        }
+
+        /// <summary>
+        /// Records activation of the status-bar detail action.
+        /// </summary>
+        private void HandleStatusDetails()
+        {
+            this.LastStatusAction = "Status details requested";
+        }
+
+        /// <summary>
+        /// Toggles the local workspace left-panel visibility.
+        /// </summary>
+        private void ToggleWorkspaceLeftPanel()
+        {
+            this.WorkspaceLeftPanelVisible = !this.WorkspaceLeftPanelVisible;
+        }
+
+        /// <summary>
+        /// Toggles the local workspace right-panel visibility.
+        /// </summary>
+        private void ToggleWorkspaceRightPanel()
+        {
+            this.WorkspaceRightPanelVisible = !this.WorkspaceRightPanelVisible;
         }
 
         /// <summary>
