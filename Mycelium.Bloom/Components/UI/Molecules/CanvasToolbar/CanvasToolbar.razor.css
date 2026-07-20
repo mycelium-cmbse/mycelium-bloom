@@ -1,0 +1,21 @@
+.mb-canvas-toolbar {
+    display: inline-flex;
+    max-width: 100%;
+    min-width: 0;
+    padding: 2px;
+}
+
+.mb-canvas-toolbar ::deep .mb-canvas-toolbar__toolbar {
+    width: auto;
+    max-width: 100%;
+    box-shadow: var(--mb-shadow-md);
+}
+
+.mb-canvas-toolbar--vertical ::deep .mb-canvas-toolbar__toolbar,
+.mb-canvas-toolbar--vertical ::deep .mb-toolbar__main {
+    flex-direction: column;
+}
+
+.mb-canvas-toolbar--vertical ::deep .mb-toolbar__main {
+    flex: 0 0 auto;
+}

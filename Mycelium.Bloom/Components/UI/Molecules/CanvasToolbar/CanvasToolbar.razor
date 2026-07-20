@@ -1,0 +1,21 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="CanvasToolbar.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    <Toolbar AriaLabel="@(this.AriaLabel)"
+             Compact="@(this.Compact)"
+             AllowWrap="false"
+             Class="mb-canvas-toolbar__toolbar">
+        <ChildContent>
+            @(this.ChildContent)
+        </ChildContent>
+    </Toolbar>
+</div>

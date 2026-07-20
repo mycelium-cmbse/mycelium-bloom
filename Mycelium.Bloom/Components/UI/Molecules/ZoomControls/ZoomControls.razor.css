@@ -1,0 +1,28 @@
+.mb-zoom-controls {
+    display: inline-flex;
+    max-width: 100%;
+    min-width: 0;
+    padding: 2px;
+}
+
+.mb-zoom-controls ::deep .mb-zoom-controls__toolbar {
+    width: auto;
+    max-width: 100%;
+    box-shadow: var(--mb-shadow-sm);
+}
+
+.mb-zoom-controls__value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.5rem;
+    color: var(--mb-color-text-muted);
+    font-family: var(--mb-font-family-mono), monospace;
+    font-size: var(--mb-font-size-mono-xs);
+    line-height: var(--mb-line-height-mono-xs);
+    white-space: nowrap;
+}
+
+.mb-zoom-controls--compact .mb-zoom-controls__value {
+    min-width: 3rem;
+}
