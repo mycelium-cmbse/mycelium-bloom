@@ -1,0 +1,15 @@
+.mb-chevron-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 1rem;
+    block-size: 1rem;
+    line-height: 0;
+}
+
+.mb-chevron-icon svg {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+}
