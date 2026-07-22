@@ -20,6 +20,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
     public partial class IconButton : BloomComponentBase
     {
         /// <summary>
+        /// The rendered native button element.
+        /// </summary>
+        private ElementReference buttonElement;
+
+        /// <summary>
         /// Gets or sets the HTML button type.
         /// </summary>
         [Parameter]
@@ -56,6 +61,15 @@ namespace Mycelium.Bloom.Components.UI.Atoms.IconButton
         /// </summary>
         [Parameter]
         public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+        /// <summary>
+        /// Moves focus to the rendered native button without scrolling it into view.
+        /// </summary>
+        /// <returns>A value task representing the asynchronous focus request.</returns>
+        internal ValueTask FocusAsync()
+        {
+            return this.buttonElement.FocusAsync(true);
+        }
 
         /// <summary>
         /// Gets the final CSS class list applied to the icon button.

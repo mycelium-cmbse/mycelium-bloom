@@ -63,16 +63,6 @@
     line-height: var(--mb-line-height-label-xs);
 }
 
-.mb-project-switcher__chevron {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    color: var(--mb-color-component-icon);
-    font-size: 14px;
-    line-height: 1;
-}
-
 .mb-project-switcher--disabled {
     opacity: 0.55;
 }

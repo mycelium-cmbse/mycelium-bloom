@@ -27,10 +27,7 @@
         TriggerTitle="@(this.MenuAriaLabel)"
         Items="@(this.Items)"
         Disabled="@(this.IsDisabled())"
+        ShowChevron="true"
         Alignment="ActionMenuAlignment.End"
-        ItemSelected="this.HandleItemSelectedAsync">
-        <TriggerContent>
-            <span class="mb-split-button__chevron" aria-hidden="true">⌄</span>
-        </TriggerContent>
-    </ActionMenu>
+        ItemSelected="this.HandleItemSelectedAsync" />
 </div>

@@ -9,10 +9,13 @@
 
 @inherits BloomComponentBase
 
-<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    @if (this.TriggerContent is null)
+@inject IJSRuntime JsRuntime
+
+<div @ref="this.popupRootElement" class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
+    @if (this.TriggerContent is null && !this.ShowChevron)
     {
         <IconButton
+            @ref="this.triggerIconButton"
             id="@(this.TriggerId)"
             Class="@(this.GetTriggerCssClass())"
             AriaLabel="@(this.TriggerAriaLabel)"
@@ -29,6 +32,7 @@
     else
     {
         <button
+            @ref="this.triggerElement"
             id="@(this.TriggerId)"
             type="button"
             class="@(this.GetTriggerCssClass())"
@@ -40,7 +44,14 @@
             disabled="@(this.IsTriggerDisabled())"
             @onkeydown="this.HandleTriggerKeyDownAsync"
             @onclick="this.ToggleMenuAsync">
-            @(this.TriggerContent)
+            @if (this.TriggerContent is not null)
+            {
+                <span class="mb-action-menu__trigger-content">
+                    @(this.TriggerContent)
+                </span>
+            }
+
+            <ChevronIcon Class="mb-action-menu__chevron" />
         </button>
     }
 
@@ -69,16 +80,18 @@
                     aria-disabled="@(item.Disabled ? "true" : "false")"
                     aria-checked="@(this.GetAriaChecked(item))"
                     disabled="@(item.Disabled)"
-                    tabindex="@(this.GetItemTabIndex(itemIndex))"
+                    tabindex="-1"
                     @onkeydown="args => this.HandleItemKeyDownAsync(args, itemIndex)"
                     @onclick="() => this.SelectItemAsync(item)">
-                    @if (!string.IsNullOrWhiteSpace(item.Icon))
-                    {
-                        <span class="mb-action-menu__item-icon" aria-hidden="true">@item.Icon</span>
-                    }
+                    <span class="mb-action-menu__item-icon" aria-hidden="true">
+                        @if (!string.IsNullOrWhiteSpace(item.Icon))
+                        {
+                            @item.Icon
+                        }
+                    </span>
 
                     <span class="mb-action-menu__item-content">
-                        <span class="mb-action-menu__item-label">@item.Label</span>
+                        <span class="mb-action-menu__item-label" title="@item.Label">@item.Label</span>
 
                         @if (!string.IsNullOrWhiteSpace(item.Description))
                         {

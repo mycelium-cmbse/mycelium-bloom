@@ -10,6 +10,7 @@
 @inherits BloomComponentBase
 
 <button
+    @ref="this.buttonElement"
     type="@(this.Type)"
     class="@(this.GetCssClass())"
     disabled="@(this.Disabled)"

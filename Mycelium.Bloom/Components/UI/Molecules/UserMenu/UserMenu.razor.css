@@ -45,21 +45,11 @@
     line-height: var(--mb-line-height-label-xs);
 }
 
-.mb-user-menu__chevron {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    color: var(--mb-color-component-icon);
-    font-size: 14px;
-    line-height: 1;
-}
-
 .mb-user-menu--compact ::deep .mb-user-menu__trigger {
     width: var(--mb-control-height-sm);
     padding: var(--mb-spacing-1);
 }
 
-.mb-user-menu--compact .mb-user-menu__chevron {
+.mb-user-menu--compact ::deep .mb-action-menu__chevron {
     display: none;
 }

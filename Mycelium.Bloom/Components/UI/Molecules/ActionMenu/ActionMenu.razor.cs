@@ -11,8 +11,10 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
 {
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
+    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Atoms.IconButton;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -20,7 +22,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
     /// <summary>
     /// Represents a reusable action menu with instance-specific state and native keyboard interaction.
     /// </summary>
-    public partial class ActionMenu : BloomComponentBase
+    public partial class ActionMenu : BloomComponentBase, IAsyncDisposable
     {
         /// <summary>
         /// The generated stable identifier shared by the trigger and menu.
@@ -33,14 +35,49 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         private ElementReference[] itemElements = [];
 
         /// <summary>
+        /// The default icon trigger component used when no labelled trigger content is supplied.
+        /// </summary>
+        private IconButton triggerIconButton;
+
+        /// <summary>
+        /// The native trigger element used for labelled and chevron-only triggers.
+        /// </summary>
+        private ElementReference triggerElement;
+
+        /// <summary>
+        /// The root containing the trigger and menu for outside-click detection.
+        /// </summary>
+        private ElementReference popupRootElement;
+
+        /// <summary>
+        /// The instance-specific outside-click registration.
+        /// </summary>
+        private OutsideClickRegistration<ActionMenu> outsideClickRegistration;
+
+        /// <summary>
+        /// The element-scoped keyboard-default registration.
+        /// </summary>
+        private KeyboardDefaultPreventionRegistration keyboardDefaultPreventionRegistration;
+
+        /// <summary>
         /// The menu-item index that should receive focus after rendering.
         /// </summary>
         private int? pendingFocusIndex;
 
         /// <summary>
+        /// Indicates whether focus should return to the trigger after the closed menu is rendered.
+        /// </summary>
+        private bool pendingTriggerFocus;
+
+        /// <summary>
         /// Indicates whether an item-selection callback is currently running.
         /// </summary>
         private bool isSelecting;
+
+        /// <summary>
+        /// Indicates whether the component has been disposed.
+        /// </summary>
+        private bool isDisposed;
 
         /// <summary>
         /// Gets or sets the available action items.
@@ -53,6 +90,12 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// </summary>
         [Parameter]
         public RenderFragment TriggerContent { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the shared dropdown chevron is rendered without custom trigger content.
+        /// </summary>
+        [Parameter]
+        public bool ShowChevron { get; set; }
 
         /// <summary>
         /// Gets or sets the accessible trigger label.
@@ -126,6 +169,11 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// <inheritdoc />
         protected override void OnParametersSet()
         {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
             if (this.itemElements.Length != this.Items.Count)
             {
                 this.itemElements = new ElementReference[this.Items.Count];
@@ -136,6 +184,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                 if (this.Disabled || this.Items.Count == 0)
                 {
                     this.IsOpen = false;
+                    this.pendingTriggerFocus = false;
                 }
 
                 this.FocusedItemIndex = -1;
@@ -143,6 +192,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             }
             else if (!this.IsEnabledIndex(this.FocusedItemIndex))
             {
+                this.pendingTriggerFocus = false;
                 this.FocusedItemIndex = this.FindEnabledIndex(0, 1);
             }
         }
@@ -152,7 +202,52 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         {
             await base.OnAfterRenderAsync(firstRender);
 
-            if (!this.IsOpen || this.pendingFocusIndex is not { } itemIndex || !this.IsEnabledIndex(itemIndex))
+            if (firstRender && !this.isDisposed)
+            {
+                this.outsideClickRegistration = new OutsideClickRegistration<ActionMenu>(this.JsRuntime);
+                await this.outsideClickRegistration.RegisterAsync(this.popupRootElement, this);
+
+                this.keyboardDefaultPreventionRegistration = new KeyboardDefaultPreventionRegistration(this.JsRuntime);
+
+                await this.keyboardDefaultPreventionRegistration.RegisterAsync(
+                    this.popupRootElement,
+                    [
+                        new KeyboardDefaultPreventionRule(
+                            ".mb-action-menu__trigger",
+                            "ArrowDown",
+                            "Down",
+                            "ArrowUp",
+                            "Up"),
+                        new KeyboardDefaultPreventionRule(
+                            "[role='menuitem'], [role='menuitemradio']",
+                            "Enter",
+                            " ",
+                            "Space",
+                            "Spacebar",
+                            "ArrowDown",
+                            "Down",
+                            "ArrowUp",
+                            "Up",
+                            "Home",
+                            "End")
+                    ]);
+            }
+
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (this.pendingTriggerFocus && !this.IsOpen)
+            {
+                this.pendingTriggerFocus = false;
+                await this.FocusTriggerAsync();
+                return;
+            }
+
+            if (!this.IsOpen
+                || this.pendingFocusIndex is not { } itemIndex
+                || !this.IsEnabledIndex(itemIndex))
             {
                 return;
             }
@@ -160,6 +255,52 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             this.pendingFocusIndex = null;
 
             await this.itemElements[itemIndex].FocusAsync();
+        }
+
+        /// <summary>
+        /// Prevents delayed focus or callbacks from targeting a disposed component instance.
+        /// </summary>
+        public async ValueTask DisposeAsync()
+        {
+            this.isDisposed = true;
+            this.IsOpen = false;
+            this.FocusedItemIndex = -1;
+            this.pendingFocusIndex = null;
+            this.pendingTriggerFocus = false;
+
+            if (this.outsideClickRegistration is not null)
+            {
+                await this.outsideClickRegistration.DisposeAsync();
+                this.outsideClickRegistration = null;
+            }
+
+            if (this.keyboardDefaultPreventionRegistration is not null)
+            {
+                await this.keyboardDefaultPreventionRegistration.DisposeAsync();
+                this.keyboardDefaultPreventionRegistration = null;
+            }
+
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Closes an open menu after a pointer interaction outside this component instance.
+        /// </summary>
+        /// <returns>A task representing the asynchronous state and render update.</returns>
+        [JSInvokable]
+        public async Task DismissFromOutsideClickAsync()
+        {
+            if (this.isDisposed || !this.IsOpen)
+            {
+                return;
+            }
+
+            await this.CloseMenuAsync();
+
+            if (!this.isDisposed)
+            {
+                await this.InvokeAsync(this.StateHasChanged);
+            }
         }
 
         /// <summary>
@@ -218,7 +359,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// <returns>True when the trigger cannot open a menu; otherwise, false.</returns>
         private bool IsTriggerDisabled()
         {
-            return this.Disabled || this.Items.Count == 0 || this.isSelecting;
+            return this.Disabled || this.Items.Count == 0 || this.isSelecting || this.isDisposed;
         }
 
         /// <summary>
@@ -243,16 +384,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             }
 
             return item.IsSelected ? "true" : "false";
-        }
-
-        /// <summary>
-        /// Gets the tab index for a menu item participating in roving focus.
-        /// </summary>
-        /// <param name="itemIndex">The menu-item index.</param>
-        /// <returns>Zero for the current enabled item; otherwise, negative one.</returns>
-        private int GetItemTabIndex(int itemIndex)
-        {
-            return itemIndex == this.FocusedItemIndex && this.IsEnabledIndex(itemIndex) ? 0 : -1;
         }
 
         /// <summary>
@@ -284,7 +415,14 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task SelectItemAsync(ActionMenuItem item)
         {
-            if (!this.IsOpen || item.Disabled || this.isSelecting)
+            if (!this.IsOpen || item.Disabled || this.isSelecting || this.isDisposed)
+            {
+                return;
+            }
+
+            await this.FocusTriggerAsync();
+
+            if (this.isDisposed)
             {
                 return;
             }
@@ -294,7 +432,11 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             try
             {
                 await this.CloseMenuAsync();
-                await this.ItemSelected.InvokeAsync(item);
+
+                if (!this.isDisposed)
+                {
+                    await this.ItemSelected.InvokeAsync(item);
+                }
             }
             finally
             {
@@ -320,6 +462,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                     await this.OpenMenuAsync(this.FindEnabledIndex(this.Items.Count - 1, -1), true);
                     break;
                 case "Escape":
+                    await this.CloseMenuAsync(true);
+                    break;
+                case "Tab":
                     await this.CloseMenuAsync();
                     break;
             }
@@ -335,6 +480,16 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         {
             switch (args.Key)
             {
+                case "Enter":
+                case " ":
+                case "Space":
+                case "Spacebar":
+                    if (this.IsEnabledIndex(itemIndex))
+                    {
+                        await this.SelectItemAsync(this.Items[itemIndex]);
+                    }
+
+                    break;
                 case "ArrowDown":
                 case "Down":
                     this.FocusItem(this.FindNextEnabledIndex(itemIndex, 1));
@@ -350,6 +505,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                     this.FocusItem(this.FindEnabledIndex(this.Items.Count - 1, -1));
                     break;
                 case "Escape":
+                    await this.CloseMenuAsync(true);
+                    break;
+                case "Tab":
                     await this.CloseMenuAsync();
                     break;
             }
@@ -373,6 +531,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             this.IsOpen = true;
             this.FocusedItemIndex = itemIndex;
             this.pendingFocusIndex = moveFocus && itemIndex >= 0 ? itemIndex : null;
+            this.pendingTriggerFocus = false;
 
             if (stateChanged)
             {
@@ -381,12 +540,13 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         }
 
         /// <summary>
-        /// Closes the menu.
+        /// Closes the menu and optionally schedules focus restoration to its trigger.
         /// </summary>
+        /// <param name="restoreTriggerFocus">Whether focus should return to the trigger after rendering.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task CloseMenuAsync()
+        private async Task CloseMenuAsync(bool restoreTriggerFocus = false)
         {
-            if (!this.IsOpen)
+            if (!this.IsOpen || this.isDisposed)
             {
                 return;
             }
@@ -394,8 +554,33 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
             this.IsOpen = false;
             this.FocusedItemIndex = -1;
             this.pendingFocusIndex = null;
+            this.pendingTriggerFocus = restoreTriggerFocus;
 
             await this.IsOpenChanged.InvokeAsync(false);
+        }
+
+        /// <summary>
+        /// Moves focus to the trigger owned by this menu instance.
+        /// </summary>
+        /// <returns>A task representing the asynchronous focus request.</returns>
+        private async Task FocusTriggerAsync()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            if (this.TriggerContent is null && !this.ShowChevron)
+            {
+                if (this.triggerIconButton is not null)
+                {
+                    await this.triggerIconButton.FocusAsync();
+                }
+
+                return;
+            }
+
+            await this.triggerElement.FocusAsync(true);
         }
 
         /// <summary>
@@ -404,7 +589,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         /// <param name="itemIndex">The item index.</param>
         private void FocusItem(int itemIndex)
         {
-            if (!this.IsEnabledIndex(itemIndex))
+            if (this.isDisposed || !this.IsEnabledIndex(itemIndex))
             {
                 return;
             }
