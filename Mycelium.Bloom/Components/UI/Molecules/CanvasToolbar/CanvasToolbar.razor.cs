@@ -58,5 +58,14 @@ namespace Mycelium.Bloom.Components.UI.Molecules.CanvasToolbar
                     this.Orientation == ToolbarOrientation.Vertical),
                 CssClassBuilder.When("mb-canvas-toolbar--compact", this.Compact));
         }
+
+        /// <summary>
+        /// Gets the ARIA orientation exposed by the underlying toolbar.
+        /// </summary>
+        /// <returns>The lowercase ARIA orientation value.</returns>
+        private string GetAriaOrientation()
+        {
+            return this.Orientation == ToolbarOrientation.Vertical ? "vertical" : "horizontal";
+        }
     }
 }

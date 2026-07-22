@@ -13,7 +13,8 @@
     <Toolbar AriaLabel="@(this.AriaLabel)"
              Compact="@(this.Compact)"
              AllowWrap="false"
-             Class="mb-canvas-toolbar__toolbar">
+             Class="mb-canvas-toolbar__toolbar"
+             aria-orientation="@(this.GetAriaOrientation())">
         <ChildContent>
             @(this.ChildContent)
         </ChildContent>

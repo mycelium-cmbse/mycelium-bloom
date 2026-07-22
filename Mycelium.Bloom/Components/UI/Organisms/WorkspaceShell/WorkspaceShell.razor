@@ -25,9 +25,9 @@
             </aside>
         }
 
-        <main class="mb-workspace-shell__main" aria-label="@(this.MainContentAriaLabel)">
+        <div class="mb-workspace-shell__main" role="region" aria-label="@(this.MainContentAriaLabel)">
             @(this.MainContent)
-        </main>
+        </div>
 
         @if (this.ShouldRenderRightPanel())
         {

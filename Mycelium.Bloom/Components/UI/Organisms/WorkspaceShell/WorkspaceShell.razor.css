@@ -1,4 +1,7 @@
 .mb-workspace-shell {
+    --mb-workspace-left-panel-width: 20rem;
+    --mb-workspace-right-panel-width: 22.5rem;
+
     position: relative;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
@@ -21,34 +24,41 @@
 .mb-workspace-shell__body {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
+    height: 100%;
     min-width: 0;
     min-height: 0;
+    overflow: hidden;
 }
 
 .mb-workspace-shell__left-panel,
 .mb-workspace-shell__right-panel,
 .mb-workspace-shell__main {
+    height: 100%;
     min-width: 0;
     min-height: 0;
+    max-height: 100%;
     overflow: auto;
 }
 
 .mb-workspace-shell__left-panel,
 .mb-workspace-shell__right-panel {
-    width: var(--mb-sidebar-width);
-    max-width: 35%;
     background: var(--mb-color-surface);
 }
 
 .mb-workspace-shell__left-panel {
+    grid-column: 1;
+    width: var(--mb-workspace-left-panel-width);
     border-right: 1px solid var(--mb-color-component-border);
 }
 
 .mb-workspace-shell__right-panel {
+    grid-column: 3;
+    width: var(--mb-workspace-right-panel-width);
     border-left: 1px solid var(--mb-color-component-border);
 }
 
 .mb-workspace-shell__main {
+    grid-column: 2;
     background: var(--mb-color-background);
 }
 
@@ -65,17 +75,47 @@
     pointer-events: auto;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 64rem) {
+    .mb-workspace-shell {
+        --mb-workspace-left-panel-width: 17.5rem;
+        --mb-workspace-right-panel-width: 18rem;
+    }
+}
+
+@media (max-width: 45rem) {
     .mb-workspace-shell__body {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto minmax(12rem, 1fr) auto;
     }
 
     .mb-workspace-shell__left-panel,
+    .mb-workspace-shell__right-panel,
+    .mb-workspace-shell__main {
+        grid-column: 1;
+    }
+
+    .mb-workspace-shell__left-panel {
+        grid-row: 1;
+    }
+
+    .mb-workspace-shell__main {
+        grid-row: 2;
+    }
+
     .mb-workspace-shell__right-panel {
+        grid-row: 3;
+    }
+
+    .mb-workspace-shell__left-panel,
+    .mb-workspace-shell__right-panel {
+        height: auto;
         width: auto;
         max-width: none;
         max-height: 12rem;
+    }
+
+    .mb-workspace-shell__main {
+        height: auto;
     }
 
     .mb-workspace-shell__left-panel {
