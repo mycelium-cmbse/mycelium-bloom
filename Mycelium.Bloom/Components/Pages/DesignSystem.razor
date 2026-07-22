@@ -200,7 +200,7 @@
             <article class="mb-design-system__example" data-component="search-input">
                 <header class="mb-design-system__example-heading">
                     <h3>SearchInput</h3>
-                    <p>Empty, populated, disabled, and live-bound search states.</p>
+                    <p>Empty, populated, disabled, live-bound, and per-instance shortcut states.</p>
                 </header>
 
                 <div class="mb-design-system__form-grid">
@@ -216,8 +216,37 @@
                         <span class="mb-design-system__state-label">Disabled</span>
                         <SearchInput Id="showcase-search-disabled" Value="requirements" Disabled="true" ShowShortcut="false" FullWidth="true" />
                     </div>
+                    <div class="mb-design-system__shortcut-example">
+                        <span class="mb-design-system__state-label">Live Ctrl/Cmd+K shortcut stack</span>
+                        <SearchInput Id="showcase-search-shortcut"
+                                     Value="@this.PrimaryShortcutSearchValue"
+                                     ValueChanged="this.HandlePrimaryShortcutSearchValueChanged"
+                                     Placeholder="Primary shortcut target"
+                                     EnableShortcut="true"
+                                     FullWidth="true" />
+
+                        @if (this.SecondaryShortcutSearchVisible)
+                        {
+                            <SearchInput Id="showcase-search-shortcut-secondary"
+                                         Value="@this.SecondaryShortcutSearchValue"
+                                         ValueChanged="this.HandleSecondaryShortcutSearchValueChanged"
+                                         Placeholder="Newest shortcut target"
+                                         EnableShortcut="true"
+                                         FullWidth="true" />
+                        }
+
+                        <Button id="toggle-secondary-shortcut-search"
+                                Variant="ButtonVariant.Secondary"
+                                Size="ButtonSize.Small"
+                                OnClick="this.ToggleSecondaryShortcutSearch">
+                            @(this.SecondaryShortcutSearchVisible ? "Remove newest target" : "Restore newest target")
+                        </Button>
+                    </div>
                 </div>
                 <p id="search-input-result" class="mb-design-system__result">Current search: @this.SearchValue</p>
+                <p id="search-shortcut-result" class="mb-design-system__result">
+                    Ctrl/Cmd+K target: @(this.SecondaryShortcutSearchVisible ? "secondary (newest)" : "primary (restored)")
+                </p>
             </article>
 
             <article class="mb-design-system__example" data-component="section-header">
@@ -273,25 +302,29 @@
             <article class="mb-design-system__example" data-component="select-input">
                 <header class="mb-design-system__example-heading">
                     <h3>SelectInput</h3>
-                    <p>Placeholder, selection, disabled option, validation, and disabled state.</p>
+                    <p>Custom listbox states, long and disabled options, validation, and independent controlled instances.</p>
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <SelectInput Id="showcase-select-input" Label="Lifecycle state" Placeholder="Choose a state" Options="this.SelectOptions" Value="@this.SelectValue" ValueChanged="this.HandleSelectValueChanged" />
+                    <SelectInput Id="showcase-select-default" Label="Default state" Placeholder="Choose a state" Options="this.SelectOptions" />
+                    <div class="mb-design-system__form-grid">
+                        <SelectInput Id="showcase-select-input" Label="Primary lifecycle state" Placeholder="Choose a state" Options="this.SelectOptions" Value="@this.SelectValue" ValueChanged="this.HandleSelectValueChanged" />
+                        <SelectInput Id="showcase-select-secondary" Label="Independent lifecycle state" Placeholder="Choose a state" Options="this.SelectOptions" Value="@this.SecondarySelectValue" ValueChanged="this.HandleSecondarySelectValueChanged" />
+                    </div>
                     <SelectInput Id="showcase-select-error" Label="Review state" Placeholder="Choose a state" Options="this.SelectOptions" ErrorText="A lifecycle state is required." Required="true" />
                     <SelectInput Id="showcase-select-disabled" Label="Locked state" Options="this.SelectOptions" Value="archived" Disabled="true" />
                 </div>
-                <p id="select-input-result" class="mb-design-system__result">Selected value: @this.SelectValue</p>
+                <p id="select-input-result" class="mb-design-system__result">Selected values: @this.SelectValue / @this.SecondarySelectValue</p>
             </article>
 
             <article class="mb-design-system__example" data-component="text-area">
                 <header class="mb-design-system__example-heading">
                     <h3>TextArea</h3>
-                    <p>Help, validation, disabled, read-only, and bound-value states.</p>
+                    <p>Help, optional character count, validation, disabled, read-only, and bound-value states.</p>
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <TextArea Id="showcase-text-area" Label="Review note" Value="@this.TextAreaValue" ValueChanged="this.HandleTextAreaValueChanged" HelpText="Keep the note focused on the selected element." Rows="3" />
+                    <TextArea Id="showcase-text-area" Label="Review note" Value="@this.TextAreaValue" ValueChanged="this.HandleTextAreaValueChanged" HelpText="Keep the note focused on the selected element." Rows="3" MaxLength="160" ShowCharacterCount="true" />
                     <TextArea Id="showcase-text-area-error" Label="Required rationale" ErrorText="Provide a rationale before continuing." Rows="2" />
                     <div class="mb-design-system__form-grid">
                         <TextArea Id="showcase-text-area-disabled" Label="Disabled" Value="Unavailable" Disabled="true" Rows="2" />
@@ -318,11 +351,11 @@
             <article class="mb-design-system__example" data-component="toggle">
                 <header class="mb-design-system__example-heading">
                     <h3>Toggle</h3>
-                    <p>Checked, unchecked, disabled, descriptive, and live-bound states.</p>
+                    <p>Checked, unchecked, optional state text, disabled, descriptive, and live-bound states.</p>
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <Toggle Id="showcase-toggle" Label="Live collaboration" Description="Display collaborator presence in this workspace." Checked="@this.ToggleChecked" CheckedChanged="this.HandleToggleChanged" />
+                    <Toggle Id="showcase-toggle" Label="Live collaboration" Description="Display collaborator presence in this workspace." Checked="@this.ToggleChecked" CheckedChanged="this.HandleToggleChanged" ShowStateText="true" OnText="Active" OffText="Paused" />
                     <Toggle Id="showcase-toggle-checked" Label="Automatic layout" Checked="true" />
                     <Toggle Id="showcase-toggle-disabled" Label="Protected branch" Description="Controlled by project policy." Checked="true" Disabled="true" />
                 </div>
@@ -344,7 +377,7 @@
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="tabs">
                 <header class="mb-design-system__example-heading">
                     <h3>Tabs</h3>
-                    <p>Controlled selection with a disabled destination.</p>
+                    <p>Controlled selection, roving tabindex, arrow navigation, Home, End, and a disabled destination.</p>
                 </header>
 
                 <Tabs Items="this.TabItems" ActiveValue="@this.ActiveTabValue" ActiveValueChanged="this.HandleTabChanged" />
@@ -446,17 +479,23 @@
                 </Toolbar>
             </article>
 
-            <article class="mb-design-system__example" data-component="action-menu">
+            <article class="mb-design-system__example mb-design-system__example--wide" data-component="action-menu">
                 <header class="mb-design-system__example-heading">
                     <h3>ActionMenu</h3>
-                    <p>Normal, disabled, destructive, and independent menu instances.</p>
+                    <p>Start/end alignment, stable icon columns, disabled and destructive states, and long labels.</p>
                 </header>
 
-                <div class="mb-design-system__inline-group mb-design-system__menu-row">
-                    <ActionMenu data-testid="action-menu-primary" Items="this.ActionMenuItems" TriggerAriaLabel="Open primary showcase actions" TriggerTitle="Primary actions" IsOpen="@this.PrimaryActionMenuOpen" IsOpenChanged="this.HandlePrimaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected" />
-                    <ActionMenu data-testid="action-menu-secondary" Items="this.ActionMenuItems" TriggerAriaLabel="Open secondary showcase actions" TriggerTitle="Secondary actions" Alignment="ActionMenuAlignment.Start" IsOpen="@this.SecondaryActionMenuOpen" IsOpenChanged="this.HandleSecondaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected">
-                        <TriggerContent><span>Actions</span><span aria-hidden="true">⌄</span></TriggerContent>
-                    </ActionMenu>
+                <div class="mb-design-system__menu-alignment-grid">
+                    <div class="mb-design-system__menu-sample">
+                        <span class="mb-design-system__state-label">Start aligned</span>
+                        <ActionMenu data-testid="action-menu-primary" Items="this.ActionMenuItems" TriggerAriaLabel="Open start-aligned showcase actions" TriggerTitle="Start-aligned actions" Alignment="ActionMenuAlignment.Start" IsOpen="@this.PrimaryActionMenuOpen" IsOpenChanged="this.HandlePrimaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected" />
+                    </div>
+                    <div class="mb-design-system__menu-sample mb-design-system__menu-sample--end">
+                        <span class="mb-design-system__state-label">End aligned at the region edge</span>
+                        <ActionMenu data-testid="action-menu-secondary" Items="this.ActionMenuItems" TriggerAriaLabel="Open end-aligned showcase actions" TriggerTitle="End-aligned actions" Alignment="ActionMenuAlignment.End" IsOpen="@this.SecondaryActionMenuOpen" IsOpenChanged="this.HandleSecondaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected">
+                            <TriggerContent><span>Actions</span></TriggerContent>
+                        </ActionMenu>
+                    </div>
                 </div>
                 <p id="action-menu-result" class="mb-design-system__result">Latest action: @this.LastMenuAction</p>
             </article>
@@ -464,12 +503,13 @@
             <article class="mb-design-system__example" data-component="split-button">
                 <header class="mb-design-system__example-heading">
                     <h3>SplitButton</h3>
-                    <p>Primary, secondary, and disabled connected actions.</p>
+                    <p>Normal, disabled, and loading connected controls with inherited menu behavior.</p>
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <SplitButton PrimaryText="Save" Items="this.SplitButtonItems" PrimaryAction="this.HandleSplitButtonPrimaryAction" ItemSelected="this.HandleSplitButtonItemSelected" MenuAriaLabel="Open save options" />
-                    <SplitButton PrimaryText="Unavailable" Items="this.SplitButtonItems" Disabled="true" MenuAriaLabel="Unavailable save options" />
+                    <SplitButton data-testid="split-button-normal" PrimaryText="Save" Items="this.SplitButtonItems" PrimaryAction="this.HandleSplitButtonPrimaryAction" ItemSelected="this.HandleSplitButtonItemSelected" MenuAriaLabel="Open save options" />
+                    <SplitButton data-testid="split-button-disabled" PrimaryText="Unavailable" Items="this.SplitButtonItems" Disabled="true" MenuAriaLabel="Unavailable save options" />
+                    <SplitButton data-testid="split-button-loading" PrimaryText="Saving" Items="this.SplitButtonItems" IsLoading="true" MenuAriaLabel="Loading save options" />
                 </div>
                 <p id="split-button-result" class="mb-design-system__result">Latest action: @this.LastSplitButtonAction</p>
             </article>
@@ -618,11 +658,19 @@
 
                 <div class="mb-design-system__canvas-toolbar-gallery">
                     <CanvasToolbar AriaLabel="Horizontal canvas tools" Compact="true">
-                        <IconButton AriaLabel="Select element" Title="Select" OnClick='() => this.HandleCanvasToolbarAction("Select")'>
+                        <IconButton AriaLabel="Select element"
+                                    Title="Select"
+                                    Class='@(this.GetCanvasToolbarToolCssClass("Select"))'
+                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Select"))'
+                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Select")'>
                             <span aria-hidden="true">↖</span>
                         </IconButton>
                         <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick='() => this.HandleCanvasToolbarAction("Connect")'>Connect</Button>
-                        <IconButton AriaLabel="Add note" Title="Add note" OnClick='() => this.HandleCanvasToolbarAction("Note")'>
+                        <IconButton AriaLabel="Add note"
+                                    Title="Add note"
+                                    Class='@(this.GetCanvasToolbarToolCssClass("Note"))'
+                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Note"))'
+                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Note")'>
                             <span aria-hidden="true">+</span>
                         </IconButton>
                     </CanvasToolbar>
@@ -630,10 +678,18 @@
                     <CanvasToolbar AriaLabel="Vertical canvas tools"
                                    Orientation="ToolbarOrientation.Vertical"
                                    Compact="true">
-                        <IconButton AriaLabel="Move canvas" Title="Move" OnClick='() => this.HandleCanvasToolbarAction("Move")'>
+                        <IconButton AriaLabel="Move canvas"
+                                    Title="Move"
+                                    Class='@(this.GetCanvasToolbarToolCssClass("Move"))'
+                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Move"))'
+                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Move")'>
                             <span aria-hidden="true">✥</span>
                         </IconButton>
-                        <IconButton AriaLabel="Center selection" Title="Center selection" OnClick='() => this.HandleCanvasToolbarAction("Center")'>
+                        <IconButton AriaLabel="Center selection"
+                                    Title="Center selection"
+                                    Class='@(this.GetCanvasToolbarToolCssClass("Center"))'
+                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Center"))'
+                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Center")'>
                             <span aria-hidden="true">◎</span>
                         </IconButton>
                     </CanvasToolbar>

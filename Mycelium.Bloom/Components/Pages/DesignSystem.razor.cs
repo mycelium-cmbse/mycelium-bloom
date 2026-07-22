@@ -29,6 +29,7 @@ namespace Mycelium.Bloom.Components.Pages
             new() { Value = "preparation", Label = "Preparation" },
             new() { Value = "open", Label = "Open" },
             new() { Value = "review", Label = "In review" },
+            new() { Value = "verification", Label = "Verification pending across multiple engineering workspaces" },
             new() { Value = "archived", Label = "Archived", Disabled = true }
         ];
 
@@ -60,7 +61,7 @@ namespace Mycelium.Bloom.Components.Pages
         private IReadOnlyList<ActionMenuItem> ActionMenuItems { get; } =
         [
             new() { Id = "open", Label = "Open details", Description = "Inspect the selected element", Icon = "O" },
-            new() { Id = "duplicate", Label = "Duplicate", Description = "Create a local copy", Icon = "D" },
+            new() { Id = "duplicate", Label = "Duplicate into another architecture workspace", Description = "Create a local copy", Icon = "D" },
             new() { Id = "publish", Label = "Publish", Disabled = true },
             new() { Id = "delete", Label = "Delete", Destructive = true, SeparatorBefore = true }
         ];
@@ -158,6 +159,21 @@ namespace Mycelium.Bloom.Components.Pages
         private string SearchValue { get; set; } = "architecture";
 
         /// <summary>
+        /// Gets or sets the controlled value of the primary shortcut-search example.
+        /// </summary>
+        private string PrimaryShortcutSearchValue { get; set; } = "architecture";
+
+        /// <summary>
+        /// Gets or sets the controlled value of the newest shortcut-search example.
+        /// </summary>
+        private string SecondaryShortcutSearchValue { get; set; } = "interfaces";
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the newest shortcut registration is rendered.
+        /// </summary>
+        private bool SecondaryShortcutSearchVisible { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the interactive text-input value.
         /// </summary>
         private string TextInputValue { get; set; } = "Thermal subsystem";
@@ -166,6 +182,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the interactive select value.
         /// </summary>
         private string SelectValue { get; set; } = "review";
+
+        /// <summary>
+        /// Gets or sets the second independent interactive select value.
+        /// </summary>
+        private string SecondarySelectValue { get; set; } = "preparation";
 
         /// <summary>
         /// Gets or sets the interactive text-area value.
@@ -303,6 +324,11 @@ namespace Mycelium.Bloom.Components.Pages
         private string LastCanvasToolbarAction { get; set; } = "None";
 
         /// <summary>
+        /// Gets or sets the parent-owned active tool used by the canvas-toolbar examples.
+        /// </summary>
+        private string ActiveCanvasToolbarTool { get; set; } = "Select";
+
+        /// <summary>
         /// Gets or sets the latest zoom-controls callback result.
         /// </summary>
         private string LastZoomAction { get; set; } = "Zoom is 100%";
@@ -322,6 +348,32 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
+        /// Updates the primary shortcut-search value.
+        /// </summary>
+        /// <param name="value">The updated value.</param>
+        private void HandlePrimaryShortcutSearchValueChanged(string value)
+        {
+            this.PrimaryShortcutSearchValue = value;
+        }
+
+        /// <summary>
+        /// Updates the newest shortcut-search value.
+        /// </summary>
+        /// <param name="value">The updated value.</param>
+        private void HandleSecondaryShortcutSearchValueChanged(string value)
+        {
+            this.SecondaryShortcutSearchValue = value;
+        }
+
+        /// <summary>
+        /// Adds or removes the newest search shortcut registration for lifecycle verification.
+        /// </summary>
+        private void ToggleSecondaryShortcutSearch()
+        {
+            this.SecondaryShortcutSearchVisible = !this.SecondaryShortcutSearchVisible;
+        }
+
+        /// <summary>
         /// Updates the interactive text-input value.
         /// </summary>
         /// <param name="value">The updated value.</param>
@@ -337,6 +389,15 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleSelectValueChanged(string value)
         {
             this.SelectValue = value;
+        }
+
+        /// <summary>
+        /// Updates the second independent select value.
+        /// </summary>
+        /// <param name="value">The selected value.</param>
+        private void HandleSecondarySelectValueChanged(string value)
+        {
+            this.SecondarySelectValue = value;
         }
 
         /// <summary>
@@ -416,6 +477,48 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleCanvasToolbarAction(string action)
         {
             this.LastCanvasToolbarAction = action;
+        }
+
+        /// <summary>
+        /// Updates the parent-owned active canvas tool and records the callback result.
+        /// </summary>
+        /// <param name="tool">The selected local tool label.</param>
+        private void HandleCanvasToolbarToolChanged(string tool)
+        {
+            this.ActiveCanvasToolbarTool = tool;
+            this.LastCanvasToolbarAction = tool;
+        }
+
+        /// <summary>
+        /// Gets the presentation classes for a selectable canvas-toolbar action.
+        /// </summary>
+        /// <param name="tool">The local tool label.</param>
+        /// <returns>The canvas-toolbar action classes.</returns>
+        private string GetCanvasToolbarToolCssClass(string tool)
+        {
+            return this.IsCanvasToolbarToolActive(tool)
+                ? "mb-canvas-toolbar__action mb-canvas-toolbar__action--active"
+                : "mb-canvas-toolbar__action";
+        }
+
+        /// <summary>
+        /// Gets the pressed-state value for a selectable canvas-toolbar action.
+        /// </summary>
+        /// <param name="tool">The local tool label.</param>
+        /// <returns>True when the tool is active; otherwise, false.</returns>
+        private string GetCanvasToolbarToolAriaPressed(string tool)
+        {
+            return this.IsCanvasToolbarToolActive(tool) ? "true" : "false";
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the provided canvas tool is active.
+        /// </summary>
+        /// <param name="tool">The local tool label.</param>
+        /// <returns>True when the tool is active; otherwise, false.</returns>
+        private bool IsCanvasToolbarToolActive(string tool)
+        {
+            return string.Equals(this.ActiveCanvasToolbarTool, tool, StringComparison.Ordinal);
         }
 
         /// <summary>
