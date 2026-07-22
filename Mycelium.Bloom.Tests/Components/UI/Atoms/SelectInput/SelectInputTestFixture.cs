@@ -148,11 +148,58 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
             component.Find("[role='combobox']").Click();
 
             await component.InvokeAsync(component.Instance.DismissFromOutsideClickAsync);
+            await component.InvokeAsync(component.Instance.DismissFromOutsideClickAsync);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find("[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
                 Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies Enter opens a closed listbox with the selected enabled option active.
+        /// </summary>
+        [Test]
+        public void VerifyEnterOpensListboxAtControlledSelection()
+        {
+            var component = this.Render<SelectInputComponent>(parameters => parameters
+                .Add(selectInput => selectInput.Options, Options)
+                .Add(selectInput => selectInput.Value, "third"));
+
+            var trigger = component.Find("[role='combobox']");
+            trigger.KeyDown(new KeyboardEventArgs { Key = "Enter" });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-2"));
+                Assert.That(component.FindAll("[role='listbox']"), Has.Count.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies an open listbox follows a new parent-owned selected value.
+        /// </summary>
+        [Test]
+        public void VerifyOpenListboxTracksControlledValueChanges()
+        {
+            var component = this.Render<SelectInputComponent>(parameters => parameters
+                .Add(selectInput => selectInput.Options, Options)
+                .Add(selectInput => selectInput.Value, "first"));
+
+            var trigger = component.Find("[role='combobox']");
+            trigger.Click();
+
+            component.Render(parameters => parameters
+                .Add(selectInput => selectInput.Options, Options)
+                .Add(selectInput => selectInput.Value, "third"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-2"));
+                Assert.That(component.FindAll("[role='option']")[2].GetAttribute("aria-selected"), Is.EqualTo("true"));
             }
         }
 

@@ -164,6 +164,43 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
+        /// Verifies application-header and canvas-toolbar examples report their local interactions.
+        /// </summary>
+        [Test]
+        public void VerifyWorkspaceActionExamplesReportLocalResults()
+        {
+            var component = this.Render<DesignSystem>();
+
+            component.Find("[data-component='app-header'] button[aria-label='Share workspace']").Click();
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Share requested"));
+
+            component.Find("[data-component='app-header'] button[aria-label^='Select header showcase project']").Click();
+            component.FindAll("[data-component='app-header'] [role='menuitemradio']")
+                .Single(item => item.TextContent.Contains("Lunar Habitat"))
+                .Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[data-component='app-header'] .mb-project-switcher__name").TextContent,
+                    Is.EqualTo("Lunar Habitat"));
+                Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Selected Lunar Habitat"));
+            }
+
+            component.FindAll("[data-component='app-header'] button.mb-button")
+                .Single(button => button.TextContent.Trim() == "Validate")
+                .Click();
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Validation requested"));
+
+            component.Find("[data-component='app-header'] button[aria-label='Open compact header action']").Click();
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Compact action requested"));
+
+            component.FindAll("[data-component='canvas-toolbar'] button.mb-button")
+                .Single(button => button.TextContent.Trim() == "Connect")
+                .Click();
+            Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Connect"));
+        }
+
+        /// <summary>
         /// Verifies reset and fit-to-view callbacks update the shared local zoom value.
         /// </summary>
         [Test]

@@ -127,6 +127,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
             component.Find("button").Click();
 
             await component.InvokeAsync(component.Instance.DismissFromOutsideClickAsync);
+            await component.InvokeAsync(component.Instance.DismissFromOutsideClickAsync);
 
             using (Assert.EnterMultipleScope())
             {

@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
 {
+    using System.Linq;
+
     using Bunit;
 
     using Mycelium.Bloom.Model;
@@ -115,15 +117,57 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
                 .Add(tabComponent => tabComponent.ActiveValue, "overview")
                 .Add(tabComponent => tabComponent.ActiveValueChanged, value => activeValue = value));
 
-            component.FindAll("[role='tab']")[0].KeyDown("ArrowRight");
+            component.FindAll("[role='tab']")[0].KeyDown("ArrowLeft");
 
             Assert.That(activeValue, Is.EqualTo("properties"));
 
             component.Render(parameters => parameters
                 .Add(tabComponent => tabComponent.ActiveValue, activeValue));
-            component.FindAll("[role='tab']")[1].KeyDown("ArrowLeft");
+            component.FindAll("[role='tab']")[1].KeyDown("ArrowRight");
 
             Assert.That(activeValue, Is.EqualTo("overview"));
+        }
+
+        /// <summary>
+        /// Verifies a missing controlled value leaves the first enabled tab in the page tab order.
+        /// </summary>
+        [Test]
+        public void VerifyMissingActiveValueUsesFirstEnabledTabAsFallback()
+        {
+            var component = this.Render<TabsComponent>(parameters => parameters
+                .Add(tabComponent => tabComponent.Items, new[]
+                {
+                    new TabItem { Value = "disabled", Label = "Disabled", Disabled = true },
+                    new TabItem { Value = "overview", Label = "Overview" },
+                    new TabItem { Value = "properties", Label = "Properties" }
+                })
+                .Add(tabComponent => tabComponent.ActiveValue, "missing"));
+
+            var tabs = component.FindAll("[role='tab']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(tabs[0].GetAttribute("tabindex"), Is.EqualTo("-1"));
+                Assert.That(tabs[1].GetAttribute("tabindex"), Is.EqualTo("0"));
+                Assert.That(tabs[2].GetAttribute("tabindex"), Is.EqualTo("-1"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies a tab list with no enabled items does not expose a tabbable tab.
+        /// </summary>
+        [Test]
+        public void VerifyAllDisabledTabsAreOutsidePageTabOrder()
+        {
+            var component = this.Render<TabsComponent>(parameters => parameters
+                .Add(tabComponent => tabComponent.Items, new[]
+                {
+                    new TabItem { Value = "overview", Label = "Overview", Disabled = true },
+                    new TabItem { Value = "properties", Label = "Properties", Disabled = true }
+                }));
+
+            Assert.That(component.FindAll("[role='tab']")
+                .All(tab => tab.GetAttribute("tabindex") == "-1"), Is.True);
         }
 
         /// <summary>
