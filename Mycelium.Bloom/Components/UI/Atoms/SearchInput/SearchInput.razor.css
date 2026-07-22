@@ -50,6 +50,7 @@
 .mb-search-input__field {
     min-width: 0;
     flex: 1 1 auto;
+    padding-inline-end: var(--mb-spacing-1);
     border: 0;
     outline: 0;
     background: transparent;
@@ -72,12 +73,22 @@
 }
 
 .mb-search-input__shortcut {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
+    min-height: 1.125rem;
+    padding: 0.0625rem 0.3125rem;
+    border: 1px solid var(--mb-color-component-border);
+    border-radius: var(--mb-radius-sm);
+    background: var(--mb-color-surface);
     color: var(--mb-color-component-icon);
     font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 11px;
     line-height: 13px;
     font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 1px 1px color-mix(in srgb, var(--mb-color-component-text) 8%, transparent);
 }
 
 @media (max-width: 640px) {

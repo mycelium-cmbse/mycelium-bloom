@@ -27,6 +27,11 @@
         <span class="mb-toggle__thumb"></span>
     </span>
 
+    @if (this.ShouldShowStateText())
+    {
+        <span class="mb-toggle__state-text" aria-hidden="true">@(this.GetStateText())</span>
+    }
+
     @if (this.HasContent())
     {
         <span class="mb-toggle__content">

@@ -22,14 +22,24 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
     public sealed partial class SearchInput : BloomFieldComponentBase, IDisposable, IAsyncDisposable
     {
         /// <summary>
-        /// The generated fallback identifier of the search input element.
+        /// The identifier that scopes JavaScript shortcut cleanup to this component instance.
         /// </summary>
-        private readonly string generatedId = CreateGeneratedId("mb-search-input");
+        private readonly string shortcutRegistrationId = CreateGeneratedId("mb-search-shortcut");
 
         /// <summary>
         /// The JavaScript module used to manage the search shortcut.
         /// </summary>
         private IJSObjectReference module;
+
+        /// <summary>
+        /// The signature of the shortcut configuration currently registered in JavaScript.
+        /// </summary>
+        private string registeredShortcutSignature;
+
+        /// <summary>
+        /// A value indicating whether this component currently owns a shortcut registration.
+        /// </summary>
+        private bool shortcutRegistered;
 
         /// <summary>
         /// Gets or sets the current search value.
@@ -131,39 +141,14 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         {
             await base.OnAfterRenderAsync(firstRender);
 
-            if (firstRender && this.EnableShortcut)
+            if (this.EnableShortcut)
             {
-                var shortcutKey = string.IsNullOrWhiteSpace(this.ShortcutKey)
-                    ? "k"
-                    : this.ShortcutKey;
-
-                this.module = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
-                    "import",
-                    "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
-
-                await this.module.InvokeVoidAsync(
-                    "registerSearchShortcut",
-                    this.GetInputId(),
-                    new
-                    {
-                        key = shortcutKey,
-                        requiresControlOrMeta = this.ShortcutRequiresControlOrMeta,
-                        requiresAlt = this.ShortcutRequiresAlt,
-                        requiresShift = this.ShortcutRequiresShift
-                    });
+                await this.RegisterSearchShortcutAsync();
             }
-        }
-
-        /// <summary>
-        /// Gets the effective identifier of the search input element.
-        /// </summary>
-        private string GetInputId()
-        {
-            var inputId = string.IsNullOrWhiteSpace(this.Id)
-                ? this.generatedId
-                : this.Id;
-
-            return inputId;
+            else
+            {
+                await this.DisposeSearchShortcutAsync();
+            }
         }
 
         /// <summary>
@@ -174,9 +159,21 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
             var cssClass = this.BuildRootCssClass(
                 "mb-search-input",
                 CssClassBuilder.When("mb-search-input--full-width", this.FullWidth),
+                CssClassBuilder.When("mb-search-input--with-shortcut", this.ShouldShowShortcut()),
                 CssClassBuilder.When("mb-search-input--disabled", this.Disabled));
 
             return cssClass;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the visual shortcut hint should be rendered.
+        /// </summary>
+        /// <returns>True when the shortcut is enabled and has a visible label; otherwise, false.</returns>
+        private bool ShouldShowShortcut()
+        {
+            return this.EnableShortcut
+                   && this.ShowShortcut
+                   && !string.IsNullOrWhiteSpace(this.ShortcutText);
         }
 
         /// <summary>
@@ -204,6 +201,71 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         }
 
         /// <summary>
+        /// Registers or refreshes this component's shortcut when its effective configuration changes.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task RegisterSearchShortcutAsync()
+        {
+            var shortcutKey = string.IsNullOrWhiteSpace(this.ShortcutKey)
+                ? "k"
+                : this.ShortcutKey;
+            var registrationSignature = this.GetShortcutRegistrationSignature(shortcutKey);
+
+            if (this.shortcutRegistered
+                && string.Equals(this.registeredShortcutSignature, registrationSignature, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            this.module ??= await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+
+            await this.module.InvokeVoidAsync(
+                "registerSearchShortcut",
+                this.shortcutRegistrationId,
+                this.FieldId,
+                new
+                {
+                    key = shortcutKey,
+                    requiresControlOrMeta = this.ShortcutRequiresControlOrMeta,
+                    requiresAlt = this.ShortcutRequiresAlt,
+                    requiresShift = this.ShortcutRequiresShift
+                });
+
+            this.registeredShortcutSignature = registrationSignature;
+            this.shortcutRegistered = true;
+        }
+
+        /// <summary>
+        /// Gets a signature representing the effective shortcut registration settings.
+        /// </summary>
+        /// <param name="shortcutKey">The effective shortcut key.</param>
+        /// <returns>The shortcut registration signature.</returns>
+        private string GetShortcutRegistrationSignature(string shortcutKey)
+        {
+            return $"{this.FieldId}\u001f{shortcutKey}\u001f{this.ShortcutRequiresControlOrMeta}"
+                   + $"\u001f{this.ShortcutRequiresAlt}\u001f{this.ShortcutRequiresShift}";
+        }
+
+        /// <summary>
+        /// Disposes only the shortcut registration owned by this component instance.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task DisposeSearchShortcutAsync()
+        {
+            if (this.module is null || !this.shortcutRegistered)
+            {
+                return;
+            }
+
+            await this.module.InvokeVoidAsync("disposeSearchShortcut", this.shortcutRegistrationId);
+
+            this.registeredShortcutSignature = null;
+            this.shortcutRegistered = false;
+        }
+
+        /// <summary>
         /// Asynchronously disposes the JavaScript shortcut registration.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
@@ -213,14 +275,18 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
             {
                 try
                 {
-                    await this.module.InvokeVoidAsync("disposeSearchShortcut");
+                    await this.DisposeSearchShortcutAsync();
                     await this.module.DisposeAsync();
-
-                    this.module = null;
                 }
                 catch (JSDisconnectedException)
                 {
                     // The circuit is already disconnected, so there is nothing left to clean up on the client.
+                }
+                finally
+                {
+                    this.module = null;
+                    this.registeredShortcutSignature = null;
+                    this.shortcutRegistered = false;
                 }
             }
         }

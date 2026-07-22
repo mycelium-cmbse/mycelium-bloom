@@ -20,18 +20,34 @@
     Required="@(this.Required)"
     ReadOnly="@(this.ReadOnly)"
     Class="@(this.GetCssClass())">
-    <textarea
-        @attributes="this.AdditionalAttributes"
-        id="@(this.FieldId)"
-        name="@(this.FieldName)"
-        class="@(this.GetFieldCssClass())"
-        placeholder="@(this.Placeholder)"
-        rows="@(this.GetRows())"
-        maxlength="@(this.GetMaxLength())"
-        disabled="@(this.Disabled)"
-        required="@(this.Required)"
-        readonly="@(this.ReadOnly)"
-        aria-invalid="@(this.AriaInvalid)"
-        aria-describedby="@(this.DescribedBy)"
-        @oninput="this.HandleInputAsync">@(this.Value)</textarea>
+    <div class="mb-text-area__control">
+        <textarea
+            @attributes="this.AdditionalAttributes"
+            id="@(this.FieldId)"
+            name="@(this.FieldName)"
+            class="@(this.GetFieldCssClass())"
+            placeholder="@(this.Placeholder)"
+            rows="@(this.GetRows())"
+            maxlength="@(this.GetMaxLength())"
+            disabled="@(this.Disabled)"
+            required="@(this.Required)"
+            readonly="@(this.ReadOnly)"
+            aria-invalid="@(this.AriaInvalid)"
+            aria-describedby="@(this.GetDescribedBy())"
+            @oninput="this.HandleInputAsync">@(this.Value)</textarea>
+
+        @if (this.ShowCharacterCount)
+        {
+            <span
+                id="@(this.GetCharacterCountId())"
+                class="mb-text-area__count"
+                aria-label="@(this.GetCharacterCountAriaLabel())">
+                @(this.GetCurrentLength())
+                @if (this.MaxLength > 0)
+                {
+                    <text> / @(this.MaxLength)</text>
+                }
+            </span>
+        }
+    </div>
 </FieldShell>

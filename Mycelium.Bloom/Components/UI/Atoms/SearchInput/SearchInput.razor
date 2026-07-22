@@ -36,7 +36,7 @@
 
     <input
         @attributes="this.AdditionalAttributes"
-        id="@(this.GetInputId())"
+        id="@(this.FieldId)"
         class="mb-search-input__field"
         type="search"
         value="@(this.Value)"
@@ -45,9 +45,9 @@
         @oninput="this.HandleInputAsync"
         @onkeydown="this.HandleKeyDownAsync"/>
 
-    @if (this.ShowShortcut && !string.IsNullOrWhiteSpace(this.ShortcutText))
+    @if (this.ShouldShowShortcut())
     {
-        <kbd class="mb-search-input__shortcut">
+        <kbd class="mb-search-input__shortcut" aria-hidden="true">
             @(this.ShortcutText)
         </kbd>
     }

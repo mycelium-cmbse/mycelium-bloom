@@ -65,6 +65,14 @@
     min-width: 0;
 }
 
+.mb-toggle__state-text {
+    flex: 0 0 auto;
+    color: var(--mb-color-text-secondary);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    font-weight: 500;
+}
+
 .mb-toggle__label {
     color: var(--mb-color-component-text);
     font-size: 13px;

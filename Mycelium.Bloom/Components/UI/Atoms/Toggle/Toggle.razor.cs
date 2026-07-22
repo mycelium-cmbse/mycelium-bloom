@@ -67,6 +67,24 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Toggle
         public bool Disabled { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether visible state text is displayed.
+        /// </summary>
+        [Parameter]
+        public bool ShowStateText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the visible state text used when the toggle is checked.
+        /// </summary>
+        [Parameter]
+        public string OnText { get; set; } = "On";
+
+        /// <summary>
+        /// Gets or sets the visible state text used when the toggle is unchecked.
+        /// </summary>
+        [Parameter]
+        public string OffText { get; set; } = "Off";
+
+        /// <summary>
         /// Gets the final CSS class list applied to the toggle wrapper.
         /// </summary>
         /// <returns>The toggle CSS class list.</returns>
@@ -112,6 +130,24 @@ namespace Mycelium.Bloom.Components.UI.Atoms.Toggle
         private string GetAriaChecked()
         {
             return this.Checked ? "true" : "false";
+        }
+
+        /// <summary>
+        /// Gets the visible text matching the current controlled state.
+        /// </summary>
+        /// <returns>The configured on or off text.</returns>
+        private string GetStateText()
+        {
+            return this.Checked ? this.OnText : this.OffText;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether configured state text should be displayed.
+        /// </summary>
+        /// <returns>True when state text is enabled and the current text is not blank; otherwise, false.</returns>
+        private bool ShouldShowStateText()
+        {
+            return this.ShowStateText && !string.IsNullOrWhiteSpace(this.GetStateText());
         }
 
         /// <summary>
