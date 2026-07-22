@@ -57,8 +57,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                     Is.EqualTo("Architecture header"));
                 Assert.That(component.Find("aside.mb-workspace-shell__left-panel").GetAttribute("aria-label"),
                     Is.EqualTo("Model navigation"));
-                Assert.That(component.Find("main.mb-workspace-shell__main").GetAttribute("aria-label"),
+                Assert.That(component.Find("div.mb-workspace-shell__main").GetAttribute("role"),
+                    Is.EqualTo("region"));
+                Assert.That(component.Find("div.mb-workspace-shell__main").GetAttribute("aria-label"),
                     Is.EqualTo("Diagram canvas"));
+                Assert.That(component.FindAll("main"), Is.Empty);
                 Assert.That(component.Find("aside.mb-workspace-shell__right-panel").GetAttribute("aria-label"),
                     Is.EqualTo("Element inspector"));
                 Assert.That(component.Find(".mb-workspace-shell__status").GetAttribute("aria-label"),
@@ -84,7 +87,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
             {
                 Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Is.Empty);
                 Assert.That(component.FindAll(".mb-workspace-shell__right-panel"), Is.Empty);
-                Assert.That(component.Find("main").TextContent, Does.Contain("Main remains"));
+                Assert.That(component.Find(".mb-workspace-shell__main").TextContent, Does.Contain("Main remains"));
             }
 
             component.Render(parameters => parameters
@@ -95,7 +98,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
             {
                 Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll(".mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
-                Assert.That(component.Find("main").TextContent, Does.Contain("Main remains"));
+                Assert.That(component.Find(".mb-workspace-shell__main").TextContent, Does.Contain("Main remains"));
             }
         }
 
@@ -114,7 +117,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 Assert.That(component.FindAll("aside"), Is.Empty);
                 Assert.That(component.FindAll(".mb-workspace-shell__status"), Is.Empty);
                 Assert.That(component.FindAll(".mb-workspace-shell__overlay"), Is.Empty);
-                Assert.That(component.Find("main").TextContent.Trim(), Is.EqualTo("Main only"));
+                Assert.That(component.Find(".mb-workspace-shell__main").TextContent.Trim(), Is.EqualTo("Main only"));
             }
         }
 
@@ -136,8 +139,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
             {
                 Assert.That(hiddenPanels.FindAll("aside"), Is.Empty);
                 Assert.That(visiblePanels.FindAll("aside"), Has.Count.EqualTo(1));
-                Assert.That(hiddenPanels.Find("main").TextContent, Does.Contain("First"));
-                Assert.That(visiblePanels.Find("main").TextContent, Does.Contain("Second"));
+                Assert.That(hiddenPanels.Find(".mb-workspace-shell__main").TextContent, Does.Contain("First"));
+                Assert.That(visiblePanels.Find(".mb-workspace-shell__main").TextContent, Does.Contain("Second"));
             }
         }
     }

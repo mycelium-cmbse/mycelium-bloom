@@ -9,10 +9,14 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
 {
+    using System.Threading.Tasks;
+
     using Bunit;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Tests.Common;
 
+    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
     using ProjectSwitcherComponent = Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher.ProjectSwitcher;
 
     /// <summary>
@@ -22,6 +26,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectSwitcherTestFixture : BunitContext
     {
+        /// <summary>
+        /// Configures the shared outside-click helper used by the project action menu.
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
+            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
@@ -50,6 +64,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                     Is.EqualTo("Flight systems"));
                 Assert.That(trigger.GetAttribute("aria-label"),
                     Is.EqualTo("Select project. Current project: Guidance"));
+                Assert.That(component.FindAll(".mb-action-menu__chevron svg"), Has.Count.EqualTo(1));
             }
 
             trigger.Click();
@@ -88,6 +103,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                 Assert.That(component.FindAll("[role='menu']"), Is.Empty);
                 Assert.That(component.Find(".mb-project-switcher__name").TextContent, Is.EqualTo("Guidance"));
             }
+        }
+
+        /// <summary>
+        /// Verifies that the inherited outside-click callback closes the project menu.
+        /// </summary>
+        [Test]
+        public async Task VerifyOutsideClickDismissesProjectMenu()
+        {
+            var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
+                .Add(projectSwitcher => projectSwitcher.Items, CreateItems())
+                .Add(projectSwitcher => projectSwitcher.SelectedProjectId, "project-a"));
+
+            component.Find("button").Click();
+
+            var actionMenu = component.FindComponent<ActionMenuComponent>();
+            await actionMenu.InvokeAsync(actionMenu.Instance.DismissFromOutsideClickAsync);
+
+            Assert.That(component.FindAll("[role='menu']"), Is.Empty);
         }
 
         /// <summary>

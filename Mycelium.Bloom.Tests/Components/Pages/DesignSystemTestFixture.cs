@@ -16,6 +16,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Pages;
+    using Mycelium.Bloom.Tests.Common;
 
     /// <summary>
     /// Tests the <see cref="DesignSystem" /> development showcase page.
@@ -47,6 +48,23 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "/design-system#organisms-heading",
             "/design-system#workspace-heading"
         ];
+
+        /// <summary>
+        /// Configures the focused input and outside-click JavaScript helpers.
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            var searchModule = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+            var registerHandler = searchModule.SetupVoid("registerSearchShortcut", invocation => true);
+            var disposeHandler = searchModule.SetupVoid("disposeSearchShortcut", invocation => true);
+
+            registerHandler.SetVoidResult();
+            disposeHandler.SetVoidResult();
+
+            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
+            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
+        }
 
         /// <summary>
         /// Disposes the bUnit test context after each test.
@@ -90,6 +108,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(sectionLinks, Is.EqualTo(ExpectedSectionLinks));
                 Assert.That(component.FindAll(".mb-avatar"), Is.Not.Empty);
                 Assert.That(component.FindAll(".mb-tabs"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#showcase-search-shortcut"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='search-input'] kbd"), Has.Count.EqualTo(2));
+                Assert.That(component.FindAll("#showcase-text-area-count"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#showcase-toggle + .mb-toggle__track + .mb-toggle__state-text"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='select-input'] [role='combobox']"), Has.Count.EqualTo(5));
+                Assert.That(component.FindAll("#showcase-select-secondary"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='toast-container']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll(".mb-toast-container"), Is.Empty);
                 Assert.That(component.FindAll("[data-component='app-header']"), Has.Count.EqualTo(1));
@@ -97,6 +122,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.FindAll("[data-component='canvas-toolbar']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='zoom-controls']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='status-bar']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-testid='split-button-normal']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-testid='split-button-disabled'] button:disabled"), Has.Count.EqualTo(2));
+                Assert.That(component.FindAll("[data-testid='split-button-loading'] .mb-button__spinner"), Has.Count.EqualTo(1));
             }
         }
 
@@ -111,7 +139,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             zoomExample.QuerySelector("button[aria-label='Zoom in']").Click();
             component.Find("#workspace-header-search").Input("interfaces");
-            component.Find("[data-component='canvas-toolbar'] button[aria-label='Select element']").Click();
+            component.Find("[data-component='canvas-toolbar'] button[aria-label='Move canvas']").Click();
             component.Find("[data-component='status-bar'] button[aria-label='Open status details']").Click();
             component.Find("#toggle-workspace-left-panel").Click();
             component.Find("#toggle-workspace-right-panel").Click();
@@ -120,13 +148,17 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             {
                 Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("125%"));
                 Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("interfaces"));
-                Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Select"));
+                Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Move"));
+                Assert.That(component.Find("[data-component='canvas-toolbar'] button[aria-label='Move canvas']")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+                Assert.That(component.Find("[data-component='canvas-toolbar'] button[aria-label='Select element']")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("false"));
                 Assert.That(component.Find("#status-bar-result").TextContent, Does.Contain("requested"));
                 Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__left-panel"), Is.Empty);
                 Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__right-panel"), Is.Empty);
                 Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Left panel: hidden"));
                 Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Right panel: hidden"));
-                Assert.That(component.Find("[data-component='workspace-shell'] main").TextContent,
+                Assert.That(component.Find("[data-component='workspace-shell'] .mb-workspace-shell__main").TextContent,
                     Does.Contain("Thermal control"));
             }
         }
@@ -167,7 +199,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             component.Find("#showcase-search-input").Input("interfaces");
             component.Find("#showcase-text-input").Input("Power subsystem");
-            component.Find("#showcase-select-input").Change("open");
+            component.Find("#showcase-select-input").Click();
+            component.FindAll("[data-component='select-input'] [role='option']")
+                .Single(option => option.TextContent.Trim() == "Open")
+                .Click();
             component.Find("#showcase-text-area").Input("Updated review note");
             component.Find("#showcase-checkbox").Change(false);
             component.Find("#showcase-toggle").Change(true);
@@ -178,8 +213,72 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Find("#text-input-result").TextContent, Does.Contain("Power subsystem"));
                 Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("open"));
                 Assert.That(component.Find("#text-area-result").TextContent, Does.Contain("Updated review note"));
+                Assert.That(component.Find("#showcase-text-area-count").TextContent, Does.Contain("19"));
                 Assert.That(component.Find("#checkbox-result").TextContent, Does.Contain("hidden"));
                 Assert.That(component.Find("#toggle-result").TextContent, Does.Contain("on"));
+                Assert.That(component.Find(".mb-toggle__state-text").TextContent, Is.EqualTo("Active"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the custom select examples open and update their parent-owned values independently.
+        /// </summary>
+        [Test]
+        public void VerifySelectExamplesRemainIndependent()
+        {
+            var component = this.Render<DesignSystem>();
+
+            component.Find("#showcase-select-secondary").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("#showcase-select-secondary + [role='listbox']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("#showcase-select-input + [role='listbox']"), Is.Empty);
+            }
+
+            component.FindAll("[data-component='select-input'] [role='option']")
+                .Single(option => option.TextContent.Contains("multiple engineering workspaces"))
+                .Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("review / verification"));
+                Assert.That(component.Find("#showcase-select-input").TextContent, Does.Contain("In review"));
+                Assert.That(component.Find("#showcase-select-secondary").TextContent,
+                    Does.Contain("Verification pending"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the shortcut showcase can dispose and restore the newest registration target.
+        /// </summary>
+        [Test]
+        public void VerifyShortcutExamplesExposeRegistrationLifecycle()
+        {
+            var component = this.Render<DesignSystem>();
+
+            component.Find("#showcase-search-shortcut").Input("primary value");
+            component.Find("#showcase-search-shortcut-secondary").Input("secondary value");
+            component.Find("#toggle-secondary-shortcut-search").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#showcase-search-shortcut").GetAttribute("value"),
+                    Is.EqualTo("primary value"));
+                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Is.Empty);
+                Assert.That(component.Find("#search-shortcut-result").TextContent,
+                    Does.Contain("primary (restored)"));
+            }
+
+            component.Find("#toggle-secondary-shortcut-search").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Has.Count.EqualTo(1));
+                Assert.That(component.Find("#showcase-search-shortcut-secondary").GetAttribute("value"),
+                    Is.EqualTo("secondary value"));
+                Assert.That(component.Find("#search-shortcut-result").TextContent,
+                    Does.Contain("secondary (newest)"));
             }
         }
 
@@ -224,6 +323,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             {
                 Assert.That(primaryMenu.QuerySelectorAll("[role='menu']"), Has.Count.EqualTo(1));
                 Assert.That(secondaryMenu.QuerySelectorAll("[role='menu']"), Has.Count.EqualTo(1));
+                Assert.That(primaryMenu.QuerySelector("[role='menu']").ClassList,
+                    Does.Contain("mb-action-menu__menu--start"));
+                Assert.That(secondaryMenu.QuerySelector("[role='menu']").ClassList,
+                    Does.Contain("mb-action-menu__menu--end"));
+                Assert.That(primaryMenu.QuerySelectorAll(".mb-action-menu__item-icon"),
+                    Has.Count.EqualTo(4));
+                Assert.That(primaryMenu.QuerySelectorAll(".mb-action-menu__item-label")
+                    .Any(label => label.TextContent.Contains("another architecture workspace")), Is.True);
+                Assert.That(secondaryMenu.QuerySelectorAll(".mb-action-menu__trigger-content"), Has.Count.EqualTo(1));
+                Assert.That(secondaryMenu.QuerySelectorAll(".mb-action-menu__chevron svg"), Has.Count.EqualTo(1));
             }
 
             component.Find("[data-testid='action-menu-primary'] [role='menuitem']").Click();

@@ -57,6 +57,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.CanvasToolbar
                 Assert.That(toolbar.ClassList, Does.Contain("mb-toolbar"));
                 Assert.That(toolbar.ClassList, Does.Contain("mb-toolbar--compact"));
                 Assert.That(toolbar.GetAttribute("aria-label"), Is.EqualTo("Diagram tools"));
+                Assert.That(toolbar.GetAttribute("aria-orientation"), Is.EqualTo("vertical"));
                 Assert.That(component.Find(".mb-toolbar__main").TextContent.Trim(), Is.EqualTo("Selection"));
             }
         }
@@ -70,8 +71,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.CanvasToolbar
             var component = this.Render<CanvasToolbarComponent>(parameters => parameters
                 .Add(component => component.ChildContent, "<span>Tools</span>"));
 
-            Assert.That(component.Find(".mb-canvas-toolbar").ClassList,
-                Does.Not.Contain("mb-canvas-toolbar--vertical"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find(".mb-canvas-toolbar").ClassList,
+                    Does.Not.Contain("mb-canvas-toolbar--vertical"));
+                Assert.That(component.Find("[role='toolbar']").GetAttribute("aria-orientation"),
+                    Is.EqualTo("horizontal"));
+            }
         }
     }
 }

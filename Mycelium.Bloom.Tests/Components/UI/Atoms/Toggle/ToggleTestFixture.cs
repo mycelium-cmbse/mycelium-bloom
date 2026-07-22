@@ -53,6 +53,47 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Toggle
         }
 
         /// <summary>
+        /// Verifies that visible state text remains opt-in.
+        /// </summary>
+        [Test]
+        public void VerifyRenderHidesStateTextByDefault()
+        {
+            var component = this.Render<ToggleComponent>(parameters => parameters
+                .Add(toggle => toggle.Checked, true)
+                .Add(toggle => toggle.OnText, "Enabled")
+                .Add(toggle => toggle.OffText, "Disabled"));
+
+            Assert.That(component.FindAll(".mb-toggle__state-text"), Is.Empty);
+        }
+
+        /// <summary>
+        /// Verifies that configured on and off text is visible without duplicating native switch announcements.
+        /// </summary>
+        /// <param name="isChecked">The checked state to render.</param>
+        /// <param name="expectedText">The expected visible state text.</param>
+        [TestCase(true, "Enabled")]
+        [TestCase(false, "Disabled")]
+        public void VerifyRenderDisplaysConfiguredStateText(bool isChecked, string expectedText)
+        {
+            var component = this.Render<ToggleComponent>(parameters => parameters
+                .Add(toggle => toggle.Checked, isChecked)
+                .Add(toggle => toggle.ShowStateText, true)
+                .Add(toggle => toggle.OnText, "Enabled")
+                .Add(toggle => toggle.OffText, "Disabled"));
+
+            var stateText = component.Find(".mb-toggle__state-text");
+            var input = component.Find("input");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(stateText.TextContent, Is.EqualTo(expectedText));
+                Assert.That(stateText.GetAttribute("aria-hidden"), Is.EqualTo("true"));
+                Assert.That(input.GetAttribute("type"), Is.EqualTo("checkbox"));
+                Assert.That(input.GetAttribute("role"), Is.EqualTo("switch"));
+            }
+        }
+
+        /// <summary>
         /// Verifies that native changes use the checked binding callback.
         /// </summary>
         [Test]

@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
 {
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Bunit;
@@ -17,7 +18,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.Tests.Common;
 
+    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
     using ButtonComponent = Mycelium.Bloom.Components.UI.Atoms.Button.Button;
     using SplitButtonComponent = Mycelium.Bloom.Components.UI.Molecules.SplitButton.SplitButton;
 
@@ -28,6 +31,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class SplitButtonTestFixture : BunitContext
     {
+        /// <summary>
+        /// Configures the shared outside-click helper used by the secondary action menu.
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
+            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
@@ -64,6 +77,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
                 Assert.That(root.GetAttribute("class"), Does.Contain("mb-split-button--large"));
                 Assert.That(primaryButton.GetAttribute("class"), Does.Contain("mb-button--danger"));
                 Assert.That(primaryButton.GetAttribute("class"), Does.Contain("mb-button--large"));
+                Assert.That(component.FindAll(".mb-split-button__actions"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-split-button__toggle"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-action-menu__chevron svg"), Has.Count.EqualTo(1));
+                Assert.That(component.Find(".mb-split-button__toggle").GetAttribute("aria-haspopup"),
+                    Is.EqualTo("menu"));
             }
         }
 
@@ -112,6 +130,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
                 .Add(component => component.ItemSelected, item => selectedItem = item));
 
             component.FindAll("button")[1].Click();
+
+            Assert.That(component.Find("[role='menu']").ClassList,
+                Does.Contain("mb-action-menu__menu--end"));
+
             component.FindAll("[role='menuitem']")[1].Click();
 
             using (Assert.EnterMultipleScope())
@@ -119,6 +141,78 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
                 Assert.That(selectedItem, Is.SameAs(items[1]));
                 Assert.That(component.FindAll("[role='menu']"), Is.Empty);
             }
+        }
+
+        /// <summary>
+        /// Verifies that the secondary menu inherits ActionMenu keyboard navigation and activation.
+        /// </summary>
+        [Test]
+        public void VerifySecondaryMenuInheritsKeyboardInteraction()
+        {
+            this.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            ActionMenuItem selectedItem = null;
+            var items = CreateItems();
+            var component = this.Render<SplitButtonComponent>(parameters => parameters
+                .Add(splitButton => splitButton.PrimaryText, "Publish")
+                .Add(splitButton => splitButton.Items, items)
+                .Add(splitButton => splitButton.ItemSelected, item => selectedItem = item));
+
+            component.FindAll("button")[1].KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+
+            var menuItems = component.FindAll("[role='menuitem']");
+
+            Assert.That(menuItems.All(item => item.GetAttribute("tabindex") == "-1"), Is.True);
+
+            menuItems[0].KeyDown(new KeyboardEventArgs { Key = " " });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectedItem, Is.SameAs(items[0]));
+                Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that Tab exits and dismisses the inherited secondary action menu.
+        /// </summary>
+        [Test]
+        public void VerifySecondaryMenuTabDismissesWithoutSelecting()
+        {
+            this.JSInterop.Mode = JSRuntimeMode.Loose;
+
+            var selectionCount = 0;
+            var component = this.Render<SplitButtonComponent>(parameters => parameters
+                .Add(splitButton => splitButton.PrimaryText, "Publish")
+                .Add(splitButton => splitButton.Items, CreateItems())
+                .Add(splitButton => splitButton.ItemSelected, _ => selectionCount++));
+
+            component.Find(".mb-split-button__toggle").KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
+            component.Find("[role='menuitem']").KeyDown(new KeyboardEventArgs { Key = "Tab" });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+                Assert.That(selectionCount, Is.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the inherited outside-click callback closes the secondary action menu.
+        /// </summary>
+        [Test]
+        public async Task VerifyOutsideClickDismissesSecondaryMenu()
+        {
+            var component = this.Render<SplitButtonComponent>(parameters => parameters
+                .Add(splitButton => splitButton.PrimaryText, "Publish")
+                .Add(splitButton => splitButton.Items, CreateItems()));
+
+            component.Find(".mb-split-button__toggle").Click();
+
+            var actionMenu = component.FindComponent<ActionMenuComponent>();
+            await actionMenu.InvokeAsync(actionMenu.Instance.DismissFromOutsideClickAsync);
+
+            Assert.That(component.FindAll("[role='menu']"), Is.Empty);
         }
 
         /// <summary>
