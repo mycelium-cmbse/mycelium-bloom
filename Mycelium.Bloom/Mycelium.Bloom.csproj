@@ -36,9 +36,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OpenTelemetry" Version="1.16.0"/>
-        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.16.0"/>
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0"/>
+        <PackageReference Include="OpenTelemetry" Version="1.17.0"/>
+        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0"/>
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0"/>
         <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.22.0"/>
     </ItemGroup>
 
