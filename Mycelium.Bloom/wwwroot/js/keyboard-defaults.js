@@ -8,9 +8,7 @@ export function registerKeyPrevention(rootElement, rules) {
             return;
         }
 
-        const matchingRule = rules.find(rule => matchesRule(rootElement, event.target, event.key, rule));
-
-        if (matchingRule) {
+        if (rules.some(rule => matchesRule(rootElement, event.target, event.key, rule))) {
             event.preventDefault();
         }
     };

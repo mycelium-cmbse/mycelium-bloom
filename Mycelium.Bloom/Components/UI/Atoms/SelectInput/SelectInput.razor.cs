@@ -474,9 +474,14 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SelectInput
         {
             var selectedIndex = this.FindSelectedEnabledIndex();
 
-            return selectedIndex >= 0
-                ? selectedIndex
-                : this.FindEnabledIndex(direction > 0 ? 0 : this.optionList.Count - 1, direction);
+            if (selectedIndex >= 0)
+            {
+                return selectedIndex;
+            }
+
+            var startIndex = direction > 0 ? 0 : this.optionList.Count - 1;
+
+            return this.FindEnabledIndex(startIndex, direction);
         }
 
         /// <summary>

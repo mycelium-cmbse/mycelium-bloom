@@ -82,8 +82,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.Tabs
 
             component.FindAll("[role='tab']")[1].Click();
 
-            Assert.That(activeValue, Is.EqualTo("history"));
-            Assert.That(component.FindAll("[role='tab']")[0].GetAttribute("aria-selected"), Is.EqualTo("true"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(activeValue, Is.EqualTo("history"));
+                Assert.That(component.FindAll("[role='tab']")[0].GetAttribute("aria-selected"), Is.EqualTo("true"));
+            }
 
             component.Render(parameters => parameters
                 .Add(tabComponent => tabComponent.ActiveValue, activeValue));

@@ -25,6 +25,16 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
     public partial class ActionMenu : BloomComponentBase, IAsyncDisposable
     {
         /// <summary>
+        /// The standard downward-arrow key value.
+        /// </summary>
+        private const string ArrowDownKey = "ArrowDown";
+
+        /// <summary>
+        /// The standard upward-arrow key value.
+        /// </summary>
+        private const string ArrowUpKey = "ArrowUp";
+
+        /// <summary>
         /// The generated stable identifier shared by the trigger and menu.
         /// </summary>
         private readonly string generatedId = CreateGeneratedId("mb-action-menu");
@@ -214,9 +224,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                     [
                         new KeyboardDefaultPreventionRule(
                             ".mb-action-menu__trigger",
-                            "ArrowDown",
+                            ArrowDownKey,
                             "Down",
-                            "ArrowUp",
+                            ArrowUpKey,
                             "Up"),
                         new KeyboardDefaultPreventionRule(
                             "[role='menuitem'], [role='menuitemradio']",
@@ -224,9 +234,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                             " ",
                             "Space",
                             "Spacebar",
-                            "ArrowDown",
+                            ArrowDownKey,
                             "Down",
-                            "ArrowUp",
+                            ArrowUpKey,
                             "Up",
                             "Home",
                             "End")
@@ -453,11 +463,11 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         {
             switch (args.Key)
             {
-                case "ArrowDown":
+                case ArrowDownKey:
                 case "Down":
                     await this.OpenMenuAsync(this.FindEnabledIndex(0, 1), true);
                     break;
-                case "ArrowUp":
+                case ArrowUpKey:
                 case "Up":
                     await this.OpenMenuAsync(this.FindEnabledIndex(this.Items.Count - 1, -1), true);
                     break;
@@ -490,11 +500,11 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
                     }
 
                     break;
-                case "ArrowDown":
+                case ArrowDownKey:
                 case "Down":
                     this.FocusItem(this.FindNextEnabledIndex(itemIndex, 1));
                     break;
-                case "ArrowUp":
+                case ArrowUpKey:
                 case "Up":
                     this.FocusItem(this.FindNextEnabledIndex(itemIndex, -1));
                     break;

@@ -94,18 +94,6 @@
         grid-column: 1;
     }
 
-    .mb-workspace-shell__left-panel {
-        grid-row: 1;
-    }
-
-    .mb-workspace-shell__main {
-        grid-row: 2;
-    }
-
-    .mb-workspace-shell__right-panel {
-        grid-row: 3;
-    }
-
     .mb-workspace-shell__left-panel,
     .mb-workspace-shell__right-panel {
         height: auto;
@@ -114,16 +102,19 @@
         max-height: 12rem;
     }
 
-    .mb-workspace-shell__main {
-        height: auto;
-    }
-
     .mb-workspace-shell__left-panel {
+        grid-row: 1;
         border-right: 0;
         border-bottom: 1px solid var(--mb-color-component-border);
     }
 
+    .mb-workspace-shell__main {
+        grid-row: 2;
+        height: auto;
+    }
+
     .mb-workspace-shell__right-panel {
+        grid-row: 3;
         border-top: 1px solid var(--mb-color-component-border);
         border-left: 0;
     }

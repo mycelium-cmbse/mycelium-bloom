@@ -23,6 +23,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
     public sealed class ZoomControlsTestFixture : BunitContext
     {
         /// <summary>
+        /// The expected controlled zoom requests.
+        /// </summary>
+        private static readonly double[] ExpectedZoomRequests = [150d, 100d];
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -51,7 +56,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find("output").TextContent.Trim(), Is.EqualTo("125%"));
-                Assert.That(requestedZooms, Is.EqualTo(new[] { 150d, 100d }));
+                Assert.That(requestedZooms, Is.EqualTo(ExpectedZoomRequests));
                 Assert.That(component.Find("[role='toolbar']").GetAttribute("aria-label"),
                     Is.EqualTo("Canvas zoom controls"));
             }
