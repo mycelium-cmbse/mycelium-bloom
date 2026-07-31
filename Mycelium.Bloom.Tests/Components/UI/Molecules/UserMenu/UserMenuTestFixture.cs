@@ -17,7 +17,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
     using Mycelium.Bloom.Tests.Common;
 
     using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
-    using AvatarComponent = Mycelium.Bloom.Components.UI.Atoms.Avatar.Avatar;
     using UserMenuComponent = Mycelium.Bloom.Components.UI.Molecules.UserMenu.UserMenu;
 
     /// <summary>
@@ -60,7 +59,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.FindComponent<AvatarComponent>().Instance.Text, Is.EqualTo("AM"));
+                Assert.That(component.Find(".mb-user-menu__avatar-fallback").TextContent.Trim(), Is.EqualTo("AM"));
                 Assert.That(component.Find(".mb-user-menu__name").TextContent, Is.EqualTo("Alex Morgan"));
                 Assert.That(component.Find(".mb-user-menu__subtitle").TextContent, Is.EqualTo("alex@example.test"));
                 Assert.That(component.Find("button").GetAttribute("aria-label"),
@@ -130,7 +129,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
                 Assert.That(component.Find(".mb-user-menu").GetAttribute("class"),
                     Does.Contain("mb-user-menu--compact"));
                 Assert.That(component.FindAll(".mb-user-menu__identity"), Is.Empty);
-                Assert.That(component.FindComponent<AvatarComponent>().Instance.Text, Is.EqualTo("AM"));
+                Assert.That(component.Find(".mb-user-menu__avatar-fallback").TextContent.Trim(), Is.EqualTo("AM"));
                 Assert.That(component.FindAll(".mb-action-menu__chevron"), Has.Count.EqualTo(1));
             }
         }

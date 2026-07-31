@@ -10,10 +10,11 @@
 @page "/design-system"
 
 @using Mycelium.Bloom.Components.UI.Molecules.Tabs
+@using BlazorBlueprint.Icons.Lucide.Components
 
 <PageTitle>Bloom Design System</PageTitle>
 
-<main class="mb-design-system">
+<div class="mb-design-system">
     <header class="mb-design-system__page-header">
         <div class="mb-design-system__header-copy">
             <p class="mb-design-system__eyebrow">Development reference</p>
@@ -23,7 +24,30 @@
             </p>
         </div>
 
-        <Chip Variant="ChipVariant.Info">Local sample data</Chip>
+        <div class="mb-design-system__header-actions">
+            <BlazorBlueprint.Components.BbBadge
+                Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                Class="mb-design-system__badge mb-design-system__badge--info">
+                Local sample data
+            </BlazorBlueprint.Components.BbBadge>
+
+            <div class="mb-design-system__theme-control"
+                 role="group"
+                 aria-label="Preview color theme">
+                <button type="button"
+                        class="@(this.GetThemeButtonCssClass("light"))"
+                        aria-pressed="@(this.GetThemeAriaPressed("light"))"
+                        @onclick='() => this.SetThemeAsync("light")'>
+                    Light
+                </button>
+                <button type="button"
+                        class="@(this.GetThemeButtonCssClass("dark"))"
+                        aria-pressed="@(this.GetThemeAriaPressed("dark"))"
+                        @onclick='() => this.SetThemeAsync("dark")'>
+                    Dark
+                </button>
+            </div>
+        </div>
 
         <nav class="mb-design-system__section-nav" aria-label="Design system sections">
             <a href="/design-system#foundation-heading">01 Foundation</a>
@@ -102,15 +126,54 @@
         <div class="mb-design-system__grid">
             <article class="mb-design-system__example" data-component="avatar">
                 <header class="mb-design-system__example-heading">
-                    <h3>Avatar</h3>
+                    <h3>Blueprint avatars</h3>
                     <p>Initials and collaborator overflow at every supported size.</p>
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <Avatar Text="AL" Title="Alex Lee" Size="AvatarSize.Small" BackgroundColor="var(--mb-color-collaborator-c06)" />
-                    <Avatar Text="MO" Title="Morgan Ortiz" Size="AvatarSize.Medium" BackgroundColor="var(--mb-color-collaborator-c08)" />
-                    <Avatar Text="SK" Title="Sam Kim" Size="AvatarSize.Large" BackgroundColor="var(--mb-color-collaborator-c10)" />
-                    <Avatar Text="+4" Title="Four more collaborators" Size="AvatarSize.Medium" Variant="AvatarVariant.More" />
+                    <span class="mb-design-system__avatar-frame"
+                          style="--mb-design-system-avatar-background: var(--mb-color-collaborator-c06)"
+                          title="Alex Lee">
+                        <BlazorBlueprint.Components.BbAvatar
+                            Size="BlazorBlueprint.Components.AvatarSize.Small"
+                            Class="mb-design-system__avatar mb-design-system__avatar--compact">
+                            <BlazorBlueprint.Components.BbAvatarFallback Class="mb-design-system__avatar-fallback">
+                                AL
+                            </BlazorBlueprint.Components.BbAvatarFallback>
+                        </BlazorBlueprint.Components.BbAvatar>
+                    </span>
+                    <span class="mb-design-system__avatar-frame"
+                          style="--mb-design-system-avatar-background: var(--mb-color-collaborator-c08)"
+                          title="Morgan Ortiz">
+                        <BlazorBlueprint.Components.BbAvatar
+                            Size="BlazorBlueprint.Components.AvatarSize.Small"
+                            Class="mb-design-system__avatar">
+                            <BlazorBlueprint.Components.BbAvatarFallback Class="mb-design-system__avatar-fallback">
+                                MO
+                            </BlazorBlueprint.Components.BbAvatarFallback>
+                        </BlazorBlueprint.Components.BbAvatar>
+                    </span>
+                    <span class="mb-design-system__avatar-frame"
+                          style="--mb-design-system-avatar-background: var(--mb-color-collaborator-c10)"
+                          title="Sam Kim">
+                        <BlazorBlueprint.Components.BbAvatar
+                            Size="BlazorBlueprint.Components.AvatarSize.Default"
+                            Class="mb-design-system__avatar">
+                            <BlazorBlueprint.Components.BbAvatarFallback Class="mb-design-system__avatar-fallback">
+                                SK
+                            </BlazorBlueprint.Components.BbAvatarFallback>
+                        </BlazorBlueprint.Components.BbAvatar>
+                    </span>
+                    <span class="mb-design-system__avatar-frame mb-design-system__avatar-frame--more"
+                          title="Four more collaborators">
+                        <BlazorBlueprint.Components.BbAvatar
+                            Size="BlazorBlueprint.Components.AvatarSize.Small"
+                            Class="mb-design-system__avatar">
+                            <BlazorBlueprint.Components.BbAvatarFallback Class="mb-design-system__avatar-fallback">
+                                +4
+                            </BlazorBlueprint.Components.BbAvatarFallback>
+                        </BlazorBlueprint.Components.BbAvatar>
+                    </span>
                 </div>
             </article>
 
@@ -122,78 +185,184 @@
 
                 <div class="mb-design-system__stack">
                     <div class="mb-design-system__inline-group">
-                        <Button Variant="ButtonVariant.Primary">Primary</Button>
-                        <Button Variant="ButtonVariant.Secondary">Secondary</Button>
-                        <Button Variant="ButtonVariant.Ghost">Ghost</Button>
-                        <Button Variant="ButtonVariant.Danger">Danger</Button>
+                        <BlazorBlueprint.Components.BbButton>Primary</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Secondary">Secondary</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost">Ghost</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Destructive">Danger</BlazorBlueprint.Components.BbButton>
                     </div>
                     <div class="mb-design-system__inline-group">
-                        <Button Size="ButtonSize.Small">Small</Button>
-                        <Button Size="ButtonSize.Medium">Medium</Button>
-                        <Button Size="ButtonSize.Large">Large</Button>
-                        <Button Disabled="true">Disabled</Button>
-                        <Button IsLoading="true">Loading</Button>
+                        <BlazorBlueprint.Components.BbButton Size="BlazorBlueprint.Components.ButtonSize.Small">Small</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton>Default</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton Size="BlazorBlueprint.Components.ButtonSize.Large">Large</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton Disabled="true">Disabled</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton Loading="true" LoadingText="Loading">Loading</BlazorBlueprint.Components.BbButton>
                     </div>
                     <div class="mb-design-system__inline-group">
-                        <Button Variant="ButtonVariant.Secondary">
-                            <StartIcon><span aria-hidden="true">+</span></StartIcon>
+                        <BlazorBlueprint.Components.BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Secondary">
+                            <Icon>
+                                <LucideIcon Name="plus"
+                                            Size="16"
+                                            StrokeWidth="1.75"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </Icon>
                             <ChildContent>Add element</ChildContent>
-                        </Button>
-                        <Button Variant="ButtonVariant.Ghost">
+                        </BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            IconPosition="BlazorBlueprint.Components.IconPosition.End">
+                            <Icon>
+                                <LucideIcon Name="arrow-right"
+                                            Size="16"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </Icon>
                             <ChildContent>Continue</ChildContent>
-                            <EndIcon><span aria-hidden="true">→</span></EndIcon>
-                        </Button>
+                        </BlazorBlueprint.Components.BbButton>
                     </div>
                 </div>
             </article>
 
             <article class="mb-design-system__example" data-component="chip">
                 <header class="mb-design-system__example-heading">
-                    <h3>Chip</h3>
+                    <h3>Blueprint badges</h3>
                     <p>Status, ownership, lifecycle, and custom-color labels.</p>
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <Chip>Default</Chip>
-                    <Chip Variant="ChipVariant.Info">Info</Chip>
-                    <Chip Variant="ChipVariant.Success">Success</Chip>
-                    <Chip Variant="ChipVariant.Warning">Warning</Chip>
-                    <Chip Variant="ChipVariant.Danger">Danger</Chip>
-                    <Chip Variant="ChipVariant.Ownership" Color="var(--mb-color-ownership-aocs)">AOCS</Chip>
-                    <Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-review)">In review</Chip>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Secondary"
+                        Class="mb-design-system__badge">
+                        Default
+                    </BlazorBlueprint.Components.BbBadge>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                        Class="mb-design-system__badge mb-design-system__badge--info">
+                        Info
+                    </BlazorBlueprint.Components.BbBadge>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                        Class="mb-design-system__badge mb-design-system__badge--success">
+                        Success
+                    </BlazorBlueprint.Components.BbBadge>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                        Class="mb-design-system__badge mb-design-system__badge--warning">
+                        Warning
+                    </BlazorBlueprint.Components.BbBadge>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Destructive"
+                        Class="mb-design-system__badge">
+                        Danger
+                    </BlazorBlueprint.Components.BbBadge>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Secondary"
+                        Class="mb-design-system__badge">
+                        <span class="mb-design-system__badge-dot"
+                              style="background: var(--mb-color-ownership-aocs)"
+                              aria-hidden="true"></span>
+                        AOCS
+                    </BlazorBlueprint.Components.BbBadge>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                        Class="mb-design-system__badge mb-design-system__badge--lifecycle">
+                        <span class="mb-design-system__badge-dot"
+                              style="background: var(--mb-color-lifecycle-review)"
+                              aria-hidden="true"></span>
+                        In review
+                    </BlazorBlueprint.Components.BbBadge>
                 </div>
             </article>
 
             <article class="mb-design-system__example" data-component="icon-button">
                 <header class="mb-design-system__example-heading">
-                    <h3>IconButton</h3>
+                    <h3>Blueprint icon buttons</h3>
                     <p>Accessible icon-only actions in enabled and disabled states.</p>
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <IconButton AriaLabel="Add model element" Title="Add model element"><span aria-hidden="true">+</span></IconButton>
-                    <IconButton AriaLabel="Edit selection" Title="Edit selection"><span aria-hidden="true">✎</span></IconButton>
-                    <IconButton AriaLabel="Remove selection" Title="Remove selection"><span aria-hidden="true">×</span></IconButton>
-                    <IconButton AriaLabel="Unavailable action" Title="Unavailable action" Disabled="true"><span aria-hidden="true">⋯</span></IconButton>
+                    <BlazorBlueprint.Components.BbButton
+                        Type="BlazorBlueprint.Components.ButtonType.Button"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                        AriaLabel="Add model element"
+                        title="Add model element">
+                        <LucideIcon Name="plus"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </BlazorBlueprint.Components.BbButton>
+                    <BlazorBlueprint.Components.BbButton
+                        Type="BlazorBlueprint.Components.ButtonType.Button"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                        AriaLabel="Edit selection"
+                        title="Edit selection">
+                        <LucideIcon Name="pencil"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </BlazorBlueprint.Components.BbButton>
+                    <BlazorBlueprint.Components.BbButton
+                        Type="BlazorBlueprint.Components.ButtonType.Button"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                        AriaLabel="Remove selection"
+                        title="Remove selection">
+                        <LucideIcon Name="x"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </BlazorBlueprint.Components.BbButton>
+                    <BlazorBlueprint.Components.BbButton
+                        Type="BlazorBlueprint.Components.ButtonType.Button"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                        AriaLabel="Unavailable action"
+                        title="Unavailable action"
+                        Disabled="true">
+                        <LucideIcon Name="ellipsis"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </BlazorBlueprint.Components.BbButton>
                 </div>
             </article>
 
-            <article class="mb-design-system__example" data-component="panel">
+            <article class="mb-design-system__example" data-component="card">
                 <header class="mb-design-system__example-heading">
-                    <h3>Panel</h3>
-                    <p>Surface composition with supported padding options.</p>
+                    <h3>Blueprint cards</h3>
+                    <p>Direct styled surfaces with local content composition.</p>
                 </header>
 
                 <div class="mb-design-system__panel-grid">
-                    <Panel Padding="PanelPadding.Small">
+                    <BlazorBlueprint.Components.BbCard
+                        Class="mb-design-system__card mb-design-system__card--compact">
                         <p class="mb-design-system__compact-copy">Small padding for dense supporting content.</p>
-                    </Panel>
-                    <Panel Padding="PanelPadding.Medium">
-                        <SectionHeader Label="Properties">
-                            <Actions><Chip Variant="ChipVariant.Info">12</Chip></Actions>
-                        </SectionHeader>
+                    </BlazorBlueprint.Components.BbCard>
+                    <BlazorBlueprint.Components.BbCard Class="mb-design-system__card">
+                        <div class="mb-design-system__section-header">
+                            <span class="mb-design-system__section-header-label">Properties</span>
+                            <div class="mb-design-system__section-header-actions">
+                                <BlazorBlueprint.Components.BbBadge
+                                    Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                                    Class="mb-design-system__badge mb-design-system__badge--info">
+                                    12
+                                </BlazorBlueprint.Components.BbBadge>
+                            </div>
+                        </div>
                         <p class="mb-design-system__compact-copy">Header and content composed inside the default panel.</p>
-                    </Panel>
+                    </BlazorBlueprint.Components.BbCard>
                 </div>
             </article>
 
@@ -235,12 +404,14 @@
                                          FullWidth="true" />
                         }
 
-                        <Button id="toggle-secondary-shortcut-search"
-                                Variant="ButtonVariant.Secondary"
-                                Size="ButtonSize.Small"
-                                OnClick="this.ToggleSecondaryShortcutSearch">
+                        <BlazorBlueprint.Components.BbButton
+                            id="toggle-secondary-shortcut-search"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            Class="mb-design-system__shortcut-toggle"
+                            OnClick="this.ToggleSecondaryShortcutSearch">
                             @(this.SecondaryShortcutSearchVisible ? "Remove newest target" : "Restore newest target")
-                        </Button>
+                        </BlazorBlueprint.Components.BbButton>
                     </div>
                 </div>
                 <p id="search-input-result" class="mb-design-system__result">Current search: @this.SearchValue</p>
@@ -249,52 +420,131 @@
                 </p>
             </article>
 
-            <article class="mb-design-system__example" data-component="section-header">
+            <article class="mb-design-system__example" data-component="section-header-composition">
                 <header class="mb-design-system__example-heading">
-                    <h3>SectionHeader</h3>
-                    <p>Compact section labels with optional supporting actions.</p>
+                    <h3>Section header composition</h3>
+                    <p>Ordinary semantic markup with optional supporting actions.</p>
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <SectionHeader Label="Relationships" />
-                    <SectionHeader Label="Owned elements">
-                        <Actions>
-                            <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small">Add</Button>
-                        </Actions>
-                    </SectionHeader>
+                    <div class="mb-design-system__section-header">
+                        <span class="mb-design-system__section-header-label">Relationships</span>
+                    </div>
+                    <div class="mb-design-system__section-header">
+                        <span class="mb-design-system__section-header-label">Owned elements</span>
+                        <div class="mb-design-system__section-header-actions">
+                            <BlazorBlueprint.Components.BbButton
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                Size="BlazorBlueprint.Components.ButtonSize.Small">
+                                Add
+                            </BlazorBlueprint.Components.BbButton>
+                        </div>
+                    </div>
                 </div>
             </article>
 
             <article class="mb-design-system__example" data-component="skeleton">
                 <header class="mb-design-system__example-heading">
-                    <h3>Skeleton</h3>
+                    <h3>Blueprint skeletons</h3>
                     <p>Text, circle, rectangle, multiple lines, and custom dimensions.</p>
                 </header>
 
                 <div class="mb-design-system__skeleton-layout">
-                    <Skeleton Variant="SkeletonVariant.Circle" Width="40px" Height="40px" />
-                    <div class="mb-design-system__skeleton-copy">
-                        <Skeleton Lines="3" />
+                    <BlazorBlueprint.Components.BbSkeleton
+                        Shape="BlazorBlueprint.Components.SkeletonShape.Circular"
+                        Width="40px"
+                        Height="40px" />
+                    <div class="mb-design-system__skeleton-copy"
+                         role="status"
+                         aria-label="Loading content"
+                         aria-busy="true">
+                        <BlazorBlueprint.Components.BbSkeleton Width="100%" Height="12px" />
+                        <BlazorBlueprint.Components.BbSkeleton Width="100%" Height="12px" />
+                        <BlazorBlueprint.Components.BbSkeleton Width="72%" Height="12px" />
                     </div>
-                    <Skeleton Variant="SkeletonVariant.Rectangle" Width="96px" Height="56px" />
+                    <BlazorBlueprint.Components.BbSkeleton Width="96px" Height="56px" />
                 </div>
             </article>
 
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="text-input">
                 <header class="mb-design-system__example-heading">
-                    <h3>TextInput</h3>
+                    <h3>Blueprint text inputs</h3>
                     <p>Labels, guidance, validation, access states, adornments, and live binding.</p>
                 </header>
 
                 <div class="mb-design-system__form-grid">
-                    <TextInput Id="showcase-text-input" Label="Element name" Value="@this.TextInputValue" ValueChanged="this.HandleTextInputValueChanged" HelpText="Use a concise engineering name." Required="true">
-                        <LeadingContent><span aria-hidden="true">#</span></LeadingContent>
-                        <TrailingContent><span aria-hidden="true">✓</span></TrailingContent>
-                    </TextInput>
-                    <TextInput Id="showcase-text-placeholder" Label="Owner" Placeholder="Select an owner" />
-                    <TextInput Id="showcase-text-error" Label="Identifier" Value="invalid value" ErrorText="Use letters, numbers, and hyphens only." />
-                    <TextInput Id="showcase-text-disabled" Label="Generated ID" Value="SYS-042" Disabled="true" />
-                    <TextInput Id="showcase-text-readonly" Label="Qualified name" Value="Platform::Thermal" ReadOnly="true" />
+                    <FieldShell ControlId="showcase-text-input"
+                                Label="Element name"
+                                HelpText="Use a concise engineering name."
+                                HelpTextId="showcase-text-input-help"
+                                Required="true">
+                        <BlazorBlueprint.Components.BbInputGroup Class="mb-design-system__input-group">
+                            <BlazorBlueprint.Components.BbInputGroupAddon
+                                Align="BlazorBlueprint.Components.InputGroupAlign.InlineStart">
+                                <span aria-hidden="true">#</span>
+                            </BlazorBlueprint.Components.BbInputGroupAddon>
+                            <BlazorBlueprint.Components.BbInputGroupInput
+                                Id="showcase-text-input"
+                                Value="@this.TextInputValue"
+                                ValueChanged="this.HandleTextInputValueChanged"
+                                UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
+                                Required="true"
+                                AriaDescribedBy="showcase-text-input-help" />
+                            <BlazorBlueprint.Components.BbInputGroupAddon
+                                Align="BlazorBlueprint.Components.InputGroupAlign.InlineEnd">
+                                <LucideIcon Name="check"
+                                            Size="16"
+                                            StrokeWidth="1.75"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </BlazorBlueprint.Components.BbInputGroupAddon>
+                        </BlazorBlueprint.Components.BbInputGroup>
+                    </FieldShell>
+                    <FieldShell ControlId="showcase-text-placeholder" Label="Owner">
+                        <BlazorBlueprint.Components.BbInputGroup Class="mb-design-system__input-group">
+                            <BlazorBlueprint.Components.BbInputGroupInput
+                                Id="showcase-text-placeholder"
+                                Placeholder="Select an owner"
+                                UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate" />
+                        </BlazorBlueprint.Components.BbInputGroup>
+                    </FieldShell>
+                    <FieldShell ControlId="showcase-text-error"
+                                Label="Identifier"
+                                ErrorText="Use letters, numbers, and hyphens only."
+                                ErrorTextId="showcase-text-error-error">
+                        <BlazorBlueprint.Components.BbInputGroup Class="mb-design-system__input-group">
+                            <BlazorBlueprint.Components.BbInputGroupInput
+                                Id="showcase-text-error"
+                                Value="invalid value"
+                                UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
+                                AriaInvalid="true"
+                                AriaDescribedBy="showcase-text-error-error" />
+                        </BlazorBlueprint.Components.BbInputGroup>
+                    </FieldShell>
+                    <FieldShell ControlId="showcase-text-disabled"
+                                Label="Generated ID"
+                                Disabled="true">
+                        <BlazorBlueprint.Components.BbInputGroup Class="mb-design-system__input-group">
+                            <BlazorBlueprint.Components.BbInputGroupInput
+                                Id="showcase-text-disabled"
+                                Value="SYS-042"
+                                UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
+                                Disabled="true" />
+                        </BlazorBlueprint.Components.BbInputGroup>
+                    </FieldShell>
+                    <FieldShell ControlId="showcase-text-readonly"
+                                Label="Qualified name"
+                                ReadOnly="true">
+                        <BlazorBlueprint.Components.BbInputGroup
+                            Class="mb-design-system__input-group mb-design-system__input-group--readonly">
+                            <BlazorBlueprint.Components.BbInputGroupInput
+                                Id="showcase-text-readonly"
+                                Value="Platform::Thermal"
+                                UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
+                                readonly="true" />
+                        </BlazorBlueprint.Components.BbInputGroup>
+                    </FieldShell>
                 </div>
                 <p id="text-input-result" class="mb-design-system__result">Current value: @this.TextInputValue</p>
             </article>
@@ -306,10 +556,29 @@
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <SelectInput Id="showcase-select-default" Label="Default state" Placeholder="Choose a state" Options="this.SelectOptions" />
+                    <SelectInput Id="showcase-select-default"
+                                 Label="Default state"
+                                 Placeholder="Choose a state"
+                                 Options="this.SelectOptions" />
                     <div class="mb-design-system__form-grid">
                         <SelectInput Id="showcase-select-input" Label="Primary lifecycle state" Placeholder="Choose a state" Options="this.SelectOptions" Value="@this.SelectValue" ValueChanged="this.HandleSelectValueChanged" />
                         <SelectInput Id="showcase-select-secondary" Label="Independent lifecycle state" Placeholder="Choose a state" Options="this.SelectOptions" Value="@this.SecondarySelectValue" ValueChanged="this.HandleSecondarySelectValueChanged" />
+                    </div>
+                    <div class="mb-design-system__inline-group">
+                        <BlazorBlueprint.Components.BbButton
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            data-testid="set-primary-select-open"
+                            OnClick="this.SetPrimarySelectToOpen">
+                            Set primary to Open
+                        </BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            data-testid="reset-primary-select"
+                            OnClick="this.ResetPrimarySelect">
+                            Reset primary
+                        </BlazorBlueprint.Components.BbButton>
                     </div>
                     <SelectInput Id="showcase-select-error" Label="Review state" Placeholder="Choose a state" Options="this.SelectOptions" ErrorText="A lifecycle state is required." Required="true" />
                     <SelectInput Id="showcase-select-disabled" Label="Locked state" Options="this.SelectOptions" Value="archived" Disabled="true" />
@@ -350,14 +619,56 @@
 
             <article class="mb-design-system__example" data-component="toggle">
                 <header class="mb-design-system__example-heading">
-                    <h3>Toggle</h3>
+                    <h3>Blueprint switches</h3>
                     <p>Checked, unchecked, optional state text, disabled, descriptive, and live-bound states.</p>
                 </header>
 
                 <div class="mb-design-system__stack">
-                    <Toggle Id="showcase-toggle" Label="Live collaboration" Description="Display collaborator presence in this workspace." Checked="@this.ToggleChecked" CheckedChanged="this.HandleToggleChanged" ShowStateText="true" OnText="Active" OffText="Paused" />
-                    <Toggle Id="showcase-toggle-checked" Label="Automatic layout" Checked="true" />
-                    <Toggle Id="showcase-toggle-disabled" Label="Protected branch" Description="Controlled by project policy." Checked="true" Disabled="true" />
+                    <label class="mb-design-system__switch" for="showcase-toggle">
+                        <BlazorBlueprint.Components.BbSwitch
+                            Id="showcase-toggle"
+                            Checked="@this.ToggleChecked"
+                            CheckedChanged="this.HandleToggleChanged"
+                            Size="BlazorBlueprint.Components.SwitchSize.Small"
+                            AriaLabel="Live collaboration"
+                            AriaDescribedBy="showcase-toggle-description" />
+                        <span class="mb-design-system__switch-state" aria-hidden="true">
+                            @(this.ToggleChecked ? "Active" : "Paused")
+                        </span>
+                        <span class="mb-design-system__switch-content">
+                            <span class="mb-design-system__switch-label">Live collaboration</span>
+                            <span id="showcase-toggle-description" class="mb-design-system__switch-description">
+                                Display collaborator presence in this workspace.
+                            </span>
+                        </span>
+                    </label>
+                    <label class="mb-design-system__switch" for="showcase-toggle-checked">
+                        <BlazorBlueprint.Components.BbSwitch
+                            Id="showcase-toggle-checked"
+                            Checked="true"
+                            Size="BlazorBlueprint.Components.SwitchSize.Small"
+                            AriaLabel="Automatic layout" />
+                        <span class="mb-design-system__switch-content">
+                            <span class="mb-design-system__switch-label">Automatic layout</span>
+                        </span>
+                    </label>
+                    <label class="mb-design-system__switch mb-design-system__switch--disabled"
+                           for="showcase-toggle-disabled">
+                        <BlazorBlueprint.Components.BbSwitch
+                            Id="showcase-toggle-disabled"
+                            Checked="true"
+                            Disabled="true"
+                            Size="BlazorBlueprint.Components.SwitchSize.Small"
+                            AriaLabel="Protected branch"
+                            AriaDescribedBy="showcase-toggle-disabled-description" />
+                        <span class="mb-design-system__switch-content">
+                            <span class="mb-design-system__switch-label">Protected branch</span>
+                            <span id="showcase-toggle-disabled-description"
+                                  class="mb-design-system__switch-description">
+                                Controlled by project policy.
+                            </span>
+                        </span>
+                    </label>
                 </div>
                 <p id="toggle-result" class="mb-design-system__result">Live collaboration: @(this.ToggleChecked ? "on" : "off")</p>
             </article>
@@ -386,29 +697,50 @@
 
             <article class="mb-design-system__example" data-component="loading-state">
                 <header class="mb-design-system__example-heading">
-                    <h3>LoadingState</h3>
+                    <h3>Loading composition</h3>
                     <p>Spinner, title, description, custom content, and skeleton area.</p>
                 </header>
 
-                <LoadingState Title="Loading architecture" Description="Mapping local element relationships." ShowSkeleton="true">
-                    <ChildContent><Chip Variant="ChipVariant.Info">Local operation</Chip></ChildContent>
-                    <SkeletonContent>
-                        <Skeleton Lines="2" />
-                        <Skeleton Variant="SkeletonVariant.Rectangle" Height="48px" />
-                    </SkeletonContent>
-                </LoadingState>
+                <div class="mb-design-system__loading-state"
+                     role="status"
+                     aria-live="polite"
+                     aria-busy="true">
+                    <span class="mb-design-system__loading-spinner" aria-hidden="true"></span>
+                    <div class="mb-design-system__loading-content">
+                        <h2>Loading architecture</h2>
+                        <p>Mapping local element relationships.</p>
+                    </div>
+                    <BlazorBlueprint.Components.BbBadge
+                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                        Class="mb-design-system__badge mb-design-system__badge--info">
+                        Local operation
+                    </BlazorBlueprint.Components.BbBadge>
+                    <div class="mb-design-system__loading-skeleton" aria-hidden="true">
+                        <BlazorBlueprint.Components.BbSkeleton Width="100%" Height="12px" />
+                        <BlazorBlueprint.Components.BbSkeleton Width="72%" Height="12px" />
+                        <BlazorBlueprint.Components.BbSkeleton Width="100%" Height="48px" />
+                    </div>
+                </div>
             </article>
 
             <article class="mb-design-system__example" data-component="empty-state">
                 <header class="mb-design-system__example-heading">
-                    <h3>EmptyState</h3>
-                    <p>Basic content with optional icon and action composition.</p>
+                    <h3>Blueprint empty state</h3>
+                    <p>Direct styled content with optional icon and action composition.</p>
                 </header>
 
-                <EmptyState Title="No relationships" Description="Connect this element to show its dependencies.">
-                    <IconContent><span aria-hidden="true">◇</span></IconContent>
-                    <ActionContent><Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Add relationship</Button></ActionContent>
-                </EmptyState>
+                <BlazorBlueprint.Components.BbEmpty
+                    Title="No relationships"
+                    Description="Connect this element to show its dependencies.">
+                    <Icon><span aria-hidden="true">◇</span></Icon>
+                    <ChildContent>
+                        <BlazorBlueprint.Components.BbButton
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small">
+                            Add relationship
+                        </BlazorBlueprint.Components.BbButton>
+                    </ChildContent>
+                </BlazorBlueprint.Components.BbEmpty>
             </article>
 
             <article class="mb-design-system__example" data-component="modal-shell">
@@ -454,29 +786,96 @@
 
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="breadcrumbs">
                 <header class="mb-design-system__example-heading">
-                    <h3>Breadcrumbs</h3>
-                    <p>Interactive, disabled, and current destinations.</p>
+                    <h3>Blueprint breadcrumbs</h3>
+                    <p>Direct interactive, disabled, and current destinations.</p>
                 </header>
 
-                <Breadcrumbs Items="this.BreadcrumbItems" AriaLabel="Showcase hierarchy" ItemSelected="this.HandleBreadcrumbSelected" />
+                <nav aria-label="Showcase hierarchy">
+                    <ol class="flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5">
+                        <BlazorBlueprint.Components.BbBreadcrumbList AutoSeparator="true">
+                            <BlazorBlueprint.Components.BbBreadcrumbItem>
+                                <BlazorBlueprint.Components.BbButton
+                                    Type="BlazorBlueprint.Components.ButtonType.Button"
+                                    Variant="BlazorBlueprint.Components.ButtonVariant.Link"
+                                    Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                    Class="h-auto p-0 font-normal"
+                                    OnClick='() => this.HandleBreadcrumbSelected("Workspace")'>
+                                    Workspace
+                                </BlazorBlueprint.Components.BbButton>
+                            </BlazorBlueprint.Components.BbBreadcrumbItem>
+                            <BlazorBlueprint.Components.BbBreadcrumbItem>
+                                <BlazorBlueprint.Components.BbButton
+                                    Type="BlazorBlueprint.Components.ButtonType.Button"
+                                    Variant="BlazorBlueprint.Components.ButtonVariant.Link"
+                                    Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                    Class="h-auto p-0 font-normal"
+                                    OnClick='() => this.HandleBreadcrumbSelected("Projects")'>
+                                    Projects
+                                </BlazorBlueprint.Components.BbButton>
+                            </BlazorBlueprint.Components.BbBreadcrumbItem>
+                            <BlazorBlueprint.Components.BbBreadcrumbItem>
+                                <BlazorBlueprint.Components.BbButton
+                                    Type="BlazorBlueprint.Components.ButtonType.Button"
+                                    Variant="BlazorBlueprint.Components.ButtonVariant.Link"
+                                    Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                    Class="h-auto p-0 font-normal"
+                                    Disabled="true">
+                                    Restricted
+                                </BlazorBlueprint.Components.BbButton>
+                            </BlazorBlueprint.Components.BbBreadcrumbItem>
+                            <BlazorBlueprint.Components.BbBreadcrumbItem>
+                                <BlazorBlueprint.Components.BbBreadcrumbPage>Architecture</BlazorBlueprint.Components.BbBreadcrumbPage>
+                            </BlazorBlueprint.Components.BbBreadcrumbItem>
+                        </BlazorBlueprint.Components.BbBreadcrumbList>
+                    </ol>
+                </nav>
                 <p id="breadcrumbs-result" class="mb-design-system__result">Latest selection: @this.LastBreadcrumbSelection</p>
             </article>
 
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="toolbar">
                 <header class="mb-design-system__example-heading">
-                    <h3>Toolbar</h3>
-                    <p>Leading context, primary actions, trailing controls, and compact spacing.</p>
+                    <h3>Toolbar composition</h3>
+                    <p>Direct semantic grouping of leading context, actions, and trailing status.</p>
                 </header>
 
-                <Toolbar AriaLabel="Element editing tools" Compact="true">
-                    <LeadingContent><Chip Variant="ChipVariant.Lifecycle" Color="var(--mb-color-lifecycle-open)">Open</Chip></LeadingContent>
-                    <ChildContent>
-                        <Button Size="ButtonSize.Small">Save</Button>
-                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small">Validate</Button>
-                        <IconButton AriaLabel="Undo latest edit" Title="Undo"><span aria-hidden="true">↶</span></IconButton>
-                    </ChildContent>
-                    <TrailingContent><span class="mb-design-system__toolbar-status">Saved locally</span></TrailingContent>
-                </Toolbar>
+                <div class="mb-design-system__toolbar"
+                     role="toolbar"
+                     aria-label="Element editing tools">
+                    <div class="mb-design-system__toolbar-leading">
+                        <BlazorBlueprint.Components.BbBadge
+                            Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                            Class="mb-design-system__badge mb-design-system__badge--lifecycle">
+                            <span class="mb-design-system__badge-dot"
+                                  style="background: var(--mb-color-lifecycle-open)"
+                                  aria-hidden="true"></span>
+                            Open
+                        </BlazorBlueprint.Components.BbBadge>
+                    </div>
+                    <div class="mb-design-system__toolbar-main">
+                        <BlazorBlueprint.Components.BbButton Size="BlazorBlueprint.Components.ButtonSize.Small">Save</BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small">
+                            Validate
+                        </BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                            AriaLabel="Undo latest edit"
+                            title="Undo latest edit">
+                            <LucideIcon Name="undo-2"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </BlazorBlueprint.Components.BbButton>
+                    </div>
+                    <div class="mb-design-system__toolbar-trailing">
+                        <span class="mb-design-system__toolbar-status">Saved locally</span>
+                    </div>
+                </div>
             </article>
 
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="action-menu">
@@ -559,8 +958,19 @@
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <Button id="add-toast-notification" Size="ButtonSize.Small" OnClick="this.AddToastNotification">Add notification</Button>
-                    <Button id="reset-toast-notifications" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.ResetToastNotifications">Reset sample stack</Button>
+                    <BlazorBlueprint.Components.BbButton
+                        id="add-toast-notification"
+                        Size="BlazorBlueprint.Components.ButtonSize.Small"
+                        OnClick="this.AddToastNotification">
+                        Add notification
+                    </BlazorBlueprint.Components.BbButton>
+                    <BlazorBlueprint.Components.BbButton
+                        id="reset-toast-notifications"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                        Size="BlazorBlueprint.Components.ButtonSize.Small"
+                        OnClick="this.ResetToastNotifications">
+                        Reset sample stack
+                    </BlazorBlueprint.Components.BbButton>
                 </div>
                 <p id="toast-count-result" class="mb-design-system__result">
                     Visible notifications: @this.ToastNotifications.Count. The fixed container stays hidden until a sample is requested.
@@ -575,7 +985,9 @@
                     <p>Reserved for a future feature showcase because the production component requires loaded SysML model data.</p>
                 </header>
 
-                <EmptyState Title="Not included in this showcase" Description="A future scenario can provide an isolated loaded-model fixture without coupling this page to production loading." />
+                <BlazorBlueprint.Components.BbEmpty
+                    Title="Not included in this showcase"
+                    Description="A future scenario can provide an isolated loaded-model fixture without coupling this page to production loading." />
             </article>
         </div>
     </section>
@@ -603,7 +1015,11 @@
                             <strong>Bloom</strong>
                         </BrandContent>
                         <NavigationContent>
-                            <Button Variant="ButtonVariant.Ghost" Size="ButtonSize.Small">Projects</Button>
+                            <BlazorBlueprint.Components.BbButton
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                Size="BlazorBlueprint.Components.ButtonSize.Small">
+                                Projects
+                            </BlazorBlueprint.Components.BbButton>
                         </NavigationContent>
                         <ContextContent><span class="mb-design-system__workspace-context">Architecture</span></ContextContent>
                         <ProjectContent>
@@ -621,10 +1037,26 @@
                                          FullWidth="true" />
                         </CenterContent>
                         <ActionsContent>
-                            <IconButton AriaLabel="Share workspace" Title="Share workspace" OnClick="this.HandleShareWorkspace">
-                                <span aria-hidden="true">↗</span>
-                            </IconButton>
-                            <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.HandleValidateWorkspace">Validate</Button>
+                            <BlazorBlueprint.Components.BbButton
+                                Type="BlazorBlueprint.Components.ButtonType.Button"
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                                AriaLabel="Share workspace"
+                                title="Share workspace"
+                                OnClick="this.HandleShareWorkspace">
+                                <LucideIcon Name="share-2"
+                                            Size="16"
+                                            StrokeWidth="1.75"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </BlazorBlueprint.Components.BbButton>
+                            <BlazorBlueprint.Components.BbButton
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                                Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                OnClick="this.HandleValidateWorkspace">
+                                Validate
+                            </BlazorBlueprint.Components.BbButton>
                         </ActionsContent>
                         <UserContent>
                             <UserMenu DisplayName="Alex Morgan"
@@ -637,11 +1069,28 @@
 
                     <AppHeader Compact="true" AriaLabel="Compact showcase application header">
                         <BrandContent><strong>Bloom compact</strong></BrandContent>
-                        <ContextContent><Chip Variant="ChipVariant.Info">Review</Chip></ContextContent>
+                        <ContextContent>
+                            <BlazorBlueprint.Components.BbBadge
+                                Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                                Class="mb-design-system__badge mb-design-system__badge--info">
+                                Review
+                            </BlazorBlueprint.Components.BbBadge>
+                        </ContextContent>
                         <ActionsContent>
-                            <IconButton AriaLabel="Open compact header action" Title="Compact action" OnClick="this.HandleCompactHeaderAction">
-                                <span aria-hidden="true">⋯</span>
-                            </IconButton>
+                            <BlazorBlueprint.Components.BbButton
+                                Type="BlazorBlueprint.Components.ButtonType.Button"
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                                AriaLabel="Open compact header action"
+                                title="Open compact header action"
+                                OnClick="this.HandleCompactHeaderAction">
+                                <LucideIcon Name="ellipsis"
+                                            Size="16"
+                                            StrokeWidth="1.75"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </BlazorBlueprint.Components.BbButton>
                         </ActionsContent>
                     </AppHeader>
                 </div>
@@ -652,47 +1101,92 @@
 
             <article class="mb-design-system__example" data-component="canvas-toolbar">
                 <header class="mb-design-system__example-heading">
-                    <h3>CanvasToolbar</h3>
-                    <p>Horizontal and vertical toolbar composition without imposing canvas positioning.</p>
+                    <h3>Canvas toolbar composition</h3>
+                    <p>Direct horizontal and vertical semantic tool groups.</p>
                 </header>
 
                 <div class="mb-design-system__canvas-toolbar-gallery">
-                    <CanvasToolbar AriaLabel="Horizontal canvas tools" Compact="true">
-                        <IconButton AriaLabel="Select element"
-                                    Title="Select"
-                                    Class='@(this.GetCanvasToolbarToolCssClass("Select"))'
-                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Select"))'
-                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Select")'>
-                            <span aria-hidden="true">↖</span>
-                        </IconButton>
-                        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick='() => this.HandleCanvasToolbarAction("Connect")'>Connect</Button>
-                        <IconButton AriaLabel="Add note"
-                                    Title="Add note"
-                                    Class='@(this.GetCanvasToolbarToolCssClass("Note"))'
-                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Note"))'
-                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Note")'>
-                            <span aria-hidden="true">+</span>
-                        </IconButton>
-                    </CanvasToolbar>
+                    <div class="mb-design-system__canvas-toolbar"
+                         role="toolbar"
+                         aria-label="Horizontal canvas tools"
+                         aria-orientation="horizontal">
+                        <BlazorBlueprint.Components.BbButton
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                            Class='@(this.GetCanvasToolbarToolCssClass("Select"))'
+                            AriaLabel="Select element"
+                            title="Select element"
+                            aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Select"))'
+                            OnClick='() => this.HandleCanvasToolbarToolChanged("Select")'>
+                            <LucideIcon Name="mouse-pointer-2"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            OnClick='() => this.HandleCanvasToolbarAction("Connect")'>
+                            Connect
+                        </BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                            Class='@(this.GetCanvasToolbarToolCssClass("Note"))'
+                            AriaLabel="Add note"
+                            title="Add note"
+                            aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Note"))'
+                            OnClick='() => this.HandleCanvasToolbarToolChanged("Note")'>
+                            <LucideIcon Name="sticky-note"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </BlazorBlueprint.Components.BbButton>
+                    </div>
 
-                    <CanvasToolbar AriaLabel="Vertical canvas tools"
-                                   Orientation="ToolbarOrientation.Vertical"
-                                   Compact="true">
-                        <IconButton AriaLabel="Move canvas"
-                                    Title="Move"
-                                    Class='@(this.GetCanvasToolbarToolCssClass("Move"))'
-                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Move"))'
-                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Move")'>
-                            <span aria-hidden="true">✥</span>
-                        </IconButton>
-                        <IconButton AriaLabel="Center selection"
-                                    Title="Center selection"
-                                    Class='@(this.GetCanvasToolbarToolCssClass("Center"))'
-                                    aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Center"))'
-                                    OnClick='() => this.HandleCanvasToolbarToolChanged("Center")'>
-                            <span aria-hidden="true">◎</span>
-                        </IconButton>
-                    </CanvasToolbar>
+                    <div class="mb-design-system__canvas-toolbar mb-design-system__canvas-toolbar--vertical"
+                         role="toolbar"
+                         aria-label="Vertical canvas tools"
+                         aria-orientation="vertical">
+                        <BlazorBlueprint.Components.BbButton
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                            Class='@(this.GetCanvasToolbarToolCssClass("Move"))'
+                            AriaLabel="Move canvas"
+                            title="Move canvas"
+                            aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Move"))'
+                            OnClick='() => this.HandleCanvasToolbarToolChanged("Move")'>
+                            <LucideIcon Name="move"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </BlazorBlueprint.Components.BbButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                            Class='@(this.GetCanvasToolbarToolCssClass("Center"))'
+                            AriaLabel="Center selection"
+                            title="Center selection"
+                            aria-pressed='@(this.GetCanvasToolbarToolAriaPressed("Center"))'
+                            OnClick='() => this.HandleCanvasToolbarToolChanged("Center")'>
+                            <LucideIcon Name="focus"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </BlazorBlueprint.Components.BbButton>
+                    </div>
                 </div>
                 <p id="canvas-toolbar-result" class="mb-design-system__result">Latest tool: @this.LastCanvasToolbarAction</p>
             </article>
@@ -721,7 +1215,13 @@
                 </header>
 
                 <StatusBar AriaLabel="Standalone showcase status" Compact="true">
-                    <LeadingContent><Chip Variant="ChipVariant.Success">Ready</Chip></LeadingContent>
+                    <LeadingContent>
+                        <BlazorBlueprint.Components.BbBadge
+                            Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                            Class="mb-design-system__badge mb-design-system__badge--success">
+                            Ready
+                        </BlazorBlueprint.Components.BbBadge>
+                    </LeadingContent>
                     <ChildContent>
                         <span>
                             Selected interface path: Platform / Thermal control / Radiator assembly / Temperature sensor allocation
@@ -729,9 +1229,20 @@
                     </ChildContent>
                     <TrailingContent>
                         <span>125, 84</span>
-                        <IconButton AriaLabel="Open status details" Title="Status details" OnClick="this.HandleStatusDetails">
-                            <span aria-hidden="true">ⓘ</span>
-                        </IconButton>
+                        <BlazorBlueprint.Components.BbButton
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                            AriaLabel="Open status details"
+                            title="Open status details"
+                            OnClick="this.HandleStatusDetails">
+                            <LucideIcon Name="info"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </BlazorBlueprint.Components.BbButton>
                     </TrailingContent>
                 </StatusBar>
                 <p id="status-bar-result" class="mb-design-system__result">@this.LastStatusAction</p>
@@ -744,18 +1255,20 @@
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <Button id="toggle-workspace-left-panel"
-                            Variant="ButtonVariant.Secondary"
-                            Size="ButtonSize.Small"
-                            OnClick="this.ToggleWorkspaceLeftPanel">
+                    <BlazorBlueprint.Components.BbButton
+                        id="toggle-workspace-left-panel"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                        Size="BlazorBlueprint.Components.ButtonSize.Small"
+                        OnClick="this.ToggleWorkspaceLeftPanel">
                         @(this.WorkspaceLeftPanelVisible ? "Hide left panel" : "Show left panel")
-                    </Button>
-                    <Button id="toggle-workspace-right-panel"
-                            Variant="ButtonVariant.Secondary"
-                            Size="ButtonSize.Small"
-                            OnClick="this.ToggleWorkspaceRightPanel">
+                    </BlazorBlueprint.Components.BbButton>
+                    <BlazorBlueprint.Components.BbButton
+                        id="toggle-workspace-right-panel"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                        Size="BlazorBlueprint.Components.ButtonSize.Small"
+                        OnClick="this.ToggleWorkspaceRightPanel">
                         @(this.WorkspaceRightPanelVisible ? "Hide right panel" : "Show right panel")
-                    </Button>
+                    </BlazorBlueprint.Components.BbButton>
                 </div>
 
                 <div class="mb-design-system__workspace-shell-frame">
@@ -769,7 +1282,13 @@
                             <AppHeader Compact="true" AriaLabel="Workspace shell sample header">
                                 <BrandContent><strong>Bloom</strong></BrandContent>
                                 <ContextContent><span>Orbital Platform / Architecture</span></ContextContent>
-                                <ActionsContent><Chip Variant="ChipVariant.Info">Local sample</Chip></ActionsContent>
+                                <ActionsContent>
+                                    <BlazorBlueprint.Components.BbBadge
+                                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                                        Class="mb-design-system__badge mb-design-system__badge--info">
+                                        Local sample
+                                    </BlazorBlueprint.Components.BbBadge>
+                                </ActionsContent>
                             </AppHeader>
                         </Header>
                         <LeftPanel>
@@ -784,10 +1303,39 @@
                         <MainContent>
                             <div class="mb-design-system__canvas-sample">
                                 <div class="mb-design-system__canvas-toolbar-position">
-                                    <CanvasToolbar AriaLabel="Workspace shell canvas tools" Compact="true">
-                                        <IconButton AriaLabel="Select shell element" Title="Select"><span aria-hidden="true">↖</span></IconButton>
-                                        <IconButton AriaLabel="Connect shell elements" Title="Connect"><span aria-hidden="true">⌁</span></IconButton>
-                                    </CanvasToolbar>
+                                     <div class="mb-design-system__canvas-toolbar"
+                                          role="toolbar"
+                                          aria-label="Workspace shell canvas tools"
+                                          aria-orientation="horizontal">
+                                        <BlazorBlueprint.Components.BbButton
+                                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                                            Class="mb-design-system__canvas-toolbar-action"
+                                            AriaLabel="Select shell element"
+                                            title="Select shell element">
+                                            <LucideIcon Name="mouse-pointer-2"
+                                                        Size="16"
+                                                        StrokeWidth="1.75"
+                                                        role="presentation"
+                                                        aria-hidden="true"
+                                                        focusable="false" />
+                                        </BlazorBlueprint.Components.BbButton>
+                                        <BlazorBlueprint.Components.BbButton
+                                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                                            Class="mb-design-system__canvas-toolbar-action"
+                                            AriaLabel="Connect shell elements"
+                                            title="Connect shell elements">
+                                            <LucideIcon Name="link-2"
+                                                        Size="16"
+                                                        StrokeWidth="1.75"
+                                                        role="presentation"
+                                                        aria-hidden="true"
+                                                        focusable="false" />
+                                        </BlazorBlueprint.Components.BbButton>
+                                    </div>
                                 </div>
                                 <div class="mb-design-system__diagram-node mb-design-system__diagram-node--primary">
                                     <strong>Vehicle</strong>
@@ -824,14 +1372,24 @@
                         </RightPanel>
                         <StatusBar>
                             <Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar Compact="true" AriaLabel="Workspace shell sample status">
-                                <LeadingContent><Chip Variant="ChipVariant.Success">Ready</Chip></LeadingContent>
+                                <LeadingContent>
+                                    <BlazorBlueprint.Components.BbBadge
+                                        Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                                        Class="mb-design-system__badge mb-design-system__badge--success">
+                                        Ready
+                                    </BlazorBlueprint.Components.BbBadge>
+                                </LeadingContent>
                                 <ChildContent><span>2 elements selected</span></ChildContent>
                                 <TrailingContent><span>@this.WorkspaceZoom%</span></TrailingContent>
                             </Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar>
                         </StatusBar>
                         <OverlayContent>
                             <div class="mb-design-system__workspace-overlay-note">
-                                <Chip Variant="ChipVariant.Warning">Review sample</Chip>
+                                <BlazorBlueprint.Components.BbBadge
+                                    Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                                    Class="mb-design-system__badge mb-design-system__badge--warning">
+                                    Review sample
+                                </BlazorBlueprint.Components.BbBadge>
                             </div>
                         </OverlayContent>
                     </WorkspaceShell>
@@ -841,9 +1399,76 @@
                     Right panel: @(this.WorkspaceRightPanelVisible ? "shown" : "hidden").
                 </p>
             </article>
+
+            <article class="mb-design-system__example mb-design-system__example--wide"
+                     data-component="workspace-shell-optional-regions">
+                <header class="mb-design-system__example-heading">
+                    <h3>WorkspaceShell optional regions</h3>
+                    <p>Independent compact instances prove omitted regions and the below-45rem pane switcher without adding nested main landmarks.</p>
+                </header>
+
+                <div class="mb-design-system__workspace-variants">
+                    <div>
+                        <span class="mb-design-system__state-label">Center only</span>
+                        <div class="mb-design-system__workspace-variant-frame">
+                            <WorkspaceShell AriaLabel="Center-only workspace"
+                                            MainContentAriaLabel="Center-only model surface">
+                                <MainContent>
+                                    <div class="mb-design-system__workspace-variant-content">No header, panels, or status</div>
+                                </MainContent>
+                            </WorkspaceShell>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="mb-design-system__state-label">Header and left panel</span>
+                        <div class="mb-design-system__workspace-variant-frame">
+                            <WorkspaceShell AriaLabel="Header and left-panel workspace"
+                                            LeftPanelAriaLabel="Compact navigation"
+                                            MainContentAriaLabel="Compact model surface">
+                                <Header>
+                                    <AppHeader Compact="true" AriaLabel="Compact optional-region header">
+                                        <BrandContent><strong>Bloom</strong></BrandContent>
+                                        <ContextContent><span>Header present</span></ContextContent>
+                                    </AppHeader>
+                                </Header>
+                                <LeftPanel>
+                                    <div class="mb-design-system__workspace-variant-content">Left panel</div>
+                                </LeftPanel>
+                                <MainContent>
+                                    <div class="mb-design-system__workspace-variant-content">No right panel or status</div>
+                                </MainContent>
+                            </WorkspaceShell>
+                        </div>
+                    </div>
+
+                    <div class="mb-design-system__workspace-variant--narrow">
+                        <span class="mb-design-system__state-label">Narrow right panel and status</span>
+                        <div class="mb-design-system__workspace-variant-frame">
+                            <WorkspaceShell AriaLabel="Narrow optional-region workspace"
+                                            MainContentAriaLabel="Narrow model surface"
+                                            RightPanelAriaLabel="Narrow details">
+                                <MainContent>
+                                    <div class="mb-design-system__workspace-variant-content">No header or left panel</div>
+                                </MainContent>
+                                <RightPanel>
+                                    <div class="mb-design-system__workspace-variant-content">Details</div>
+                                </RightPanel>
+                                <StatusBar>
+                                    <Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar
+                                        Compact="true"
+                                        AriaLabel="Narrow workspace status">
+                                        <ChildContent><span>Ready</span></ChildContent>
+                                    </Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar>
+                                </StatusBar>
+                            </WorkspaceShell>
+                        </div>
+                    </div>
+                </div>
+            </article>
         </div>
     </section>
-</main>
+</div>
 
 <ModalShell Id="showcase-modal"
             IsOpen="@this.ModalOpen"
@@ -856,11 +1481,31 @@
         <p class="mb-design-system__modal-copy">
             The modal body can compose any reusable Bloom controls without adding routing, services, or business logic.
         </p>
-        <TextInput Label="Modal field" Value="Sample value" ReadOnly="true" />
+        <FieldShell ControlId="showcase-modal-field"
+                    Label="Modal field"
+                    ReadOnly="true">
+            <BlazorBlueprint.Components.BbInputGroup
+                Class="mb-design-system__input-group mb-design-system__input-group--readonly">
+                <BlazorBlueprint.Components.BbInputGroupInput
+                    Id="showcase-modal-field"
+                    Value="Sample value"
+                    UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
+                    readonly="true" />
+            </BlazorBlueprint.Components.BbInputGroup>
+        </FieldShell>
     </ChildContent>
     <FooterContent>
-        <Button Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="this.CloseModal">Close</Button>
-        <Button Size="ButtonSize.Small" OnClick="this.CloseModal">Apply locally</Button>
+        <BlazorBlueprint.Components.BbButton
+            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+            Size="BlazorBlueprint.Components.ButtonSize.Small"
+            OnClick="this.CloseModal">
+            Close
+        </BlazorBlueprint.Components.BbButton>
+        <BlazorBlueprint.Components.BbButton
+            Size="BlazorBlueprint.Components.ButtonSize.Small"
+            OnClick="this.CloseModal">
+            Apply locally
+        </BlazorBlueprint.Components.BbButton>
     </FooterContent>
 </ModalShell>
 

@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.TextArea
 {
+    using System.Threading.Tasks;
+
     using Bunit;
 
     using TextAreaComponent = Mycelium.Bloom.Components.UI.Atoms.TextArea.TextArea;
@@ -121,14 +123,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.TextArea
         /// Verifies that input updates use the value binding callback.
         /// </summary>
         [Test]
-        public void VerifyInputInvokesValueChanged()
+        public async Task VerifyInputInvokesValueChanged()
         {
             var changedValue = string.Empty;
 
             var component = this.Render<TextAreaComponent>(parameters => parameters
                 .Add(component => component.ValueChanged, value => changedValue = value));
 
-            component.Find("textarea").Input("Updated description");
+            await component.Find("textarea").InputAsync("Updated description");
 
             using (Assert.EnterMultipleScope())
             {

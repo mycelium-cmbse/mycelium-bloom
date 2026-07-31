@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
 {
+    using System.Linq;
+
     using Bunit;
 
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
@@ -67,6 +69,35 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 Assert.That(component.Find(".mb-workspace-shell__status").GetAttribute("aria-label"),
                     Is.EqualTo("Diagram status"));
                 Assert.That(component.Find(".mb-workspace-shell__overlay").TextContent.Trim(), Is.EqualTo("Overlay"));
+                Assert.That(component.FindAll(".mb-workspace-shell__pane-button"), Has.Count.EqualTo(3));
+            }
+        }
+
+        /// <summary>
+        /// Verifies compact pane controls expose one active region without removing the other region content.
+        /// </summary>
+        [Test]
+        public void VerifyNarrowPaneControlsRemainIndependent()
+        {
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.LeftPanel, "<span>Navigation</span>")
+                .Add(shell => shell.MainContent, "<span>Canvas</span>")
+                .Add(shell => shell.RightPanel, "<span>Details</span>"));
+            var paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
+
+            paneButtons.Single(button => button.TextContent.Trim() == "Details").Click();
+            paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Details")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+                Assert.That(component.Find(".mb-workspace-shell__right-panel")
+                    .GetAttribute("data-narrow-active"), Is.EqualTo("true"));
+                Assert.That(component.Find(".mb-workspace-shell__main")
+                    .GetAttribute("data-narrow-active"), Is.EqualTo("false"));
+                Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-workspace-shell__main"), Has.Count.EqualTo(1));
             }
         }
 
@@ -117,6 +148,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 Assert.That(component.FindAll("aside"), Is.Empty);
                 Assert.That(component.FindAll(".mb-workspace-shell__status"), Is.Empty);
                 Assert.That(component.FindAll(".mb-workspace-shell__overlay"), Is.Empty);
+                Assert.That(component.FindAll(".mb-workspace-shell__pane-switcher"), Is.Empty);
                 Assert.That(component.Find(".mb-workspace-shell__main").TextContent.Trim(), Is.EqualTo("Main only"));
             }
         }

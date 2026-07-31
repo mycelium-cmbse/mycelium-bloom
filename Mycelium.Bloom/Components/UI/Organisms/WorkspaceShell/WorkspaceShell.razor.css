@@ -2,17 +2,24 @@
     --mb-workspace-left-panel-width: 20rem;
     --mb-workspace-right-panel-width: 22.5rem;
 
+    container-name: mb-workspace-shell;
+    container-type: inline-size;
     position: relative;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+        "header"
+        "switcher"
+        "body"
+        "status";
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     width: 100%;
     height: 100%;
     min-width: 0;
     min-height: 0;
-    overflow: visible;
-    border: 1px solid var(--mb-color-component-border);
+    overflow: hidden;
+    border: 1px solid var(--mb-color-border-subtle);
     border-radius: var(--mb-radius-md);
-    background: var(--mb-color-background);
+    background: var(--mb-color-workspace-background);
     color: var(--mb-color-component-text);
 }
 
@@ -21,7 +28,21 @@
     min-width: 0;
 }
 
+.mb-workspace-shell__header {
+    grid-area: header;
+}
+
+.mb-workspace-shell__status {
+    grid-area: status;
+}
+
+.mb-workspace-shell__pane-switcher {
+    grid-area: switcher;
+    display: none;
+}
+
 .mb-workspace-shell__body {
+    grid-area: body;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     height: 100%;
@@ -48,18 +69,18 @@
 .mb-workspace-shell__left-panel {
     grid-column: 1;
     width: var(--mb-workspace-left-panel-width);
-    border-right: 1px solid var(--mb-color-component-border);
+    border-right: 1px solid var(--mb-color-border);
 }
 
 .mb-workspace-shell__right-panel {
     grid-column: 3;
     width: var(--mb-workspace-right-panel-width);
-    border-left: 1px solid var(--mb-color-component-border);
+    border-left: 1px solid var(--mb-color-border);
 }
 
 .mb-workspace-shell__main {
     grid-column: 2;
-    background: var(--mb-color-background);
+    background: var(--mb-color-canvas-background);
 }
 
 .mb-workspace-shell__overlay {
@@ -75,47 +96,70 @@
     pointer-events: auto;
 }
 
-@media (max-width: 64rem) {
-    .mb-workspace-shell {
+@container mb-workspace-shell (max-width: 64rem) {
+    .mb-workspace-shell__body {
         --mb-workspace-left-panel-width: 17.5rem;
         --mb-workspace-right-panel-width: 18rem;
     }
 }
 
-@media (max-width: 45rem) {
+/*
+   Three simultaneous workspace regions are comfortable above 45rem. Below
+   that component width, one full-width pane remains operable at a time.
+*/
+@container mb-workspace-shell (max-width: 45rem) {
+    .mb-workspace-shell__pane-switcher {
+        display: flex;
+        align-items: center;
+        gap: var(--mb-spacing-1);
+        min-width: 0;
+        padding: var(--mb-spacing-1) var(--mb-spacing-2);
+        border-bottom: 1px solid var(--mb-color-border-subtle);
+        background: var(--mb-color-surface);
+        overflow-x: auto;
+    }
+
+    .mb-workspace-shell__pane-button {
+        flex: 0 0 auto;
+        min-height: var(--mb-control-height-xs);
+        padding: var(--mb-spacing-1) var(--mb-spacing-2);
+        border: 1px solid transparent;
+        border-radius: var(--mb-radius-control);
+        background: transparent;
+        color: var(--mb-color-text-secondary);
+        font-family: inherit;
+        font-size: var(--mb-font-size-label-sm);
+        line-height: var(--mb-line-height-label-sm);
+        font-weight: var(--mb-font-weight-label-sm);
+    }
+
+    .mb-workspace-shell__pane-button:hover {
+        background: var(--mb-color-surface-hover);
+        color: var(--mb-color-text-primary);
+    }
+
+    .mb-workspace-shell__pane-button--active {
+        background: var(--mb-color-surface-selected);
+        color: var(--mb-color-action-primary);
+        box-shadow: inset 0 0 0 1px var(--mb-color-border-selected);
+    }
+
     .mb-workspace-shell__body {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto minmax(12rem, 1fr) auto;
+        display: block;
     }
 
     .mb-workspace-shell__left-panel,
     .mb-workspace-shell__right-panel,
     .mb-workspace-shell__main {
-        grid-column: 1;
-    }
-
-    .mb-workspace-shell__left-panel,
-    .mb-workspace-shell__right-panel {
-        height: auto;
-        width: auto;
+        display: none;
+        width: 100%;
+        height: 100%;
         max-width: none;
-        max-height: 12rem;
+        max-height: none;
+        border: 0;
     }
 
-    .mb-workspace-shell__left-panel {
-        grid-row: 1;
-        border-right: 0;
-        border-bottom: 1px solid var(--mb-color-component-border);
-    }
-
-    .mb-workspace-shell__main {
-        grid-row: 2;
-        height: auto;
-    }
-
-    .mb-workspace-shell__right-panel {
-        grid-row: 3;
-        border-top: 1px solid var(--mb-color-component-border);
-        border-left: 0;
+    .mb-workspace-shell__body > [data-narrow-active="true"] {
+        display: block;
     }
 }

@@ -10,7 +10,7 @@
     min-width: 0;
     min-height: var(--mb-app-header-min-height);
     padding: 0 var(--mb-spacing-4);
-    border-bottom: 1px solid var(--mb-color-component-border);
+    border-bottom: 1px solid var(--mb-color-border-subtle);
     background: var(--mb-color-surface);
     color: var(--mb-color-component-text);
 }

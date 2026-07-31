@@ -9,13 +9,13 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Threading.Tasks;
+
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
-
-    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
@@ -23,15 +23,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
     using SelectInputComponent = Mycelium.Bloom.Components.UI.Atoms.SelectInput.SelectInput;
 
     /// <summary>
-    /// Tests the <see cref="SelectInputComponent" /> component.
+    /// Tests Bloom's public field and value mapping onto the Blueprint select primitive.
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class SelectInputTestFixture : BunitContext
     {
-        /// <summary>
-        /// The options used by select input tests.
-        /// </summary>
         private static readonly IReadOnlyCollection<SelectInputOption> Options =
         [
             new() { Value = "first", Label = "First option" },
@@ -40,41 +37,40 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
             new() { Value = "fourth", Label = "Fourth option with a predictably long engineering label" }
         ];
 
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
         /// <summary>
-        /// Configures the element-scoped keyboard and outside-click helpers used by SelectInput.
+        /// Initializes a new instance of the <see cref="SelectInputTestFixture" /> class.
         /// </summary>
-        [SetUp]
-        public void SetUp()
+        public SelectInputTestFixture()
         {
-            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
-            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
         }
 
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
-        /// Verifies the current controlled selection and custom listbox semantics.
+        /// Verifies the controlled selection and portalled listbox semantics.
         /// </summary>
         [Test]
-        public void VerifyRenderDisplaysCurrentSelectionAndListboxOptions()
+        public void VerifyRenderDisplaysCurrentSelectionAndOptions()
         {
             var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Id, "selection")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "third"));
+                .Add(select => select.Id, "selection")
+                .Add(select => select.Options, Options)
+                .Add(select => select.Value, "third")
+                .Add(select => select.DefaultOpen, true));
 
             var trigger = component.Find("[role='combobox']");
-            trigger.Click();
-
-            var listbox = component.Find("[role='listbox']");
-            var options = component.FindAll("[role='option']");
+            var listbox = this.portalHost.WaitForElement("[role='listbox']");
+            var options = this.portalHost.FindAll("[role='option']");
 
             using (Assert.EnterMultipleScope())
             {
@@ -85,324 +81,134 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
                 Assert.That(options, Has.Count.EqualTo(4));
                 Assert.That(options[2].GetAttribute("aria-selected"), Is.EqualTo("true"));
                 Assert.That(options[1].GetAttribute("aria-disabled"), Is.EqualTo("true"));
-                Assert.That(options[1].HasAttribute("disabled"), Is.True);
             }
         }
 
         /// <summary>
-        /// Verifies that the placeholder is presentation only and not a listbox option.
+        /// Verifies the placeholder remains presentation text rather than a selectable option.
         /// </summary>
         [Test]
         public void VerifyRenderDisplaysNonSelectablePlaceholder()
         {
             var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Placeholder, "Choose an option")
-                .Add(selectInput => selectInput.Options, Options));
+                .Add(select => select.Placeholder, "Choose an option")
+                .Add(select => select.Options, Options)
+                .Add(select => select.DefaultOpen, true));
 
-            var trigger = component.Find("[role='combobox']");
-            trigger.Click();
+            var options = this.portalHost.WaitForElements("[role='option']", Options.Count);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(trigger.TextContent, Does.Contain("Choose an option"));
+                Assert.That(component.Find("[role='combobox']").TextContent, Does.Contain("Choose an option"));
                 Assert.That(component.Find(".mb-select-input__value").ClassList,
                     Does.Contain("mb-select-input__value--placeholder"));
-                Assert.That(component.FindAll("[role='option']"), Has.Count.EqualTo(Options.Count));
-                Assert.That(component.FindAll("[role='option']")
-                    .Any(option => option.TextContent.Contains("Choose an option")), Is.False);
+                Assert.That(options.Any(option => option.TextContent.Contains("Choose an option", StringComparison.Ordinal)), Is.False);
             }
         }
 
         /// <summary>
-        /// Verifies pointer activation toggles the popup for an enabled select.
+        /// Verifies selection is reported while the wrapper parameter remains parent-owned.
         /// </summary>
         [Test]
-        public void VerifyTriggerOpensAndClosesListbox()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.Click();
-
-            Assert.That(component.FindAll("[role='listbox']"), Has.Count.EqualTo(1));
-
-            trigger.Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
-                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("false"));
-            }
-        }
-
-        /// <summary>
-        /// Verifies that an outside pointer callback closes only the open listbox.
-        /// </summary>
-        [Test]
-        public async Task VerifyOutsideClickDismissesOpenListbox()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options));
-
-            component.Find("[role='combobox']").Click();
-
-            await component.InvokeAsync(component.Instance.DismissFromOutsideClickAsync);
-            await component.InvokeAsync(component.Instance.DismissFromOutsideClickAsync);
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
-                Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Verifies Enter opens a closed listbox with the selected enabled option active.
-        /// </summary>
-        [Test]
-        public void VerifyEnterOpensListboxAtControlledSelection()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "third"));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.KeyDown(new KeyboardEventArgs { Key = "Enter" });
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
-                Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-2"));
-                Assert.That(component.FindAll("[role='listbox']"), Has.Count.EqualTo(1));
-            }
-        }
-
-        /// <summary>
-        /// Verifies an open listbox follows a new parent-owned selected value.
-        /// </summary>
-        [Test]
-        public void VerifyOpenListboxTracksControlledValueChanges()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first"));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.Click();
-
-            component.Render(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "third"));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
-                Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-2"));
-                Assert.That(component.FindAll("[role='option']")[2].GetAttribute("aria-selected"), Is.EqualTo("true"));
-            }
-        }
-
-        /// <summary>
-        /// Verifies selection requests remain controlled until the parent supplies a new value.
-        /// </summary>
-        [Test]
-        public void VerifySelectionCallbackDoesNotMutateControlledValue()
+        public void VerifySelectionReportsControlledValue()
         {
             var changedValue = string.Empty;
             var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first")
-                .Add(selectInput => selectInput.ValueChanged, value => changedValue = value));
+                .Add(select => select.Options, Options)
+                .Add(select => select.Value, "first")
+                .Add(select => select.DefaultOpen, true)
+                .Add(select => select.ValueChanged, value => changedValue = value));
 
-            component.Find("[role='combobox']").Click();
-            component.FindAll("[role='option']")[2].Click();
+            this.portalHost.WaitForElements("[role='option']", Options.Count)[2].Click();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(changedValue, Is.EqualTo("third"));
-                Assert.That(component.Find("[role='combobox']").TextContent, Does.Contain("First option"));
-                Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
+                Assert.That(component.Instance.Value, Is.EqualTo("first"));
+                Assert.That(component.Find("[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
             }
 
+            var triggerId = component.Find("[role='combobox']").Id;
+            var controlsId = component.Find("[role='combobox']").GetAttribute("aria-controls");
+
             component.Render(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, changedValue));
-
-            Assert.That(component.Find("[role='combobox']").TextContent, Does.Contain("Third option"));
-        }
-
-        /// <summary>
-        /// Verifies disabled options and a disabled select cannot request selection.
-        /// </summary>
-        [Test]
-        public void VerifyDisabledStatesPreventInteraction()
-        {
-            var selectionCount = 0;
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.ValueChanged, _ => selectionCount++));
-
-            component.Find("[role='combobox']").Click();
-            component.FindAll("[role='option']")[1].Click();
+                .Add(select => select.Options, Options)
+                .Add(select => select.Value, changedValue));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(selectionCount, Is.Zero);
-                Assert.That(component.FindAll("[role='listbox']"), Has.Count.EqualTo(1));
+                Assert.That(component.Find("[role='combobox']").TextContent, Does.Contain("Third option"));
+                Assert.That(component.Find("[role='combobox']").Id, Is.EqualTo(triggerId));
+                Assert.That(component.Find("[role='combobox']").GetAttribute("aria-controls"), Is.EqualTo(controlsId));
             }
+        }
+
+        /// <summary>
+        /// Verifies disabled options and disabled controls cannot report a new value.
+        /// </summary>
+        [Test]
+        public void VerifyDisabledStatesPreventSelection()
+        {
+            var selectionCount = 0;
+            var component = this.Render<SelectInputComponent>(parameters => parameters
+                .Add(select => select.Options, Options)
+                .Add(select => select.DefaultOpen, true)
+                .Add(select => select.ValueChanged, _ => selectionCount++));
+
+            this.portalHost.WaitForElements("[role='option']", Options.Count)[1].Click();
+
+            Assert.That(selectionCount, Is.Zero);
 
             component.Render(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Disabled, true));
-
-            component.Find("[role='combobox']").Click();
+                .Add(select => select.Options, Options)
+                .Add(select => select.Disabled, true));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find("[role='combobox']").HasAttribute("disabled"), Is.True);
-                Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
+                Assert.That(component.Find("[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
             }
         }
 
         /// <summary>
-        /// Verifies arrow navigation skips disabled options and Home and End reach enabled boundaries.
+        /// Verifies labels, descriptions, required state, and errors remain associated with the combobox.
         /// </summary>
         [Test]
-        public void VerifyKeyboardNavigationMovesActiveOption()
+        public void VerifyAccessibleFieldRelationships()
         {
             var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first"));
+                .Add(select => select.Id, "review-state")
+                .Add(select => select.Label, "Review state")
+                .Add(select => select.HelpText, "Choose the current lifecycle state.")
+                .Add(select => select.ErrorText, "A lifecycle state is required.")
+                .Add(select => select.Required, true)
+                .Add(select => select.Options, Options));
 
             var trigger = component.Find("[role='combobox']");
-            trigger.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
-
-            Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-0"));
-
-            trigger.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
-            Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-2"));
-
-            trigger.KeyDown(new KeyboardEventArgs { Key = "End" });
-            Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-3"));
-
-            trigger.KeyDown(new KeyboardEventArgs { Key = "Home" });
-            Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-0"));
-
-            trigger.KeyDown(new KeyboardEventArgs { Key = "ArrowUp" });
-            Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-0"));
-        }
-
-        /// <summary>
-        /// Verifies Arrow Up opens at the last appropriate enabled option.
-        /// </summary>
-        [Test]
-        public void VerifyArrowUpOpensAtLastEnabledOption()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.KeyDown(new KeyboardEventArgs { Key = "ArrowUp" });
-
-            Assert.That(trigger.GetAttribute("aria-activedescendant"), Does.EndWith("-option-3"));
-        }
-
-        /// <summary>
-        /// Verifies Enter and Space select the active enabled option.
-        /// </summary>
-        /// <param name="key">The activation key.</param>
-        [TestCase("Enter")]
-        [TestCase(" ")]
-        public void VerifyKeyboardActivationSelectsActiveOption(string key)
-        {
-            var changedValue = string.Empty;
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.ValueChanged, value => changedValue = value));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
-            trigger.KeyDown(new KeyboardEventArgs { Key = key });
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(changedValue, Is.EqualTo("first"));
-                Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
-            }
-        }
-
-        /// <summary>
-        /// Verifies Escape and Tab close without changing the controlled value.
-        /// </summary>
-        /// <param name="key">The closing key.</param>
-        [TestCase("Escape")]
-        [TestCase("Tab")]
-        public void VerifyKeyboardDismissalClosesWithoutSelection(string key)
-        {
-            var selectionCount = 0;
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first")
-                .Add(selectInput => selectInput.ValueChanged, _ => selectionCount++));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.Click();
-            trigger.KeyDown(new KeyboardEventArgs { Key = key });
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("[role='listbox']"), Is.Empty);
-                Assert.That(selectionCount, Is.Zero);
-                Assert.That(trigger.TextContent, Does.Contain("First option"));
-            }
-        }
-
-        /// <summary>
-        /// Verifies label, help, error, required, validation, and form-name relationships.
-        /// </summary>
-        [Test]
-        public void VerifyRenderAppliesAccessibleFieldMetadata()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Id, "selection")
-                .Add(selectInput => selectInput.Name, "selection-value")
-                .Add(selectInput => selectInput.Label, "Selection")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first")
-                .Add(selectInput => selectInput.HelpText, "Choose one option.")
-                .Add(selectInput => selectInput.ErrorText, "Selection is required.")
-                .Add(selectInput => selectInput.Required, true));
-
-            var trigger = component.Find("[role='combobox']");
-            var hiddenInput = component.Find("input[type='hidden']");
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("label").GetAttribute("for"), Is.EqualTo("selection"));
+                Assert.That(component.Find("label").GetAttribute("for"), Is.EqualTo("review-state"));
                 Assert.That(trigger.GetAttribute("aria-required"), Is.EqualTo("true"));
                 Assert.That(trigger.GetAttribute("aria-invalid"), Is.EqualTo("true"));
-                Assert.That(trigger.GetAttribute("aria-describedby"), Is.EqualTo("selection-help selection-error"));
-                Assert.That(component.Find("#selection-help").TextContent, Is.EqualTo("Choose one option."));
-                Assert.That(component.Find("#selection-error").TextContent, Is.EqualTo("Selection is required."));
-                Assert.That(hiddenInput.Id, Is.EqualTo("selection-form-value"));
-                Assert.That(hiddenInput.GetAttribute("name"), Is.EqualTo("selection-value"));
-                Assert.That(hiddenInput.GetAttribute("value"), Is.EqualTo("first"));
-                Assert.That(hiddenInput.HasAttribute("required"), Is.False);
+                Assert.That(trigger.GetAttribute("aria-describedby"), Does.Contain("review-state-help"));
+                Assert.That(trigger.GetAttribute("aria-describedby"), Does.Contain("review-state-error"));
+                Assert.That(component.Find("#review-state-error").TextContent, Is.EqualTo("A lifecycle state is required."));
             }
         }
 
         /// <summary>
-        /// Verifies an enabled named component renders the current controlled value as a successful form proxy.
+        /// Verifies enabled named selects submit the current controlled value without claiming native validation.
         /// </summary>
         [Test]
-        public void VerifyEnabledFormValueRendersSubmissionProxy()
+        public void VerifyNamedSelectRendersSubmissionProxy()
         {
             var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Id, "project-state")
-                .Add(selectInput => selectInput.Name, "state")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "third"));
+                .Add(select => select.Id, "project-state")
+                .Add(select => select.Name, "state")
+                .Add(select => select.Options, Options)
+                .Add(select => select.Value, "third")
+                .Add(select => select.Required, true));
 
             var formValue = component.Find("input[type='hidden']");
 
@@ -411,156 +217,52 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
                 Assert.That(formValue.Id, Is.EqualTo("project-state-form-value"));
                 Assert.That(formValue.GetAttribute("name"), Is.EqualTo("state"));
                 Assert.That(formValue.GetAttribute("value"), Is.EqualTo("third"));
-                Assert.That(formValue.HasAttribute("disabled"), Is.False);
-            }
-        }
-
-        /// <summary>
-        /// Verifies a disabled component omits its form proxy and cannot submit a stale controlled value.
-        /// </summary>
-        [Test]
-        public void VerifyDisabledFormValueIsNotSuccessful()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Name, "state")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "third")
-                .Add(selectInput => selectInput.Disabled, true));
-
-            Assert.That(component.FindAll("input[name='state']"), Is.Empty);
-
-            component.Render(parameters => parameters
-                .Add(selectInput => selectInput.Name, "state")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first")
-                .Add(selectInput => selectInput.Disabled, false));
-
-            Assert.That(component.Find("input[name='state']").GetAttribute("value"), Is.EqualTo("first"));
-        }
-
-        /// <summary>
-        /// Verifies a blank required controlled value is exposed as invalid without claiming native constraint validation.
-        /// </summary>
-        [Test]
-        public void VerifyEmptyRequiredValueUsesAccessibleValidationState()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Name, "state")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Required, true));
-
-            var trigger = component.Find("[role='combobox']");
-            var formValue = component.Find("input[type='hidden']");
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(trigger.GetAttribute("aria-required"), Is.EqualTo("true"));
-                Assert.That(trigger.GetAttribute("aria-invalid"), Is.EqualTo("true"));
-                Assert.That(formValue.GetAttribute("value"), Is.Empty);
                 Assert.That(formValue.HasAttribute("required"), Is.False);
             }
         }
 
         /// <summary>
-        /// Verifies a selected required controlled value clears the missing-value state.
+        /// Verifies a disabled select cannot submit a stale controlled value.
         /// </summary>
         [Test]
-        public void VerifySelectedRequiredValueIsAccessibleValid()
+        public void VerifyDisabledSelectOmitsSubmissionProxy()
         {
             var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Name, "state")
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Value, "first")
-                .Add(selectInput => selectInput.Required, true));
+                .Add(select => select.Name, "state")
+                .Add(select => select.Options, Options)
+                .Add(select => select.Value, "third")
+                .Add(select => select.Disabled, true));
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("[role='combobox']").HasAttribute("aria-invalid"), Is.False);
-                Assert.That(component.Find("input[name='state']").GetAttribute("value"), Is.EqualTo("first"));
-            }
+            Assert.That(component.FindAll("input[name='state']"), Is.Empty);
         }
 
         /// <summary>
-        /// Verifies separate component instances own independent state and identifiers.
+        /// Verifies generated control relationships are stable and independent.
         /// </summary>
         [Test]
-        public void VerifyMultipleInstancesRemainIndependent()
+        public void VerifyGeneratedIdentifiersAreStableAndIndependent()
         {
             var first = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options));
+                .Add(select => select.Options, Options)
+                .Add(select => select.Name, "first"));
             var second = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options));
+                .Add(select => select.Options, Options)
+                .Add(select => select.Name, "second"));
+            var firstId = first.Find("[role='combobox']").Id;
+            var firstControls = first.Find("[role='combobox']").GetAttribute("aria-controls");
 
-            first.Find("[role='combobox']").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(first.FindAll("[role='listbox']"), Has.Count.EqualTo(1));
-                Assert.That(second.FindAll("[role='listbox']"), Is.Empty);
-                Assert.That(first.Find("[role='combobox']").Id,
-                    Is.Not.EqualTo(second.Find("[role='combobox']").Id));
-            }
-        }
-
-        /// <summary>
-        /// Verifies stable instance identifiers survive ordinary parameter rerenders.
-        /// </summary>
-        [Test]
-        public void VerifyGeneratedIdentifiersRemainStableAcrossRerenders()
-        {
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Name, "selection")
-                .Add(selectInput => selectInput.Value, "first"));
-
-            var triggerId = component.Find("[role='combobox']").Id;
-            var listboxId = component.Find("[role='combobox']").GetAttribute("aria-controls");
-            var formValueId = component.Find("input[name='selection']").Id;
-
-            component.Render(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.Name, "selection")
-                .Add(selectInput => selectInput.Value, "third"));
+            first.Render(parameters => parameters
+                .Add(select => select.Options, Options)
+                .Add(select => select.Name, "first")
+                .Add(select => select.Value, "third"));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("[role='combobox']").Id, Is.EqualTo(triggerId));
-                Assert.That(component.Find("[role='combobox']").GetAttribute("aria-controls"), Is.EqualTo(listboxId));
-                Assert.That(component.Find("input[name='selection']").Id, Is.EqualTo(formValueId));
-                Assert.That(formValueId, Is.EqualTo($"{triggerId}-form-value"));
+                Assert.That(first.Find("[role='combobox']").Id, Is.EqualTo(firstId));
+                Assert.That(first.Find("[role='combobox']").GetAttribute("aria-controls"), Is.EqualTo(firstControls));
+                Assert.That(second.Find("[role='combobox']").Id, Is.Not.EqualTo(firstId));
+                Assert.That(first.Find("input[name='first']").Id, Is.EqualTo($"{firstId}-form-value"));
             }
-        }
-
-        /// <summary>
-        /// Verifies overlapping keyboard selection requests invoke one asynchronous callback.
-        /// </summary>
-        [Test]
-        public async Task VerifyPendingSelectionPreventsDuplicateCallbacks()
-        {
-            var selectionCount = 0;
-            var callbackStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var releaseCallback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var component = this.Render<SelectInputComponent>(parameters => parameters
-                .Add(selectInput => selectInput.Options, Options)
-                .Add(selectInput => selectInput.ValueChanged, async _ =>
-                {
-                    selectionCount++;
-                    callbackStarted.TrySetResult();
-                    await releaseCallback.Task;
-                }));
-
-            var trigger = component.Find("[role='combobox']");
-            trigger.KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
-
-            var firstSelection = trigger.KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
-            await callbackStarted.Task;
-
-            var repeatedSelection = trigger.KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
-            releaseCallback.SetResult();
-
-            await Task.WhenAll(firstSelection, repeatedSelection);
-
-            Assert.That(selectionCount, Is.EqualTo(1));
         }
     }
 }

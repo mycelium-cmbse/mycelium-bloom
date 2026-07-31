@@ -25,6 +25,23 @@
     text-align: left;
 }
 
+.mb-user-menu__avatar-frame {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.mb-user-menu__avatar-frame ::deep .mb-user-menu__avatar {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--mb-user-avatar-border, transparent);
+    font-size: 10px;
+}
+
+.mb-user-menu__avatar-frame ::deep .mb-user-menu__avatar-fallback {
+    background: var(--mb-user-avatar-background, var(--mb-color-action-primary));
+    color: var(--mb-color-action-primary-foreground);
+}
+
 .mb-user-menu__name,
 .mb-user-menu__subtitle {
     overflow: hidden;

@@ -9,46 +9,53 @@
 
 @inherits BloomFieldComponentBase
 
+@using BlazorBlueprint.Icons.Lucide.Components
+
 @inject IJSRuntime JsRuntime
-<label class="@(this.GetCssClass())">
-    <span class="mb-search-input__icon" aria-hidden="true">
-        @if (this.StartIcon is not null)
-        {
-            @(this.StartIcon)
-        }
-        else
-        {
-            <svg viewBox="0 0 16 16" fill="none">
-                <path
-                    d="M7.25 12.5C10.1495 12.5 12.5 10.1495 12.5 7.25C12.5 4.35051 10.1495 2 7.25 2C4.35051 2 2 4.35051 2 7.25C2 10.1495 4.35051 12.5 7.25 12.5Z"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"/>
-                <path d="M11 11L14 14"
-                      stroke="currentColor"
-                      stroke-width="1.4"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"/>
-            </svg>
-        }
-    </span>
 
-    <input
-        @attributes="this.AdditionalAttributes"
-        id="@(this.FieldId)"
-        class="mb-search-input__field"
-        type="search"
-        value="@(this.Value)"
-        placeholder="@(this.Placeholder)"
-        disabled="@(this.Disabled)"
-        @oninput="this.HandleInputAsync"
-        @onkeydown="this.HandleKeyDownAsync"/>
+<div class="@(this.GetCssClass())">
+    <BlazorBlueprint.Components.BbInputGroup Class="mb-search-input__control">
+        <BlazorBlueprint.Components.BbInputGroupAddon
+            Align="BlazorBlueprint.Components.InputGroupAlign.InlineStart"
+            Class="mb-search-input__icon"
+            aria-hidden="true">
+            @if (this.StartIcon is not null)
+            {
+                @(this.StartIcon)
+            }
+            else
+            {
+                <LucideIcon Name="search"
+                            Size="14"
+                            StrokeWidth="1.75"
+                            role="presentation"
+                            aria-hidden="true"
+                            focusable="false" />
+            }
+        </BlazorBlueprint.Components.BbInputGroupAddon>
 
-    @if (this.ShouldShowShortcut())
-    {
-        <kbd class="mb-search-input__shortcut" aria-hidden="true">
-            @(this.ShortcutText)
-        </kbd>
-    }
-</label>
+        <BlazorBlueprint.Components.BbInputGroupInput
+            @attributes="this.AdditionalAttributes"
+            Id="@(this.FieldId)"
+            Class="mb-search-input__field"
+            Type="BlazorBlueprint.Components.InputType.Search"
+            Value="@(this.Value)"
+            ValueChanged="this.HandleValueChangedAsync"
+            Placeholder="@(this.Placeholder)"
+            Disabled="@(this.Disabled)"
+            AriaLabel="@(this.GetAccessibleName())"
+            UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
+            @onkeydown="this.HandleKeyDownAsync" />
+
+        @if (this.ShouldShowShortcut())
+        {
+            <BlazorBlueprint.Components.BbInputGroupAddon
+                Align="BlazorBlueprint.Components.InputGroupAlign.InlineEnd"
+                Class="mb-search-input__shortcut-addon">
+                <kbd class="mb-search-input__shortcut" aria-hidden="true">
+                    @(this.ShortcutText)
+                </kbd>
+            </BlazorBlueprint.Components.BbInputGroupAddon>
+        }
+    </BlazorBlueprint.Components.BbInputGroup>
+</div>

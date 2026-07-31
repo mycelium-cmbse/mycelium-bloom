@@ -57,7 +57,16 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(component.Find("a[href='design-system'] span:last-child").TextContent, Is.EqualTo("Design System"));
                 Assert.That(component.Find("a[href='https://learn.microsoft.com/aspnet/core/']").TextContent.Trim(), Is.EqualTo("About"));
                 Assert.That(component.Find("#blazor-error-ui").TextContent, Does.Contain("An unhandled error has occurred."));
+                Assert.That(component.FindAll("nav[aria-label='Primary navigation'] a.mb-nav-menu__link"),
+                    Has.Count.EqualTo(3));
+                Assert.That(component.Find(".mb-nav-menu__brand-link img[data-brand='bloom']").GetAttribute("alt"), Is.Empty);
+                Assert.That(component.Find(".mb-nav-menu__toggle").GetAttribute("aria-expanded"), Is.EqualTo("false"));
             }
+
+            component.Find(".mb-nav-menu__toggle").Click();
+
+            Assert.That(component.Find("nav[aria-label='Primary navigation']").ClassList,
+                Does.Contain("mb-nav-menu__links--expanded"));
         }
     }
 }

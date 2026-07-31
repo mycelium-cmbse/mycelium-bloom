@@ -7,9 +7,10 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomFieldComponentBase
+@using BlazorBlueprint.Primitives
+@using BlazorBlueprint.Primitives.Select
 
-@inject IJSRuntime JsRuntime
+@inherits BloomFieldComponentBase
 
 <FieldShell
     ControlId="@(this.FieldId)"
@@ -21,56 +22,50 @@
     Disabled="@(this.Disabled)"
     Required="@(this.Required)"
     Class="@(this.GetCssClass())">
-    <div @ref="this.popupRootElement" class="mb-select-input__control">
-        <button
-            @ref="this.triggerElement"
-            @attributes="this.AdditionalAttributes"
-            id="@(this.FieldId)"
-            type="button"
-            class="mb-select-input__trigger mb-field-control mb-field-control--single-line"
-            disabled="@(this.Disabled)"
-            role="combobox"
-            aria-haspopup="listbox"
-            aria-expanded="@(this.IsOpen ? "true" : "false")"
-            aria-controls="@(this.ListboxId)"
-            aria-activedescendant="@(this.GetActiveOptionId())"
-            aria-invalid="@(this.GetAriaInvalid())"
-            aria-required="@(this.Required ? "true" : "false")"
-            aria-describedby="@(this.DescribedBy)"
-            @onclick="this.ToggleMenu"
-            @onkeydown="this.HandleKeyDownAsync">
-            <span class="@(this.GetValueCssClass())" title="@(this.GetDisplayText())">
-                @(this.GetDisplayText())
-            </span>
+    <div class="mb-select-input__control">
+        <BbSelect TValue="string"
+                  Value="@(this.Value)"
+                  ValueChanged="this.HandleValueChangedAsync"
+                  Open="@(this.IsOpen)"
+                  OpenChanged="this.HandleOpenChanged"
+                  Disabled="@(this.Disabled)"
+                  Required="@(this.Required)"
+                  DisplayTextSelector="this.GetDisplayTextForValue">
+            <BbSelectTrigger
+                @attributes="this.AdditionalAttributes"
+                id="@(this.FieldId)"
+                class="mb-select-input__trigger mb-field-control mb-field-control--single-line"
+                aria-haspopup="listbox"
+                aria-expanded="@(this.IsOpen ? "true" : "false")"
+                aria-invalid="@(this.GetAriaInvalid())"
+                aria-required="@(this.Required ? "true" : "false")"
+                aria-describedby="@(this.DescribedBy)">
+                <BbSelectValue Placeholder="@(this.Placeholder)"
+                               class="@(this.GetValueCssClass())"
+                               title="@(this.GetDisplayTextForValue(this.Value))" />
+                <ChevronIcon Class="mb-select-input__chevron" />
+            </BbSelectTrigger>
 
-            <ChevronIcon Class="mb-select-input__chevron" />
-        </button>
-
-        @if (this.IsOpen)
-        {
-            <div id="@(this.ListboxId)"
-                 class="mb-select-input__listbox"
-                 role="listbox"
-                 aria-labelledby="@(this.FieldId)">
-                @for (var index = 0; index < this.optionList.Count; index++)
+            <BbSelectContent class="mb-select-input__listbox"
+                             Side="PopoverSide.Bottom"
+                             Align="PopoverAlign.Start"
+                             Offset="6"
+                             MatchTriggerWidth="true">
+                @foreach (var option in this.optionList)
                 {
-                    var optionIndex = index;
-                    var option = this.optionList[optionIndex];
-
-                    <button id="@(this.GetOptionId(optionIndex))"
-                            type="button"
-                            class="@(this.GetOptionCssClass(optionIndex))"
-                            role="option"
-                            aria-selected="@(this.IsSelected(option) ? "true" : "false")"
-                            aria-disabled="@(option.Disabled ? "true" : "false")"
-                            disabled="@(option.Disabled)"
-                            tabindex="-1"
-                            @onclick="() => this.SelectOptionAsync(optionIndex)">
-                        <span class="mb-select-input__option-label" title="@(option.Label)">@(option.Label)</span>
-                    </button>
+                    <BbSelectItem Value="@(option.Value)"
+                                  Text="@(option.Label)"
+                                  Disabled="@(option.Disabled)"
+                                  class="mb-select-input__option"
+                                  aria-selected="@(this.IsOptionSelected(option))"
+                                  aria-disabled="@(option.Disabled ? "true" : null)">
+                        <span class="mb-select-input__option-label" title="@(option.Label)">
+                            @(option.Label)
+                        </span>
+                    </BbSelectItem>
                 }
-            </div>
-        }
+            </BbSelectContent>
+        </BbSelect>
 
         @if (!this.Disabled && !string.IsNullOrWhiteSpace(this.FieldName))
         {

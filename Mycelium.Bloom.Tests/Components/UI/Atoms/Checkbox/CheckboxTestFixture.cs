@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Checkbox
 {
+    using System.Threading.Tasks;
+
     using Bunit;
 
     using CheckboxComponent = Mycelium.Bloom.Components.UI.Atoms.Checkbox.Checkbox;
@@ -47,14 +49,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.Checkbox
         /// Verifies that native changes use the checked binding callback.
         /// </summary>
         [Test]
-        public void VerifyChangeInvokesCheckedChanged()
+        public async Task VerifyChangeInvokesCheckedChanged()
         {
             var changedValue = false;
 
             var component = this.Render<CheckboxComponent>(parameters => parameters
                 .Add(component => component.CheckedChanged, value => changedValue = value));
 
-            component.Find("input").Change(true);
+            await component.Find("input").ChangeAsync(true);
 
             using (Assert.EnterMultipleScope())
             {

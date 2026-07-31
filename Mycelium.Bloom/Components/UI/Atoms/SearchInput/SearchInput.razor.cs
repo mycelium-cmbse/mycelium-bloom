@@ -60,6 +60,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         public string Placeholder { get; set; } = "Search…";
 
         /// <summary>
+        /// Gets or sets the accessible name of the search input.
+        /// </summary>
+        [Parameter]
+        public string AriaLabel { get; set; } = "Search";
+
+        /// <summary>
         /// Gets or sets the shortcut text displayed next to the search input.
         /// </summary>
         [Parameter]
@@ -177,17 +183,24 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         }
 
         /// <summary>
-        /// Handles input changes and forwards the updated value to the parent component.
+        /// Gets the configured accessible name, falling back to search semantics when blank.
         /// </summary>
-        /// <param name="args">The input change event arguments.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task HandleInputAsync(ChangeEventArgs args)
+        /// <returns>The accessible input name.</returns>
+        private string GetAccessibleName()
         {
-            var value = args.Value?.ToString() ?? string.Empty;
+            return string.IsNullOrWhiteSpace(this.AriaLabel) ? "Search" : this.AriaLabel;
+        }
 
-            this.Value = value;
+        /// <summary>
+        /// Handles Blueprint value changes and forwards the updated value to the parent component.
+        /// </summary>
+        /// <param name="value">The updated search value.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task HandleValueChangedAsync(string value)
+        {
+            this.Value = value ?? string.Empty;
 
-            await this.ValueChanged.InvokeAsync(value);
+            await this.ValueChanged.InvokeAsync(this.Value);
         }
 
         /// <summary>

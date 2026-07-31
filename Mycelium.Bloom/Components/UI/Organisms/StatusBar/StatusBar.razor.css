@@ -10,7 +10,7 @@
     min-width: 0;
     min-height: var(--mb-status-bar-min-height);
     padding: 0 var(--mb-spacing-3);
-    border-top: 1px solid var(--mb-color-component-border);
+    border-top: 1px solid var(--mb-color-border-subtle);
     background: var(--mb-color-surface);
     color: var(--mb-color-text-muted);
     font-size: var(--mb-font-size-label-sm);

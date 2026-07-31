@@ -1,0 +1,18 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="BrandMark.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<img class="@(this.GetCssClass())"
+     src="brand/bloom-mark.svg"
+     alt="@(this.GetAlternativeText())"
+     aria-hidden="@(this.GetAriaHidden())"
+     draggable="false"
+     data-brand="bloom"
+     @attributes="this.AdditionalAttributes" />

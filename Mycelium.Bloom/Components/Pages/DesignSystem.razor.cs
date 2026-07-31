@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.Components.Pages
     using System.Globalization;
 
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -19,8 +20,29 @@ namespace Mycelium.Bloom.Components.Pages
     /// <summary>
     /// Provides a development-only composition surface for the reusable Bloom component library.
     /// </summary>
-    public partial class DesignSystem : ComponentBase
+    public partial class DesignSystem : ComponentBase, IAsyncDisposable
     {
+        /// <summary>
+        /// Identifies this page instance as the current owner of the document theme preview.
+        /// </summary>
+        private readonly string themeOwnerId = $"mb-design-system-theme-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// References the page-scoped theme module after interactive rendering begins.
+        /// </summary>
+        private IJSObjectReference themeModule;
+
+        /// <summary>
+        /// Gets or sets the JavaScript runtime used to apply the preview theme to the document root.
+        /// </summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; } = null!;
+
+        /// <summary>
+        /// Gets or sets the active page-level preview theme.
+        /// </summary>
+        private string ThemeName { get; set; } = "light";
+
         /// <summary>
         /// Gets the local select options used by the form examples.
         /// </summary>
@@ -42,17 +64,6 @@ namespace Mycelium.Bloom.Components.Pages
             new() { Value = "properties", Label = "Properties" },
             new() { Value = "relationships", Label = "Relationships" },
             new() { Value = "history", Label = "History", Disabled = true }
-        ];
-
-        /// <summary>
-        /// Gets the local breadcrumb items used by the navigation example.
-        /// </summary>
-        private IReadOnlyList<BreadcrumbItem> BreadcrumbItems { get; } =
-        [
-            new() { Id = "workspace", Label = "Workspace", Target = "workspace" },
-            new() { Id = "projects", Label = "Projects", Target = "projects" },
-            new() { Id = "restricted", Label = "Restricted", Disabled = true },
-            new() { Id = "architecture", Label = "Architecture", IsCurrent = true }
         ];
 
         /// <summary>
@@ -313,6 +324,75 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private bool WorkspaceRightPanelVisible { get; set; } = true;
 
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (!firstRender)
+            {
+                return;
+            }
+
+            this.themeModule = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/Pages/DesignSystem.razor.js");
+
+            await this.ApplyThemeAsync();
+        }
+
+        /// <summary>
+        /// Selects and applies a supported document-level preview theme.
+        /// </summary>
+        /// <param name="themeName">The supported theme name.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task SetThemeAsync(string themeName)
+        {
+            if (!string.Equals(themeName, "light", StringComparison.Ordinal) &&
+                !string.Equals(themeName, "dark", StringComparison.Ordinal))
+            {
+                throw new ArgumentOutOfRangeException(nameof(themeName), themeName, "Only light and dark preview themes are supported.");
+            }
+
+            this.ThemeName = themeName;
+            await this.ApplyThemeAsync();
+        }
+
+        /// <summary>
+        /// Applies the selected preview theme to the document root when the module is ready.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task ApplyThemeAsync()
+        {
+            if (this.themeModule is not null)
+            {
+                await this.themeModule.InvokeVoidAsync(
+                    "applyTheme",
+                    this.themeOwnerId,
+                    this.ThemeName);
+            }
+        }
+
+        /// <summary>
+        /// Gets the CSS classes for a theme option.
+        /// </summary>
+        /// <param name="themeName">The theme represented by the option.</param>
+        /// <returns>The theme-option CSS class list.</returns>
+        private string GetThemeButtonCssClass(string themeName)
+        {
+            return string.Equals(this.ThemeName, themeName, StringComparison.Ordinal)
+                ? "mb-design-system__theme-button mb-design-system__theme-button--selected"
+                : "mb-design-system__theme-button";
+        }
+
+        /// <summary>
+        /// Gets the accessible pressed state for a theme option.
+        /// </summary>
+        /// <param name="themeName">The theme represented by the option.</param>
+        /// <returns>True when the theme option is selected; otherwise, false.</returns>
+        private string GetThemeAriaPressed(string themeName)
+        {
+            return string.Equals(this.ThemeName, themeName, StringComparison.Ordinal) ? "true" : "false";
+        }
+
         /// <summary>
         /// Gets or sets the latest application-header callback result.
         /// </summary>
@@ -398,6 +478,22 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleSecondarySelectValueChanged(string value)
         {
             this.SecondarySelectValue = value;
+        }
+
+        /// <summary>
+        /// Applies an external controlled-value update to the primary Select example.
+        /// </summary>
+        private void SetPrimarySelectToOpen()
+        {
+            this.SelectValue = "open";
+        }
+
+        /// <summary>
+        /// Restores the primary Select example to its deterministic initial value.
+        /// </summary>
+        private void ResetPrimarySelect()
+        {
+            this.SelectValue = "review";
         }
 
         /// <summary>
@@ -497,8 +593,8 @@ namespace Mycelium.Bloom.Components.Pages
         private string GetCanvasToolbarToolCssClass(string tool)
         {
             return this.IsCanvasToolbarToolActive(tool)
-                ? "mb-canvas-toolbar__action mb-canvas-toolbar__action--active"
-                : "mb-canvas-toolbar__action";
+                ? "mb-design-system__canvas-toolbar-action mb-design-system__canvas-toolbar-action--active"
+                : "mb-design-system__canvas-toolbar-action";
         }
 
         /// <summary>
@@ -585,10 +681,10 @@ namespace Mycelium.Bloom.Components.Pages
         /// <summary>
         /// Records the selected breadcrumb.
         /// </summary>
-        /// <param name="item">The selected breadcrumb item.</param>
-        private void HandleBreadcrumbSelected(BreadcrumbItem item)
+        /// <param name="label">The selected breadcrumb label.</param>
+        private void HandleBreadcrumbSelected(string label)
         {
-            this.LastBreadcrumbSelection = item.Label;
+            this.LastBreadcrumbSelection = label;
         }
 
         /// <summary>
@@ -794,6 +890,32 @@ namespace Mycelium.Bloom.Components.Pages
             ]);
 
             this.NextToastNumber = 3;
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            var module = this.themeModule;
+            this.themeModule = null;
+
+            if (module is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await module.InvokeVoidAsync("releaseTheme", this.themeOwnerId);
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit has already ended, so the browser no longer accepts cleanup calls.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The renderer disposed the JavaScript module before component cleanup completed.
+            }
         }
     }
 }
