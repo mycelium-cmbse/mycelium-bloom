@@ -1150,3 +1150,13 @@
     }
 
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .mb-design-system__theme-button {
+        transition-duration: 1ms;
+    }
+
+    .mb-design-system__loading-spinner {
+        animation: none;
+    }
+}

@@ -392,6 +392,14 @@
     --mb-color-brand-action: var(--mb-color-action-primary);
     --mb-color-brand-action-hover: var(--mb-color-action-primary-hover);
 
+    --mb-color-sysml-structure-header: #64748b;
+    --mb-color-sysml-attributes-header: #94a3b8;
+    --mb-color-sysml-connections-header: #14b8a6;
+    --mb-color-sysml-behavior-header: #d97706;
+    --mb-color-sysml-requirements-header: #3b82f6;
+    --mb-color-sysml-verification-header: #8b5cf6;
+    --mb-color-sysml-allocations-header: #6366f1;
+    --mb-color-sysml-metadata-header: #6b7280;
     --mb-color-sysml-structure-surface: #161b22;
     --mb-color-sysml-structure-border: #30363d;
     --mb-color-sysml-attributes-surface: #161b22;

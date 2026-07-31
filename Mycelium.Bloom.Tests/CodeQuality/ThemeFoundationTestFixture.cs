@@ -10,6 +10,8 @@
 namespace Mycelium.Bloom.Tests.CodeQuality
 {
     using System;
+    using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
 
@@ -79,9 +81,30 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--mb-color-model-tree-hover:",
             "--mb-color-model-tree-selected:",
             "--mb-color-detail-section-background:",
+            "--mb-color-sysml-structure-header:",
+            "--mb-color-sysml-attributes-header:",
+            "--mb-color-sysml-connections-header:",
+            "--mb-color-sysml-behavior-header:",
+            "--mb-color-sysml-requirements-header:",
+            "--mb-color-sysml-verification-header:",
+            "--mb-color-sysml-allocations-header:",
+            "--mb-color-sysml-metadata-header:",
             "--mb-color-overlay-scrim:",
             "--mb-shadow-lg:"
         ];
+
+        private static readonly IReadOnlyDictionary<string, string> LightSysmlHeaderTokens =
+            new Dictionary<string, string>
+            {
+                ["--mb-color-sysml-structure-header"] = "#475569",
+                ["--mb-color-sysml-attributes-header"] = "#64748b",
+                ["--mb-color-sysml-connections-header"] = "#0d9488",
+                ["--mb-color-sysml-behavior-header"] = "#b45309",
+                ["--mb-color-sysml-requirements-header"] = "#1d4ed8",
+                ["--mb-color-sysml-verification-header"] = "#7c3aed",
+                ["--mb-color-sysml-allocations-header"] = "#4f46e5",
+                ["--mb-color-sysml-metadata-header"] = "#6b7280"
+            };
 
         /// <summary>
         /// Verifies the light root and dark override each define every required semantic concept.
@@ -188,6 +211,37 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(darkSource, Does.Contain("--mb-color-action-primary: var(--mb-color-brand-400);"));
                 Assert.That(darkSource, Does.Contain("--mb-color-danger-action: #ef4444;"));
                 Assert.That(darkSource, Does.Contain("--mb-color-danger-action-foreground: #0d1117;"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that every dark SysML category marker meets the non-text contrast target without changing light tokens.
+        /// </summary>
+        [Test]
+        public void VerifyDarkSysmlHeaderTokensMeetNonTextContrast()
+        {
+            var variables = File.ReadAllText(GetProjectFile("Styles", "variables.css"));
+            var darkStart = variables.IndexOf("[data-theme=\"dark\"]", StringComparison.Ordinal);
+            var lightSource = variables[..darkStart];
+            var darkSource = variables[darkStart..];
+            var darkSurface = GetTokenValue(darkSource, "--mb-color-surface");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(darkSurface, Is.EqualTo("#161b22"));
+
+                foreach (var token in LightSysmlHeaderTokens)
+                {
+                    var lightValue = GetTokenValue(lightSource, token.Key);
+                    var darkValue = GetTokenValue(darkSource, token.Key);
+                    var contrast = GetContrastRatio(darkValue, darkSurface);
+
+                    Assert.That(lightValue, Is.EqualTo(token.Value), $"{token.Key} changed in the light theme.");
+                    Assert.That(
+                        contrast,
+                        Is.GreaterThanOrEqualTo(3d),
+                        $"{token.Key} ({darkValue}) has only {contrast:F2}:1 contrast against {darkSurface}.");
+                }
             }
         }
 
@@ -311,5 +365,61 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Path.Combine(pathSegments));
         }
 
+        private static string GetTokenValue(string source, string tokenName)
+        {
+            var marker = $"{tokenName}:";
+            var valueStart = source.IndexOf(marker, StringComparison.Ordinal);
+
+            if (valueStart < 0)
+            {
+                throw new InvalidOperationException($"Token '{tokenName}' was not found.");
+            }
+
+            valueStart += marker.Length;
+            var valueEnd = source.IndexOf(';', valueStart);
+
+            if (valueEnd < 0)
+            {
+                throw new InvalidOperationException($"Token '{tokenName}' has no terminating semicolon.");
+            }
+
+            return source[valueStart..valueEnd].Trim();
+        }
+
+        private static double GetContrastRatio(string foreground, string background)
+        {
+            var foregroundLuminance = GetRelativeLuminance(foreground);
+            var backgroundLuminance = GetRelativeLuminance(background);
+            var lighter = Math.Max(foregroundLuminance, backgroundLuminance);
+            var darker = Math.Min(foregroundLuminance, backgroundLuminance);
+
+            return (lighter + 0.05d) / (darker + 0.05d);
+        }
+
+        private static double GetRelativeLuminance(string hexadecimalColor)
+        {
+            if (hexadecimalColor.Length != 7 || hexadecimalColor[0] != '#')
+            {
+                throw new InvalidOperationException($"Color '{hexadecimalColor}' is not a six-digit hexadecimal value.");
+            }
+
+            var red = ParseColorChannel(hexadecimalColor, 1);
+            var green = ParseColorChannel(hexadecimalColor, 3);
+            var blue = ParseColorChannel(hexadecimalColor, 5);
+
+            return (0.2126d * red) + (0.7152d * green) + (0.0722d * blue);
+        }
+
+        private static double ParseColorChannel(string hexadecimalColor, int startIndex)
+        {
+            var channel = int.Parse(
+                hexadecimalColor.AsSpan(startIndex, 2),
+                NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture) / 255d;
+
+            return channel <= 0.04045d
+                ? channel / 12.92d
+                : Math.Pow((channel + 0.055d) / 1.055d, 2.4d);
+        }
     }
 }
