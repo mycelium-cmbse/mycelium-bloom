@@ -1,4 +1,6 @@
 ﻿:root {
+    color-scheme: light;
+
     /* =========================================================
        Mycelium Bloom Theme Variables
        Source: Figma Design System Reference v0.1
@@ -88,8 +90,9 @@
     --mb-color-background: var(--mb-color-neutral-50);
     --mb-color-surface: var(--mb-color-neutral-0);
     --mb-color-surface-muted: var(--mb-color-neutral-100);
-    --mb-color-border: var(--mb-color-neutral-200);
-    --mb-color-border-strong: var(--mb-color-neutral-300);
+    --mb-color-border-subtle: var(--mb-color-neutral-200);
+    --mb-color-border: var(--mb-color-neutral-300);
+    --mb-color-border-strong: var(--mb-color-neutral-400);
 
     --mb-color-text-primary: var(--mb-color-neutral-900);
     --mb-color-text-secondary: var(--mb-color-neutral-600);
@@ -97,11 +100,56 @@
     --mb-color-text-subtle: var(--mb-color-neutral-400);
     --mb-color-text-inverted: var(--mb-color-neutral-0);
 
-    --mb-color-action-primary: var(--mb-color-brand-600);
-    --mb-color-action-primary-hover: var(--mb-color-brand-700);
+    --mb-color-action-primary: var(--mb-color-brand-700);
+    --mb-color-action-primary-hover: var(--mb-color-brand-800);
+    --mb-color-action-primary-active: var(--mb-color-brand-900);
+    --mb-color-action-primary-foreground: var(--mb-color-neutral-0);
     --mb-color-action-primary-soft: var(--mb-color-brand-50);
 
-    --mb-color-focus-ring: var(--mb-color-brand-500);
+    --mb-color-focus-ring: var(--mb-color-brand-700);
+
+    /* Application surfaces and interaction states */
+    --mb-color-workspace-background: var(--mb-color-neutral-100);
+    --mb-color-surface-elevated: var(--mb-color-neutral-0);
+    --mb-color-popover: var(--mb-color-neutral-0);
+    --mb-color-overlay-scrim: rgb(15 23 42 / 42%);
+    --mb-color-input-background: var(--mb-color-neutral-0);
+    --mb-color-input-border: var(--mb-color-neutral-300);
+    --mb-color-surface-hover: var(--mb-color-neutral-100);
+    --mb-color-surface-active: var(--mb-color-neutral-200);
+    --mb-color-surface-selected: var(--mb-color-brand-50);
+    --mb-color-border-selected: var(--mb-color-brand-500);
+    --mb-color-text-disabled: var(--mb-color-neutral-600);
+
+    --mb-color-success-surface: var(--mb-color-success-50);
+    --mb-color-success-text: var(--mb-color-success-700);
+    --mb-color-success-border: var(--mb-color-success-text);
+    --mb-color-warning-surface: var(--mb-color-warning-50);
+    --mb-color-warning-text: var(--mb-color-warning-700);
+    --mb-color-warning-border: var(--mb-color-warning-text);
+    --mb-color-danger-surface: var(--mb-color-danger-50);
+    --mb-color-danger-text: var(--mb-color-danger-700);
+    --mb-color-danger-border: var(--mb-color-danger-text);
+    --mb-color-danger-action: var(--mb-color-danger-700);
+    --mb-color-danger-action-hover: color-mix(in srgb, var(--mb-color-danger-700) 88%, var(--mb-color-neutral-1000));
+    --mb-color-danger-action-foreground: var(--mb-color-neutral-0);
+    --mb-color-info-surface: var(--mb-color-info-50);
+    --mb-color-info-text: var(--mb-color-info-700);
+    --mb-color-info-border: var(--mb-color-info-text);
+    --mb-color-tooltip-background: var(--mb-color-neutral-900);
+    --mb-color-tooltip-foreground: var(--mb-color-neutral-0);
+
+    /* Workspace composition */
+    --mb-color-header-background: var(--mb-color-surface);
+    --mb-color-footer-background: var(--mb-color-neutral-50);
+    --mb-color-status-background: var(--mb-color-neutral-50);
+    --mb-color-panel-background: var(--mb-color-surface);
+    --mb-color-canvas-background: var(--mb-color-neutral-50);
+    --mb-color-canvas-grid: var(--mb-color-neutral-300);
+    --mb-color-toolbar-background: var(--mb-color-surface-elevated);
+    --mb-color-model-tree-hover: var(--mb-color-surface-hover);
+    --mb-color-model-tree-selected: var(--mb-color-surface-selected);
+    --mb-color-detail-section-background: var(--mb-color-surface);
 
     /* Typography */
     --mb-font-size-display-2xl: 40px;
@@ -251,14 +299,14 @@
 
     /* Component-specific values from Figma components */
     --mb-color-component-text: #293342;
-    --mb-color-component-icon: #738294;
-    --mb-color-component-border: #e3e8ed;
-    --mb-color-component-border-strong: #d1d6db;
+    --mb-color-component-icon: var(--mb-color-text-muted);
+    --mb-color-component-border: var(--mb-color-input-border);
+    --mb-color-component-border-strong: var(--mb-color-border-strong);
     --mb-color-component-soft: #f5f7fa;
     --mb-color-component-footer: #fafafc;
 
-    --mb-color-brand-action: #0f9e8c;
-    --mb-color-brand-action-hover: #0d9488;
+    --mb-color-brand-action: var(--mb-color-action-primary);
+    --mb-color-brand-action-hover: var(--mb-color-action-primary-hover);
 
     --mb-control-height-xs: 28px;
     --mb-control-height-sm: 34px;
@@ -267,3 +315,101 @@
     --mb-radius-control: 6px;
 }
 
+[data-theme="light"] {
+    color-scheme: light;
+}
+
+[data-theme="dark"],
+:root.dark {
+    color-scheme: dark;
+
+    --mb-color-background: #0d1117;
+    --mb-color-workspace-background: #0d1117;
+    --mb-color-surface: #161b22;
+    --mb-color-surface-elevated: #21262d;
+    --mb-color-surface-muted: #21262d;
+    --mb-color-popover: #161b22;
+    --mb-color-overlay-scrim: rgb(1 4 9 / 72%);
+    --mb-color-border-subtle: #21262d;
+    --mb-color-border: #30363d;
+    --mb-color-border-strong: #484f58;
+    --mb-color-input-background: #0d1117;
+    --mb-color-input-border: #30363d;
+
+    --mb-color-text-primary: #f0f6fc;
+    --mb-color-text-secondary: #c9d1d9;
+    --mb-color-text-muted: #8b949e;
+    --mb-color-text-subtle: #6e7681;
+    --mb-color-text-disabled: #8b949e;
+    --mb-color-text-inverted: #0d1117;
+
+    --mb-color-action-primary: var(--mb-color-brand-400);
+    --mb-color-action-primary-hover: var(--mb-color-brand-300);
+    --mb-color-action-primary-active: var(--mb-color-brand-500);
+    --mb-color-action-primary-foreground: #0d1117;
+    --mb-color-action-primary-soft: color-mix(in srgb, var(--mb-color-brand-500) 18%, #161b22);
+    --mb-color-focus-ring: var(--mb-color-brand-300);
+    --mb-color-surface-hover: #21262d;
+    --mb-color-surface-active: #30363d;
+    --mb-color-surface-selected: color-mix(in srgb, var(--mb-color-brand-500) 22%, #161b22);
+    --mb-color-border-selected: var(--mb-color-brand-300);
+
+    --mb-color-success-surface: color-mix(in srgb, var(--mb-color-success-500) 18%, #161b22);
+    --mb-color-success-text: #86efac;
+    --mb-color-success-border: var(--mb-color-success-text);
+    --mb-color-warning-surface: color-mix(in srgb, var(--mb-color-warning-500) 20%, #161b22);
+    --mb-color-warning-text: #fcd34d;
+    --mb-color-warning-border: var(--mb-color-warning-text);
+    --mb-color-danger-surface: color-mix(in srgb, var(--mb-color-danger-500) 20%, #161b22);
+    --mb-color-danger-text: #fca5a5;
+    --mb-color-danger-border: var(--mb-color-danger-text);
+    --mb-color-danger-action: #ef4444;
+    --mb-color-danger-action-hover: #f87171;
+    --mb-color-danger-action-foreground: #0d1117;
+    --mb-color-info-surface: color-mix(in srgb, var(--mb-color-info-500) 20%, #161b22);
+    --mb-color-info-text: #93c5fd;
+    --mb-color-info-border: var(--mb-color-info-text);
+    --mb-color-tooltip-background: var(--mb-color-surface-elevated);
+    --mb-color-tooltip-foreground: var(--mb-color-text-primary);
+
+    --mb-color-header-background: #161b22;
+    --mb-color-footer-background: #0d1117;
+    --mb-color-status-background: #0d1117;
+    --mb-color-panel-background: #161b22;
+    --mb-color-canvas-background: #0d1117;
+    --mb-color-canvas-grid: #21262d;
+    --mb-color-toolbar-background: #161b22;
+    --mb-color-model-tree-hover: var(--mb-color-surface-hover);
+    --mb-color-model-tree-selected: var(--mb-color-surface-selected);
+    --mb-color-detail-section-background: #161b22;
+
+    --mb-color-component-text: var(--mb-color-text-primary);
+    --mb-color-component-icon: var(--mb-color-text-secondary);
+    --mb-color-component-border: var(--mb-color-input-border);
+    --mb-color-component-border-strong: var(--mb-color-border-strong);
+    --mb-color-component-soft: var(--mb-color-surface-hover);
+    --mb-color-component-footer: var(--mb-color-footer-background);
+    --mb-color-brand-action: var(--mb-color-action-primary);
+    --mb-color-brand-action-hover: var(--mb-color-action-primary-hover);
+
+    --mb-color-sysml-structure-surface: #161b22;
+    --mb-color-sysml-structure-border: #30363d;
+    --mb-color-sysml-attributes-surface: #161b22;
+    --mb-color-sysml-attributes-border: #21262d;
+    --mb-color-sysml-connections-surface: color-mix(in srgb, var(--mb-color-brand-500) 12%, #161b22);
+    --mb-color-sysml-connections-border: var(--mb-color-brand-700);
+    --mb-color-sysml-behavior-surface: var(--mb-color-warning-surface);
+    --mb-color-sysml-behavior-border: var(--mb-color-warning-700);
+    --mb-color-sysml-requirements-surface: var(--mb-color-info-surface);
+    --mb-color-sysml-requirements-border: var(--mb-color-info-700);
+    --mb-color-sysml-verification-surface: color-mix(in srgb, #8b5cf6 16%, #161b22);
+    --mb-color-sysml-verification-border: #8b5cf6;
+    --mb-color-sysml-allocations-surface: color-mix(in srgb, #6366f1 16%, #161b22);
+    --mb-color-sysml-allocations-border: #818cf8;
+    --mb-color-sysml-metadata-surface: #161b22;
+    --mb-color-sysml-metadata-border: #30363d;
+
+    --mb-shadow-sm: 0 1px 2px rgb(2 6 23 / 0.42);
+    --mb-shadow-md: 0 12px 30px rgb(2 6 23 / 0.46);
+    --mb-shadow-lg: 0 20px 48px rgb(2 6 23 / 0.58);
+}

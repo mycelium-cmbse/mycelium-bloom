@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Layout;
+    using Mycelium.Bloom.Tests.Common;
 
     /// <summary>
     /// Tests the <see cref="MainLayout" /> component.
@@ -23,19 +24,27 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     public sealed class MainLayoutTestFixture : BunitContext
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="MainLayoutTestFixture" /> class.
+        /// </summary>
+        public MainLayoutTestFixture()
+        {
+            BlueprintTestSetup.Configure(this);
+        }
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
         /// Verifies that the main layout displays navigation, body content, and the error UI.
         /// </summary>
         [Test]
-        public void Render_DisplaysMainLayoutContent()
+        public void VerifyRenderDisplaysMainLayoutContent()
         {
             RenderFragment body = builder => { builder.AddContent(0, "Workspace content"); };
 

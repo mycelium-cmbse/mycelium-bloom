@@ -1,0 +1,213 @@
+/*
+   Portal-safe Bloom presentation for supported Blazor Blueprint primitive
+   classes. These rules are global because portal content renders outside the
+   originating component's CSS-isolation boundary. The file intentionally
+   remains unlayered so these consumer-owned classes win over Tailwind's
+   layered reset without undocumented Blueprint selectors or priority hacks.
+*/
+
+.mb-select-input__listbox {
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    min-width: min(11.5rem, calc(100vw - (2 * var(--mb-spacing-4))));
+    max-width: min(24rem, calc(100vw - (2 * var(--mb-spacing-4))));
+    max-height: min(20rem, calc(100dvh - (2 * var(--mb-spacing-6))));
+    padding: var(--mb-spacing-1);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--mb-color-border);
+    border-radius: var(--mb-radius-control);
+    background: var(--mb-color-popover);
+    box-shadow: var(--mb-shadow-md);
+    color: var(--mb-color-component-text);
+}
+
+.mb-select-input__listbox:focus-visible {
+    outline: none;
+}
+
+.mb-select-input__option {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.25rem;
+    border: 0;
+    border-radius: var(--mb-radius-sm);
+    background: transparent;
+    color: var(--mb-color-component-text);
+    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    text-align: start;
+}
+
+.mb-select-input__option {
+    display: flex;
+    align-items: center;
+    padding: 0.4375rem 0.5rem;
+}
+
+.mb-select-input__option:hover:not([aria-disabled="true"]),
+.mb-select-input__option:focus-visible,
+.mb-select-input__option[data-focused="true"]:not([aria-disabled="true"]) {
+    outline: none;
+    background: var(--mb-color-surface-hover);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-select-input__option[aria-selected="true"] {
+    background: var(--mb-color-surface-selected);
+    color: var(--mb-color-action-primary);
+    font-weight: 600;
+}
+
+.mb-select-input__option[aria-disabled="true"] {
+    color: var(--mb-color-text-disabled);
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.mb-select-input__option-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.mb-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--mb-spacing-6);
+}
+
+.mb-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--mb-color-overlay-scrim);
+    backdrop-filter: blur(2px);
+}
+
+.mb-modal__panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: calc(100dvh - var(--mb-spacing-12));
+    overflow: hidden;
+    border: 1px solid var(--mb-color-border);
+    border-radius: var(--mb-radius-lg);
+    background: var(--mb-color-surface-elevated);
+    box-shadow: var(--mb-shadow-lg);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-modal__panel--small {
+    max-width: 22.5rem;
+}
+
+.mb-modal__panel--medium {
+    max-width: 30rem;
+}
+
+.mb-modal__panel--large {
+    max-width: 40rem;
+}
+
+.mb-modal__panel--wide {
+    max-width: 52.5rem;
+}
+
+.mb-modal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--mb-spacing-4);
+    padding: var(--mb-spacing-4);
+    border-bottom: 1px solid var(--mb-color-border-subtle);
+}
+
+.mb-modal__heading,
+.mb-modal__custom-header {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.mb-modal__heading {
+    gap: var(--mb-spacing-1);
+}
+
+.mb-modal__title,
+.mb-modal__description {
+    margin: 0;
+}
+
+.mb-modal__title {
+    overflow: hidden;
+    color: var(--mb-color-text-primary);
+    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
+    font-size: var(--mb-font-size-heading-xs);
+    line-height: var(--mb-line-height-heading-xs);
+    font-weight: var(--mb-font-weight-heading-xs);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-modal__description {
+    color: var(--mb-color-text-secondary);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+}
+
+.mb-modal__close {
+    display: flex;
+    flex: 0 0 auto;
+}
+
+.mb-modal__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--mb-spacing-4);
+}
+
+.mb-modal__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--mb-spacing-2);
+    padding: var(--mb-spacing-3) var(--mb-spacing-4);
+    border-top: 1px solid var(--mb-color-border-subtle);
+    background: var(--mb-color-footer-background);
+}
+
+@media (max-width: 40rem) {
+    .mb-modal {
+        padding: var(--mb-spacing-4);
+    }
+
+    .mb-modal__panel {
+        max-height: calc(100dvh - var(--mb-spacing-8));
+    }
+
+    .mb-modal__footer {
+        justify-content: stretch;
+    }
+
+    .mb-modal__footer > * {
+        flex: 1 1 auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mb-select-input__listbox,
+    .mb-modal__panel {
+        animation: none;
+        transition: none;
+    }
+}

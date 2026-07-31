@@ -1,0 +1,49 @@
+:root {
+    /*
+       Blazor Blueprint Components semantic bridge.
+       Bloom tokens remain authoritative for styled components and portalled
+       overlays in both light and dark document themes.
+    */
+    --background: var(--mb-color-background);
+    --foreground: var(--mb-color-text-primary);
+    --card: var(--mb-color-surface);
+    --card-foreground: var(--mb-color-text-primary);
+    --popover: var(--mb-color-popover);
+    --popover-foreground: var(--mb-color-text-primary);
+    --primary: var(--mb-color-action-primary);
+    --primary-foreground: var(--mb-color-action-primary-foreground);
+    --secondary: var(--mb-color-surface-muted);
+    --secondary-foreground: var(--mb-color-text-primary);
+    --muted: var(--mb-color-surface-muted);
+    --muted-foreground: var(--mb-color-text-muted);
+    --accent: var(--mb-color-surface-selected);
+    --accent-foreground: var(--mb-color-text-primary);
+    --destructive: var(--mb-color-danger-action);
+    --destructive-foreground: var(--mb-color-danger-action-foreground);
+    --border: var(--mb-color-border);
+    --input: var(--mb-color-input-border);
+    --ring: var(--mb-color-focus-ring);
+    --alert-success: var(--mb-color-success-border);
+    --alert-success-foreground: var(--mb-color-success-text);
+    --alert-success-bg: var(--mb-color-success-surface);
+    --alert-info: var(--mb-color-info-border);
+    --alert-info-foreground: var(--mb-color-info-text);
+    --alert-info-bg: var(--mb-color-info-surface);
+    --alert-warning: var(--mb-color-warning-border);
+    --alert-warning-foreground: var(--mb-color-warning-text);
+    --alert-warning-bg: var(--mb-color-warning-surface);
+    --alert-danger: var(--mb-color-danger-border);
+    --alert-danger-foreground: var(--mb-color-danger-text);
+    --alert-danger-bg: var(--mb-color-danger-surface);
+    --sidebar: var(--mb-color-panel-background);
+    --sidebar-foreground: var(--mb-color-text-primary);
+    --sidebar-primary: var(--mb-color-action-primary);
+    --sidebar-primary-foreground: var(--mb-color-action-primary-foreground);
+    --sidebar-accent: var(--mb-color-surface-selected);
+    --sidebar-accent-foreground: var(--mb-color-text-primary);
+    --sidebar-border: var(--mb-color-border);
+    --sidebar-ring: var(--mb-color-focus-ring);
+    --radius: var(--mb-radius-control);
+    --font-sans: var(--mb-font-family-sans);
+    --font-mono: var(--mb-font-family-mono);
+}

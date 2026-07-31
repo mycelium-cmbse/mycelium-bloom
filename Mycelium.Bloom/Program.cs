@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom
 {
+    using BlazorBlueprint.Components;
+
     using Mycelium.Bloom.Components;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -41,6 +43,7 @@ namespace Mycelium.Bloom
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+            builder.Services.AddBlazorBlueprintComponents();
 
             // Add application services.
             builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
