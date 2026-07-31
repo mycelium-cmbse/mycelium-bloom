@@ -262,6 +262,21 @@ namespace Mycelium.Bloom.Components.Pages
         private bool ModalOpen { get; set; }
 
         /// <summary>
+        /// Gets or sets the compact-modal invoking control.
+        /// </summary>
+        private ElementReference CompactModalTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the wide-modal invoking control.
+        /// </summary>
+        private ElementReference WideModalTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the focus target captured for the active modal example.
+        /// </summary>
+        private ElementReference? ModalFocusReturnTarget { get; set; }
+
+        /// <summary>
         /// Gets or sets the size used by the active modal example.
         /// </summary>
         private ModalSize ActiveModalSize { get; set; } = ModalSize.Small;
@@ -275,6 +290,26 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets a value indicating whether the confirmation example is open.
         /// </summary>
         private bool ConfirmDialogOpen { get; set; }
+
+        /// <summary>
+        /// Gets or sets the default confirmation invoking control.
+        /// </summary>
+        private ElementReference DefaultConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the warning confirmation invoking control.
+        /// </summary>
+        private ElementReference WarningConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the danger confirmation invoking control.
+        /// </summary>
+        private ElementReference DangerConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the focus target captured for the active confirmation example.
+        /// </summary>
+        private ElementReference? ConfirmDialogFocusReturnTarget { get; set; }
 
         /// <summary>
         /// Gets or sets the active confirmation-dialog variant.
@@ -769,9 +804,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Opens the modal example with the requested size.
         /// </summary>
         /// <param name="size">The modal size.</param>
-        private void OpenModal(ModalSize size)
+        /// <param name="focusReturnTarget">The invoking control that receives focus after closing.</param>
+        private void OpenModal(ModalSize size, ElementReference focusReturnTarget)
         {
             this.ActiveModalSize = size;
+            this.ModalFocusReturnTarget = focusReturnTarget;
             this.ModalOpen = true;
             this.LastModalAction = $"Opened {size.ToString().ToLowerInvariant()} modal";
         }
@@ -802,9 +839,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Opens a confirmation-dialog variant.
         /// </summary>
         /// <param name="variant">The dialog variant.</param>
-        private void OpenConfirmDialog(ConfirmDialogVariant variant)
+        /// <param name="focusReturnTarget">The invoking control that receives focus after closing.</param>
+        private void OpenConfirmDialog(ConfirmDialogVariant variant, ElementReference focusReturnTarget)
         {
             this.ActiveConfirmDialogVariant = variant;
+            this.ConfirmDialogFocusReturnTarget = focusReturnTarget;
             this.ConfirmDialogOpen = true;
             this.LastConfirmationAction = $"Opened {variant.ToString().ToLowerInvariant()} confirmation";
         }

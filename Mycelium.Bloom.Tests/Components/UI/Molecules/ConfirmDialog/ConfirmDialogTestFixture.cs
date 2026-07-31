@@ -9,15 +9,16 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
 {
+    using System.Linq;
     using System.Threading.Tasks;
+
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
-    using Microsoft.AspNetCore.Components.Web;
-
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.Tests.Common;
 
-    using ButtonComponent = Mycelium.Bloom.Components.UI.Atoms.Button.Button;
     using ConfirmDialogComponent = Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog.ConfirmDialog;
 
     /// <summary>
@@ -27,13 +28,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ConfirmDialogTestFixture : BunitContext
     {
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfirmDialogTestFixture" /> class.
+        /// </summary>
+        public ConfirmDialogTestFixture()
+        {
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
@@ -51,7 +62,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 .Add(component => component.Confirmed, () => confirmationCount++)
                 .Add(component => component.IsOpenChanged, (bool isOpen) => changedState = isOpen));
 
-            component.FindAll("button")[1].Click();
+            this.portalHost.WaitForElements("[role='dialog'] button", 2)[1].Click();
 
             using (Assert.EnterMultipleScope())
             {
@@ -73,7 +84,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 .Add(component => component.CloseOnConfirm, false)
                 .Add(component => component.IsOpenChanged, (bool _) => openStateChangeCount++));
 
-            component.FindAll("button")[1].Click();
+            this.portalHost.WaitForElements("[role='dialog'] button", 2)[1].Click();
 
             Assert.That(openStateChangeCount, Is.Zero);
         }
@@ -92,7 +103,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 .Add(component => component.Cancelled, () => cancellationCount++)
                 .Add(component => component.IsOpenChanged, (bool isOpen) => changedState = isOpen));
 
-            component.FindAll("button")[0].Click();
+            this.portalHost.WaitForElements("[role='dialog'] button", 2)[0].Click();
 
             using (Assert.EnterMultipleScope())
             {
@@ -102,18 +113,56 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
         }
 
         /// <summary>
-        /// Verifies that the optional confirmation description renders when provided.
+        /// Verifies that the optional confirmation description renders once and describes the dialog.
         /// </summary>
         [Test]
-        public void VerifyDescriptionRendersWhenProvided()
+        public void VerifyDescriptionRendersOnceAndDescribesDialog()
         {
             var component = this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Description, "This action cannot be undone."));
 
-            Assert.That(
-                component.Find(".mb-confirm-dialog__description").TextContent,
-                Is.EqualTo("This action cannot be undone."));
+            var dialog = this.portalHost.WaitForElement("[role='dialog']");
+            var descriptionId = dialog.GetAttribute("aria-describedby");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(descriptionId, Is.Not.Null.And.Not.Empty);
+                Assert.That(descriptionId, Does.Not.Contain(" "));
+                Assert.That(this.portalHost.FindAll($"#{descriptionId}"), Has.Count.EqualTo(1));
+                Assert.That(this.portalHost.Find($"#{descriptionId}").TextContent, Is.EqualTo("This action cannot be undone."));
+                Assert.That(this.portalHost.FindAll(".mb-modal__description"), Has.Count.EqualTo(1));
+                Assert.That(this.portalHost.FindAll(".mb-confirm-dialog__description"), Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that multiple confirmation dialogs generate independent description relationships.
+        /// </summary>
+        [Test]
+        public void VerifyMultipleInstancesGenerateUniqueDescriptionIds()
+        {
+            var firstComponent = this.Render<ConfirmDialogComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.Description, "First confirmation message."));
+            var secondComponent = this.Render<ConfirmDialogComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.Description, "Second confirmation message."));
+
+            var dialogs = this.portalHost.WaitForElements("[role='dialog']", 2);
+            var descriptionIds = dialogs
+                .Select(dialog => dialog.GetAttribute("aria-describedby"))
+                .ToArray();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(descriptionIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
+                Assert.That(descriptionIds, Is.Unique);
+                Assert.That(descriptionIds.All(id => this.portalHost.FindAll($"#{id}").Count == 1), Is.True);
+                Assert.That(
+                    descriptionIds.Select(id => this.portalHost.Find($"#{id}").TextContent),
+                    Is.EquivalentTo(new[] { "First confirmation message.", "Second confirmation message." }));
+            }
         }
 
         /// <summary>
@@ -137,26 +186,25 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 })
                 .Add(component => component.Cancelled, () => cancellationCount++));
 
-            var actions = component.FindComponents<ButtonComponent>();
-            var confirmAction = actions[1].Instance.OnClick;
-            var cancelAction = actions[0].Instance.OnClick;
-            var firstConfirmation = component.InvokeAsync(() => confirmAction.InvokeAsync(new MouseEventArgs()));
+            var actions = this.portalHost.WaitForElements("[role='dialog'] button", 2);
+            var firstConfirmation = actions[1].ClickAsync();
 
             await callbackStarted.Task;
 
-            actions = component.FindComponents<ButtonComponent>();
+            actions = this.portalHost.FindAll("[role='dialog'] button");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(actions[0].Instance.Disabled, Is.True);
-                Assert.That(actions[1].Instance.IsLoading, Is.True);
+                Assert.That(actions[0].HasAttribute("disabled"), Is.True);
+                Assert.That(actions[1].HasAttribute("disabled"), Is.True);
+                Assert.That(actions[1].GetAttribute("aria-busy"), Is.EqualTo("true"));
             }
 
-            var repeatedConfirmation = component.InvokeAsync(() => confirmAction.InvokeAsync(new MouseEventArgs()));
-            var cancellation = component.InvokeAsync(() => cancelAction.InvokeAsync(new MouseEventArgs()));
+            actions[1].Click();
+            actions[0].Click();
 
             releaseCallback.SetResult();
-            await Task.WhenAll(firstConfirmation, repeatedConfirmation, cancellation);
+            await firstConfirmation;
 
             using (Assert.EnterMultipleScope())
             {
@@ -183,11 +231,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Variant, variant));
 
-            var buttons = component.FindAll("button");
+            var buttons = this.portalHost.WaitForElements("[role='dialog'] button", 2);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("[role='dialog']").GetAttribute("class"), Does.Contain(expectedDialogClass));
+                Assert.That(this.portalHost.Find("[role='dialog']").GetAttribute("class"), Does.Contain(expectedDialogClass));
                 Assert.That(buttons[1].GetAttribute("class"), Does.Contain(expectedButtonClass));
             }
         }
@@ -202,14 +250,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.IsConfirming, true));
 
-            var buttons = component.FindAll("button");
+            var buttons = this.portalHost.WaitForElements("[role='dialog'] button", 2);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(buttons, Has.Count.EqualTo(2));
                 Assert.That(buttons[0].HasAttribute("disabled"), Is.True);
                 Assert.That(buttons[1].HasAttribute("disabled"), Is.True);
-                Assert.That(component.FindAll(".mb-button__spinner"), Has.Count.EqualTo(1));
+                Assert.That(this.portalHost.FindAll(".mb-button__spinner"), Has.Count.EqualTo(1));
             }
         }
     }

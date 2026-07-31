@@ -12,6 +12,8 @@
 <ModalShell IsOpen="@(this.IsOpen)"
             IsOpenChanged="this.IsOpenChanged"
             Title="@(this.Title)"
+            Description="@(this.Description)"
+            FocusReturnTarget="@(this.FocusReturnTarget)"
             Size="ModalSize.Small"
             ShowCloseButton="false"
             CloseOnBackdropClick="false"
@@ -22,30 +24,30 @@
             <span class="@(this.GetIndicatorCssClass())" aria-hidden="true">
                 @(this.GetIndicatorText())
             </span>
-
-            @if (!string.IsNullOrWhiteSpace(this.Description))
-            {
-                <p class="mb-confirm-dialog__description">@(this.Description)</p>
-            }
         </div>
     </ChildContent>
 
     <FooterContent>
         <div class="mb-confirm-dialog__footer">
-            <Button Variant="ButtonVariant.Secondary"
-                    Size="ButtonSize.Small"
-                    Disabled="@(this.IsActionInProgress())"
-                    OnClick="this.HandleCancelAsync">
+            <button type="button"
+                    class="mb-button mb-button--secondary mb-button--small"
+                    disabled="@(this.IsActionInProgress())"
+                    @onclick="this.HandleCancelAsync">
                 @(this.CancelText)
-            </Button>
+            </button>
 
-            <Button Variant="@(this.GetConfirmButtonVariant())"
-                    Size="ButtonSize.Small"
-                    Disabled="@(this.IsActionInProgress())"
-                    IsLoading="@(this.IsActionInProgress())"
-                    OnClick="this.HandleConfirmAsync">
-                @(this.ConfirmText)
-            </Button>
+            <button type="button"
+                    class="@(this.GetConfirmButtonCssClass())"
+                    disabled="@(this.IsActionInProgress())"
+                    aria-busy="@(this.IsActionInProgress() ? "true" : "false")"
+                    @onclick="this.HandleConfirmAsync">
+                @if (this.IsActionInProgress())
+                {
+                    <span class="mb-button__spinner" aria-hidden="true"></span>
+                }
+
+                <span class="mb-button__content">@(this.ConfirmText)</span>
+            </button>
         </div>
     </FooterContent>
 </ModalShell>

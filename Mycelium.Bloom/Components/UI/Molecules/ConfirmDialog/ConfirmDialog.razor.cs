@@ -38,6 +38,12 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
         public EventCallback<bool> IsOpenChanged { get; set; }
 
         /// <summary>
+        /// Gets or sets the stable element that receives focus after the dialog closes.
+        /// </summary>
+        [Parameter]
+        public ElementReference? FocusReturnTarget { get; set; }
+
+        /// <summary>
         /// Gets or sets the confirmation dialog title.
         /// </summary>
         [Parameter]
@@ -158,16 +164,20 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
         }
 
         /// <summary>
-        /// Gets the visual variant for the confirmation button.
+        /// Gets the Bloom utility classes for the confirmation button.
         /// </summary>
-        /// <returns>The confirmation button variant.</returns>
-        private ButtonVariant GetConfirmButtonVariant()
+        /// <returns>The confirmation-button CSS class list.</returns>
+        private string GetConfirmButtonCssClass()
         {
-            var buttonVariant = this.Variant == ConfirmDialogVariant.Danger
-                ? ButtonVariant.Danger
-                : ButtonVariant.Primary;
+            var variantClass = this.Variant == ConfirmDialogVariant.Danger
+                ? "mb-button--danger"
+                : "mb-button--primary";
 
-            return buttonVariant;
+            return CssClassBuilder.Build(
+                "mb-button",
+                variantClass,
+                "mb-button--small",
+                CssClassBuilder.When("mb-button--loading", this.IsActionInProgress()));
         }
 
         /// <summary>

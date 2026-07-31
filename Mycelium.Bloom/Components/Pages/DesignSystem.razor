@@ -918,8 +918,22 @@
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <Button id="open-compact-modal" Size="ButtonSize.Small" OnClick="() => this.OpenModal(ModalSize.Small)">Open compact modal</Button>
-                    <Button id="open-wide-modal" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="() => this.OpenModal(ModalSize.Wide)">Open wide modal</Button>
+                    <button
+                        @ref="this.CompactModalTrigger"
+                        type="button"
+                        id="open-compact-modal"
+                        class="mb-design-system__dialog-trigger"
+                        @onclick="() => this.OpenModal(ModalSize.Small, this.CompactModalTrigger)">
+                        Open compact modal
+                    </button>
+                    <button
+                        @ref="this.WideModalTrigger"
+                        type="button"
+                        id="open-wide-modal"
+                        class="mb-design-system__dialog-trigger mb-design-system__dialog-trigger--secondary"
+                        @onclick="() => this.OpenModal(ModalSize.Wide, this.WideModalTrigger)">
+                        Open wide modal
+                    </button>
                 </div>
                 <p id="modal-result" class="mb-design-system__result">@this.LastModalAction</p>
             </article>
@@ -931,9 +945,30 @@
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <Button id="open-default-confirm" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Default)">Default</Button>
-                    <Button id="open-warning-confirm" Variant="ButtonVariant.Secondary" Size="ButtonSize.Small" OnClick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Warning)">Warning</Button>
-                    <Button id="open-danger-confirm" Variant="ButtonVariant.Danger" Size="ButtonSize.Small" OnClick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Danger)">Danger</Button>
+                    <button
+                        @ref="this.DefaultConfirmDialogTrigger"
+                        type="button"
+                        id="open-default-confirm"
+                        class="mb-design-system__dialog-trigger mb-design-system__dialog-trigger--secondary"
+                        @onclick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Default, this.DefaultConfirmDialogTrigger)">
+                        Default
+                    </button>
+                    <button
+                        @ref="this.WarningConfirmDialogTrigger"
+                        type="button"
+                        id="open-warning-confirm"
+                        class="mb-design-system__dialog-trigger mb-design-system__dialog-trigger--secondary"
+                        @onclick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Warning, this.WarningConfirmDialogTrigger)">
+                        Warning
+                    </button>
+                    <button
+                        @ref="this.DangerConfirmDialogTrigger"
+                        type="button"
+                        id="open-danger-confirm"
+                        class="mb-design-system__dialog-trigger mb-design-system__dialog-trigger--danger"
+                        @onclick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Danger, this.DangerConfirmDialogTrigger)">
+                        Danger
+                    </button>
                 </div>
                 <p id="confirm-result" class="mb-design-system__result">Latest result: @this.LastConfirmationAction</p>
             </article>
@@ -1642,6 +1677,7 @@
 <ModalShell Id="showcase-modal"
             IsOpen="@this.ModalOpen"
             IsOpenChanged="this.HandleModalOpenChanged"
+            FocusReturnTarget="@this.ModalFocusReturnTarget"
             Title="Inspect local component state"
             Description="This dialog uses deterministic page-owned data."
             Size="@this.ActiveModalSize"
@@ -1680,6 +1716,7 @@
 
 <ConfirmDialog IsOpen="@this.ConfirmDialogOpen"
                IsOpenChanged="this.HandleConfirmDialogOpenChanged"
+               FocusReturnTarget="@this.ConfirmDialogFocusReturnTarget"
                Title="Confirm showcase action"
                Description="This action only updates local display state."
                Variant="@this.ActiveConfirmDialogVariant"

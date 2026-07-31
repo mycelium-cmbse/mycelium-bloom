@@ -9,13 +9,15 @@
 
 namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
 {
+    using BlazorBlueprint.Primitives.Services;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
-    /// Represents a reusable modal overlay and dialog shell.
+    /// Composes Bloom dialog content on the Blazor Blueprint dialog primitive.
     /// </summary>
     public partial class ModalShell : BloomComponentBase
     {
@@ -30,6 +32,32 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         private readonly string generatedId = CreateGeneratedId("mb-modal");
 
         /// <summary>
+        /// Indicates whether the component has observed its initial controlled open state.
+        /// </summary>
+        private bool hasObservedOpenState;
+
+        /// <summary>
+        /// Stores the previously rendered controlled open state.
+        /// </summary>
+        private bool previousIsOpen;
+
+        /// <summary>
+        /// Stores the focus-return target captured for the current open cycle.
+        /// </summary>
+        private ElementReference? activeFocusReturnTarget;
+
+        /// <summary>
+        /// Stores the focus-return target until the closed state has rendered.
+        /// </summary>
+        private ElementReference? pendingFocusReturnTarget;
+
+        /// <summary>
+        /// Gets or sets the Blueprint focus manager used to restore the invoking control.
+        /// </summary>
+        [Inject]
+        private IFocusManager FocusManager { get; set; } = null!;
+
+        /// <summary>
         /// Gets or sets a value indicating whether the modal is open.
         /// </summary>
         [Parameter]
@@ -40,6 +68,12 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// </summary>
         [Parameter]
         public EventCallback<bool> IsOpenChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets the stable element that receives focus after the modal closes.
+        /// </summary>
+        [Parameter]
+        public ElementReference? FocusReturnTarget { get; set; }
 
         /// <summary>
         /// Gets or sets the modal identifier.
@@ -100,6 +134,56 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// </summary>
         [Parameter]
         public EventCallback OnClose { get; set; }
+
+        /// <summary>
+        /// Captures the per-open-cycle focus target and schedules restoration after a controlled close.
+        /// </summary>
+        protected override void OnParametersSet()
+        {
+            if (!this.hasObservedOpenState)
+            {
+                this.hasObservedOpenState = true;
+                this.previousIsOpen = this.IsOpen;
+
+                if (this.IsOpen)
+                {
+                    this.activeFocusReturnTarget = this.FocusReturnTarget;
+                }
+
+                return;
+            }
+
+            if (!this.previousIsOpen && this.IsOpen)
+            {
+                this.activeFocusReturnTarget = this.FocusReturnTarget;
+                this.pendingFocusReturnTarget = null;
+            }
+            else if (this.previousIsOpen && !this.IsOpen)
+            {
+                this.pendingFocusReturnTarget = this.activeFocusReturnTarget;
+                this.activeFocusReturnTarget = null;
+            }
+
+            this.previousIsOpen = this.IsOpen;
+        }
+
+        /// <summary>
+        /// Restores focus only after the closed dialog state has completed rendering.
+        /// </summary>
+        /// <param name="firstRender">A value indicating whether this is the first component render.</param>
+        /// <returns>A task representing the asynchronous focus restoration.</returns>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (!this.pendingFocusReturnTarget.HasValue)
+            {
+                return;
+            }
+
+            var focusReturnTarget = this.pendingFocusReturnTarget;
+            this.pendingFocusReturnTarget = null;
+
+            await this.FocusManager.RestoreFocus(focusReturnTarget);
+        }
 
         /// <summary>
         /// Gets the stable identifier for the modal instance.
@@ -223,24 +307,13 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         }
 
         /// <summary>
-        /// Handles a backdrop click when backdrop closing is enabled.
+        /// Tracks Blueprint close requests from Escape, the backdrop, and explicit controls.
         /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task HandleBackdropClickAsync()
+        /// <param name="isOpen">The requested dialog state.</param>
+        /// <returns>A task representing the controlled-state callbacks.</returns>
+        private async Task HandleDialogOpenChangedAsync(bool isOpen)
         {
-            if (this.CloseOnBackdropClick)
-            {
-                await this.CloseAsync();
-            }
-        }
-
-        /// <summary>
-        /// Closes the modal and invokes the close callbacks.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task CloseAsync()
-        {
-            if (this.isClosing)
+            if (this.IsOpen == isOpen || this.isClosing)
             {
                 return;
             }
@@ -249,13 +322,18 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
 
             try
             {
-                await this.IsOpenChanged.InvokeAsync(false);
-                await this.OnClose.InvokeAsync();
+                await this.IsOpenChanged.InvokeAsync(isOpen);
+
+                if (!isOpen)
+                {
+                    await this.OnClose.InvokeAsync();
+                }
             }
             finally
             {
                 this.isClosing = false;
             }
         }
+
     }
 }

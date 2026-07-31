@@ -276,6 +276,55 @@
     gap: var(--mb-spacing-2);
 }
 
+.mb-design-system__dialog-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    padding: 0 var(--mb-spacing-3);
+    border: 1px solid transparent;
+    border-radius: var(--mb-radius-control);
+    background: var(--mb-color-action-primary);
+    color: var(--mb-color-action-primary-foreground);
+    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
+    font-size: var(--mb-font-size-label-sm);
+    line-height: var(--mb-line-height-label-sm);
+    font-weight: var(--mb-font-weight-label-sm);
+    cursor: pointer;
+    transition:
+        background-color var(--mb-transition-fast),
+        border-color var(--mb-transition-fast),
+        color var(--mb-transition-fast);
+}
+
+.mb-design-system__dialog-trigger:hover {
+    background: var(--mb-color-action-primary-hover);
+}
+
+.mb-design-system__dialog-trigger--secondary {
+    border-color: var(--mb-color-border);
+    background: var(--mb-color-surface-muted);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-design-system__dialog-trigger--secondary:hover {
+    background: var(--mb-color-surface-hover);
+}
+
+.mb-design-system__dialog-trigger--danger {
+    background: var(--mb-color-danger-action);
+    color: var(--mb-color-danger-action-foreground);
+}
+
+.mb-design-system__dialog-trigger--danger:hover {
+    background: var(--mb-color-danger-action-hover);
+}
+
+.mb-design-system__dialog-trigger:focus-visible {
+    outline: 2px solid var(--mb-color-focus-ring);
+    outline-offset: 2px;
+}
+
 .mb-design-system__surface {
     display: flex;
     align-items: flex-end;
