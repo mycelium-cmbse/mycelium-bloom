@@ -56,17 +56,6 @@ namespace Mycelium.Bloom.Components.Pages
         ];
 
         /// <summary>
-        /// Gets the local tab items used by the tabs example.
-        /// </summary>
-        private IReadOnlyList<TabItem> TabItems { get; } =
-        [
-            new() { Value = "overview", Label = "Overview" },
-            new() { Value = "properties", Label = "Properties" },
-            new() { Value = "relationships", Label = "Relationships" },
-            new() { Value = "history", Label = "History", Disabled = true }
-        ];
-
-        /// <summary>
         /// Gets the local actions used by independent action-menu examples.
         /// </summary>
         private IReadOnlyList<ActionMenuItem> ActionMenuItems { get; } =
@@ -221,6 +210,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the selected tab value.
         /// </summary>
         private string ActiveTabValue { get; set; } = "overview";
+
+        /// <summary>
+        /// Gets or sets the selected manual review tab value.
+        /// </summary>
+        private string ActiveReviewTabValue { get; set; } = "summary";
 
         /// <summary>
         /// Gets or sets the latest selected breadcrumb label.
@@ -674,6 +668,26 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleTabChanged(string value)
         {
             this.ActiveTabValue = value;
+        }
+
+        /// <summary>
+        /// Updates the selected manual review tab.
+        /// </summary>
+        /// <param name="value">The selected review tab value.</param>
+        private void HandleReviewTabChanged(string value)
+        {
+            this.ActiveReviewTabValue = value;
+        }
+
+        /// <summary>
+        /// Gets an explicit ARIA selected state for a controlled direct Blueprint tab.
+        /// </summary>
+        /// <param name="activeValue">The active controlled tab value.</param>
+        /// <param name="tabValue">The candidate tab value.</param>
+        /// <returns>The lowercase ARIA Boolean value.</returns>
+        private string GetTabAriaSelected(string activeValue, string tabValue)
+        {
+            return string.Equals(activeValue, tabValue, StringComparison.Ordinal) ? "true" : "false";
         }
 
         /// <summary>

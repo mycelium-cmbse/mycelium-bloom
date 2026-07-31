@@ -9,7 +9,11 @@
 
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
+    using System;
     using System.Linq;
+
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
@@ -19,15 +23,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Mycelium.Bloom.Tests.Common;
 
     /// <summary>
-    /// Tests the <see cref="DesignSystem" /> development showcase page.
+    /// Tests the canonical Bloom production-component showcase.
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class DesignSystemTestFixture : BunitContext
     {
-        /// <summary>
-        /// The expected top-level showcase section order.
-        /// </summary>
         private static readonly string[] ExpectedSectionOrder =
         [
             "foundation",
@@ -37,212 +38,223 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "workspace"
         ];
 
-        /// <summary>
-        /// The expected in-page showcase navigation targets.
-        /// </summary>
-        private static readonly string[] ExpectedSectionLinks =
+        private static readonly string[] FormerTooltipControlNames =
         [
-            "/design-system#foundation-heading",
-            "/design-system#atoms-heading",
-            "/design-system#molecules-heading",
-            "/design-system#organisms-heading",
-            "/design-system#workspace-heading"
+            "Add model element",
+            "Edit selection",
+            "Remove selection",
+            "Unavailable action",
+            "Undo latest edit",
+            "Share workspace",
+            "Open compact header action",
+            "Select element",
+            "Add note",
+            "Move canvas",
+            "Center selection",
+            "Open status details",
+            "Select shell element",
+            "Connect shell elements",
+            "Zoom out",
+            "Zoom in",
+            "Reset zoom",
+            "Fit to view"
         ];
 
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+        private readonly BunitJSModuleInterop themeModule;
+        private readonly JSRuntimeInvocationHandler applyThemeHandler;
+        private readonly JSRuntimeInvocationHandler releaseThemeHandler;
+
         /// <summary>
-        /// Configures the focused input and outside-click JavaScript helpers.
+        /// Initializes a new instance of the <see cref="DesignSystemTestFixture" /> class.
         /// </summary>
-        [SetUp]
-        public void SetUp()
+        public DesignSystemTestFixture()
         {
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
+
             var searchModule = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
-            var registerHandler = searchModule.SetupVoid("registerSearchShortcut", invocation => true);
-            var disposeHandler = searchModule.SetupVoid("disposeSearchShortcut", invocation => true);
+            searchModule.SetupVoid("registerSearchShortcut", invocation => true).SetVoidResult();
+            searchModule.SetupVoid("disposeSearchShortcut", invocation => true).SetVoidResult();
 
-            registerHandler.SetVoidResult();
-            disposeHandler.SetVoidResult();
+            var selectModule = this.JSInterop.SetupModule("./Components/UI/Atoms/SelectInput/SelectInput.razor.js");
+            selectModule.SetupVoid("registerSelectCompatibility", invocation => true).SetVoidResult();
+            selectModule.SetupVoid("disposeSelectCompatibility", invocation => true).SetVoidResult();
 
-            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
-            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
+            this.themeModule = this.JSInterop.SetupModule("./Components/Pages/DesignSystem.razor.js");
+            this.applyThemeHandler = this.themeModule.SetupVoid("applyTheme", invocation => true);
+            this.releaseThemeHandler = this.themeModule.SetupVoid("releaseTheme", invocation => true);
+            this.applyThemeHandler.SetVoidResult();
+            this.releaseThemeHandler.SetVoidResult();
         }
 
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
-        /// Verifies that the routed page and representative components render without service registration.
+        /// Verifies route, section order, production examples, theme control, and legacy-reference link.
         /// </summary>
         [Test]
-        public void VerifyRenderRequiresNoBackendServices()
+        public void VerifyRenderDisplaysCanonicalShowcase()
         {
             var component = this.Render<DesignSystem>();
-            var sectionOrder = component
-                .FindAll("main > section[data-section]")
-                .Select(section => section.GetAttribute("data-section"))
-                .ToArray();
-            var sectionLinks = component
-                .FindAll("nav[aria-label='Design system sections'] a")
-                .Select(link => link.GetAttribute("href"))
-                .ToArray();
             var route = typeof(DesignSystem)
                 .GetCustomAttributes(typeof(RouteAttribute), false)
                 .Cast<RouteAttribute>()
                 .Single();
+            var sectionOrder = component
+                .FindAll(".mb-design-system > section[data-section]")
+                .Select(section => section.GetAttribute("data-section"))
+                .ToArray();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(route.Template, Is.EqualTo("/design-system"));
-                Assert.That(component.FindAll("main.mb-design-system"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-section='foundation']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-section='atoms']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-section='molecules']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-section='organisms']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-section='workspace']"), Has.Count.EqualTo(1));
                 Assert.That(sectionOrder, Is.EqualTo(ExpectedSectionOrder));
-                Assert.That(sectionLinks, Is.EqualTo(ExpectedSectionLinks));
-                Assert.That(component.FindAll(".mb-avatar"), Is.Not.Empty);
-                Assert.That(component.FindAll(".mb-tabs"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("#showcase-search-shortcut"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-component='search-input'] kbd"), Has.Count.EqualTo(2));
-                Assert.That(component.FindAll("#showcase-text-area-count"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("#showcase-toggle + .mb-toggle__track + .mb-toggle__state-text"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='avatar'] .mb-design-system__avatar-fallback"),
+                    Has.Count.EqualTo(4));
+                Assert.That(component.FindAll("[role='tablist']"), Has.Count.EqualTo(2));
                 Assert.That(component.FindAll("[data-component='select-input'] [role='combobox']"), Has.Count.EqualTo(5));
-                Assert.That(component.FindAll("#showcase-select-secondary"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-component='toast-container']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll(".mb-toast-container"), Is.Empty);
+                Assert.That(component.FindAll("[data-component='action-menu']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='split-button'] .mb-split-button"), Has.Count.EqualTo(4));
+                Assert.That(component.FindAll("[data-component='project-switcher'] .mb-project-switcher"), Has.Count.EqualTo(2));
+                Assert.That(component.FindAll("[data-component='user-menu'] .mb-user-menu"), Has.Count.EqualTo(2));
                 Assert.That(component.FindAll("[data-component='app-header']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='workspace-shell']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-component='canvas-toolbar']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-component='zoom-controls']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-component='status-bar']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-testid='split-button-normal']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[data-testid='split-button-disabled'] button:disabled"), Has.Count.EqualTo(2));
-                Assert.That(component.FindAll("[data-testid='split-button-loading'] .mb-button__spinner"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[data-component='workspace-shell-optional-regions'] .mb-workspace-shell"),
+                    Has.Count.EqualTo(3));
+                Assert.That(component.Find("[role='group'][aria-label='Preview color theme']"), Is.Not.Null);
+                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button"), Has.Count.EqualTo(2));
+                Assert.That(component.Find("[role='group'][aria-label='Preview color theme'] button[aria-pressed='true']")
+                    .TextContent.Trim(), Is.EqualTo("Light"));
+                Assert.That(component.FindAll("main"), Is.Empty);
             }
         }
 
         /// <summary>
-        /// Verifies that workspace showcase controls update local zoom, action, search, and panel state.
+        /// Verifies the page applies the initial light theme at the document root and reports dark selection.
         /// </summary>
         [Test]
-        public void VerifyWorkspaceExamplesUpdateLocalState()
+        public async System.Threading.Tasks.Task VerifyThemeControlAppliesDocumentLevelTheme()
         {
             var component = this.Render<DesignSystem>();
-            var zoomExample = component.Find("[data-component='zoom-controls']");
-
-            zoomExample.QuerySelector("button[aria-label='Zoom in']").Click();
-            component.Find("#workspace-header-search").Input("interfaces");
-            component.Find("[data-component='canvas-toolbar'] button[aria-label='Move canvas']").Click();
-            component.Find("[data-component='status-bar'] button[aria-label='Open status details']").Click();
-            component.Find("#toggle-workspace-left-panel").Click();
-            component.Find("#toggle-workspace-right-panel").Click();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("125%"));
-                Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("interfaces"));
-                Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Move"));
-                Assert.That(component.Find("[data-component='canvas-toolbar'] button[aria-label='Move canvas']")
+                Assert.That(this.applyThemeHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(this.applyThemeHandler.Invocations["applyTheme"][0].Arguments[1], Is.EqualTo("light"));
+            }
+
+            await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                .Single(button => button.TextContent.Trim() == "Dark")
+                .ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.applyThemeHandler.Invocations, Has.Count.EqualTo(2));
+                Assert.That(this.applyThemeHandler.Invocations["applyTheme"][1].Arguments[1], Is.EqualTo("dark"));
+                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                    .Single(button => button.TextContent.Trim() == "Dark")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
-                Assert.That(component.Find("[data-component='canvas-toolbar'] button[aria-label='Select element']")
+                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                    .Single(button => button.TextContent.Trim() == "Light")
                     .GetAttribute("aria-pressed"), Is.EqualTo("false"));
-                Assert.That(component.Find("#status-bar-result").TextContent, Does.Contain("requested"));
-                Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__left-panel"), Is.Empty);
-                Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__right-panel"), Is.Empty);
-                Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Left panel: hidden"));
-                Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Right panel: hidden"));
-                Assert.That(component.Find("[data-component='workspace-shell'] .mb-workspace-shell__main").TextContent,
-                    Does.Contain("Thermal control"));
             }
         }
 
         /// <summary>
-        /// Verifies application-header and canvas-toolbar examples report their local interactions.
+        /// Verifies page disposal releases only the theme preview owned by that page instance.
         /// </summary>
         [Test]
-        public void VerifyWorkspaceActionExamplesReportLocalResults()
+        public async System.Threading.Tasks.Task VerifyThemePreviewIsReleasedOnDispose()
         {
             var component = this.Render<DesignSystem>();
+            var ownerId = this.applyThemeHandler.Invocations["applyTheme"][0].Arguments[0];
 
-            component.Find("[data-component='app-header'] button[aria-label='Share workspace']").Click();
-            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Share requested"));
-
-            component.Find("[data-component='app-header'] button[aria-label^='Select header showcase project']").Click();
-            component.FindAll("[data-component='app-header'] [role='menuitemradio']")
-                .Single(item => item.TextContent.Contains("Lunar Habitat"))
-                .Click();
+            await component.Instance.DisposeAsync();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("[data-component='app-header'] .mb-project-switcher__name").TextContent,
-                    Is.EqualTo("Lunar Habitat"));
-                Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Selected Lunar Habitat"));
+                Assert.That(this.releaseThemeHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(this.releaseThemeHandler.Invocations["releaseTheme"][0].Arguments[0], Is.EqualTo(ownerId));
             }
-
-            component.FindAll("[data-component='app-header'] button.mb-button")
-                .Single(button => button.TextContent.Trim() == "Validate")
-                .Click();
-            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Validation requested"));
-
-            component.Find("[data-component='app-header'] button[aria-label='Open compact header action']").Click();
-            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Compact action requested"));
-
-            component.FindAll("[data-component='canvas-toolbar'] button.mb-button")
-                .Single(button => button.TextContent.Trim() == "Connect")
-                .Click();
-            Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Connect"));
         }
 
         /// <summary>
-        /// Verifies reset and fit-to-view callbacks update the shared local zoom value.
+        /// Verifies the canonical showcase does not mount any interactive overlay on initial render.
         /// </summary>
         [Test]
-        public void VerifyZoomExampleResetAndFitActions()
+        public void VerifyInitialOverlayExamplesAreClosed()
         {
             var component = this.Render<DesignSystem>();
-            var zoomExample = component.Find("[data-component='zoom-controls']");
-
-            zoomExample.QuerySelector("button[aria-label='Zoom in']").Click();
-            zoomExample = component.Find("[data-component='zoom-controls']");
-            zoomExample.QuerySelector("button[aria-label='Reset zoom']").Click();
-
-            Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("reset to 100%"));
-
-            zoomExample = component.Find("[data-component='zoom-controls']");
-            zoomExample.QuerySelector("button[aria-label='Fit to view']").Click();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("75%"));
-                Assert.That(component.Find("[data-component='zoom-controls'] output").TextContent.Trim(),
-                    Is.EqualTo("75%"));
+                Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
+                Assert.That(this.portalHost.FindAll("[role='listbox']"), Is.Empty);
+                Assert.That(this.portalHost.FindAll("[role='dialog']"), Is.Empty);
+                Assert.That(this.portalHost.FindAll("[role='tooltip']"), Is.Empty);
+                Assert.That(component.FindAll("[role='tooltip']"), Is.Empty);
+                Assert.That(component.FindAll("[aria-expanded='true']"), Is.Empty);
             }
         }
 
         /// <summary>
-        /// Verifies that form controls update their page-owned display state.
+        /// Verifies dark selection and a Blueprint overlay coexist under the document-level theme bridge.
         /// </summary>
         [Test]
-        public void VerifyFormExamplesUpdateDisplayedState()
+        public async System.Threading.Tasks.Task VerifyDarkThemeSelectionCoversPortalledOverlays()
         {
             var component = this.Render<DesignSystem>();
+            await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                .Single(button => button.TextContent.Trim() == "Dark")
+                .ClickAsync();
+            await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
+            var menu = this.portalHost.WaitForElement("[role='menu']");
+            var menuRendered = menu.GetAttribute("role") == "menu";
+            await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
+            await component.Find("#showcase-select-input").ClickAsync();
+            var listbox = this.portalHost.WaitForElement("[role='listbox']");
 
-            component.Find("#showcase-search-input").Input("interfaces");
-            component.Find("#showcase-text-input").Input("Power subsystem");
-            component.Find("#showcase-select-input").Click();
-            component.FindAll("[data-component='select-input'] [role='option']")
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.applyThemeHandler.Invocations["applyTheme"].Last().Arguments[1], Is.EqualTo("dark"));
+                Assert.That(menuRendered, Is.True);
+                Assert.That(listbox.ClassList, Does.Contain("mb-select-input__listbox"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies representative controlled form and navigation examples update page-owned state.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyInteractiveExamplesUpdatePageState()
+        {
+            var component = this.Render<DesignSystem>();
+            var blueprintInputs = component.FindComponents<BbInputGroupInput>();
+
+            await component.InvokeAsync(() => blueprintInputs
+                .Single(input => input.Instance.Id == "showcase-search-input")
+                .Instance.JsOnInput("interfaces"));
+            await component.InvokeAsync(() => blueprintInputs
+                .Single(input => input.Instance.Id == "showcase-text-input")
+                .Instance.JsOnInput("Power subsystem"));
+            await component.Find("#showcase-text-area").InputAsync("Updated review note");
+            await component.Find("#showcase-checkbox").ChangeAsync(false);
+            await component.Find("#showcase-toggle").ClickAsync();
+            await component.FindAll("[role='tab']")
+                .Single(tab => tab.TextContent.Contains("Properties", StringComparison.Ordinal))
+                .ClickAsync();
+
+            await component.Find("#showcase-select-input").ClickAsync();
+            await this.portalHost.WaitForElements("[role='option']")
                 .Single(option => option.TextContent.Trim() == "Open")
-                .Click();
-            component.Find("#showcase-text-area").Input("Updated review note");
-            component.Find("#showcase-checkbox").Change(false);
-            component.Find("#showcase-toggle").Change(true);
+                .ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -250,343 +262,252 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Find("#text-input-result").TextContent, Does.Contain("Power subsystem"));
                 Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("open"));
                 Assert.That(component.Find("#text-area-result").TextContent, Does.Contain("Updated review note"));
-                Assert.That(component.Find("#showcase-text-area-count").TextContent, Does.Contain("19"));
                 Assert.That(component.Find("#checkbox-result").TextContent, Does.Contain("hidden"));
                 Assert.That(component.Find("#toggle-result").TextContent, Does.Contain("on"));
-                Assert.That(component.Find(".mb-toggle__state-text").TextContent, Is.EqualTo("Active"));
+                Assert.That(component.Find("#tabs-result").TextContent, Does.Contain("properties"));
             }
         }
 
         /// <summary>
-        /// Verifies that the custom select examples open and update their parent-owned values independently.
+        /// Verifies direct Blueprint tabs preserve names, controlled pointer selection, disabled state, and identifiers.
         /// </summary>
         [Test]
-        public void VerifySelectExamplesRemainIndependent()
+        public async System.Threading.Tasks.Task VerifyDirectTabsPreserveConsumerContracts()
         {
             var component = this.Render<DesignSystem>();
+            var tabLists = component.FindAll("[role='tablist']");
+            var horizontalTabs = component.Find("[data-testid='tabs-horizontal']");
+            var verticalTabs = component.Find("[data-testid='tabs-vertical']");
 
-            component.Find("#showcase-select-secondary").Click();
+            await horizontalTabs.QuerySelectorAll("[role='tab']")
+                .Single(tab => tab.TextContent.Trim() == "Properties")
+                .ClickAsync();
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("#showcase-select-secondary + [role='listbox']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("#showcase-select-input + [role='listbox']"), Is.Empty);
-            }
-
-            component.FindAll("[data-component='select-input'] [role='option']")
-                .Single(option => option.TextContent.Contains("multiple engineering workspaces"))
-                .Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("review / verification"));
-                Assert.That(component.Find("#showcase-select-input").TextContent, Does.Contain("In review"));
-                Assert.That(component.Find("#showcase-select-secondary").TextContent,
-                    Does.Contain("Verification pending"));
-            }
-        }
-
-        /// <summary>
-        /// Verifies that the shortcut showcase can dispose and restore the newest registration target.
-        /// </summary>
-        [Test]
-        public void VerifyShortcutExamplesExposeRegistrationLifecycle()
-        {
-            var component = this.Render<DesignSystem>();
-
-            component.Find("#showcase-search-shortcut").Input("primary value");
-            component.Find("#showcase-search-shortcut-secondary").Input("secondary value");
-            component.Find("#toggle-secondary-shortcut-search").Click();
+            tabLists = component.FindAll("[role='tablist']");
+            var horizontalTabElements = tabLists[0].QuerySelectorAll("[role='tab']");
+            var verticalTabElements = tabLists[1].QuerySelectorAll("[role='tab']");
+            var renderedTabs = component.FindAll("[role='tab']");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("#showcase-search-shortcut").GetAttribute("value"),
-                    Is.EqualTo("primary value"));
-                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Is.Empty);
-                Assert.That(component.Find("#search-shortcut-result").TextContent,
-                    Does.Contain("primary (restored)"));
+                Assert.That(tabLists[0].GetAttribute("aria-label"), Is.EqualTo("Element detail sections"));
+                Assert.That(tabLists[0].GetAttribute("aria-orientation"), Is.EqualTo("horizontal"));
+                Assert.That(tabLists[1].GetAttribute("aria-label"), Is.EqualTo("Element review sections"));
+                Assert.That(tabLists[1].GetAttribute("aria-orientation"), Is.EqualTo("vertical"));
+                Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "Properties")
+                    .GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(component.FindAll("[role='tabpanel']")
+                    .Any(panel => panel.TextContent.Contains("Properties panel", StringComparison.Ordinal)), Is.True);
+                Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Summary")
+                    .GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "History")
+                    .HasAttribute("disabled"), Is.True);
+                Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "History")
+                    .GetAttribute("aria-disabled"), Is.EqualTo("true"));
+                Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Archive")
+                    .HasAttribute("disabled"), Is.True);
+                Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Archive")
+                    .GetAttribute("aria-disabled"), Is.EqualTo("true"));
+                Assert.That(renderedTabs.All(tab => tab.Attributes.Count(attribute =>
+                    string.Equals(attribute.Name, "aria-selected", StringComparison.OrdinalIgnoreCase)) == 1), Is.True);
+                Assert.That(renderedTabs.All(tab =>
+                    tab.GetAttribute("aria-selected") is "true" or "false"), Is.True);
             }
 
-            component.Find("#toggle-secondary-shortcut-search").Click();
+            verticalTabs = component.Find("[data-testid='tabs-vertical']");
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Has.Count.EqualTo(1));
-                Assert.That(component.Find("#showcase-search-shortcut-secondary").GetAttribute("value"),
-                    Is.EqualTo("secondary value"));
-                Assert.That(component.Find("#search-shortcut-result").TextContent,
-                    Does.Contain("secondary (newest)"));
-            }
-        }
+            await verticalTabs.QuerySelectorAll("[role='tab']")
+                .Single(tab => tab.TextContent.Trim() == "Verification")
+                .ClickAsync();
 
-        /// <summary>
-        /// Verifies that tabs and breadcrumbs return their selected local values.
-        /// </summary>
-        [Test]
-        public void VerifyNavigationExamplesUpdateDisplayedState()
-        {
-            var component = this.Render<DesignSystem>();
+            horizontalTabElements = component.FindAll("[role='tablist']")[0].QuerySelectorAll("[role='tab']");
 
-            component
-                .FindAll("[role='tab']")
-                .Single(tab => tab.TextContent.Contains("Properties"))
-                .Click();
-            component
-                .FindAll("nav[aria-label='Showcase hierarchy'] button")
-                .Single(button => button.TextContent.Contains("Projects"))
-                .Click();
+            var tabs = component.FindAll("[role='tab']");
+            var tabIds = tabs.Select(tab => tab.Id).ToArray();
+            var panelIds = tabs.Select(tab => tab.GetAttribute("aria-controls")).ToArray();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find("#tabs-result").TextContent, Does.Contain("properties"));
-                Assert.That(component.Find("#breadcrumbs-result").TextContent, Does.Contain("Projects"));
+                Assert.That(component.Find("#vertical-tabs-result").TextContent, Does.Contain("verification"));
+                Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "Properties")
+                    .GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(component.FindAll("[role='tabpanel']")
+                    .Any(panel => panel.TextContent.Contains("Verification panel", StringComparison.Ordinal)), Is.True);
+                Assert.That(tabIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
+                Assert.That(tabIds.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(tabIds.Length));
+                Assert.That(panelIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
+                Assert.That(panelIds.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(panelIds.Length));
+            }
+
+            await component.FindAll("button")
+                .Single(button => button.TextContent.Trim() == "Select overview externally")
+                .ClickAsync();
+            await component.FindAll("button")
+                .Single(button => button.TextContent.Trim() == "Select summary externally")
+                .ClickAsync();
+
+            tabLists = component.FindAll("[role='tablist']");
+            horizontalTabElements = tabLists[0].QuerySelectorAll("[role='tab']");
+            verticalTabElements = tabLists[1].QuerySelectorAll("[role='tab']");
+            renderedTabs = component.FindAll("[role='tab']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "Overview")
+                    .GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "Properties")
+                    .GetAttribute("aria-selected"), Is.EqualTo("false"));
+                Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Summary")
+                    .GetAttribute("aria-selected"), Is.EqualTo("true"));
+                Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Verification")
+                    .GetAttribute("aria-selected"), Is.EqualTo("false"));
+                Assert.That(component.FindAll("[role='tabpanel']")
+                    .Any(panel => panel.TextContent.Contains("Overview panel", StringComparison.Ordinal)), Is.True);
+                Assert.That(component.FindAll("[role='tabpanel']")
+                    .Any(panel => panel.TextContent.Contains("Summary panel", StringComparison.Ordinal)), Is.True);
+                Assert.That(renderedTabs.All(tab => tab.Attributes.Count(attribute =>
+                    string.Equals(attribute.Name, "aria-selected", StringComparison.OrdinalIgnoreCase)) == 1), Is.True);
+                Assert.That(renderedTabs.All(tab =>
+                    tab.GetAttribute("aria-selected") is "true" or "false"), Is.True);
             }
         }
 
         /// <summary>
-        /// Verifies that independent action menus retain separate open state and return selections.
+        /// Verifies former Tooltip triggers retain explicit names and supplementary pointer hints without Tooltip markup.
         /// </summary>
         [Test]
-        public void VerifyActionMenuExamplesMaintainIndependentState()
+        public void VerifyFormerTooltipControlsRemainExplicitlyNamed()
         {
             var component = this.Render<DesignSystem>();
-            var primaryMenu = component.Find("[data-testid='action-menu-primary']");
-            var secondaryMenu = component.Find("[data-testid='action-menu-secondary']");
 
-            primaryMenu.QuerySelector("button").Click();
-            secondaryMenu.QuerySelector("button").Click();
-
-            using (Assert.EnterMultipleScope())
+            foreach (var accessibleName in FormerTooltipControlNames)
             {
-                Assert.That(primaryMenu.QuerySelectorAll("[role='menu']"), Has.Count.EqualTo(1));
-                Assert.That(secondaryMenu.QuerySelectorAll("[role='menu']"), Has.Count.EqualTo(1));
-                Assert.That(primaryMenu.QuerySelector("[role='menu']").ClassList,
-                    Does.Contain("mb-action-menu__menu--start"));
-                Assert.That(secondaryMenu.QuerySelector("[role='menu']").ClassList,
-                    Does.Contain("mb-action-menu__menu--end"));
-                Assert.That(primaryMenu.QuerySelectorAll(".mb-action-menu__item-icon"),
-                    Has.Count.EqualTo(4));
-                Assert.That(primaryMenu.QuerySelectorAll(".mb-action-menu__item-label")
-                    .Any(label => label.TextContent.Contains("another architecture workspace")), Is.True);
-                Assert.That(secondaryMenu.QuerySelectorAll(".mb-action-menu__trigger-content"), Has.Count.EqualTo(1));
-                Assert.That(secondaryMenu.QuerySelectorAll(".mb-action-menu__chevron svg"), Has.Count.EqualTo(1));
+                var matchingButtons = component.FindAll($"button[aria-label='{accessibleName}']");
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(matchingButtons, Is.Not.Empty, $"Missing control named '{accessibleName}'.");
+                    Assert.That(matchingButtons.All(button =>
+                        string.Equals(button.GetAttribute("title"), accessibleName, StringComparison.Ordinal)), Is.True);
+                }
             }
 
-            component.Find("[data-testid='action-menu-primary'] [role='menuitem']").Click();
-
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("#action-menu-result").TextContent, Does.Contain("Open details"));
-                Assert.That(component.FindAll("[data-testid='action-menu-primary'] [role='menu']"), Is.Empty);
-                Assert.That(component.FindAll("[data-testid='action-menu-secondary'] [role='menu']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[role='tooltip']"), Is.Empty);
+                Assert.That(this.portalHost.FindAll("[role='tooltip']"), Is.Empty);
             }
         }
 
         /// <summary>
-        /// Verifies that split-button and user-menu actions update their page-owned result state.
+        /// Verifies direct Blueprint consumers preserve page-owned names, relationships, native states, and workflows.
         /// </summary>
         [Test]
-        public void VerifyAdditionalMenuExamplesUpdateDisplayedState()
+        public async System.Threading.Tasks.Task VerifyDirectBlueprintConsumersPreserveAccessibility()
         {
             var component = this.Render<DesignSystem>();
-            var splitButtonExample = component.Find("[data-component='split-button']");
+            var textInput = component.Find("#showcase-text-input");
+            var invalidInput = component.Find("#showcase-text-error");
+            var disabledInput = component.Find("#showcase-text-disabled");
+            var readOnlyInput = component.Find("#showcase-text-readonly");
+            var toggle = component.Find("#showcase-toggle");
+            var disabledToggle = component.Find("#showcase-toggle-disabled");
+            var breadcrumb = component.Find("nav[aria-label='Showcase hierarchy']");
 
-            splitButtonExample.QuerySelectorAll("button")[0].Click();
-
-            Assert.That(component.Find("#split-button-result").TextContent, Does.Contain("Save"));
-
-            splitButtonExample = component.Find("[data-component='split-button']");
-            splitButtonExample.QuerySelectorAll("button")[1].Click();
-            component.Find("[data-component='split-button'] [role='menuitem']").Click();
-
-            var userMenuExample = component.Find("[data-component='user-menu']");
-            userMenuExample.QuerySelector("button").Click();
-            component.Find("[data-component='user-menu'] [role='menuitem']").Click();
+            await breadcrumb.QuerySelector("button").ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("#split-button-result").TextContent, Does.Contain("Save as draft"));
-                Assert.That(component.Find("#user-menu-result").TextContent, Does.Contain("Profile"));
+                Assert.That(component.Find("label[for='showcase-text-input']").TextContent,
+                    Does.Contain("Element name"));
+                Assert.That(textInput.HasAttribute("required"), Is.True);
+                Assert.That(textInput.GetAttribute("aria-describedby"), Is.EqualTo("showcase-text-input-help"));
+                Assert.That(invalidInput.GetAttribute("aria-invalid"), Is.EqualTo("true"));
+                Assert.That(invalidInput.GetAttribute("aria-describedby"), Is.EqualTo("showcase-text-error-error"));
+                Assert.That(disabledInput.HasAttribute("disabled"), Is.True);
+                Assert.That(readOnlyInput.HasAttribute("readonly"), Is.True);
+                Assert.That(toggle.GetAttribute("aria-label"), Is.EqualTo("Live collaboration"));
+                Assert.That(toggle.GetAttribute("aria-describedby"), Is.EqualTo("showcase-toggle-description"));
+                Assert.That(disabledToggle.HasAttribute("disabled"), Is.True);
+                Assert.That(component.Find("[data-component='icon-button'] button[aria-label='Add model element']"),
+                    Is.Not.Null);
+                Assert.That(component.Find("[data-component='loading-state'] [role='status']")
+                    .GetAttribute("aria-busy"), Is.EqualTo("true"));
+                Assert.That(component.FindAll("[role='toolbar'][aria-label='Element editing tools']"),
+                    Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("[role='toolbar'][aria-label='Horizontal canvas tools']"),
+                    Has.Count.EqualTo(1));
+                Assert.That(component.Find("[role='toolbar'][aria-label='Vertical canvas tools']")
+                    .GetAttribute("aria-orientation"), Is.EqualTo("vertical"));
+                Assert.That(component.FindAll("[data-component='empty-state'] h3")
+                    .Select(element => element.TextContent), Does.Contain("No relationships"));
+                Assert.That(component.Find("#breadcrumbs-result").TextContent, Does.Contain("Workspace"));
             }
         }
 
         /// <summary>
-        /// Verifies that a local project selection updates the controlled switcher and result text.
+        /// Verifies workspace controls preserve controlled state and optional-region semantics.
         /// </summary>
         [Test]
-        public void VerifyProjectSwitcherUpdatesSelectedProject()
+        public async System.Threading.Tasks.Task VerifyWorkspaceExamplesPreserveLayoutBehavior()
         {
             var component = this.Render<DesignSystem>();
-            var switcher = component.Find("[data-testid='project-switcher-primary']");
+            var zoomExample = component.Find("[data-component='zoom-controls']");
 
-            switcher.QuerySelector("button").Click();
+            await zoomExample.QuerySelector("button[aria-label='Zoom in']").ClickAsync();
+            await component.Find("#toggle-workspace-left-panel").ClickAsync();
+            await component.Find("#toggle-workspace-right-panel").ClickAsync();
 
-            var lunarProject = component
-                .FindAll("[data-testid='project-switcher-primary'] [role='menuitemradio']")
-                .Single(item => item.TextContent.Contains("Lunar Habitat"));
+            var optionalWorkspaces = component.FindAll(
+                "[data-component='workspace-shell-optional-regions'] .mb-workspace-shell");
+            var narrowWorkspace = optionalWorkspaces[2];
+            var detailsButton = narrowWorkspace.QuerySelectorAll(".mb-workspace-shell__pane-button")
+                .Single(button => button.TextContent.Trim() == "Details");
 
-            lunarProject.Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("[data-testid='project-switcher-primary'] .mb-project-switcher__name").TextContent,
-                    Is.EqualTo("Lunar Habitat"));
-                Assert.That(component.Find("#project-switcher-result").TextContent, Does.Contain("Lunar Habitat"));
-                Assert.That(component.Find("[data-testid='project-switcher-secondary'] .mb-project-switcher__name").TextContent,
-                    Is.EqualTo("Lunar Habitat"));
-            }
-
-            var secondarySwitcher = component.Find("[data-testid='project-switcher-secondary']");
-            secondarySwitcher.QuerySelector("button").Click();
-
-            var orbitalProject = component
-                .FindAll("[data-testid='project-switcher-secondary'] [role='menuitemradio']")
-                .Single(item => item.TextContent.Contains("Orbital Platform"));
-
-            orbitalProject.Click();
+            await detailsButton.ClickAsync();
+            narrowWorkspace = component.FindAll(
+                "[data-component='workspace-shell-optional-regions'] .mb-workspace-shell")[2];
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("[data-testid='project-switcher-primary'] .mb-project-switcher__name").TextContent,
-                    Is.EqualTo("Lunar Habitat"));
-                Assert.That(component.Find("[data-testid='project-switcher-secondary'] .mb-project-switcher__name").TextContent,
-                    Is.EqualTo("Orbital Platform"));
-                Assert.That(component.Find("#project-switcher-result").TextContent, Does.Contain("Orbital Platform"));
+                Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("125%"));
+                Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__left-panel"), Is.Empty);
+                Assert.That(component.FindAll("[data-component='workspace-shell'] .mb-workspace-shell__right-panel"), Is.Empty);
+                Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Left panel: hidden"));
+                Assert.That(component.Find("#workspace-shell-result").TextContent, Does.Contain("Right panel: hidden"));
+                Assert.That(optionalWorkspaces, Has.Count.EqualTo(3));
+                Assert.That(optionalWorkspaces.SelectMany(workspace => workspace.QuerySelectorAll("main")), Is.Empty);
+                Assert.That(optionalWorkspaces[0].QuerySelectorAll("header"), Is.Empty);
+                Assert.That(optionalWorkspaces[0].QuerySelectorAll("footer"), Is.Empty);
+                Assert.That(optionalWorkspaces[1].QuerySelectorAll("header"), Has.Count.EqualTo(1));
+                Assert.That(optionalWorkspaces[2].QuerySelectorAll("footer"), Has.Count.EqualTo(1));
+                Assert.That(narrowWorkspace.QuerySelector(".mb-workspace-shell__right-panel")
+                    .GetAttribute("data-narrow-active"), Is.EqualTo("true"));
+                Assert.That(narrowWorkspace.QuerySelector(".mb-workspace-shell__main")
+                    .GetAttribute("data-narrow-active"), Is.EqualTo("false"));
             }
         }
 
         /// <summary>
-        /// Verifies that modal examples open with the requested size and close through the component callback.
+        /// Verifies rendered page and portal markup do not introduce duplicate identifiers.
         /// </summary>
         [Test]
-        public void VerifyModalShellOpensAndCloses()
+        public void VerifyRenderedShowcaseHasNoDuplicateIdentifiers()
         {
             var component = this.Render<DesignSystem>();
+            var ids = component.FindAll("[id]")
+                .Concat(this.portalHost.FindAll("[id]"))
+                .Select(element => element.Id)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToArray();
+            var duplicates = ids
+                .GroupBy(id => id, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToArray();
 
-            component.Find("#open-compact-modal").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("#showcase-modal"), Has.Count.EqualTo(1));
-                Assert.That(component.Find("#showcase-modal").ClassList, Does.Contain("mb-modal__panel--small"));
-            }
-
-            component.Find("button[aria-label='Close dialog']").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("#showcase-modal"), Is.Empty);
-                Assert.That(component.Find("#modal-result").TextContent, Does.Contain("Closed modal"));
-            }
-
-            component.Find("#open-wide-modal").Click();
-
-            Assert.That(component.Find("#showcase-modal").ClassList, Does.Contain("mb-modal__panel--wide"));
-
-            component
-                .FindAll("#showcase-modal button")
-                .Single(button => button.TextContent.Contains("Apply locally"))
-                .Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("#showcase-modal"), Is.Empty);
-                Assert.That(component.Find("#modal-result").TextContent, Does.Contain("Closed modal"));
-            }
-        }
-
-        /// <summary>
-        /// Verifies that confirmation and cancellation callbacks update the displayed result.
-        /// </summary>
-        [Test]
-        public void VerifyConfirmDialogReturnsActions()
-        {
-            var component = this.Render<DesignSystem>();
-
-            component.Find("#open-warning-confirm").Click();
-            component.FindAll("[role='dialog'] button").Single(button => button.TextContent.Contains("Confirm action")).Click();
-
-            Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Confirmed warning action"));
-
-            component.Find("#open-danger-confirm").Click();
-            component.FindAll("[role='dialog'] button").Single(button => button.TextContent.Contains("Cancel action")).Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Cancelled danger action"));
-                Assert.That(component.FindAll("[role='dialog']"), Is.Empty);
-            }
-
-            component.Find("#open-default-confirm").Click();
-            component.FindAll("[role='dialog'] button").Single(button => button.TextContent.Contains("Confirm action")).Click();
-
-            Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Confirmed default action"));
-        }
-
-        /// <summary>
-        /// Verifies that a standalone notification can be dismissed from local page state.
-        /// </summary>
-        [Test]
-        public void VerifyStandaloneNotificationCanBeDismissed()
-        {
-            var component = this.Render<DesignSystem>();
-
-            component.Find("button[aria-label='Dismiss Information']").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindAll("button[aria-label='Dismiss Information']"), Is.Empty);
-                Assert.That(component.FindAll("[data-component='notification-toast'] .mb-notification-toast"),
-                    Has.Count.EqualTo(3));
-            }
-        }
-
-        /// <summary>
-        /// Verifies that a toast-container notification can be dismissed from local page state.
-        /// </summary>
-        [Test]
-        public void VerifyToastContainerNotificationCanBeDismissed()
-        {
-            var component = this.Render<DesignSystem>();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("#toast-count-result").TextContent, Does.Contain("0"));
-                Assert.That(component.FindAll(".mb-toast-container__item"), Is.Empty);
-            }
-
-            component.Find("#add-toast-notification").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("#toast-count-result").TextContent, Does.Contain("1"));
-                Assert.That(component.Markup, Does.Contain("Sample notification 1"));
-            }
-
-            component.Find("#add-toast-notification").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("#toast-count-result").TextContent, Does.Contain("2"));
-                Assert.That(component.Markup, Does.Contain("Sample notification 2"));
-            }
-
-            component.Find("#reset-toast-notifications").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find("#toast-count-result").TextContent, Does.Contain("2"));
-                Assert.That(component.FindAll(".mb-toast-container__item"), Has.Count.EqualTo(2));
-            }
-
-            component.Find("button[aria-label='Dismiss Model synchronized']").Click();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Markup, Does.Not.Contain("Model synchronized"));
-                Assert.That(component.Find("#toast-count-result").TextContent, Does.Contain("1"));
-                Assert.That(component.FindAll(".mb-toast-container__item"), Has.Count.EqualTo(1));
-            }
+            Assert.That(duplicates, Is.Empty, $"Duplicate ids: {string.Join(", ", duplicates)}");
         }
     }
 }

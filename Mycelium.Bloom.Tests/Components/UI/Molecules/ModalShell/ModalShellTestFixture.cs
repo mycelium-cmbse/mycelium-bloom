@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
 
     using Mycelium.Bloom.Model.Enum;
 
-    using IconButtonComponent = Mycelium.Bloom.Components.UI.Atoms.IconButton.IconButton;
+    using ButtonComponent = BlazorBlueprint.Components.BbButton;
     using ModalShellComponent = Mycelium.Bloom.Components.UI.Molecules.ModalShell.ModalShell;
 
     /// <summary>
@@ -143,13 +143,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
                 })
                 .Add(component => component.OnClose, () => closeCount++));
 
-            var closeButton = component.FindComponent<IconButtonComponent>();
+            var closeButton = component.FindComponent<ButtonComponent>();
             var closeAction = closeButton.Instance.OnClick;
             var firstClose = component.InvokeAsync(() => closeAction.InvokeAsync(new MouseEventArgs()));
 
             await callbackStarted.Task;
 
-            closeButton = component.FindComponent<IconButtonComponent>();
+            closeButton = component.FindComponent<ButtonComponent>();
             Assert.That(closeButton.Instance.Disabled, Is.True);
 
             var repeatedClose = component.InvokeAsync(() => closeAction.InvokeAsync(new MouseEventArgs()));

@@ -9,7 +9,6 @@
 
 @page "/design-system"
 
-@using Mycelium.Bloom.Components.UI.Molecules.Tabs
 @using BlazorBlueprint.Icons.Lucide.Components
 
 <PageTitle>Bloom Design System</PageTitle>
@@ -691,8 +690,177 @@
                     <p>Controlled selection, roving tabindex, arrow navigation, Home, End, and a disabled destination.</p>
                 </header>
 
-                <Tabs Items="this.TabItems" ActiveValue="@this.ActiveTabValue" ActiveValueChanged="this.HandleTabChanged" />
-                <p id="tabs-result" class="mb-design-system__result">Selected tab: @this.ActiveTabValue</p>
+                <div class="mb-design-system__tabs-gallery">
+                    <div class="mb-design-system__tabs-example">
+                        <span class="mb-design-system__state-label">Automatic horizontal tabs</span>
+                        <BlazorBlueprint.Components.BbTabs
+                            Value="@this.ActiveTabValue"
+                            ValueChanged="this.HandleTabChanged"
+                            Orientation="BlazorBlueprint.Primitives.Tabs.TabsOrientation.Horizontal"
+                            ActivationMode="BlazorBlueprint.Primitives.Tabs.TabsActivationMode.Automatic"
+                            Class="mb-design-system__tabs"
+                            data-testid="tabs-horizontal">
+                            <BlazorBlueprint.Primitives.Tabs.BbTabsList
+                                class="mb-design-system__tabs-list"
+                                aria-label="Element detail sections">
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="overview"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveTabValue, "overview"))'>
+                                    Overview
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="properties"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveTabValue, "properties"))'>
+                                    Properties
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="relationships"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveTabValue, "relationships"))'>
+                                    Cross-domain relationships and allocations
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="history"
+                                    Disabled="true"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveTabValue, "history"))'
+                                    aria-disabled="true">
+                                    History
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                            </BlazorBlueprint.Primitives.Tabs.BbTabsList>
+
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="overview"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Overview panel</strong>
+                                    <span>Summary information for the selected element.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="properties"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Properties panel</strong>
+                                    <span>Editable values remain controlled by the page.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="relationships"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Relationships panel</strong>
+                                    <span>Long labels remain contained by the compact tab list.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="history"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>History panel</strong>
+                                    <span>This disabled destination cannot be selected.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                        </BlazorBlueprint.Components.BbTabs>
+                        <div class="mb-design-system__tabs-controls">
+                            <BlazorBlueprint.Components.BbButton
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                                Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                OnClick='() => this.HandleTabChanged("overview")'>
+                                Select overview externally
+                            </BlazorBlueprint.Components.BbButton>
+                        </div>
+                        <p id="tabs-result" class="mb-design-system__result">Selected tab: @this.ActiveTabValue</p>
+                    </div>
+
+                    <div class="mb-design-system__tabs-example">
+                        <span class="mb-design-system__state-label">Manual vertical tabs</span>
+                        <BlazorBlueprint.Components.BbTabs
+                            Value="@this.ActiveReviewTabValue"
+                            ValueChanged="this.HandleReviewTabChanged"
+                            Orientation="BlazorBlueprint.Primitives.Tabs.TabsOrientation.Vertical"
+                            ActivationMode="BlazorBlueprint.Primitives.Tabs.TabsActivationMode.Manual"
+                            Class="mb-design-system__tabs mb-design-system__tabs--vertical"
+                            data-testid="tabs-vertical">
+                            <BlazorBlueprint.Primitives.Tabs.BbTabsList
+                                class="mb-design-system__tabs-list mb-design-system__tabs-list--vertical"
+                                aria-label="Element review sections">
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="summary"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveReviewTabValue, "summary"))'>
+                                    Summary
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="verification"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveReviewTabValue, "verification"))'>
+                                    Verification
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="traceability"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveReviewTabValue, "traceability"))'>
+                                    Traceability across subsystem boundaries
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                    Value="archive"
+                                    Disabled="true"
+                                    class="mb-design-system__tabs-trigger"
+                                    aria-selected='@(this.GetTabAriaSelected(this.ActiveReviewTabValue, "archive"))'
+                                    aria-disabled="true">
+                                    Archive
+                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
+                            </BlazorBlueprint.Primitives.Tabs.BbTabsList>
+
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="summary"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Summary panel</strong>
+                                    <span>Manual activation separates focus movement from selection.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="verification"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Verification panel</strong>
+                                    <span>Verification evidence for the selected element.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="traceability"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Traceability panel</strong>
+                                    <span>Cross-workspace relationships remain readable.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                            <BlazorBlueprint.Components.BbTabsContent
+                                Value="archive"
+                                Class="mb-design-system__tabs-content">
+                                <div class="mb-design-system__tab-panel">
+                                    <strong>Archive panel</strong>
+                                    <span>This disabled destination cannot be selected.</span>
+                                </div>
+                            </BlazorBlueprint.Components.BbTabsContent>
+                        </BlazorBlueprint.Components.BbTabs>
+                        <div class="mb-design-system__tabs-controls">
+                            <BlazorBlueprint.Components.BbButton
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                                Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                OnClick='() => this.HandleReviewTabChanged("summary")'>
+                                Select summary externally
+                            </BlazorBlueprint.Components.BbButton>
+                        </div>
+                        <p id="vertical-tabs-result" class="mb-design-system__result">
+                            Selected review tab: @this.ActiveReviewTabValue
+                        </p>
+                    </div>
+                </div>
             </article>
 
             <article class="mb-design-system__example" data-component="loading-state">

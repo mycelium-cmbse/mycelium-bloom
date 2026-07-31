@@ -9,7 +9,16 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
 {
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
+    using BlazorBlueprint.Primitives.Services;
+
     using Bunit;
+
+    using Microsoft.AspNetCore.Components.Web;
+
+    using Mycelium.Bloom.Tests.Common;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -23,13 +32,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class NotificationToastTestFixture : BunitContext
     {
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NotificationToastTestFixture" /> class.
+        /// </summary>
+        public NotificationToastTestFixture()
+        {
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
@@ -95,8 +114,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
         /// Verifies that dismissal invokes the callback with the supplied notification identifier.
         /// </summary>
         [Test]
-        public void VerifyDismissInvokesCallbackWithIdentifier()
+        public async Task VerifyDismissInvokesCallbackWithIdentifier()
         {
+            var callbackCount = 0;
             var dismissedIdentifier = string.Empty;
             var notification = new ToastNotification
             {
@@ -106,11 +126,126 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
 
             var component = this.Render<NotificationToastComponent>(parameters => parameters
                 .Add(component => component.Notification, notification)
-                .Add(component => component.Dismissed, (string identifier) => dismissedIdentifier = identifier));
+                .Add(component => component.Dismissed, async (string identifier) =>
+                {
+                    await Task.Yield();
+                    callbackCount++;
+                    dismissedIdentifier = identifier;
+                }));
 
-            component.Find("button").Click();
+            var dismissButton = component.Find("button");
 
-            Assert.That(dismissedIdentifier, Is.EqualTo("dismiss-me"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dismissButton.GetAttribute("aria-label"), Is.EqualTo("Dismiss Dismissible notification"));
+                Assert.That(dismissButton.GetAttribute("title"), Is.EqualTo("Dismiss Dismissible notification"));
+                Assert.That(component.FindAll("[role='tooltip']"), Is.Empty);
+                Assert.That(this.portalHost.FindAll("[role='tooltip']"), Is.Empty);
+            }
+
+            await dismissButton.ClickAsync(new MouseEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dismissedIdentifier, Is.EqualTo("dismiss-me"));
+                Assert.That(callbackCount, Is.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that multiple toast instances retain their own identifiers and callback owners.
+        /// </summary>
+        [Test]
+        public async Task VerifyMultipleInstancesKeepDismissCallbacksIndependent()
+        {
+            var firstDismissals = new List<string>();
+            var secondDismissals = new List<string>();
+            var firstNotification = new ToastNotification
+            {
+                Id = "first-toast",
+                Title = "First toast"
+            };
+            var secondNotification = new ToastNotification
+            {
+                Id = "second-toast",
+                Title = "Second toast"
+            };
+
+            var firstComponent = this.Render<NotificationToastComponent>(parameters => parameters
+                .Add(component => component.Notification, firstNotification)
+                .Add(component => component.Dismissed, (string identifier) => firstDismissals.Add(identifier)));
+            var secondComponent = this.Render<NotificationToastComponent>(parameters => parameters
+                .Add(component => component.Notification, secondNotification)
+                .Add(component => component.Dismissed, (string identifier) => secondDismissals.Add(identifier)));
+
+            await firstComponent.Find("button").ClickAsync(new MouseEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstDismissals, Is.EqualTo(new[] { "first-toast" }));
+                Assert.That(secondDismissals, Is.Empty);
+            }
+
+            await secondComponent.Find("button").ClickAsync(new MouseEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstDismissals, Is.EqualTo(new[] { "first-toast" }));
+                Assert.That(secondDismissals, Is.EqualTo(new[] { "second-toast" }));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that disposing an untouched toast cannot invoke its dismissal callback.
+        /// </summary>
+        [Test]
+        public void VerifyDisposalBeforeDismissDoesNotInvokeCallback()
+        {
+            var callbackCount = 0;
+            var notification = new ToastNotification
+            {
+                Id = "dispose-without-dismiss",
+                Title = "Dispose without dismiss"
+            };
+
+            var component = this.Render<NotificationToastComponent>(parameters => parameters
+                .Add(component => component.Notification, notification)
+                .Add(component => component.Dismissed, (string _) => callbackCount++));
+
+            component.Dispose();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.IsDisposed, Is.True);
+                Assert.That(callbackCount, Is.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that disposal cannot erase or repeat a completed dismissal callback.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposalAfterDismissPreservesCompletedCallback()
+        {
+            var dismissedIdentifiers = new List<string>();
+            var notification = new ToastNotification
+            {
+                Id = "dismiss-before-dispose",
+                Title = "Dismiss before dispose"
+            };
+
+            var component = this.Render<NotificationToastComponent>(parameters => parameters
+                .Add(component => component.Notification, notification)
+                .Add(component => component.Dismissed, (string identifier) => dismissedIdentifiers.Add(identifier)));
+
+            await component.Find("button").ClickAsync(new MouseEventArgs());
+            component.Dispose();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.IsDisposed, Is.True);
+                Assert.That(dismissedIdentifiers, Is.EqualTo(new[] { "dismiss-before-dispose" }));
+            }
         }
 
         /// <summary>

@@ -10,8 +10,13 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
 {
     using System.Collections.Generic;
+    using System.Linq;
+
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
+
+    using Mycelium.Bloom.Tests.Common;
 
     using ZoomControlsComponent = Mycelium.Bloom.Components.UI.Molecules.ZoomControls.ZoomControls;
 
@@ -27,13 +32,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
         /// </summary>
         private static readonly double[] ExpectedZoomRequests = [150d, 100d];
 
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ZoomControlsTestFixture" /> class.
+        /// </summary>
+        public ZoomControlsTestFixture()
+        {
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
@@ -89,6 +104,29 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
             {
                 Assert.That(zoomIn.HasAttribute("disabled"), Is.True);
                 Assert.That(callbackCount, Is.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Verifies every icon action keeps an explicit name and pointer hint without mounting a Tooltip.
+        /// </summary>
+        [Test]
+        public void VerifyActionsRemainNamedWithoutTooltips()
+        {
+            var component = this.Render<ZoomControlsComponent>();
+            var buttons = component.FindAll("button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(buttons, Has.Count.EqualTo(4));
+                Assert.That(buttons.All(button => !string.IsNullOrWhiteSpace(button.GetAttribute("aria-label"))), Is.True);
+                Assert.That(buttons.All(button =>
+                    string.Equals(
+                        button.GetAttribute("title"),
+                        button.GetAttribute("aria-label"),
+                        System.StringComparison.Ordinal)), Is.True);
+                Assert.That(component.FindAll("[role='tooltip']"), Is.Empty);
+                Assert.That(this.portalHost.FindAll("[role='tooltip']"), Is.Empty);
             }
         }
 

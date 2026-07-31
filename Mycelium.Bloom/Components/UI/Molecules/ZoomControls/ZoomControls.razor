@@ -7,48 +7,86 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
+@using BlazorBlueprint.Icons.Lucide.Components
+
 @inherits BloomComponentBase
 
-<div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    <Toolbar AriaLabel="@(this.AriaLabel)"
-             Compact="@(this.Compact)"
-             AllowWrap="false"
-             Class="mb-zoom-controls__toolbar">
-        <ChildContent>
-            <IconButton AriaLabel="Zoom out"
-                        Title="Zoom out"
-                        Disabled="@(this.IsZoomOutDisabled())"
-                        OnClick="this.HandleZoomOutAsync">
-                <span aria-hidden="true">−</span>
-            </IconButton>
+<div class="@(this.GetCssClass())"
+     role="toolbar"
+     aria-label="@(this.AriaLabel)"
+     @attributes="this.AdditionalAttributes">
+    <BlazorBlueprint.Components.BbButton
+        Type="BlazorBlueprint.Components.ButtonType.Button"
+        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+        Class="mb-zoom-controls__action"
+        AriaLabel="Zoom out"
+        title="Zoom out"
+        Disabled="@(this.IsZoomOutDisabled())"
+        OnClick="this.HandleZoomOutAsync">
+        <LucideIcon Name="minus"
+                    Size="16"
+                    StrokeWidth="1.75"
+                    role="presentation"
+                    aria-hidden="true"
+                    focusable="false" />
+    </BlazorBlueprint.Components.BbButton>
 
-            @if (this.ShowZoomValue)
-            {
-                <output class="mb-zoom-controls__value" aria-label="Current zoom">
-                    @(this.GetFormattedZoom())
-                </output>
-            }
+    @if (this.ShowZoomValue)
+    {
+        <output class="mb-zoom-controls__value" aria-label="Current zoom">
+            @(this.GetFormattedZoom())
+        </output>
+    }
 
-            <IconButton AriaLabel="Zoom in"
-                        Title="Zoom in"
-                        Disabled="@(this.IsZoomInDisabled())"
-                        OnClick="this.HandleZoomInAsync">
-                <span aria-hidden="true">+</span>
-            </IconButton>
+    <BlazorBlueprint.Components.BbButton
+        Type="BlazorBlueprint.Components.ButtonType.Button"
+        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+        Class="mb-zoom-controls__action"
+        AriaLabel="Zoom in"
+        title="Zoom in"
+        Disabled="@(this.IsZoomInDisabled())"
+        OnClick="this.HandleZoomInAsync">
+        <LucideIcon Name="plus"
+                    Size="16"
+                    StrokeWidth="1.75"
+                    role="presentation"
+                    aria-hidden="true"
+                    focusable="false" />
+    </BlazorBlueprint.Components.BbButton>
 
-            <IconButton AriaLabel="Reset zoom"
-                        Title="Reset zoom"
-                        Disabled="@(this.Disabled)"
-                        OnClick="this.HandleResetZoomAsync">
-                <span aria-hidden="true">1:1</span>
-            </IconButton>
+    <BlazorBlueprint.Components.BbButton
+        Type="BlazorBlueprint.Components.ButtonType.Button"
+        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+        Class="mb-zoom-controls__action"
+        AriaLabel="Reset zoom"
+        title="Reset zoom"
+        Disabled="@(this.Disabled)"
+        OnClick="this.HandleResetZoomAsync">
+        <LucideIcon Name="scan-line"
+                    Size="16"
+                    StrokeWidth="1.75"
+                    role="presentation"
+                    aria-hidden="true"
+                    focusable="false" />
+    </BlazorBlueprint.Components.BbButton>
 
-            <IconButton AriaLabel="Fit to view"
-                        Title="Fit to view"
-                        Disabled="@(this.Disabled)"
-                        OnClick="this.HandleFitToViewAsync">
-                <span aria-hidden="true">⛶</span>
-            </IconButton>
-        </ChildContent>
-    </Toolbar>
+    <BlazorBlueprint.Components.BbButton
+        Type="BlazorBlueprint.Components.ButtonType.Button"
+        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+        Class="mb-zoom-controls__action"
+        AriaLabel="Fit to view"
+        title="Fit to view"
+        Disabled="@(this.Disabled)"
+        OnClick="this.HandleFitToViewAsync">
+        <LucideIcon Name="maximize"
+                    Size="16"
+                    StrokeWidth="1.75"
+                    role="presentation"
+                    aria-hidden="true"
+                    focusable="false" />
+    </BlazorBlueprint.Components.BbButton>
 </div>

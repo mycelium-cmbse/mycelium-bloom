@@ -11,8 +11,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ToastContainer
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     using Bunit;
+
+    using Microsoft.AspNetCore.Components.Web;
+
+    using Mycelium.Bloom.Tests.Common;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -27,12 +32,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ToastContainer
     public sealed class ToastContainerTestFixture : BunitContext
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="ToastContainerTestFixture" /> class.
+        /// </summary>
+        public ToastContainerTestFixture()
+        {
+            BlueprintTestSetup.ConfigureWithPortalHost(this);
+        }
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
@@ -61,7 +74,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ToastContainer
         /// Verifies that a child toast dismissal is forwarded with the correct identifier.
         /// </summary>
         [Test]
-        public void VerifyDismissedNotificationIsForwarded()
+        public async Task VerifyDismissedNotificationIsForwarded()
         {
             var dismissedIdentifier = string.Empty;
             var notifications = new[]
@@ -74,7 +87,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ToastContainer
                 .Add(component => component.Notifications, notifications)
                 .Add(component => component.Dismissed, (string identifier) => dismissedIdentifier = identifier));
 
-            component.Find("button[aria-label='Dismiss First']").Click();
+            await component.Find("button[aria-label='Dismiss First']").ClickAsync(new MouseEventArgs());
 
             Assert.That(dismissedIdentifier, Is.EqualTo("first"));
         }

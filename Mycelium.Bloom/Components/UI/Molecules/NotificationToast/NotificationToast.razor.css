@@ -8,7 +8,7 @@
     min-width: 0;
     padding: var(--mb-spacing-3);
     overflow: hidden;
-    border: 1px solid var(--mb-color-border);
+    border: 1px solid var(--mb-color-border-subtle);
     border-radius: var(--mb-radius-md);
     background: var(--mb-color-surface);
     box-shadow: var(--mb-shadow-md);
@@ -20,19 +20,19 @@
     width: 4px;
     min-height: 42px;
     border-radius: var(--mb-radius-full);
-    background: var(--mb-color-info-500);
+    background: var(--mb-color-info-border);
 }
 
 .mb-notification-toast--success .mb-notification-toast__marker {
-    background: var(--mb-color-success-500);
+    background: var(--mb-color-success-border);
 }
 
 .mb-notification-toast--warning .mb-notification-toast__marker {
-    background: var(--mb-color-warning-500);
+    background: var(--mb-color-warning-border);
 }
 
 .mb-notification-toast--danger .mb-notification-toast__marker {
-    background: var(--mb-color-danger-500);
+    background: var(--mb-color-danger-border);
 }
 
 .mb-notification-toast__content {
