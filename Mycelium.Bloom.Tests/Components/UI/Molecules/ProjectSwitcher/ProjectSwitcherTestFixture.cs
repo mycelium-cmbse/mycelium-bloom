@@ -11,207 +11,196 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
 {
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Primitives.Services;
+
     using Bunit;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
 
-    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
     using ProjectSwitcherComponent = Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher.ProjectSwitcher;
 
     /// <summary>
-    /// Tests the <see cref="ProjectSwitcherComponent" /> component.
+    /// Tests Bloom project data mapped onto a styled Blueprint menu.
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectSwitcherTestFixture : BunitContext
     {
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
         /// <summary>
-        /// Configures the shared outside-click helper used by the project action menu.
+        /// Initializes a new instance of the <see cref="ProjectSwitcherTestFixture" /> class.
         /// </summary>
-        [SetUp]
-        public void SetUp()
+        public ProjectSwitcherTestFixture()
         {
-            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
-            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
         }
 
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
-        /// Verifies current-project rendering and selected-state announcement.
+        /// Verifies current project identity, active indication, and unavailable projects.
         /// </summary>
         [Test]
-        public void VerifyCurrentProjectAndOptionsRender()
+        public async Task VerifyCurrentProjectAndOptionsRender()
         {
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, CreateItems())
-                .Add(component => component.SelectedProjectId, "project-a"));
+                .Add(switcher => switcher.Items, CreateItems())
+                .Add(switcher => switcher.SelectedProjectId, "project-a"));
 
             var trigger = component.Find("button");
+            await trigger.ClickAsync();
+            var options = this.portalHost.WaitForElements("[role='menuitem']", 3);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find(".mb-project-switcher__name").TextContent, Is.EqualTo("Guidance"));
-                Assert.That(component.Find(".mb-project-switcher__description").TextContent,
-                    Is.EqualTo("Flight systems"));
-                Assert.That(trigger.GetAttribute("aria-label"),
-                    Is.EqualTo("Select project. Current project: Guidance"));
-                Assert.That(component.FindAll(".mb-action-menu__chevron svg"), Has.Count.EqualTo(1));
-            }
-
-            trigger.Click();
-
-            var options = component.FindAll("[role='menuitemradio']");
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(options, Has.Count.EqualTo(2));
-                Assert.That(options[0].GetAttribute("aria-checked"), Is.EqualTo("true"));
-                Assert.That(options[1].GetAttribute("aria-checked"), Is.EqualTo("false"));
-                Assert.That(options[0].TextContent, Does.Contain("Guidance"));
-                Assert.That(options[1].TextContent, Does.Contain("Payload"));
+                Assert.That(component.Find(".mb-project-switcher__description").TextContent, Is.EqualTo("Flight systems"));
+                Assert.That(trigger.GetAttribute("aria-label"), Is.EqualTo("Select project. Current project: Guidance"));
+                Assert.That(options[0].ClassList, Does.Contain("bg-accent"));
+                Assert.That(options[0].TextContent, Does.Contain("Current selection"));
+                Assert.That(options[1].TextContent, Does.Not.Contain("Current selection"));
+                Assert.That(options[2].GetAttribute("aria-disabled"), Is.EqualTo("true"));
             }
         }
 
         /// <summary>
-        /// Verifies that selecting an enabled project returns its identifier.
+        /// Verifies selecting an enabled project reports its identifier without mutating controlled display state.
         /// </summary>
         [Test]
-        public void VerifyEnabledProjectInvokesSelectionCallback()
+        public async Task VerifyEnabledProjectReportsSelection()
         {
             var selectedProjectId = string.Empty;
-
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, CreateItems())
-                .Add(component => component.SelectedProjectId, "project-a")
-                .Add(component => component.SelectedProjectIdChanged, id => selectedProjectId = id));
+                .Add(switcher => switcher.Items, CreateItems())
+                .Add(switcher => switcher.SelectedProjectId, "project-a")
+                .Add(switcher => switcher.SelectedProjectIdChanged, id => selectedProjectId = id));
 
-            component.Find("button").Click();
-            component.FindAll("[role='menuitemradio']")[1].Click();
+            await component.Find("button").ClickAsync();
+            await this.portalHost.WaitForElements("[role='menuitem']", 3)[1].ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selectedProjectId, Is.EqualTo("project-b"));
-                Assert.That(component.FindAll("[role='menu']"), Is.Empty);
                 Assert.That(component.Find(".mb-project-switcher__name").TextContent, Is.EqualTo("Guidance"));
+                Assert.That(component.Find("button").GetAttribute("aria-expanded"), Is.EqualTo("false"));
             }
+
+            component.Render(parameters => parameters
+                .Add(switcher => switcher.Items, CreateItems())
+                .Add(switcher => switcher.SelectedProjectId, selectedProjectId));
+
+            Assert.That(component.Find(".mb-project-switcher__name").TextContent, Is.EqualTo("Payload"));
         }
 
         /// <summary>
-        /// Verifies that the inherited outside-click callback closes the project menu.
+        /// Verifies a disabled project cannot report a selection.
         /// </summary>
         [Test]
-        public async Task VerifyOutsideClickDismissesProjectMenu()
-        {
-            var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(projectSwitcher => projectSwitcher.Items, CreateItems())
-                .Add(projectSwitcher => projectSwitcher.SelectedProjectId, "project-a"));
-
-            component.Find("button").Click();
-
-            var actionMenu = component.FindComponent<ActionMenuComponent>();
-            await actionMenu.InvokeAsync(actionMenu.Instance.DismissFromOutsideClickAsync);
-
-            Assert.That(component.FindAll("[role='menu']"), Is.Empty);
-        }
-
-        /// <summary>
-        /// Verifies that a disabled project cannot be selected and leaves the menu open.
-        /// </summary>
-        [Test]
-        public void VerifyDisabledProjectCannotBeSelected()
+        public async Task VerifyDisabledProjectCannotBeSelected()
         {
             var selectionCount = 0;
-            var items = CreateItems();
-            items[1].Disabled = true;
-
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, items)
-                .Add(component => component.SelectedProjectId, "project-a")
-                .Add(component => component.SelectedProjectIdChanged, _ => selectionCount++));
+                .Add(switcher => switcher.Items, CreateItems())
+                .Add(switcher => switcher.SelectedProjectId, "project-a")
+                .Add(switcher => switcher.SelectedProjectIdChanged, _ => selectionCount++));
 
-            component.Find("button").Click();
-            component.FindAll("[role='menuitemradio']")[1].Click();
+            await component.Find("button").ClickAsync();
+            await this.portalHost.WaitForElements("[role='menuitem']", 3)[2].ClickAsync();
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(selectionCount, Is.Zero);
-                Assert.That(component.FindAll("[role='menu']"), Has.Count.EqualTo(1));
-                Assert.That(component.FindAll("[role='menuitemradio']")[1].HasAttribute("disabled"), Is.True);
-            }
+            Assert.That(selectionCount, Is.Zero);
         }
 
         /// <summary>
-        /// Verifies placeholder rendering and generated initials when no project is selected.
+        /// Verifies placeholder and generated initials when no project is selected.
         /// </summary>
         [Test]
-        public void VerifyPlaceholderAndGeneratedInitialsRender()
+        public async Task VerifyPlaceholderAndGeneratedInitialsRender()
         {
             var items = new[]
             {
                 new ProjectSwitcherItem { Id = "guidance", Name = "guidance" },
                 new ProjectSwitcherItem { Id = "unnamed", Name = string.Empty }
             };
-
             var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, items)
-                .Add(component => component.Placeholder, "Choose project"));
+                .Add(switcher => switcher.Items, items)
+                .Add(switcher => switcher.Placeholder, "Choose project"));
 
-            var trigger = component.Find("button");
+            await component.Find("button").ClickAsync();
+            var icons = this.portalHost.WaitForElements(".mb-action-menu__item-symbol", 2);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find(".mb-project-switcher__placeholder").TextContent,
-                    Is.EqualTo("Choose project"));
+                Assert.That(component.Find(".mb-project-switcher__placeholder").TextContent, Is.EqualTo("Choose project"));
                 Assert.That(component.Find(".mb-project-switcher__initial").TextContent.Trim(), Is.EqualTo("P"));
-                Assert.That(trigger.GetAttribute("aria-label"), Is.EqualTo("Select project"));
-            }
-
-            trigger.Click();
-
-            var icons = component.FindAll(".mb-action-menu__item-icon");
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(icons[0].TextContent, Is.EqualTo("G"));
-                Assert.That(icons[1].TextContent, Is.EqualTo("P"));
+                Assert.That(component.Find("button").GetAttribute("aria-label"), Is.EqualTo("Select project"));
+                Assert.That(icons[0].TextContent.Trim(), Is.EqualTo("G"));
+                Assert.That(icons[1].TextContent.Trim(), Is.EqualTo("P"));
             }
         }
 
         /// <summary>
-        /// Verifies that separate switcher instances do not share menu state.
+        /// Verifies long project metadata remains available through titles in the width-matched popup.
         /// </summary>
         [Test]
-        public void VerifyInstancesMaintainIndependentOpenState()
+        public async Task VerifyLongProjectMetadataRemainsAvailable()
         {
-            var first = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, CreateItems())
-                .Add(component => component.SelectedProjectId, "project-a"));
-            var second = this.Render<ProjectSwitcherComponent>(parameters => parameters
-                .Add(component => component.Items, CreateItems())
-                .Add(component => component.SelectedProjectId, "project-b"));
+            var longName = "Orbital platform architecture workspace with a deliberately long project name";
+            var longDescription = "A long project description retained for inspection";
+            var items = new[]
+            {
+                new ProjectSwitcherItem
+                {
+                    Id = "long",
+                    Name = longName,
+                    Description = longDescription
+                }
+            };
+            var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
+                .Add(switcher => switcher.Items, items)
+                .Add(switcher => switcher.SelectedProjectId, "long"));
 
-            first.Find("button").Click();
+            await component.Find("button").ClickAsync();
+            var menuItem = this.portalHost.WaitForElement("[role='menuitem']");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(first.FindAll("[role='menu']"), Has.Count.EqualTo(1));
-                Assert.That(second.FindAll("[role='menu']"), Is.Empty);
+                Assert.That(component.Find(".mb-project-switcher__name").GetAttribute("title"), Is.EqualTo(longName));
+                Assert.That(menuItem.QuerySelector(".mb-action-menu__item-label")?.GetAttribute("title"), Is.EqualTo(longName));
+                Assert.That(menuItem.QuerySelector(".mb-action-menu__item-description")?.GetAttribute("title"), Is.EqualTo(longDescription));
             }
         }
 
         /// <summary>
-        /// Creates standard project options.
+        /// Verifies an empty project collection leaves a named, unavailable trigger and placeholder.
         /// </summary>
-        /// <returns>The project options.</returns>
+        [Test]
+        public async Task VerifyEmptyStateRemainsAvailable()
+        {
+            var component = this.Render<ProjectSwitcherComponent>(parameters => parameters
+                .Add(switcher => switcher.Items, [])
+                .Add(switcher => switcher.Placeholder, "No projects available"));
+            var trigger = component.Find("button");
+
+            await trigger.ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find(".mb-project-switcher__placeholder").TextContent, Is.EqualTo("No projects available"));
+                Assert.That(trigger.GetAttribute("aria-label"), Is.EqualTo("Select project"));
+                Assert.That(trigger.GetAttribute("aria-disabled"), Is.EqualTo("true"));
+                Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
+            }
+        }
+
         private static ProjectSwitcherItem[] CreateItems()
         {
             return
@@ -229,6 +218,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                     Name = "Payload",
                     Description = "Instrument package",
                     Initial = "P"
+                },
+                new ProjectSwitcherItem
+                {
+                    Id = "project-c",
+                    Name = "Archive",
+                    Description = "Read only",
+                    Initial = "A",
+                    Disabled = true
                 }
             ];
         }

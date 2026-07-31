@@ -887,16 +887,16 @@
                 <div class="mb-design-system__menu-alignment-grid">
                     <div class="mb-design-system__menu-sample">
                         <span class="mb-design-system__state-label">Start aligned</span>
-                        <ActionMenu data-testid="action-menu-primary" Items="this.ActionMenuItems" TriggerAriaLabel="Open start-aligned showcase actions" TriggerTitle="Start-aligned actions" Alignment="ActionMenuAlignment.Start" IsOpen="@this.PrimaryActionMenuOpen" IsOpenChanged="this.HandlePrimaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected" />
+                        <ActionMenu data-testid="action-menu-primary" Items="this.ActionMenuItems" TriggerAriaLabel="Open start-aligned showcase actions" TriggerTitle="Start-aligned actions" Alignment="ActionMenuAlignment.Start" ItemSelected="this.HandleActionMenuItemSelected" />
                     </div>
                     <div class="mb-design-system__menu-sample mb-design-system__menu-sample--end">
                         <span class="mb-design-system__state-label">End aligned at the region edge</span>
-                        <ActionMenu data-testid="action-menu-secondary" Items="this.ActionMenuItems" TriggerAriaLabel="Open end-aligned showcase actions" TriggerTitle="End-aligned actions" Alignment="ActionMenuAlignment.End" IsOpen="@this.SecondaryActionMenuOpen" IsOpenChanged="this.HandleSecondaryActionMenuOpenChanged" ItemSelected="this.HandleActionMenuItemSelected">
+                        <ActionMenu data-testid="action-menu-secondary" Items="this.ActionMenuItems" TriggerAriaLabel="Open end-aligned showcase actions" TriggerTitle="End-aligned actions" Alignment="ActionMenuAlignment.End" ItemSelected="this.HandleActionMenuItemSelected">
                             <TriggerContent><span>Actions</span></TriggerContent>
                         </ActionMenu>
                     </div>
                 </div>
-                <p id="action-menu-result" class="mb-design-system__result">Latest action: @this.LastMenuAction</p>
+                <p id="action-menu-result" class="mb-design-system__result">Latest action: @this.LastMenuAction. Selection count: @this.ActionMenuSelectionCount</p>
             </article>
 
             <article class="mb-design-system__example" data-component="split-button">
@@ -907,6 +907,7 @@
 
                 <div class="mb-design-system__stack">
                     <SplitButton data-testid="split-button-normal" PrimaryText="Save" Items="this.SplitButtonItems" PrimaryAction="this.HandleSplitButtonPrimaryAction" ItemSelected="this.HandleSplitButtonItemSelected" MenuAriaLabel="Open save options" />
+                    <SplitButton data-testid="split-button-secondary" PrimaryText="Export" Items="this.SplitButtonItems" ItemSelected="this.HandleSplitButtonItemSelected" MenuAriaLabel="Open export options" />
                     <SplitButton data-testid="split-button-disabled" PrimaryText="Unavailable" Items="this.SplitButtonItems" Disabled="true" MenuAriaLabel="Unavailable save options" />
                     <SplitButton data-testid="split-button-loading" PrimaryText="Saving" Items="this.SplitButtonItems" IsLoading="true" MenuAriaLabel="Loading save options" />
                 </div>
@@ -920,8 +921,8 @@
                 </header>
 
                 <div class="mb-design-system__inline-group mb-design-system__menu-row">
-                    <UserMenu DisplayName="Alex Morgan" Subtitle="alex@example.test" AvatarText="AM" Items="this.UserMenuItems" ItemSelected="this.HandleUserMenuItemSelected" />
-                    <UserMenu DisplayName="Sam Lee" Subtitle="sam@example.test" AvatarText="SL" Items="this.UserMenuItems" Compact="true" ItemSelected="this.HandleUserMenuItemSelected" />
+                    <UserMenu data-testid="user-menu-primary" DisplayName="Alex Morgan" Subtitle="alex@example.test" AvatarText="AM" Items="this.UserMenuItems" ItemSelected="this.HandleUserMenuItemSelected" />
+                    <UserMenu data-testid="user-menu-secondary" DisplayName="Sam Lee" Subtitle="sam@example.test" AvatarText="SL" Items="this.UserMenuItems" Compact="true" ItemSelected="this.HandleUserMenuItemSelected" />
                 </div>
                 <p id="user-menu-result" class="mb-design-system__result">Latest action: @this.LastUserMenuAction</p>
             </article>

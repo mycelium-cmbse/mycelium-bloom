@@ -11,55 +11,64 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
 {
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Primitives.Services;
+
     using Bunit;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
 
-    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
     using UserMenuComponent = Mycelium.Bloom.Components.UI.Molecules.UserMenu.UserMenu;
 
     /// <summary>
-    /// Tests the <see cref="UserMenuComponent" /> component.
+    /// Tests Bloom user identity and account actions composed with a styled Blueprint menu.
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class UserMenuTestFixture : BunitContext
     {
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
         /// <summary>
-        /// Configures the shared outside-click helper used by the user action menu.
+        /// Initializes a new instance of the <see cref="UserMenuTestFixture" /> class.
         /// </summary>
-        [SetUp]
-        public void SetUp()
+        public UserMenuTestFixture()
         {
-            JavaScriptInteropTestSetup.SetUpOutsideClick(this.JSInterop);
-            JavaScriptInteropTestSetup.SetUpKeyboardDefaults(this.JSInterop);
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
         }
 
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
-        /// Verifies that Avatar and configured user information render in the trigger.
+        /// Verifies the trigger renders configured user identity and an accessible name.
         /// </summary>
         [Test]
         public void VerifyUserIdentityRenders()
         {
             var component = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(component => component.DisplayName, "Alex Morgan")
-                .Add(component => component.Subtitle, "alex@example.test")
-                .Add(component => component.AvatarText, "AM")
-                .Add(component => component.Items, CreateItems()));
+                .Add(menu => menu.DisplayName, "Alex Morgan")
+                .Add(menu => menu.Subtitle, "alex@example.test")
+                .Add(menu => menu.AvatarText, "AM")
+                .Add(menu => menu.AvatarBackgroundColor, "teal")
+                .Add(menu => menu.AvatarBorderColor, "navy")
+                .Add(menu => menu.Items, CreateItems()));
+
+            var avatar = component.Find(".mb-user-menu__avatar-frame");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find(".mb-user-menu__avatar-fallback").TextContent.Trim(), Is.EqualTo("AM"));
+                Assert.That(avatar.GetAttribute("title"), Is.EqualTo("Alex Morgan"));
+                Assert.That(avatar.GetAttribute("style"), Does.Contain("--mb-user-avatar-background: teal"));
+                Assert.That(avatar.GetAttribute("style"), Does.Contain("--mb-user-avatar-border: navy"));
                 Assert.That(component.Find(".mb-user-menu__name").TextContent, Is.EqualTo("Alex Morgan"));
                 Assert.That(component.Find(".mb-user-menu__subtitle").TextContent, Is.EqualTo("alex@example.test"));
                 Assert.That(component.Find("button").GetAttribute("aria-label"),
@@ -69,65 +78,60 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         }
 
         /// <summary>
-        /// Verifies that opening the menu renders supplied actions and forwards selection.
+        /// Verifies styled actions, grouping, and exactly-once selection forwarding.
         /// </summary>
         [Test]
-        public void VerifyActionSelectionIsForwarded()
+        public async Task VerifyActionSelectionIsForwarded()
         {
             ActionMenuItem selectedItem = null;
+            var callbackCount = 0;
             var items = CreateItems();
-
             var component = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(component => component.DisplayName, "Alex Morgan")
-                .Add(component => component.Items, items)
-                .Add(component => component.ItemSelected, item => selectedItem = item));
+                .Add(menu => menu.DisplayName, "Alex Morgan")
+                .Add(menu => menu.Items, items)
+                .Add(menu => menu.ItemSelected, item =>
+                {
+                    selectedItem = item;
+                    callbackCount++;
+                }));
 
-            component.Find("button").Click();
+            await component.Find("button").ClickAsync();
+            var menuItems = this.portalHost.WaitForElements("[role='menuitem']", items.Length);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.FindAll("[role='menuitem']"), Has.Count.EqualTo(2));
-                Assert.That(component.FindAll("[role='menuitem']")[0].TextContent, Does.Contain("Profile"));
+                Assert.That(this.portalHost.FindAll("[role='separator']"), Has.Count.EqualTo(1));
+                Assert.That(menuItems[0].TextContent, Does.Contain("Profile"));
+                Assert.That(menuItems[1].TextContent, Does.Contain("Preferences"));
+                Assert.That(menuItems[2].TextContent, Does.Contain("Sign out"));
+                Assert.That(menuItems[2].ClassList, Does.Contain("text-destructive"));
+                Assert.That(menuItems[2].TextContent, Does.Contain("Destructive action"));
             }
 
-            component.FindAll("[role='menuitem']")[1].Click();
+            await menuItems[1].ClickAsync();
 
-            Assert.That(selectedItem, Is.SameAs(items[1]));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectedItem, Is.SameAs(items[1]));
+                Assert.That(callbackCount, Is.EqualTo(1));
+                Assert.That(component.Find("button").GetAttribute("aria-expanded"), Is.EqualTo("false"));
+            }
         }
 
         /// <summary>
-        /// Verifies that the inherited outside-click callback closes the user action menu.
-        /// </summary>
-        [Test]
-        public async Task VerifyOutsideClickDismissesUserMenu()
-        {
-            var component = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(userMenu => userMenu.DisplayName, "Alex Morgan")
-                .Add(userMenu => userMenu.Items, CreateItems()));
-
-            component.Find("button").Click();
-
-            var actionMenu = component.FindComponent<ActionMenuComponent>();
-            await actionMenu.InvokeAsync(actionMenu.Instance.DismissFromOutsideClickAsync);
-
-            Assert.That(component.FindAll("[role='menu']"), Is.Empty);
-        }
-
-        /// <summary>
-        /// Verifies that compact mode omits user text while preserving the Avatar trigger.
+        /// Verifies compact mode preserves the avatar trigger while omitting visible identity text.
         /// </summary>
         [Test]
         public void VerifyCompactModeRendersAvatarOnly()
         {
             var component = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(component => component.DisplayName, "Alex Morgan")
-                .Add(component => component.Compact, true)
-                .Add(component => component.Items, CreateItems()));
+                .Add(menu => menu.DisplayName, "Alex Morgan")
+                .Add(menu => menu.Compact, true)
+                .Add(menu => menu.Items, CreateItems()));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find(".mb-user-menu").GetAttribute("class"),
-                    Does.Contain("mb-user-menu--compact"));
+                Assert.That(component.Find(".mb-user-menu").ClassList, Does.Contain("mb-user-menu--compact"));
                 Assert.That(component.FindAll(".mb-user-menu__identity"), Is.Empty);
                 Assert.That(component.Find(".mb-user-menu__avatar-fallback").TextContent.Trim(), Is.EqualTo("AM"));
                 Assert.That(component.FindAll(".mb-action-menu__chevron"), Has.Count.EqualTo(1));
@@ -135,15 +139,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         }
 
         /// <summary>
-        /// Verifies that an explicit accessible label overrides the generated user-menu label.
+        /// Verifies an explicit accessible label overrides the generated label.
         /// </summary>
         [Test]
         public void VerifyExplicitMenuAriaLabelRenders()
         {
             var component = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(component => component.DisplayName, "Alex Morgan")
-                .Add(component => component.MenuAriaLabel, "Account actions")
-                .Add(component => component.Items, CreateItems()));
+                .Add(menu => menu.DisplayName, "Alex Morgan")
+                .Add(menu => menu.MenuAriaLabel, "Account actions")
+                .Add(menu => menu.Items, CreateItems()));
 
             using (Assert.EnterMultipleScope())
             {
@@ -153,37 +157,65 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
         }
 
         /// <summary>
-        /// Verifies that separate user-menu instances do not share menu state.
+        /// Verifies long identity values remain inspectable while the visible layout can truncate them.
         /// </summary>
         [Test]
-        public void VerifyInstancesMaintainIndependentMenuState()
+        public void VerifyLongIdentityValuesRemainAvailable()
         {
-            var first = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(component => component.DisplayName, "Alex Morgan")
-                .Add(component => component.Items, CreateItems()));
-            var second = this.Render<UserMenuComponent>(parameters => parameters
-                .Add(component => component.DisplayName, "Jordan Lee")
-                .Add(component => component.Items, CreateItems()));
-
-            first.Find("button").Click();
+            var displayName = "Alexandra Morgan with an intentionally long display name";
+            var subtitle = "alexandra.morgan.with.a.long.address@example.test";
+            var component = this.Render<UserMenuComponent>(parameters => parameters
+                .Add(menu => menu.DisplayName, displayName)
+                .Add(menu => menu.Subtitle, subtitle)
+                .Add(menu => menu.Items, CreateItems()));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(first.FindAll("[role='menu']"), Has.Count.EqualTo(1));
-                Assert.That(second.FindAll("[role='menu']"), Is.Empty);
+                Assert.That(component.Find(".mb-user-menu__name").GetAttribute("title"), Is.EqualTo(displayName));
+                Assert.That(component.Find(".mb-user-menu__subtitle").GetAttribute("title"), Is.EqualTo(subtitle));
+                Assert.That(component.Find("button").GetAttribute("aria-label"), Does.Contain(displayName));
             }
         }
 
         /// <summary>
-        /// Creates standard user-menu actions.
+        /// Verifies a disabled user menu cannot open or invoke actions.
         /// </summary>
-        /// <returns>The user-menu actions.</returns>
+        [Test]
+        public async Task VerifyDisabledMenuRemainsClosed()
+        {
+            var callbackCount = 0;
+            var component = this.Render<UserMenuComponent>(parameters => parameters
+                .Add(menu => menu.DisplayName, "Alex Morgan")
+                .Add(menu => menu.Items, CreateItems())
+                .Add(menu => menu.Disabled, true)
+                .Add(menu => menu.ItemSelected, _ => callbackCount++));
+            var trigger = component.Find("button");
+
+            await trigger.ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(trigger.GetAttribute("aria-disabled"), Is.EqualTo("true"));
+                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
+                Assert.That(callbackCount, Is.Zero);
+            }
+        }
+
         private static ActionMenuItem[] CreateItems()
         {
             return
             [
-                new ActionMenuItem { Id = "profile", Label = "Profile" },
-                new ActionMenuItem { Id = "sign-out", Label = "Sign out" }
+                new ActionMenuItem { Id = "profile", Label = "Profile", Symbol = SymbolIconName.User },
+                new ActionMenuItem { Id = "preferences", Label = "Preferences", Symbol = SymbolIconName.Preferences },
+                new ActionMenuItem
+                {
+                    Id = "sign-out",
+                    Label = "Sign out",
+                    Symbol = SymbolIconName.SignOut,
+                    Destructive = true,
+                    SeparatorBefore = true
+                }
             ];
         }
     }

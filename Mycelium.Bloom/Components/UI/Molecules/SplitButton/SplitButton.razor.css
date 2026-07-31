@@ -18,8 +18,6 @@
 }
 
 .mb-split-button ::deep .mb-split-button__actions {
-    --mb-action-menu-popup-offset: 0px;
-
     height: var(--mb-split-button-height);
     margin-inline-start: -1px;
 }
@@ -53,9 +51,9 @@
 
 .mb-split-button--primary ::deep .mb-split-button__toggle {
     border-color: var(--mb-color-brand-action);
-    border-inline-start-color: color-mix(in srgb, var(--mb-color-text-inverted) 35%, transparent);
+    border-inline-start-color: color-mix(in srgb, var(--mb-color-action-primary-foreground) 35%, transparent);
     background: var(--mb-color-brand-action);
-    color: var(--mb-color-text-inverted);
+    color: var(--mb-color-action-primary-foreground);
 }
 
 .mb-split-button--primary ::deep .mb-split-button__toggle:hover:not(:disabled),
@@ -75,21 +73,21 @@
 }
 
 .mb-split-button--danger ::deep .mb-split-button__toggle {
-    border-color: var(--mb-color-danger-500);
-    border-inline-start-color: color-mix(in srgb, var(--mb-color-text-inverted) 35%, transparent);
-    background: var(--mb-color-danger-500);
-    color: var(--mb-color-text-inverted);
+    border-color: var(--mb-color-danger-action);
+    border-inline-start-color: color-mix(in srgb, var(--mb-color-danger-action-foreground) 35%, transparent);
+    background: var(--mb-color-danger-action);
+    color: var(--mb-color-danger-action-foreground);
 }
 
 .mb-split-button--danger ::deep .mb-split-button__toggle:hover:not(:disabled) {
-    background: var(--mb-color-danger-700);
+    background: var(--mb-color-danger-action-hover);
 }
 
 .mb-split-button--disabled {
     opacity: 0.55;
 }
 
-.mb-split-button--disabled ::deep .mb-split-button__primary.mb-button--disabled {
+.mb-split-button--disabled ::deep .mb-split-button__primary:disabled {
     opacity: 1;
 }
 

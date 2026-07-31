@@ -71,10 +71,10 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<ActionMenuItem> ActionMenuItems { get; } =
         [
-            new() { Id = "open", Label = "Open details", Description = "Inspect the selected element", Icon = "O" },
-            new() { Id = "duplicate", Label = "Duplicate into another architecture workspace", Description = "Create a local copy", Icon = "D" },
+            new() { Id = "open", Label = "Open details", Description = "Inspect the selected element", Symbol = SymbolIconName.Inspect },
+            new() { Id = "duplicate", Label = "Duplicate into another architecture workspace", Description = "Create a local copy", Symbol = SymbolIconName.Copy },
             new() { Id = "publish", Label = "Publish", Disabled = true },
-            new() { Id = "delete", Label = "Delete", Destructive = true, SeparatorBefore = true }
+            new() { Id = "delete", Label = "Delete", Symbol = SymbolIconName.Delete, Destructive = true, SeparatorBefore = true }
         ];
 
         /// <summary>
@@ -82,8 +82,10 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<ActionMenuItem> SplitButtonItems { get; } =
         [
-            new() { Id = "save-draft", Label = "Save as draft" },
-            new() { Id = "save-copy", Label = "Save a copy" }
+            new() { Id = "save-draft", Label = "Save as draft", Symbol = SymbolIconName.Document },
+            new() { Id = "save-copy", Label = "Save a copy", Symbol = SymbolIconName.Copy },
+            new() { Id = "save-protected", Label = "Save protected copy", Symbol = SymbolIconName.Document, Disabled = true },
+            new() { Id = "discard", Label = "Discard changes", Symbol = SymbolIconName.Delete, Destructive = true, SeparatorBefore = true }
         ];
 
         /// <summary>
@@ -91,9 +93,9 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<ActionMenuItem> UserMenuItems { get; } =
         [
-            new() { Id = "profile", Label = "Profile", Description = "Manage local presentation settings" },
-            new() { Id = "preferences", Label = "Preferences" },
-            new() { Id = "sign-out", Label = "Sign out", Destructive = true, SeparatorBefore = true }
+            new() { Id = "profile", Label = "Profile", Description = "Manage local presentation settings", Symbol = SymbolIconName.User },
+            new() { Id = "preferences", Label = "Preferences", Symbol = SymbolIconName.Preferences },
+            new() { Id = "sign-out", Label = "Sign out", Symbol = SymbolIconName.SignOut, Destructive = true, SeparatorBefore = true }
         ];
 
         /// <summary>
@@ -103,7 +105,8 @@ namespace Mycelium.Bloom.Components.Pages
         [
             new() { Id = "orbital", Name = "Orbital Platform", Description = "Systems engineering", Initial = "O" },
             new() { Id = "lunar", Name = "Lunar Habitat", Description = "Concept development", Initial = "L" },
-            new() { Id = "payload", Name = "Payload Study", Description = "Read-only archive", Initial = "P", Disabled = true }
+            new() { Id = "payload", Name = "Payload Study", Description = "Read-only archive", Initial = "P", Disabled = true },
+            new() { Id = "deep-space", Name = "Deep-space exploration architecture workspace", Description = "Long-name truncation example", Initial = "D" }
         ];
 
         /// <summary>
@@ -225,19 +228,14 @@ namespace Mycelium.Bloom.Components.Pages
         private string LastBreadcrumbSelection { get; set; } = "None";
 
         /// <summary>
-        /// Gets or sets the open state of the first standalone action menu.
-        /// </summary>
-        private bool PrimaryActionMenuOpen { get; set; }
-
-        /// <summary>
-        /// Gets or sets the open state of the second standalone action menu.
-        /// </summary>
-        private bool SecondaryActionMenuOpen { get; set; }
-
-        /// <summary>
         /// Gets or sets the latest selected menu action.
         /// </summary>
         private string LastMenuAction { get; set; } = "None";
+
+        /// <summary>
+        /// Gets or sets the number of standalone menu selections delivered to the page.
+        /// </summary>
+        private int ActionMenuSelectionCount { get; set; }
 
         /// <summary>
         /// Gets or sets the latest split-button action.
@@ -688,30 +686,13 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Updates the open state of the primary action menu.
-        /// </summary>
-        /// <param name="isOpen">The updated open state.</param>
-        private void HandlePrimaryActionMenuOpenChanged(bool isOpen)
-        {
-            this.PrimaryActionMenuOpen = isOpen;
-        }
-
-        /// <summary>
-        /// Updates the open state of the secondary action menu.
-        /// </summary>
-        /// <param name="isOpen">The updated open state.</param>
-        private void HandleSecondaryActionMenuOpenChanged(bool isOpen)
-        {
-            this.SecondaryActionMenuOpen = isOpen;
-        }
-
-        /// <summary>
         /// Records an action-menu selection.
         /// </summary>
         /// <param name="item">The selected action.</param>
         private void HandleActionMenuItemSelected(ActionMenuItem item)
         {
             this.LastMenuAction = item.Label;
+            this.ActionMenuSelectionCount++;
         }
 
         /// <summary>

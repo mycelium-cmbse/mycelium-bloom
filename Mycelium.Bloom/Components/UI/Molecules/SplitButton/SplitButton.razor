@@ -10,15 +10,18 @@
 @inherits BloomComponentBase
 
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    <Button
+    <BlazorBlueprint.Components.BbButton
+        Type="BlazorBlueprint.Components.ButtonType.Button"
+        Variant="@(this.GetBlueprintVariant())"
+        Size="@(this.GetBlueprintSize())"
+        Disabled="@(this.Disabled)"
+        Loading="@(this.IsActionInProgress())"
+        LoadingText="@(this.PrimaryText)"
         Class="mb-split-button__primary"
-        Variant="@(this.Variant)"
-        Size="@(this.Size)"
-        Disabled="@(this.IsDisabled())"
-        IsLoading="@(this.IsActionInProgress())"
-        OnClick="this.HandlePrimaryActionAsync">
-        @this.PrimaryText
-    </Button>
+        OnClick="this.HandlePrimaryActionAsync"
+        aria-busy="@(this.IsActionInProgress() ? "true" : "false")">
+        @(this.PrimaryText)
+    </BlazorBlueprint.Components.BbButton>
 
     <ActionMenu
         Class="mb-split-button__actions"
