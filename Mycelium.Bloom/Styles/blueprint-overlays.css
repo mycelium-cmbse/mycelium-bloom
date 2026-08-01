@@ -39,9 +39,6 @@
     font-size: var(--mb-font-size-body-sm);
     line-height: var(--mb-line-height-body-sm);
     text-align: start;
-}
-
-.mb-select-input__option {
     display: flex;
     align-items: center;
     padding: 0.4375rem 0.5rem;

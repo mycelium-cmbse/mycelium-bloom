@@ -75,26 +75,26 @@ afterEach(() => {
 
 test("theme preview validates ownership and restores a pre-existing theme", () => {
     const root = document.documentElement;
-    root.setAttribute("data-theme", "system");
+    root.dataset.theme = "system";
     root.classList.add("dark");
 
     applyOwnedTheme("theme-owner", "light");
 
-    assert.equal(root.getAttribute("data-theme"), "light");
+    assert.equal(root.dataset.theme, "light");
     assert.equal(root.classList.contains("dark"), false);
-    assert.equal(root.getAttribute("data-mb-design-system-theme-owner"), "theme-owner");
+    assert.equal(root.dataset.mbDesignSystemThemeOwner, "theme-owner");
 
     applyOwnedTheme("theme-owner", "dark");
     releaseTheme("different-owner");
 
-    assert.equal(root.getAttribute("data-theme"), "dark");
+    assert.equal(root.dataset.theme, "dark");
     assert.equal(root.classList.contains("dark"), true);
 
     releaseOwnedTheme("theme-owner");
 
-    assert.equal(root.getAttribute("data-theme"), "system");
+    assert.equal(root.dataset.theme, "system");
     assert.equal(root.classList.contains("dark"), true);
-    assert.equal(root.hasAttribute("data-mb-design-system-theme-owner"), false);
+    assert.equal(Object.hasOwn(root.dataset, "mbDesignSystemThemeOwner"), false);
 });
 
 test("theme preview removes temporary state and rejects unsupported names", () => {
@@ -107,9 +107,30 @@ test("theme preview removes temporary state and rejects unsupported names", () =
     applyOwnedTheme("temporary-owner", "dark");
     releaseOwnedTheme("temporary-owner");
 
-    assert.equal(root.hasAttribute("data-theme"), false);
+    assert.equal(Object.hasOwn(root.dataset, "theme"), false);
     assert.equal(root.classList.contains("dark"), false);
-    assert.equal(root.hasAttribute("data-mb-design-system-theme-owner"), false);
+    assert.equal(Object.hasOwn(root.dataset, "mbDesignSystemThemeOwner"), false);
+});
+
+test("theme preview preserves an empty theme across repeated ownership cycles", () => {
+    const root = document.documentElement;
+    root.dataset.theme = "";
+
+    applyOwnedTheme("empty-theme-owner", "dark");
+
+    assert.equal(root.dataset.theme, "dark");
+    assert.equal(root.classList.contains("dark"), true);
+
+    releaseOwnedTheme("empty-theme-owner");
+
+    assert.equal(Object.hasOwn(root.dataset, "theme"), true);
+    assert.equal(root.dataset.theme, "");
+
+    applyOwnedTheme("empty-theme-owner", "light");
+    releaseOwnedTheme("empty-theme-owner");
+
+    assert.equal(Object.hasOwn(root.dataset, "theme"), true);
+    assert.equal(root.dataset.theme, "");
 });
 
 test("search shortcuts prefer the newest usable registration", () => {

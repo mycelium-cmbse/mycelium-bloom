@@ -236,10 +236,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
             await component.Find("#showcase-select-input").ClickAsync();
             var listbox = this.portalHost.WaitForElement("[role='listbox']");
+            var applyThemeInvocations = this.applyThemeHandler.Invocations["applyTheme"];
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.applyThemeHandler.Invocations["applyTheme"].Last().Arguments[1], Is.EqualTo("dark"));
+                Assert.That(applyThemeInvocations[applyThemeInvocations.Count - 1].Arguments[1], Is.EqualTo("dark"));
                 Assert.That(menuRendered, Is.True);
                 Assert.That(listbox.ClassList, Does.Contain("mb-select-input__listbox"));
             }

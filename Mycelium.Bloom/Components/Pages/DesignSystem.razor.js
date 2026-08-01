@@ -11,15 +11,15 @@ export function applyTheme(ownerId, themeName) {
     const root = document.documentElement;
 
     if (activeOwnerId !== ownerId) {
-        previouslyHadTheme = root.hasAttribute("data-theme");
-        previousTheme = root.getAttribute("data-theme");
+        previouslyHadTheme = Object.hasOwn(root.dataset, "theme");
+        previousTheme = root.dataset.theme;
         previousDarkClass = root.classList.contains("dark");
         activeOwnerId = ownerId;
     }
 
-    root.setAttribute("data-theme", themeName);
+    root.dataset.theme = themeName;
     root.classList.toggle("dark", themeName === "dark");
-    root.setAttribute("data-mb-design-system-theme-owner", ownerId);
+    root.dataset.mbDesignSystemThemeOwner = ownerId;
 }
 
 export function releaseTheme(ownerId) {
@@ -29,14 +29,14 @@ export function releaseTheme(ownerId) {
 
     const root = document.documentElement;
 
-    if (previouslyHadTheme && previousTheme) {
-        root.setAttribute("data-theme", previousTheme);
+    if (previouslyHadTheme) {
+        root.dataset.theme = previousTheme;
     } else {
-        root.removeAttribute("data-theme");
+        delete root.dataset.theme;
     }
 
     root.classList.toggle("dark", previousDarkClass === true);
-    root.removeAttribute("data-mb-design-system-theme-owner");
+    delete root.dataset.mbDesignSystemThemeOwner;
 
     activeOwnerId = undefined;
     previousTheme = undefined;

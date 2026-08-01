@@ -32,6 +32,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class NotificationToastTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedFirstDismissals = ["first-toast"];
+        private static readonly string[] ExpectedSecondDismissals = ["second-toast"];
+        private static readonly string[] ExpectedDismissalsBeforeDisposal = ["dismiss-before-dispose"];
+
         private readonly IRenderedComponent<BbPortalHost> portalHost;
 
         /// <summary>
@@ -182,7 +186,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(firstDismissals, Is.EqualTo(new[] { "first-toast" }));
+                Assert.That(firstDismissals, Is.EqualTo(ExpectedFirstDismissals));
                 Assert.That(secondDismissals, Is.Empty);
             }
 
@@ -190,8 +194,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(firstDismissals, Is.EqualTo(new[] { "first-toast" }));
-                Assert.That(secondDismissals, Is.EqualTo(new[] { "second-toast" }));
+                Assert.That(firstDismissals, Is.EqualTo(ExpectedFirstDismissals));
+                Assert.That(secondDismissals, Is.EqualTo(ExpectedSecondDismissals));
             }
         }
 
@@ -244,7 +248,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.NotificationToast
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.IsDisposed, Is.True);
-                Assert.That(dismissedIdentifiers, Is.EqualTo(new[] { "dismiss-before-dispose" }));
+                Assert.That(dismissedIdentifiers, Is.EqualTo(ExpectedDismissalsBeforeDisposal));
             }
         }
 

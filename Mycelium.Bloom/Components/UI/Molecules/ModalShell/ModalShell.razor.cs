@@ -55,7 +55,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// Gets or sets the Blueprint focus manager used to restore the invoking control.
         /// </summary>
         [Inject]
-        private IFocusManager FocusManager { get; set; } = null!;
+        private IFocusManager FocusManager { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the modal is open.

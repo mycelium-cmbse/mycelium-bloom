@@ -28,6 +28,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ConfirmDialogTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedDescriptionMessages =
+        [
+            "First confirmation message.",
+            "Second confirmation message."
+        ];
+
         private readonly IRenderedComponent<BbPortalHost> portalHost;
 
         /// <summary>
@@ -161,7 +167,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 Assert.That(descriptionIds.All(id => this.portalHost.FindAll($"#{id}").Count == 1), Is.True);
                 Assert.That(
                     descriptionIds.Select(id => this.portalHost.Find($"#{id}").TextContent),
-                    Is.EquivalentTo(new[] { "First confirmation message.", "Second confirmation message." }));
+                    Is.EquivalentTo(ExpectedDescriptionMessages));
             }
         }
 

@@ -351,7 +351,9 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(module, Does.Contain("document.documentElement"));
-                Assert.That(module, Does.Contain("root.setAttribute(\"data-theme\", themeName)"));
+                Assert.That(module, Does.Contain("Object.hasOwn(root.dataset, \"theme\")"));
+                Assert.That(module, Does.Contain("root.dataset.theme = themeName"));
+                Assert.That(module, Does.Contain("delete root.dataset.theme"));
                 Assert.That(module, Does.Contain("root.classList.toggle(\"dark\""));
                 Assert.That(module, Does.Contain("releaseTheme"));
             }

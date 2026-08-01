@@ -36,7 +36,7 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the JavaScript runtime used to apply the preview theme to the document root.
         /// </summary>
         [Inject]
-        private IJSRuntime JsRuntime { get; set; } = null!;
+        private IJSRuntime JsRuntime { get; set; }
 
         /// <summary>
         /// Gets or sets the active page-level preview theme.
@@ -720,7 +720,7 @@ namespace Mycelium.Bloom.Components.Pages
         /// <param name="activeValue">The active controlled tab value.</param>
         /// <param name="tabValue">The candidate tab value.</param>
         /// <returns>The lowercase ARIA Boolean value.</returns>
-        private string GetTabAriaSelected(string activeValue, string tabValue)
+        private static string GetTabAriaSelected(string activeValue, string tabValue)
         {
             return string.Equals(activeValue, tabValue, StringComparison.Ordinal) ? "true" : "false";
         }
@@ -932,24 +932,24 @@ namespace Mycelium.Bloom.Components.Pages
             var module = this.themeModule;
             this.themeModule = null;
 
-            if (module is null)
+            if (module is not null)
             {
-                return;
+                try
+                {
+                    await module.InvokeVoidAsync("releaseTheme", this.themeOwnerId);
+                    await module.DisposeAsync();
+                }
+                catch (JSDisconnectedException)
+                {
+                    // The circuit has already ended, so the browser no longer accepts cleanup calls.
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The renderer disposed the JavaScript module before component cleanup completed.
+                }
             }
 
-            try
-            {
-                await module.InvokeVoidAsync("releaseTheme", this.themeOwnerId);
-                await module.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // The circuit has already ended, so the browser no longer accepts cleanup calls.
-            }
-            catch (ObjectDisposedException)
-            {
-                // The renderer disposed the JavaScript module before component cleanup completed.
-            }
+            GC.SuppressFinalize(this);
         }
     }
 }
