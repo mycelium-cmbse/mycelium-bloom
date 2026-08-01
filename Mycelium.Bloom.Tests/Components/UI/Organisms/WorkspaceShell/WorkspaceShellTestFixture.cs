@@ -85,6 +85,34 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 .Add(shell => shell.RightPanel, "<span>Details</span>"));
             var paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
 
+            foreach (var paneButton in paneButtons)
+            {
+                var controlledRegionId = paneButton.GetAttribute("aria-controls");
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(controlledRegionId, Is.Not.Empty);
+                    Assert.That(component.FindAll($"#{controlledRegionId}"), Has.Count.EqualTo(1));
+                }
+            }
+
+            paneButtons.Single(button => button.TextContent.Trim() == "Navigation").Click();
+            paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Navigation")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+                Assert.That(component.Find(".mb-workspace-shell__left-panel")
+                    .GetAttribute("data-narrow-active"), Is.EqualTo("true"));
+            }
+
+            paneButtons.Single(button => button.TextContent.Trim() == "Canvas").Click();
+            paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
+
+            Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Canvas")
+                .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+
             paneButtons.Single(button => button.TextContent.Trim() == "Details").Click();
             paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
 
@@ -98,6 +126,44 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                     .GetAttribute("data-narrow-active"), Is.EqualTo("false"));
                 Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll(".mb-workspace-shell__main"), Has.Count.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies removing the active optional pane restores the compact view to the main content.
+        /// </summary>
+        [Test]
+        public void VerifyRemovingActiveOptionalPaneSelectsMainContent()
+        {
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.LeftPanel, "<span>Navigation</span>")
+                .Add(shell => shell.MainContent, "<span>Canvas</span>")
+                .Add(shell => shell.RightPanel, "<span>Details</span>"));
+
+            component.FindAll(".mb-workspace-shell__pane-button")
+                .Single(button => button.TextContent.Trim() == "Navigation")
+                .Click();
+            component.Render(parameters => parameters.Add(shell => shell.LeftPanelVisible, false));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Is.Empty);
+                Assert.That(component.FindAll(".mb-workspace-shell__pane-button")
+                    .Single(button => button.TextContent.Trim() == "Canvas")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+            }
+
+            component.FindAll(".mb-workspace-shell__pane-button")
+                .Single(button => button.TextContent.Trim() == "Details")
+                .Click();
+            component.Render(parameters => parameters.Add(shell => shell.RightPanelVisible, false));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(".mb-workspace-shell__right-panel"), Is.Empty);
+                Assert.That(component.FindAll(".mb-workspace-shell__pane-button"), Is.Empty);
+                Assert.That(component.Find(".mb-workspace-shell__main")
+                    .GetAttribute("data-narrow-active"), Is.EqualTo("true"));
             }
         }
 

@@ -2,9 +2,11 @@
   "name": "Mycelium.Bloom",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test Tests/JavaScript/InteropModules.test.js",
+    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=Mycelium.Bloom/lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js",
     "css:build": "tailwindcss -i ./Styles/tailwind.css -o ./wwwroot/css/app.css --minify",
     "css:watch": "tailwindcss -i ./Styles/tailwind.css -o ./wwwroot/css/app.css --watch"
   },
@@ -14,6 +16,7 @@
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
+    "jsdom": "29.1.1",
     "mri": "^1.2.0",
     "tailwindcss": "^4.3.3"
   }

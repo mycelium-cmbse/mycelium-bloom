@@ -62,5 +62,16 @@ namespace Mycelium.Bloom.Tests.Model.Enum
 
             Assert.That(actualNames, Is.EqualTo(expectedNames));
         }
+
+        /// <summary>
+        /// Verifies an unknown application symbol retains the safe fallback icon.
+        /// </summary>
+        [Test]
+        public void VerifyToLucideNameReturnsFallbackForUnknownSymbol()
+        {
+            var unknownSymbol = (SymbolIconName)int.MaxValue;
+
+            Assert.That(unknownSymbol.ToLucideName(), Is.EqualTo("circle-help"));
+        }
     }
 }

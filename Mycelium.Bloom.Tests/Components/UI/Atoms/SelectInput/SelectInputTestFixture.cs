@@ -17,6 +17,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
 
     using Bunit;
 
+    using Microsoft.JSInterop;
+
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
 
@@ -54,6 +56,59 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
         public System.Threading.Tasks.Task TearDown()
         {
             return this.DisposeAsync().AsTask();
+        }
+
+        /// <summary>
+        /// Verifies that synchronous disposal completes without JavaScript interop.
+        /// </summary>
+        [Test]
+        public void VerifyDisposeCompletesSynchronousDisposal()
+        {
+            var component = new SelectInputComponent();
+
+            Assert.That(component.Dispose, Throws.Nothing);
+        }
+
+        /// <summary>
+        /// Verifies that asynchronous disposal before the first render has no browser work to release.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyDisposeAsyncBeforeRenderCompletesWithoutJavaScriptInterop()
+        {
+            var component = new SelectInputComponent();
+            var disposeTask = component.DisposeAsync().AsTask();
+
+            await disposeTask;
+
+            Assert.That(disposeTask.IsCompletedSuccessfully, Is.True);
+        }
+
+        /// <summary>
+        /// Verifies that browser disconnection during compatibility cleanup is ignored.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyDisposeAsyncIgnoresDisconnectedJavaScriptRuntime()
+        {
+            var module = this.JSInterop.SetupModule("./Components/UI/Atoms/SelectInput/SelectInput.razor.js");
+            var registerHandler = module.SetupVoid("registerSelectCompatibility", invocation => true);
+            var disposeHandler = module.SetupVoid("disposeSelectCompatibility", invocation => true);
+
+            registerHandler.SetVoidResult();
+            disposeHandler.SetException(new JSDisconnectedException("Disconnected"));
+
+            var component = this.Render<SelectInputComponent>(parameters => parameters
+                .Add(select => select.Id, "disconnected-select")
+                .Add(select => select.Options, Options));
+
+            await component.Instance.DisposeAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(disposeHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(disposeHandler.Invocations["disposeSelectCompatibility"][0].Arguments[0],
+                    Is.EqualTo(registerHandler.Invocations["registerSelectCompatibility"][0].Arguments[0]));
+            }
         }
 
         /// <summary>

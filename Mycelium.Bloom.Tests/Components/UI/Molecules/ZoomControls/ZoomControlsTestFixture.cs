@@ -12,9 +12,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
     using System.Collections.Generic;
     using System.Linq;
 
+    using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
+
+    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Tests.Common;
 
@@ -81,7 +84,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
         /// Verifies minimum and maximum limits disable their corresponding actions.
         /// </summary>
         [Test]
-        public void VerifyMinimumAndMaximumDisableActions()
+        public async System.Threading.Tasks.Task VerifyMinimumAndMaximumDisableActions()
         {
             var callbackCount = 0;
             var component = this.Render<ZoomControlsComponent>(parameters => parameters
@@ -91,14 +94,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
                 .Add(component => component.ZoomChanged, _ => callbackCount++));
 
             var zoomOut = component.Find("button[aria-label='Zoom out']");
-            zoomOut.Click();
+            var zoomOutComponent = component.FindComponents<BbButton>()
+                .Single(button => button.Instance.AriaLabel == "Zoom out");
+
+            await component.InvokeAsync(() => zoomOutComponent.Instance.OnClick.InvokeAsync(new MouseEventArgs()));
 
             Assert.That(zoomOut.HasAttribute("disabled"), Is.True);
 
             component.Render(parameters => parameters.Add(component => component.Zoom, 150d));
 
             var zoomIn = component.Find("button[aria-label='Zoom in']");
-            zoomIn.Click();
+            var zoomInComponent = component.FindComponents<BbButton>()
+                .Single(button => button.Instance.AriaLabel == "Zoom in");
+
+            await component.InvokeAsync(() => zoomInComponent.Instance.OnClick.InvokeAsync(new MouseEventArgs()));
 
             using (Assert.EnterMultipleScope())
             {

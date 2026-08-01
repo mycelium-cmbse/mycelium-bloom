@@ -60,6 +60,7 @@ nunit-*.xml
 node_modules/
 .pnpm-store/
 pnpm-debug.log*
+lcov.info
 
 #Idea / VS files
 .idea

@@ -165,6 +165,22 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     .Single(button => button.TextContent.Trim() == "Light")
                     .GetAttribute("aria-pressed"), Is.EqualTo("false"));
             }
+
+            await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                .Single(button => button.TextContent.Trim() == "Light")
+                .ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.applyThemeHandler.Invocations, Has.Count.EqualTo(3));
+                Assert.That(this.applyThemeHandler.Invocations["applyTheme"][2].Arguments[1], Is.EqualTo("light"));
+                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                    .Single(button => button.TextContent.Trim() == "Light")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                    .Single(button => button.TextContent.Trim() == "Dark")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("false"));
+            }
         }
 
         /// <summary>
@@ -415,7 +431,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var disabledToggle = component.Find("#showcase-toggle-disabled");
             var breadcrumb = component.Find("nav[aria-label='Showcase hierarchy']");
 
-            await breadcrumb.QuerySelector("button").ClickAsync();
+            var breadcrumbButtons = breadcrumb.QuerySelectorAll("button");
+
+            await breadcrumbButtons[0].ClickAsync();
+            Assert.That(component.Find("#breadcrumbs-result").TextContent, Does.Contain("Workspace"));
+
+            await breadcrumbButtons[1].ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -442,7 +463,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     .GetAttribute("aria-orientation"), Is.EqualTo("vertical"));
                 Assert.That(component.FindAll("[data-component='empty-state'] h3")
                     .Select(element => element.TextContent), Does.Contain("No relationships"));
-                Assert.That(component.Find("#breadcrumbs-result").TextContent, Does.Contain("Workspace"));
+                Assert.That(component.Find("#breadcrumbs-result").TextContent, Does.Contain("Projects"));
             }
         }
 
@@ -487,6 +508,212 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(narrowWorkspace.QuerySelector(".mb-workspace-shell__main")
                     .GetAttribute("data-narrow-active"), Is.EqualTo("false"));
             }
+        }
+
+        /// <summary>
+        /// Verifies shortcut registrations and controlled select examples retain independent page-owned values.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyShortcutAndSelectExamplesMaintainIndependentState()
+        {
+            var component = this.Render<DesignSystem>();
+            var blueprintInputs = component.FindComponents<BbInputGroupInput>();
+
+            await component.InvokeAsync(() => blueprintInputs
+                .Single(input => input.Instance.Id == "showcase-search-shortcut")
+                .Instance.JsOnInput("primary target"));
+            await component.InvokeAsync(() => blueprintInputs
+                .Single(input => input.Instance.Id == "showcase-search-shortcut-secondary")
+                .Instance.JsOnInput("secondary target"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#showcase-search-shortcut").GetAttribute("value"),
+                    Is.EqualTo("primary target"));
+                Assert.That(component.Find("#showcase-search-shortcut-secondary").GetAttribute("value"),
+                    Is.EqualTo("secondary target"));
+            }
+
+            await component.Find("#toggle-secondary-shortcut-search").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("#showcase-search-shortcut-secondary"), Is.Empty);
+                Assert.That(component.Find("#search-shortcut-result").TextContent, Does.Contain("primary (restored)"));
+            }
+
+            await component.Find("#toggle-secondary-shortcut-search").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#showcase-search-shortcut-secondary").GetAttribute("value"),
+                    Is.EqualTo("secondary target"));
+                Assert.That(component.Find("#search-shortcut-result").TextContent, Does.Contain("secondary (newest)"));
+            }
+
+            await component.Find("#showcase-select-secondary").ClickAsync();
+            await this.portalHost.WaitForElements("[role='option']")
+                .Single(option => option.TextContent.Trim() == "In review")
+                .ClickAsync();
+
+            Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("review / review"));
+
+            await component.Find("[data-testid='set-primary-select-open']").ClickAsync();
+
+            Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("open / review"));
+
+            await component.Find("[data-testid='reset-primary-select']").ClickAsync();
+
+            Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("review / review"));
+        }
+
+        /// <summary>
+        /// Verifies the workspace compositions forward search, project, action, tool, zoom, and status callbacks.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyWorkspaceCallbacksUpdatePageOwnedState()
+        {
+            var component = this.Render<DesignSystem>();
+            var workspaceSearch = component.FindComponents<BbInputGroupInput>()
+                .Single(input => input.Instance.Id == "workspace-header-search");
+            var appHeaderExample = component.Find("[data-component='app-header']");
+
+            await component.InvokeAsync(() => workspaceSearch.Instance.JsOnInput("interfaces"));
+
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Search: interfaces"));
+
+            await appHeaderExample.QuerySelector("button[aria-label^='Select header showcase project']").ClickAsync();
+            await this.portalHost.WaitForElements("[role='menuitem']")
+                .Single(item => item.TextContent.Contains("Lunar Habitat", StringComparison.Ordinal))
+                .ClickAsync();
+
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Selected Lunar Habitat"));
+
+            await component.Find("button[aria-label='Share workspace']").ClickAsync();
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Share requested"));
+
+            await appHeaderExample.QuerySelectorAll("button")
+                .Single(button => button.TextContent.Trim() == "Validate")
+                .ClickAsync();
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Validation requested"));
+
+            await component.Find("button[aria-label='Open compact header action']").ClickAsync();
+            Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Compact action requested"));
+
+            await component.Find("button[aria-label='Select element']").ClickAsync();
+            await component.FindAll("button")
+                .Single(button => button.TextContent.Trim() == "Connect")
+                .ClickAsync();
+            await component.Find("button[aria-label='Add note']").ClickAsync();
+            await component.Find("button[aria-label='Move canvas']").ClickAsync();
+            await component.Find("button[aria-label='Center selection']").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("#canvas-toolbar-result").TextContent, Does.Contain("Center"));
+                Assert.That(component.Find("button[aria-label='Center selection']").GetAttribute("aria-pressed"),
+                    Is.EqualTo("true"));
+                Assert.That(component.Find("button[aria-label='Select element']").GetAttribute("aria-pressed"),
+                    Is.EqualTo("false"));
+            }
+
+            var zoomExample = component.Find("[data-component='zoom-controls']");
+            await zoomExample.QuerySelector("button[aria-label='Reset zoom']").ClickAsync();
+            Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("Zoom reset to 100%"));
+
+            await zoomExample.QuerySelector("button[aria-label='Fit to view']").ClickAsync();
+            Assert.That(component.Find("#zoom-controls-result").TextContent, Does.Contain("Fit to view at 75%"));
+
+            await component.Find("[data-component='status-bar'] button[aria-label='Open status details']").ClickAsync();
+            Assert.That(component.Find("#status-bar-result").TextContent, Does.Contain("Status details requested"));
+        }
+
+        /// <summary>
+        /// Verifies action-menu delivery and dialog workflows update their page-owned result state.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyMenuAndDialogCallbacksUpdatePageOwnedState()
+        {
+            var component = this.Render<DesignSystem>();
+
+            await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
+            await this.portalHost.WaitForElements("[role='menuitem']")
+                .Single(item => item.TextContent.Contains("Open details", StringComparison.Ordinal))
+                .ClickAsync();
+
+            Assert.That(component.Find("#action-menu-result").TextContent,
+                Does.Contain("Latest action: Open details. Selection count: 1"));
+
+            await component.Find("#open-compact-modal").ClickAsync();
+            var dialog = this.portalHost.WaitForElement("[role='dialog']");
+
+            Assert.That(dialog.ClassList, Does.Contain("mb-modal__panel--small"));
+
+            await dialog.QuerySelectorAll("button")
+                .Single(button => button.TextContent.Trim() == "Close")
+                .ClickAsync();
+            Assert.That(component.Find("#modal-result").TextContent, Does.Contain("Closed modal"));
+
+            await component.Find("#open-wide-modal").ClickAsync();
+            dialog = this.portalHost.WaitForElement("[role='dialog']");
+
+            Assert.That(dialog.ClassList, Does.Contain("mb-modal__panel--wide"));
+
+            await dialog.QuerySelectorAll("button")
+                .Single(button => button.TextContent.Trim() == "Apply locally")
+                .ClickAsync();
+
+            await component.Find("#open-default-confirm").ClickAsync();
+            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            await dialog.QuerySelectorAll("button")
+                .Single(button => button.TextContent.Trim() == "Cancel action")
+                .ClickAsync();
+
+            Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Cancelled default action"));
+
+            await component.Find("#open-warning-confirm").ClickAsync();
+            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            await dialog.QuerySelectorAll("button")
+                .Single(button => button.TextContent.Trim() == "Confirm action")
+                .ClickAsync();
+
+            Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Confirmed warning action"));
+
+            await component.Find("#open-danger-confirm").ClickAsync();
+            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            await dialog.QuerySelectorAll("button")
+                .Single(button => button.TextContent.Trim() == "Cancel action")
+                .ClickAsync();
+
+            Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Cancelled danger action"));
+        }
+
+        /// <summary>
+        /// Verifies that a disconnected browser during theme cleanup does not escape page disposal.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyThemeDisposalIgnoresDisconnectedJavaScriptRuntime()
+        {
+            this.releaseThemeHandler.SetException(new Microsoft.JSInterop.JSDisconnectedException("Disconnected"));
+            var component = this.Render<DesignSystem>();
+
+            await component.Instance.DisposeAsync();
+
+            Assert.That(this.releaseThemeHandler.Invocations, Has.Count.EqualTo(1));
+        }
+
+        /// <summary>
+        /// Verifies that renderer-owned module disposal does not escape page disposal.
+        /// </summary>
+        [Test]
+        public async System.Threading.Tasks.Task VerifyThemeDisposalIgnoresDisposedJavaScriptModule()
+        {
+            this.releaseThemeHandler.SetException(new ObjectDisposedException("theme module"));
+            var component = this.Render<DesignSystem>();
+
+            await component.Instance.DisposeAsync();
+
+            Assert.That(this.releaseThemeHandler.Invocations, Has.Count.EqualTo(1));
         }
 
         /// <summary>
