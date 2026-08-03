@@ -53,7 +53,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         public string TriggerAriaLabel { get; set; } = "Open actions";
 
         /// <summary>
-        /// Gets or sets the trigger tooltip text.
+        /// Gets or sets the supplementary native title text for the trigger.
         /// </summary>
         [Parameter]
         public string TriggerTitle { get; set; } = "Open actions";

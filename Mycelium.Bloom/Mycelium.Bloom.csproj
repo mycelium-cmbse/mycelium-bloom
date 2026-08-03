@@ -41,13 +41,12 @@
 
     <ItemGroup>
         <!--
-          Blueprint Components 3.14.1 compatibility: direct testing found incomplete Tooltip Escape dismissal
-          and aria-describedby behavior, so Bloom keeps explicitly named controls without a replacement Tooltip
-          wrapper. The styled TabsList also cannot forward an accessible name, so direct tab compositions localize
-          use of the Primitive TabsList. Styled TabsTrigger cannot override the Primitive trigger's minimized Boolean
-          aria-selected output, so the same composition localizes Primitive triggers with explicit string ARIA state.
-          Styled roots and content remain in use. Reconsider these exceptions after a fixed Blueprint version is
-          available.
+          Blueprint Components 3.14.1 compatibility exceptions are deliberately narrow:
+          SelectInput bridges verified keyboard, ARIA, and Tab-order limitations; SplitButton bridges the verified
+          Enter-key limitation. TextArea and Checkbox remain native because Blueprint cannot preserve their required
+          contracts. Direct Primitive TabsList and TabsTrigger use is localized for verified accessibility gaps.
+          Bloom has no production Tooltip implementation because Escape dismissal and description relationships are
+          incomplete. Reassess only these exceptions after upgrading Blueprint.
         -->
         <PackageReference Include="BlazorBlueprint.Components" Version="3.14.1" />
         <!-- Intentionally direct: selects the security-reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when Blueprint is upgraded. -->

@@ -27,32 +27,13 @@ namespace Mycelium.Bloom.Tests.Model.Enum
         {
             string[] expectedNames =
             [
-                "house",
-                "grid-2x2",
                 "file-text",
-                "ellipsis",
                 "eye",
                 "copy",
                 "user",
                 "settings-2",
                 "log-out",
-                "trash-2",
-                "menu",
-                "x",
-                "share-2",
-                "undo-2",
-                "mouse-pointer-2",
-                "sticky-note",
-                "pencil",
-                "link-2",
-                "move",
-                "focus",
-                "minus",
-                "plus",
-                "scan-line",
-                "maximize",
-                "info",
-                "check"
+                "trash-2"
             ];
 
             var actualNames = System.Enum

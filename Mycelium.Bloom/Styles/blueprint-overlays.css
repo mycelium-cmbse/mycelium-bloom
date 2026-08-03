@@ -1,9 +1,9 @@
 /*
-   Portal-safe Bloom compatibility presentation for the Select primitive.
-   These rules are global because portal content renders outside the
-   originating component's CSS-isolation boundary. The file intentionally
-   remains unlayered so these consumer-owned classes win over Tailwind's
-   layered reset without undocumented Blueprint selectors or priority hacks.
+   Portal-safe SelectInput presentation for the Blueprint 3.14.1 Select
+   primitive. Every rule in this file belongs to SelectInput content rendered
+   outside the component's CSS-isolation boundary. The file remains unlayered
+   so these consumer-owned classes win over Tailwind's layered reset without
+   undocumented Blueprint selectors or priority hacks.
 */
 
 .mb-select-input__listbox {

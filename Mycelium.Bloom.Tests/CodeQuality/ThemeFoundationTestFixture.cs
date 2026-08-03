@@ -33,14 +33,11 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--mb-color-surface-elevated:",
             "--mb-color-surface-muted:",
             "--mb-color-popover:",
-            "--mb-color-input-background:",
             "--mb-color-input-border:",
             "--mb-color-text-primary:",
             "--mb-color-text-secondary:",
             "--mb-color-text-muted:",
-            "--mb-color-text-subtle:",
             "--mb-color-text-disabled:",
-            "--mb-color-text-inverted:",
             "--mb-color-border-subtle:",
             "--mb-color-border:",
             "--mb-color-border-strong:",
@@ -52,7 +49,6 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--mb-color-action-primary-soft:",
             "--mb-color-surface-selected:",
             "--mb-color-surface-hover:",
-            "--mb-color-surface-active:",
             "--mb-color-border-selected:",
             "--mb-color-focus-ring:",
             "--mb-color-success-surface:",
@@ -69,18 +65,14 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--mb-color-info-surface:",
             "--mb-color-info-text:",
             "--mb-color-info-border:",
-            "--mb-color-tooltip-background:",
-            "--mb-color-tooltip-foreground:",
             "--mb-color-header-background:",
             "--mb-color-footer-background:",
-            "--mb-color-status-background:",
             "--mb-color-panel-background:",
             "--mb-color-canvas-background:",
             "--mb-color-canvas-grid:",
             "--mb-color-toolbar-background:",
             "--mb-color-model-tree-hover:",
             "--mb-color-model-tree-selected:",
-            "--mb-color-detail-section-background:",
             "--mb-color-sysml-structure-header:",
             "--mb-color-sysml-attributes-header:",
             "--mb-color-sysml-connections-header:",
@@ -156,26 +148,6 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 "--border:",
                 "--input:",
                 "--ring:",
-                "--alert-success:",
-                "--alert-success-foreground:",
-                "--alert-success-bg:",
-                "--alert-info:",
-                "--alert-info-foreground:",
-                "--alert-info-bg:",
-                "--alert-warning:",
-                "--alert-warning-foreground:",
-                "--alert-warning-bg:",
-                "--alert-danger:",
-                "--alert-danger-foreground:",
-                "--alert-danger-bg:",
-                "--sidebar:",
-                "--sidebar-foreground:",
-                "--sidebar-primary:",
-                "--sidebar-primary-foreground:",
-                "--sidebar-accent:",
-                "--sidebar-accent-foreground:",
-                "--sidebar-border:",
-                "--sidebar-ring:",
                 "--radius:",
                 "--font-sans:",
                 "--font-mono:"
@@ -274,7 +246,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         }
 
         /// <summary>
-        /// Verifies the official styled package exposes each representative Phase 1 component family.
+        /// Verifies the official styled package exposes each currently used representative component family.
         /// </summary>
         [Test]
         public void VerifyRepresentativeStyledComponentsAreAvailable()
@@ -282,11 +254,10 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             var representativeTypes = new[]
             {
                 typeof(BbButton),
-                typeof(BbInput),
+                typeof(BbInputGroupInput),
                 typeof(BbSelect<>),
                 typeof(BbDropdownMenu),
                 typeof(BbDialog),
-                typeof(BbTooltip),
                 typeof(BbTabs),
                 typeof(BbSwitch)
             };

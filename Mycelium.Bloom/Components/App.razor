@@ -15,7 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <base href="/"/>
     <ResourcePreloader/>
-    @* Bloom theme aliases precede vendor styles; primitive positioning remains for current wrappers; scoped styles load last. *@
+    @* Primitive positioning remains required by SelectInput and styled menu/popover content; direct TabsList/TabsTrigger use is localized to the Design System. *@
     <link rel="stylesheet" href="@(this.Assets["css/app.css"])"/>
     <link rel="stylesheet" href="_content/BlazorBlueprint.Primitives/css/primitives.css"/>
     <link rel="stylesheet" href="_content/BlazorBlueprint.Components/blazorblueprint.css"/>

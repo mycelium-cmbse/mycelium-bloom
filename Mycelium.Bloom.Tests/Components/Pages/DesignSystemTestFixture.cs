@@ -23,7 +23,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Mycelium.Bloom.Tests.Common;
 
     /// <summary>
-    /// Tests the canonical Bloom production-component showcase.
+    /// Tests the Bloom developer component showcase.
     /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -38,7 +38,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "workspace"
         ];
 
-        private static readonly string[] FormerTooltipControlNames =
+        private static readonly string[] NamedControlNames =
         [
             "Add model element",
             "Edit selection",
@@ -97,7 +97,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies route, section order, production examples, theme control, and legacy-reference link.
+        /// Verifies route, section order, component examples, and the theme control.
         /// </summary>
         [Test]
         public void VerifyRenderDisplaysCanonicalShowcase()
@@ -391,14 +391,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies former Tooltip triggers retain explicit names and supplementary pointer hints without Tooltip markup.
+        /// Verifies named controls retain supplementary pointer hints without rendering Tooltip markup.
         /// </summary>
         [Test]
-        public void VerifyFormerTooltipControlsRemainExplicitlyNamed()
+        public void VerifyNamedControlsDoNotRenderTooltips()
         {
             var component = this.Render<DesignSystem>();
 
-            foreach (var accessibleName in FormerTooltipControlNames)
+            foreach (var accessibleName in NamedControlNames)
             {
                 var matchingButtons = component.FindAll($"button[aria-label='{accessibleName}']");
 

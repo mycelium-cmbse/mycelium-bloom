@@ -14,8 +14,8 @@
 @inject IJSRuntime JsRuntime
 
 <div class="@(this.GetCssClass())">
-    <BlazorBlueprint.Components.BbInputGroup Class="mb-search-input__control">
-        <BlazorBlueprint.Components.BbInputGroupAddon
+    <BbInputGroup Class="mb-search-input__control">
+        <BbInputGroupAddon
             Align="BlazorBlueprint.Components.InputGroupAlign.InlineStart"
             Class="mb-search-input__icon"
             aria-hidden="true">
@@ -32,9 +32,9 @@
                             aria-hidden="true"
                             focusable="false" />
             }
-        </BlazorBlueprint.Components.BbInputGroupAddon>
+        </BbInputGroupAddon>
 
-        <BlazorBlueprint.Components.BbInputGroupInput
+        <BbInputGroupInput
             @attributes="this.AdditionalAttributes"
             Id="@(this.FieldId)"
             Class="mb-search-input__field"
@@ -49,13 +49,13 @@
 
         @if (this.ShouldShowShortcut())
         {
-            <BlazorBlueprint.Components.BbInputGroupAddon
+            <BbInputGroupAddon
                 Align="BlazorBlueprint.Components.InputGroupAlign.InlineEnd"
                 Class="mb-search-input__shortcut-addon">
                 <kbd class="mb-search-input__shortcut" aria-hidden="true">
                     @(this.ShortcutText)
                 </kbd>
-            </BlazorBlueprint.Components.BbInputGroupAddon>
+            </BbInputGroupAddon>
         }
-    </BlazorBlueprint.Components.BbInputGroup>
+    </BbInputGroup>
 </div>

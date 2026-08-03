@@ -23,13 +23,13 @@
                   style="@(this.GetAvatarStyle())"
                   title="@(this.DisplayName)"
                   aria-hidden="true">
-                <BlazorBlueprint.Components.BbAvatar
+                <BbAvatar
                     Size="BlazorBlueprint.Components.AvatarSize.Small"
                     Class="mb-user-menu__avatar">
-                    <BlazorBlueprint.Components.BbAvatarFallback Class="mb-user-menu__avatar-fallback">
+                    <BbAvatarFallback Class="mb-user-menu__avatar-fallback">
                         @(this.GetAvatarText())
-                    </BlazorBlueprint.Components.BbAvatarFallback>
-                </BlazorBlueprint.Components.BbAvatar>
+                    </BbAvatarFallback>
+                </BbAvatar>
             </span>
 
             @if (!this.Compact)

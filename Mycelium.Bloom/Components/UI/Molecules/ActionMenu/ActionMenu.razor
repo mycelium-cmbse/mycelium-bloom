@@ -12,8 +12,8 @@
 @inherits BloomComponentBase
 
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    <BlazorBlueprint.Components.BbDropdownMenu>
-        <BlazorBlueprint.Components.BbDropdownMenuTrigger
+    <BbDropdownMenu>
+        <BbDropdownMenuTrigger
             AsChild="false"
             type="button"
             Class="@(this.GetTriggerCssClass())"
@@ -42,9 +42,9 @@
             {
                 <ChevronIcon Class="mb-action-menu__chevron" />
             }
-        </BlazorBlueprint.Components.BbDropdownMenuTrigger>
+        </BbDropdownMenuTrigger>
 
-        <BlazorBlueprint.Components.BbDropdownMenuContent
+        <BbDropdownMenuContent
             Class="@(this.MenuClass)"
             Side="PopoverSide.Bottom"
             Align="@(this.GetPopoverAlignment())"
@@ -54,10 +54,10 @@
             {
                 @if (item.SeparatorBefore)
                 {
-                    <BlazorBlueprint.Components.BbDropdownMenuSeparator />
+                    <BbDropdownMenuSeparator />
                 }
 
-                <BlazorBlueprint.Components.BbDropdownMenuItem
+                <BbDropdownMenuItem
                     Class="@(GetItemCssClass(item))"
                     Disabled="@(item.Disabled)"
                     CloseOnSelect="true"
@@ -115,8 +115,8 @@
                             </span>
                         }
                     </ChildContent>
-                </BlazorBlueprint.Components.BbDropdownMenuItem>
+                </BbDropdownMenuItem>
             }
-        </BlazorBlueprint.Components.BbDropdownMenuContent>
-    </BlazorBlueprint.Components.BbDropdownMenu>
+        </BbDropdownMenuContent>
+    </BbDropdownMenu>
 </div>
