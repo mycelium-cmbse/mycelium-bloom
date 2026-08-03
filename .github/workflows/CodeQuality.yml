@@ -59,11 +59,32 @@ jobs:
         run: |
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-coverage
-          dotnet sonarscanner begin /k:"mycelium-cmbse_mycelium-bloom" /o:"mycelium-cmbse" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.javascript.lcov.reportPaths="Mycelium.Bloom/lcov.info" /d:sonar.cpd.exclusions="**/wwwroot/css/app.css" /d:sonar.exclusions="**/wwwroot/css/app.css"
+          dotnet sonarscanner begin /k:"mycelium-cmbse_mycelium-bloom" /o:"mycelium-cmbse" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.javascript.lcov.reportPaths="lcov.info" /d:sonar.cpd.exclusions="**/wwwroot/css/app.css" /d:sonar.exclusions="**/wwwroot/css/app.css"
 
       - name: Run JavaScript Tests and Compute Coverage
         working-directory: Mycelium.Bloom
         run: pnpm run test:coverage
+
+      - name: Verify JavaScript Coverage Report
+        shell: bash
+        run: |
+          if [ ! -s lcov.info ]; then
+            echo "::error::lcov.info is missing or empty"
+            exit 1
+          fi
+
+          required_sources=(
+            "Mycelium.Bloom/Components/Pages/DesignSystem.razor.js"
+            "Mycelium.Bloom/Components/UI/Atoms/SearchInput/SearchInput.razor.js"
+            "Mycelium.Bloom/Components/UI/Atoms/SelectInput/SelectInput.razor.js"
+          )
+
+          for source in "${required_sources[@]}"; do
+            if ! grep -Fqx "SF:${source}" lcov.info; then
+              echo "::error::lcov.info is missing SF:${source}"
+              exit 1
+            fi
+          done
 
       - name: Build
         run: dotnet build --no-restore --no-incremental /p:ContinuousIntegrationBuild=true

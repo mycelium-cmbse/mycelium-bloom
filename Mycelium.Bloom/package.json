@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test Tests/JavaScript/InteropModules.test.js",
-    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=Mycelium.Bloom/lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js",
+    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js",
     "css:build": "tailwindcss -i ./Styles/tailwind.css -o ./wwwroot/css/app.css --minify",
     "css:watch": "tailwindcss -i ./Styles/tailwind.css -o ./wwwroot/css/app.css --watch"
   },
