@@ -84,8 +84,20 @@
 
 .mb-main-layout__error .dismiss {
     margin-inline-start: var(--mb-spacing-4);
+    padding: 0;
+    border: 0;
+    border-radius: var(--mb-radius-sm);
+    background: transparent;
+    color: inherit;
     cursor: pointer;
+    font: inherit;
     font-weight: 700;
+    line-height: inherit;
+}
+
+.mb-main-layout__error .dismiss:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
 }
 
 @media (max-width: 48rem) {

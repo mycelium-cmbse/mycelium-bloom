@@ -155,3 +155,31 @@
         opacity: 0;
     }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    #components-reconnect-modal,
+    #components-reconnect-modal[open],
+    #components-reconnect-modal::backdrop,
+    .components-rejoining-animation,
+    .components-rejoining-animation div {
+        animation: none;
+        transform: none;
+        transition: none;
+    }
+
+    #components-reconnect-modal[open] {
+        opacity: 1;
+    }
+
+    .components-rejoining-animation div {
+        top: 0;
+        left: 0;
+        width: 80px;
+        height: 80px;
+        opacity: 1;
+    }
+
+    .components-rejoining-animation div:nth-child(2) {
+        display: none;
+    }
+}

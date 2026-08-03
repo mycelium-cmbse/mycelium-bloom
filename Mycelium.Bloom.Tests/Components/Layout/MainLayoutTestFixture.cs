@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.Layout
 {
+    using System.IO;
+
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
@@ -67,6 +69,31 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
             Assert.That(component.Find("nav[aria-label='Primary navigation']").ClassList,
                 Does.Contain("mb-nav-menu__links--expanded"));
+        }
+
+        /// <summary>
+        /// Verifies that the runtime error notification exposes a named keyboard-operable dismiss button with visible focus styling.
+        /// </summary>
+        [Test]
+        public void VerifyErrorDismissControlIsSemanticAndNamed()
+        {
+            var component = this.Render<MainLayout>();
+            var dismissButton = component.Find("#blazor-error-ui button.dismiss");
+            var style = File.ReadAllText(Path.Combine(
+                TestRepository.GetRootPath(),
+                "Mycelium.Bloom",
+                "Components",
+                "Layout",
+                "MainLayout.razor.css"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dismissButton.GetAttribute("type"), Is.EqualTo("button"));
+                Assert.That(dismissButton.GetAttribute("aria-label"), Is.EqualTo("Dismiss error notification"));
+                Assert.That(component.FindAll("#blazor-error-ui span.dismiss"), Is.Empty);
+                Assert.That(style, Does.Contain(".mb-main-layout__error .dismiss:focus-visible"));
+                Assert.That(style, Does.Contain("outline: 2px solid currentColor;"));
+            }
         }
     }
 }
