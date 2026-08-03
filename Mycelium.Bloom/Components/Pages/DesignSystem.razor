@@ -983,20 +983,6 @@
                 <p id="confirm-result" class="mb-design-system__result">Latest result: @this.LastConfirmationAction</p>
             </article>
 
-            <article class="mb-design-system__example mb-design-system__example--wide" data-component="notification-toast">
-                <header class="mb-design-system__example-heading">
-                    <h3>NotificationToast</h3>
-                    <p>Info, success, warning, and danger states with dismissible and persistent behavior.</p>
-                </header>
-
-                <div class="mb-design-system__toast-gallery">
-                    @foreach (var notification in this.StandaloneNotifications)
-                    {
-                        <NotificationToast Notification="notification" Dismissed="this.DismissStandaloneNotification" />
-                    }
-                </div>
-            </article>
-
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="breadcrumbs">
                 <header class="mb-design-system__example-heading">
                     <h3>Blueprint breadcrumbs</h3>
@@ -1165,34 +1151,6 @@
         </div>
 
         <div class="mb-design-system__grid">
-            <article class="mb-design-system__example mb-design-system__example--wide" data-component="toast-container">
-                <header class="mb-design-system__example-heading">
-                    <h3>ToastContainer</h3>
-                    <p>Add, reset, stack, and dismiss local notifications.</p>
-                </header>
-
-                <div class="mb-design-system__inline-group">
-                    <BlazorBlueprint.Components.BbButton
-                        id="add-toast-notification"
-                        Size="BlazorBlueprint.Components.ButtonSize.Small"
-                        OnClick="this.AddToastNotification">
-                        Add notification
-                    </BlazorBlueprint.Components.BbButton>
-                    <BlazorBlueprint.Components.BbButton
-                        id="reset-toast-notifications"
-                        Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
-                        Size="BlazorBlueprint.Components.ButtonSize.Small"
-                        OnClick="this.ResetToastNotifications">
-                        Reset sample stack
-                    </BlazorBlueprint.Components.BbButton>
-                </div>
-                <p id="toast-count-result" class="mb-design-system__result">
-                    Visible notifications: @this.ToastNotifications.Count. The fixed container stays hidden until a sample is requested.
-                </p>
-
-                <ToastContainer Notifications="this.ToastNotifications" Dismissed="this.DismissToastNotification" />
-            </article>
-
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="project-browser-future">
                 <header class="mb-design-system__example-heading">
                     <h3>ProjectBrowser</h3>

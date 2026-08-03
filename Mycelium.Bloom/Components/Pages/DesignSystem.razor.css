@@ -807,12 +807,6 @@
     }
 }
 
-.mb-design-system__toast-gallery {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--mb-spacing-3);
-}
-
 .mb-design-system__toolbar {
     display: flex;
     align-items: center;
@@ -1140,8 +1134,7 @@
     .mb-design-system__form-grid,
     .mb-design-system__menu-alignment-grid,
     .mb-design-system__workspace-variants,
-    .mb-design-system__switcher-grid,
-    .mb-design-system__toast-gallery {
+    .mb-design-system__switcher-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 

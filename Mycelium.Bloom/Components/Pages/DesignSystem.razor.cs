@@ -99,22 +99,6 @@ namespace Mycelium.Bloom.Components.Pages
         ];
 
         /// <summary>
-        /// Gets the standalone notification examples that remain visible until dismissed.
-        /// </summary>
-        private List<ToastNotification> StandaloneNotifications { get; } =
-        [
-            new() { Id = "standalone-info", Title = "Information", Message = "A neutral update is available.", Variant = ToastNotificationVariant.Info },
-            new() { Id = "standalone-success", Title = "Saved", Message = "The local example was saved.", Variant = ToastNotificationVariant.Success },
-            new() { Id = "standalone-warning", Title = "Review needed", Message = "Check the pending values.", Variant = ToastNotificationVariant.Warning },
-            new() { Id = "standalone-danger", Title = "Connection lost", Message = "This non-dismissible state remains visible.", Variant = ToastNotificationVariant.Danger, IsDismissible = false }
-        ];
-
-        /// <summary>
-        /// Gets the notifications currently displayed by the toast-container example.
-        /// </summary>
-        private List<ToastNotification> ToastNotifications { get; } = [];
-
-        /// <summary>
         /// Gets the deterministic element names used to demonstrate left-panel scrolling.
         /// </summary>
         private IReadOnlyList<string> WorkspaceNavigationItems { get; } =
@@ -340,11 +324,6 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the latest confirmation result.
         /// </summary>
         private string LastConfirmationAction { get; set; } = "None";
-
-        /// <summary>
-        /// Gets or sets the next deterministic toast sequence number.
-        /// </summary>
-        private int NextToastNumber { get; set; } = 1;
 
         /// <summary>
         /// Gets or sets the search value used by the workspace header example.
@@ -912,59 +891,6 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleCancelled()
         {
             this.LastConfirmationAction = $"Cancelled {this.ActiveConfirmDialogVariant.ToString().ToLowerInvariant()} action";
-        }
-
-        /// <summary>
-        /// Dismisses a standalone notification example.
-        /// </summary>
-        /// <param name="notificationId">The notification identifier.</param>
-        private void DismissStandaloneNotification(string notificationId)
-        {
-            this.StandaloneNotifications.RemoveAll(notification =>
-                string.Equals(notification.Id, notificationId, StringComparison.Ordinal));
-        }
-
-        /// <summary>
-        /// Dismisses a notification from the toast-container example.
-        /// </summary>
-        /// <param name="notificationId">The notification identifier.</param>
-        private void DismissToastNotification(string notificationId)
-        {
-            this.ToastNotifications.RemoveAll(notification =>
-                string.Equals(notification.Id, notificationId, StringComparison.Ordinal));
-        }
-
-        /// <summary>
-        /// Adds a deterministic local notification to the toast-container example.
-        /// </summary>
-        private void AddToastNotification()
-        {
-            var sequenceNumber = this.NextToastNumber++;
-
-            this.ToastNotifications.Add(new ToastNotification
-            {
-                Id = $"container-sample-{sequenceNumber}",
-                Title = $"Sample notification {sequenceNumber}",
-                Message = "Added from the local showcase controls.",
-                Variant = sequenceNumber % 2 == 0
-                    ? ToastNotificationVariant.Warning
-                    : ToastNotificationVariant.Info
-            });
-        }
-
-        /// <summary>
-        /// Restores the initial toast-container notifications.
-        /// </summary>
-        private void ResetToastNotifications()
-        {
-            this.ToastNotifications.Clear();
-            this.ToastNotifications.AddRange(
-            [
-                new() { Id = "container-sync", Title = "Model synchronized", Message = "Local changes are up to date.", Variant = ToastNotificationVariant.Success },
-                new() { Id = "container-review", Title = "Review ready", Message = "Two items are ready for inspection.", Variant = ToastNotificationVariant.Info }
-            ]);
-
-            this.NextToastNumber = 3;
         }
 
         /// <inheritdoc />
