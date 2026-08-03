@@ -648,7 +648,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.Find("#open-compact-modal").ClickAsync();
             var dialog = this.portalHost.WaitForElement("[role='dialog']");
 
-            Assert.That(dialog.ClassList, Does.Contain("mb-modal__panel--small"));
+            Assert.That(dialog.ClassList, Does.Contain("max-w-[22.5rem]"));
 
             await dialog.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Close")
@@ -658,7 +658,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.Find("#open-wide-modal").ClickAsync();
             dialog = this.portalHost.WaitForElement("[role='dialog']");
 
-            Assert.That(dialog.ClassList, Does.Contain("mb-modal__panel--wide"));
+            Assert.That(dialog.ClassList, Does.Contain("max-w-[52.5rem]"));
 
             await dialog.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Apply locally")
@@ -687,6 +687,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .ClickAsync();
 
             Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Cancelled danger action"));
+
+            await component.Find("#open-loading-confirm").ClickAsync();
+            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            var loadingActions = dialog.QuerySelectorAll("button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(loadingActions, Has.Count.EqualTo(2));
+                Assert.That(loadingActions.All(button => button.HasAttribute("disabled")), Is.True);
+                Assert.That(
+                    loadingActions.Single(button => button.TextContent.Contains("Confirm action", StringComparison.Ordinal))
+                        .GetAttribute("aria-busy"),
+                    Is.EqualTo("true"));
+            }
         }
 
         /// <summary>

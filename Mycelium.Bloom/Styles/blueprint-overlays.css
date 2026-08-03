@@ -1,6 +1,6 @@
 /*
-   Portal-safe Bloom presentation for supported Blazor Blueprint primitive
-   classes. These rules are global because portal content renders outside the
+   Portal-safe Bloom compatibility presentation for the Select primitive.
+   These rules are global because portal content renders outside the
    originating component's CSS-isolation boundary. The file intentionally
    remains unlayered so these consumer-owned classes win over Tailwind's
    layered reset without undocumented Blueprint selectors or priority hacks.
@@ -69,141 +69,8 @@
     overflow-wrap: anywhere;
 }
 
-.mb-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 1200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--mb-spacing-6);
-}
-
-.mb-modal__backdrop {
-    position: absolute;
-    inset: 0;
-    background: var(--mb-color-overlay-scrim);
-    backdrop-filter: blur(2px);
-}
-
-.mb-modal__panel {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-height: calc(100dvh - var(--mb-spacing-12));
-    overflow: hidden;
-    border: 1px solid var(--mb-color-border);
-    border-radius: var(--mb-radius-lg);
-    background: var(--mb-color-surface-elevated);
-    box-shadow: var(--mb-shadow-lg);
-    color: var(--mb-color-text-primary);
-}
-
-.mb-modal__panel--small {
-    max-width: 22.5rem;
-}
-
-.mb-modal__panel--medium {
-    max-width: 30rem;
-}
-
-.mb-modal__panel--large {
-    max-width: 40rem;
-}
-
-.mb-modal__panel--wide {
-    max-width: 52.5rem;
-}
-
-.mb-modal__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--mb-spacing-4);
-    padding: var(--mb-spacing-4);
-    border-bottom: 1px solid var(--mb-color-border-subtle);
-}
-
-.mb-modal__heading,
-.mb-modal__custom-header {
-    display: flex;
-    flex: 1 1 auto;
-    min-width: 0;
-    flex-direction: column;
-}
-
-.mb-modal__heading {
-    gap: var(--mb-spacing-1);
-}
-
-.mb-modal__title,
-.mb-modal__description {
-    margin: 0;
-}
-
-.mb-modal__title {
-    overflow: hidden;
-    color: var(--mb-color-text-primary);
-    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
-    font-size: var(--mb-font-size-heading-xs);
-    line-height: var(--mb-line-height-heading-xs);
-    font-weight: var(--mb-font-weight-heading-xs);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.mb-modal__description {
-    color: var(--mb-color-text-secondary);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
-}
-
-.mb-modal__close {
-    display: flex;
-    flex: 0 0 auto;
-}
-
-.mb-modal__body {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-    padding: var(--mb-spacing-4);
-}
-
-.mb-modal__footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--mb-spacing-2);
-    padding: var(--mb-spacing-3) var(--mb-spacing-4);
-    border-top: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-footer-background);
-}
-
-@media (max-width: 40rem) {
-    .mb-modal {
-        padding: var(--mb-spacing-4);
-    }
-
-    .mb-modal__panel {
-        max-height: calc(100dvh - var(--mb-spacing-8));
-    }
-
-    .mb-modal__footer {
-        justify-content: stretch;
-    }
-
-    .mb-modal__footer > * {
-        flex: 1 1 auto;
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .mb-select-input__listbox,
-    .mb-modal__panel {
+    .mb-select-input__listbox {
         animation: none;
         transition: none;
     }

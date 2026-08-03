@@ -287,6 +287,16 @@ namespace Mycelium.Bloom.Components.Pages
         private string LastModalAction { get; set; } = "Not opened";
 
         /// <summary>
+        /// Gets or sets the number of close-state requests observed for the active modal cycle.
+        /// </summary>
+        private int ModalStateChangeCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of completed close callbacks observed for the active modal cycle.
+        /// </summary>
+        private int ModalCloseCallbackCount { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the confirmation example is open.
         /// </summary>
         private bool ConfirmDialogOpen { get; set; }
@@ -307,6 +317,11 @@ namespace Mycelium.Bloom.Components.Pages
         private ElementReference DangerConfirmDialogTrigger { get; set; }
 
         /// <summary>
+        /// Gets or sets the loading confirmation invoking control.
+        /// </summary>
+        private ElementReference LoadingConfirmDialogTrigger { get; set; }
+
+        /// <summary>
         /// Gets or sets the focus target captured for the active confirmation example.
         /// </summary>
         private ElementReference? ConfirmDialogFocusReturnTarget { get; set; }
@@ -315,6 +330,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the active confirmation-dialog variant.
         /// </summary>
         private ConfirmDialogVariant ActiveConfirmDialogVariant { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the active confirmation is externally loading.
+        /// </summary>
+        private bool ConfirmDialogIsConfirming { get; set; }
 
         /// <summary>
         /// Gets or sets the latest confirmation result.
@@ -809,6 +829,8 @@ namespace Mycelium.Bloom.Components.Pages
         {
             this.ActiveModalSize = size;
             this.ModalFocusReturnTarget = focusReturnTarget;
+            this.ModalStateChangeCount = 0;
+            this.ModalCloseCallbackCount = 0;
             this.ModalOpen = true;
             this.LastModalAction = $"Opened {size.ToString().ToLowerInvariant()} modal";
         }
@@ -823,8 +845,17 @@ namespace Mycelium.Bloom.Components.Pages
 
             if (!isOpen)
             {
+                this.ModalStateChangeCount++;
                 this.LastModalAction = "Closed modal";
             }
+        }
+
+        /// <summary>
+        /// Records completion of a dialog-requested close cycle.
+        /// </summary>
+        private void HandleModalClosed()
+        {
+            this.ModalCloseCallbackCount++;
         }
 
         /// <summary>
@@ -840,10 +871,15 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         /// <param name="variant">The dialog variant.</param>
         /// <param name="focusReturnTarget">The invoking control that receives focus after closing.</param>
-        private void OpenConfirmDialog(ConfirmDialogVariant variant, ElementReference focusReturnTarget)
+        /// <param name="isConfirming">A value indicating whether the actions render in their externally controlled loading state.</param>
+        private void OpenConfirmDialog(
+            ConfirmDialogVariant variant,
+            ElementReference focusReturnTarget,
+            bool isConfirming = false)
         {
             this.ActiveConfirmDialogVariant = variant;
             this.ConfirmDialogFocusReturnTarget = focusReturnTarget;
+            this.ConfirmDialogIsConfirming = isConfirming;
             this.ConfirmDialogOpen = true;
             this.LastConfirmationAction = $"Opened {variant.ToString().ToLowerInvariant()} confirmation";
         }
@@ -855,6 +891,11 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleConfirmDialogOpenChanged(bool isOpen)
         {
             this.ConfirmDialogOpen = isOpen;
+
+            if (!isOpen)
+            {
+                this.ConfirmDialogIsConfirming = false;
+            }
         }
 
         /// <summary>

@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
     using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
-    /// Composes Bloom dialog content on the Blazor Blueprint dialog primitive.
+    /// Applies Bloom dialog policy through the styled Blazor Blueprint components.
     /// </summary>
     public partial class ModalShell : BloomComponentBase
     {
@@ -30,11 +30,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// Provides a stable generated identifier when no modal identifier is configured.
         /// </summary>
         private readonly string generatedId = CreateGeneratedId("mb-modal");
-
-        /// <summary>
-        /// Indicates whether the component has observed its initial controlled open state.
-        /// </summary>
-        private bool hasObservedOpenState;
 
         /// <summary>
         /// Stores the previously rendered controlled open state.
@@ -100,12 +95,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         public ModalSize Size { get; set; } = ModalSize.Medium;
 
         /// <summary>
-        /// Gets or sets optional custom header content.
-        /// </summary>
-        [Parameter]
-        public RenderFragment HeaderContent { get; set; }
-
-        /// <summary>
         /// Gets or sets the main modal body content.
         /// </summary>
         [Parameter]
@@ -140,19 +129,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         /// </summary>
         protected override void OnParametersSet()
         {
-            if (!this.hasObservedOpenState)
-            {
-                this.hasObservedOpenState = true;
-                this.previousIsOpen = this.IsOpen;
-
-                if (this.IsOpen)
-                {
-                    this.activeFocusReturnTarget = this.FocusReturnTarget;
-                }
-
-                return;
-            }
-
             if (!this.previousIsOpen && this.IsOpen)
             {
                 this.activeFocusReturnTarget = this.FocusReturnTarget;
@@ -199,7 +175,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         }
 
         /// <summary>
-        /// Gets the identifier for the default title element.
+        /// Gets the identifier for the title element.
         /// </summary>
         /// <returns>The modal title identifier.</returns>
         private string GetTitleId()
@@ -210,7 +186,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         }
 
         /// <summary>
-        /// Gets the identifier for the default description element.
+        /// Gets the identifier for the description element.
         /// </summary>
         /// <returns>The modal description identifier.</returns>
         private string GetDescriptionId()
@@ -221,59 +197,39 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         }
 
         /// <summary>
-        /// Gets a value indicating whether the modal header should be rendered.
+        /// Gets a value indicating whether the title element is rendered.
         /// </summary>
-        /// <returns>A value indicating whether header content is available.</returns>
-        private bool HasHeader()
+        /// <returns>A value indicating whether the title is available.</returns>
+        private bool HasTitle()
         {
-            var hasHeader = this.HeaderContent is not null ||
-                            !string.IsNullOrWhiteSpace(this.Title) ||
-                            !string.IsNullOrWhiteSpace(this.Description) ||
-                            this.ShowCloseButton;
+            var hasTitle = !string.IsNullOrWhiteSpace(this.Title);
 
-            return hasHeader;
+            return hasTitle;
         }
 
         /// <summary>
-        /// Gets a value indicating whether the default title element is rendered.
+        /// Gets a value indicating whether the description element is rendered.
         /// </summary>
-        /// <returns>A value indicating whether the default title is available.</returns>
-        private bool HasDefaultTitle()
+        /// <returns>A value indicating whether the description is available.</returns>
+        private bool HasDescription()
         {
-            var hasDefaultTitle = this.HeaderContent is null &&
-                                  !string.IsNullOrWhiteSpace(this.Title);
+            var hasDescription = !string.IsNullOrWhiteSpace(this.Description);
 
-            return hasDefaultTitle;
+            return hasDescription;
         }
 
         /// <summary>
-        /// Gets a value indicating whether the default description element is rendered.
-        /// </summary>
-        /// <returns>A value indicating whether the default description is available.</returns>
-        private bool HasDefaultDescription()
-        {
-            var hasDefaultDescription = this.HeaderContent is null &&
-                                        !string.IsNullOrWhiteSpace(this.Description);
-
-            return hasDefaultDescription;
-        }
-
-        /// <summary>
-        /// Gets a fallback accessible label when the default title element is not rendered.
+        /// Gets a fallback accessible label when the title element is not rendered.
         /// </summary>
         /// <returns>The fallback dialog label, or <see langword="null" /> when the default title labels the dialog.</returns>
         private string GetDialogLabel()
         {
-            if (this.HasDefaultTitle())
+            if (this.HasTitle())
             {
                 return null;
             }
 
-            var dialogLabel = !string.IsNullOrWhiteSpace(this.Title)
-                ? this.Title
-                : "Dialog";
-
-            return dialogLabel;
+            return "Dialog";
         }
 
         /// <summary>
@@ -283,7 +239,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         private string GetCssClass()
         {
             var cssClass = this.BuildRootCssClass(
-                "mb-modal__panel",
+                "w-[calc(100%-2rem)] max-h-[calc(100dvh-2rem)] overflow-hidden",
                 this.GetSizeClass());
 
             return cssClass;
@@ -297,10 +253,10 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
         {
             var cssClass = this.Size switch
             {
-                ModalSize.Small => "mb-modal__panel--small",
-                ModalSize.Large => "mb-modal__panel--large",
-                ModalSize.Wide => "mb-modal__panel--wide",
-                _ => "mb-modal__panel--medium"
+                ModalSize.Small => "max-w-[22.5rem]",
+                ModalSize.Large => "max-w-[40rem]",
+                ModalSize.Wide => "max-w-[52.5rem]",
+                _ => "max-w-[30rem]"
             };
 
             return cssClass;
@@ -334,6 +290,5 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ModalShell
                 this.isClosing = false;
             }
         }
-
     }
 }

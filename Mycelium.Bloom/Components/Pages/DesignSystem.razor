@@ -935,7 +935,9 @@
                         Open wide modal
                     </button>
                 </div>
-                <p id="modal-result" class="mb-design-system__result">@this.LastModalAction</p>
+                <p id="modal-result" class="mb-design-system__result">
+                    @this.LastModalAction. State changes: @this.ModalStateChangeCount. Close callbacks: @this.ModalCloseCallbackCount.
+                </p>
             </article>
 
             <article class="mb-design-system__example" data-component="confirm-dialog">
@@ -968,6 +970,14 @@
                         class="mb-design-system__dialog-trigger mb-design-system__dialog-trigger--danger"
                         @onclick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Danger, this.DangerConfirmDialogTrigger)">
                         Danger
+                    </button>
+                    <button
+                        @ref="this.LoadingConfirmDialogTrigger"
+                        type="button"
+                        id="open-loading-confirm"
+                        class="mb-design-system__dialog-trigger mb-design-system__dialog-trigger--secondary"
+                        @onclick="() => this.OpenConfirmDialog(ConfirmDialogVariant.Default, this.LoadingConfirmDialogTrigger, true)">
+                        Loading
                     </button>
                 </div>
                 <p id="confirm-result" class="mb-design-system__result">Latest result: @this.LastConfirmationAction</p>
@@ -1677,6 +1687,7 @@
 <ModalShell Id="showcase-modal"
             IsOpen="@this.ModalOpen"
             IsOpenChanged="this.HandleModalOpenChanged"
+            OnClose="this.HandleModalClosed"
             FocusReturnTarget="@this.ModalFocusReturnTarget"
             Title="Inspect local component state"
             Description="This dialog uses deterministic page-owned data."
@@ -1720,6 +1731,7 @@
                Title="Confirm showcase action"
                Description="This action only updates local display state."
                Variant="@this.ActiveConfirmDialogVariant"
+               IsConfirming="@this.ConfirmDialogIsConfirming"
                ConfirmText="Confirm action"
                CancelText="Cancel action"
                Confirmed="this.HandleConfirmed"
