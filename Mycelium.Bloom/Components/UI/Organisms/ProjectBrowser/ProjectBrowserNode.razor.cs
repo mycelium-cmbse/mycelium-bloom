@@ -17,17 +17,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
+    using ReactiveUI.Blazor;
+
     /// <summary>
     /// Renders one recursive node in the project browser tree.
     /// </summary>
-    public partial class ProjectBrowserNode : ComponentBase
+    public partial class ProjectBrowserNode : ReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
-        /// <summary>
-        /// Gets or sets the project browser node view model.
-        /// </summary>
-        [Parameter]
-        public ProjectBrowserNodeViewModel ViewModel { get; set; }
-
         /// <summary>
         /// Gets or sets the tree depth of this node.
         /// </summary>

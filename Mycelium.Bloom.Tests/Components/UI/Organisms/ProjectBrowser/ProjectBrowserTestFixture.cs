@@ -9,14 +9,17 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
-    using System;
-    using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using Bunit;
 
     using Microsoft.Extensions.DependencyInjection;
 
+    using Moq;
+
+    using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -128,7 +131,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             {
                 viewModel.RootNodes = [node];
                 viewModel.IsLoaded = true;
-                viewModel.SelectNode(node);
+                viewModel.ApplySelection(node);
 
                 return Task.CompletedTask;
             };
@@ -189,72 +192,225 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
+        /// <summary>
+        /// Verifies a Project Browser interaction publishes its source element to the shared service.
+        /// </summary>
+        [Test]
+        public void VerifyNodeSelectionPublishesSourceElement()
         {
-            /// <inheritdoc />
-            public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; set; } = [];
+            var model = new Namespace();
+            var selectionService = new ElementSelectionService();
+            var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(model).Object,
+                selectionService);
+            var initializationCompleted = ObserveSuccessfulInitialization(viewModel);
 
-            /// <inheritdoc />
-            public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
 
-            /// <inheritdoc />
-            public bool IsLoading { get; set; }
+            var component = this.Render<ProjectBrowserComponent>();
 
-            /// <inheritdoc />
-            public bool IsLoaded { get; set; }
+            Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
 
-            /// <inheritdoc />
-            public string ErrorMessage { get; set; } = string.Empty;
+            selectionService.ClearSelection();
 
-            /// <summary>
-            /// Gets the number of times asynchronous initialization was requested.
-            /// </summary>
-            public int InitializeAsyncCallCount { get; private set; }
+            component.WaitForState(() =>
+                component.Find("[role='treeitem']").GetAttribute("aria-selected") == "false");
 
-            /// <summary>
-            /// Gets or sets the handler invoked during asynchronous initialization.
-            /// </summary>
-            public Func<Task> InitializeHandler { get; set; } = () => Task.CompletedTask;
+            component.Find("button").Click();
 
-            /// <inheritdoc />
-            public async Task InitializeAsync()
+            component.WaitForState(() =>
+                object.ReferenceEquals(selectionService.SelectedElement, viewModel.RootNodes[0].SourceElement));
+
+            using (Assert.EnterMultipleScope())
             {
-                this.InitializeAsyncCallCount++;
-                this.IsLoading = true;
+                Assert.That(selectionService.SelectedElement, Is.SameAs(viewModel.RootNodes[0].SourceElement));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
+            }
+        }
 
-                try
+        /// <summary>
+        /// Verifies external shared selection updates Project Browser visual selection.
+        /// </summary>
+        [Test]
+        public void VerifyExternalSelectionUpdatesVisualHighlight()
+        {
+            using var initializationCallback = new ManualResetEventSlim();
+
+            var model = new Namespace();
+            var selectionService = new ElementSelectionService();
+            var callbackCount = 0;
+            var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(model).Object,
+                selectionService);
+
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, _ =>
                 {
-                    await this.InitializeHandler();
-                }
-                finally
+                    callbackCount++;
+                    initializationCallback.Set();
+                }));
+
+            Assert.That(initializationCallback.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
+
+            selectionService.ClearSelection();
+            callbackCount = 0;
+            selectionService.SelectElement(viewModel.RootNodes[0].SourceElement);
+
+            component.WaitForAssertion(() =>
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true")));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("button").ClassList, Does.Contain("mb-project-browser-node__row--selected"));
+                Assert.That(callbackCount, Is.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Verifies component disposal deactivates Project Browser selection subscriptions.
+        /// </summary>
+        [Test]
+        public void VerifyDisposedComponentDoesNotObserveSelection()
+        {
+            var model = new Namespace();
+            var selectionService = new ElementSelectionService();
+            var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(model).Object,
+                selectionService);
+            var initializationCompleted = ObserveSuccessfulInitialization(viewModel);
+
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>();
+
+            Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
+
+            var rootNode = viewModel.RootNodes[0];
+            selectionService.ClearSelection();
+            component.Instance.Dispose();
+
+            selectionService.SelectElement(rootNode.SourceElement);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.SameAs(rootNode.SourceElement));
+                Assert.That(viewModel.SelectedNode, Is.Null);
+            }
+        }
+
+        /// <summary>
+        /// Verifies disposal cancels in-flight initialization before it can expose or publish the loaded model.
+        /// </summary>
+        [Test]
+        public void VerifyDisposalCancelsInFlightInitialization()
+        {
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            using var loadFinished = new ManualResetEventSlim();
+            using var initializationFinished = new ManualResetEventSlim();
+
+            var modelLoaderService = new Mock<IModelLoaderService>();
+
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
                 {
-                    this.IsLoading = false;
-                }
-            }
+                    loadStarted.Set();
 
-            /// <inheritdoc />
-            public void Initialize(INamespace model)
-            {
-                this.IsLoaded = true;
-            }
+                    if (!releaseLoad.Wait(System.TimeSpan.FromSeconds(10)))
+                    {
+                        throw new System.TimeoutException("The test did not release model loading.");
+                    }
 
-            /// <inheritdoc />
-            public void ToggleNode(ProjectBrowserNodeViewModel node)
-            {
-                node.IsExpanded = !node.IsExpanded;
-            }
+                    loadFinished.Set();
 
-            /// <inheritdoc />
-            public void SelectNode(ProjectBrowserNodeViewModel node)
+                    return new Namespace { DeclaredName = "Replacement" };
+                });
+
+            var selectionService = new ElementSelectionService();
+            var selectionCallbackCount = 0;
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+
+            viewModel.PropertyChanged += (_, args) =>
             {
-                if (this.SelectedNode != null)
+                if (args.PropertyName == nameof(viewModel.IsLoading)
+                    && !viewModel.IsLoading
+                    && loadStarted.IsSet)
                 {
-                    this.SelectedNode.IsSelected = false;
+                    initializationFinished.Set();
                 }
+            };
 
-                node.IsSelected = true;
-                this.SelectedNode = node;
+            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
+
+            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, _ => selectionCallbackCount++));
+
+            Assert.That(loadStarted.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
+
+            component.Instance.Dispose();
+
+            try
+            {
+                Assert.That(initializationFinished.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
             }
+            finally
+            {
+                releaseLoad.Set();
+            }
+
+            Assert.That(loadFinished.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.Null);
+                Assert.That(selectionCallbackCount, Is.Zero);
+                Assert.That(viewModel.RootNodes, Is.Empty);
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.IsLoaded, Is.False);
+                Assert.That(viewModel.IsLoading, Is.False);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Creates a model loader that returns the provided namespace.
+        /// </summary>
+        /// <param name="model">The namespace returned by the loader.</param>
+        /// <returns>The configured model loader mock.</returns>
+        private static Mock<IModelLoaderService> CreateModelLoader(INamespace model)
+        {
+            var modelLoaderService = new Mock<IModelLoaderService>();
+
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(model);
+
+            return modelLoaderService;
+        }
+
+        /// <summary>
+        /// Observes successful completion of command-based Project Browser initialization.
+        /// </summary>
+        /// <param name="viewModel">The view model to observe.</param>
+        /// <returns>A completion source signaled after loading has completed successfully.</returns>
+        private static TaskCompletionSource<bool> ObserveSuccessfulInitialization(
+            ProjectBrowserViewModel viewModel)
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            viewModel.PropertyChanged += (_, _) =>
+            {
+                if (viewModel.IsLoaded && !viewModel.IsLoading)
+                {
+                    completion.TrySetResult(true);
+                }
+            };
+
+            return completion;
         }
     }
 }

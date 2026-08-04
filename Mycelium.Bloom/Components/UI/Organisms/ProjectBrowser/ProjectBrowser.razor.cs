@@ -12,19 +12,33 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
-    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
+    using ReactiveUI.Blazor;
+    using ReactiveUI.Primitives.Signals;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public partial class ProjectBrowser : BloomComponentBase
+    public partial class ProjectBrowser : ReactiveInjectableComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
-        /// Gets or sets the project browser view model.
+        /// A value indicating whether the component has been disposed.
         /// </summary>
-        [Inject]
-        public IProjectBrowserViewModel ViewModel { get; set; }
+        private bool isDisposed;
+
+        /// <summary>
+        /// Gets or sets additional CSS classes applied to the component root element.
+        /// </summary>
+        [Parameter]
+        public string Class { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets additional unmatched attributes applied to the component root element.
+        /// </summary>
+        [Parameter(CaptureUnmatchedValues = true)]
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } =
+            new Dictionary<string, object>();
 
         /// <summary>
         /// Gets or sets the callback invoked when the selected node changes.
@@ -45,12 +59,28 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 return;
             }
 
-            await this.ViewModel.InitializeAsync();
+            await this.ViewModel.InitializeCommand.Execute();
 
-            if (this.ViewModel.IsLoaded && this.ViewModel.SelectedNode != null)
+            if (!this.isDisposed && this.ViewModel.IsLoaded && this.ViewModel.SelectedNode != null)
             {
                 await this.SelectedNodeChanged.InvokeAsync(this.ViewModel.SelectedNode);
             }
+        }
+
+        /// <summary>
+        /// Marks the component as disposed before ReactiveUI deactivates its view model.
+        /// </summary>
+        /// <param name="disposing">
+        /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
+        /// </param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.isDisposed = true;
+            }
+
+            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -99,13 +129,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             if (node.HasChildren)
             {
-                this.ViewModel.ToggleNode(node);
+                await this.ViewModel.ToggleNodeCommand.Execute(node);
             }
 
-            this.ViewModel.SelectNode(node);
+            await this.ViewModel.SelectNodeCommand.Execute(node);
 
-            await this.SelectedNodeChanged.InvokeAsync(node);
-            await this.InvokeAsync(this.StateHasChanged);
+            if (!this.isDisposed)
+            {
+                await this.SelectedNodeChanged.InvokeAsync(node);
+            }
         }
     }
 }

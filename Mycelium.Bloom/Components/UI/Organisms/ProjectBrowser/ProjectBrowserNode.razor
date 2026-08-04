@@ -7,6 +7,8 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
+@inherits ReactiveComponentBase<ProjectBrowserNodeViewModel>
+
 @if (this.ViewModel != null)
 {
     <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())"

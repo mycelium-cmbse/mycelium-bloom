@@ -12,7 +12,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Globalization;
 
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
+
+    using ReactiveUI;
+    using ReactiveUI.Primitives;
+    using ReactiveUI.Primitives.Disposables;
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
@@ -32,78 +37,169 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly IModelLoaderService modelLoaderService;
 
         /// <summary>
+        /// The shared element selection service.
+        /// </summary>
+        private readonly IElementSelectionService elementSelectionService;
+
+        /// <summary>
         /// The set of node identifiers already assigned in the current project browser tree.
         /// </summary>
         private readonly HashSet<string> nodeIds = new(StringComparer.Ordinal);
 
         /// <summary>
+        /// Maps source element object identities to their visual project browser nodes.
+        /// </summary>
+        private readonly Dictionary<IElement, ProjectBrowserNodeViewModel> elementNodes =
+            new(ReferenceEqualityComparer.Instance);
+
+        /// <summary>
+        /// The root nodes displayed by the project browser.
+        /// </summary>
+        private IReadOnlyList<ProjectBrowserNodeViewModel> rootNodes = [];
+
+        /// <summary>
+        /// The visual projection of the globally selected element.
+        /// </summary>
+        private ProjectBrowserNodeViewModel selectedNode;
+
+        /// <summary>
+        /// Cancels initialization when the view model is no longer active.
+        /// </summary>
+        private CancellationToken initializationLifetimeToken = CancellationToken.None;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserViewModel" /> class.
         /// </summary>
         /// <param name="modelLoaderService">The model loader service used to retrieve SysML models.</param>
-        public ProjectBrowserViewModel(IModelLoaderService modelLoaderService)
+        /// <param name="elementSelectionService">The shared element selection service.</param>
+        public ProjectBrowserViewModel(
+            IModelLoaderService modelLoaderService,
+            IElementSelectionService elementSelectionService)
         {
             ArgumentNullException.ThrowIfNull(modelLoaderService);
+            ArgumentNullException.ThrowIfNull(elementSelectionService);
 
             this.modelLoaderService = modelLoaderService;
+            this.elementSelectionService = elementSelectionService;
+            this.Activator = new ViewModelActivator();
+            this.InitializeCommand = ReactiveCommand.CreateFromTask(this.InitializeAsync);
+            this.ToggleNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.ToggleNode);
+            this.SelectNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.SelectNode);
+
+            this.WhenActivated((MultipleDisposable disposables) =>
+            {
+                var initializationCancellation = new CancellationDisposable();
+                this.initializationLifetimeToken = initializationCancellation.Token;
+                initializationCancellation.DisposeWith(disposables);
+
+                System.ObservableExtensions
+                    .Subscribe(
+                        this.elementSelectionService.WhenAnyValue(service => service.SelectedElement),
+                        this.ApplySelectedElement)
+                    .DisposeWith(disposables);
+            });
         }
+
+        /// <inheritdoc />
+        public ViewModelActivator Activator { get; }
 
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
         /// </summary>
-        public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; private set; } = [];
+        public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes
+        {
+            get => this.rootNodes;
+            private set => this.RaiseAndSetIfChanged(ref this.rootNodes, value);
+        }
 
         /// <summary>
         /// Gets the currently selected node.
         /// </summary>
-        public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
+        public ProjectBrowserNodeViewModel SelectedNode
+        {
+            get => this.selectedNode;
+            private set => this.RaiseAndSetIfChanged(ref this.selectedNode, value);
+        }
+
+        /// <inheritdoc />
+        public ReactiveCommand<RxVoid, RxVoid> InitializeCommand { get; }
+
+        /// <inheritdoc />
+        public ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> ToggleNodeCommand { get; }
+
+        /// <inheritdoc />
+        public ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> SelectNodeCommand { get; }
 
         /// <summary>
         /// Initializes the project browser tree from the Quantities SysML model.
         /// </summary>
+        /// <param name="commandCancellationToken">Cancels the current command execution.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task InitializeAsync()
+        private async Task InitializeAsync(CancellationToken commandCancellationToken)
         {
             if (this.IsLoaded || this.IsLoading)
             {
                 return;
             }
 
-            this.StartLoading();
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                commandCancellationToken,
+                this.initializationLifetimeToken);
+
+            var cancellationToken = linkedCancellation.Token;
+            var loadingStarted = false;
 
             try
             {
-                var model = await Task.Run(this.modelLoaderService.LoadQuantitiesModel);
+                cancellationToken.ThrowIfCancellationRequested();
+                this.StartLoading();
+                loadingStarted = true;
 
-                this.Initialize(model);
-                this.SelectDefaultRootNode();
+                var model = await Task.Run(
+                    this.modelLoaderService.LoadQuantitiesModel,
+                    cancellationToken).WaitAsync(cancellationToken);
+
+                cancellationToken.ThrowIfCancellationRequested();
+                this.InitializeTree(model, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                this.SelectDefaultRootNode(cancellationToken);
+            }
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
+            {
+                // Deactivation cancels initialization without presenting a loading failure.
             }
             catch (Exception exception)
             {
-                this.RootNodes = [];
-                this.SelectedNode = null;
+                this.ResetTree();
                 this.SetError(exception.Message);
             }
             finally
             {
-                this.StopLoading();
+                if (loadingStarted)
+                {
+                    this.StopLoading();
+                }
             }
         }
 
         /// <summary>
-        /// Initializes the project browser tree from the provided SysML namespace.
+        /// Builds and exposes the project browser tree from the provided SysML namespace.
         /// </summary>
         /// <param name="model">The loaded SysML namespace model.</param>
-        public void Initialize(INamespace model)
+        /// <param name="cancellationToken">Cancels tree replacement.</param>
+        private void InitializeTree(INamespace model, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(model);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            this.nodeIds.Clear();
-            this.SelectedNode = null;
-            this.RootNodes = [];
+            this.ResetTree();
 
             var rootNode = this.BuildNode(model, "root");
 
+            cancellationToken.ThrowIfCancellationRequested();
             this.RootNodes = [rootNode];
+            this.ApplySelectedElement(this.elementSelectionService.SelectedElement);
+            cancellationToken.ThrowIfCancellationRequested();
             this.SetLoaded();
         }
 
@@ -111,7 +207,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Toggles the expanded state of the provided node.
         /// </summary>
         /// <param name="node">The node to expand or collapse.</param>
-        public void ToggleNode(ProjectBrowserNodeViewModel node)
+        private void ToggleNode(ProjectBrowserNodeViewModel node)
         {
             ArgumentNullException.ThrowIfNull(node);
 
@@ -125,32 +221,35 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Selects the provided node and clears the previous selection.
         /// </summary>
         /// <param name="node">The node to select.</param>
-        public void SelectNode(ProjectBrowserNodeViewModel node)
+        private void SelectNode(ProjectBrowserNodeViewModel node)
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            this.SelectedNode?.IsSelected = false;
-
-            node.IsSelected = true;
-            this.SelectedNode = node;
+            this.elementSelectionService.SelectElement(node.SourceElement);
+            this.ApplySelectedElement(this.elementSelectionService.SelectedElement);
         }
 
         /// <summary>
         /// Selects and expands the first root node when no node is currently selected.
         /// </summary>
-        private void SelectDefaultRootNode()
+        /// <param name="cancellationToken">Cancels default selection.</param>
+        private void SelectDefaultRootNode(CancellationToken cancellationToken)
         {
-            if (this.RootNodes.Count == 0 || this.SelectedNode != null)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (this.RootNodes.Count == 0 || this.elementSelectionService.SelectedElement != null)
             {
                 return;
             }
 
             var rootNode = this.RootNodes[0];
 
+            cancellationToken.ThrowIfCancellationRequested();
             this.SelectNode(rootNode);
 
             if (rootNode.HasChildren && !rootNode.IsExpanded)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 this.ToggleNode(rootNode);
             }
         }
@@ -184,7 +283,59 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 metadata,
                 children);
 
+            this.elementNodes.TryAdd(element, node);
+
             return node;
+        }
+
+        /// <summary>
+        /// Applies the shared selected element to the visual node projection.
+        /// </summary>
+        /// <param name="element">The selected element, or <see langword="null" />.</param>
+        private void ApplySelectedElement(IElement element)
+        {
+            ProjectBrowserNodeViewModel node = null;
+
+            if (element != null)
+            {
+                this.elementNodes.TryGetValue(element, out node);
+            }
+
+            if (ReferenceEquals(this.SelectedNode, node))
+            {
+                return;
+            }
+
+            if (this.SelectedNode != null)
+            {
+                this.SelectedNode.IsSelected = false;
+            }
+
+            if (node != null)
+            {
+                node.IsSelected = true;
+            }
+
+            this.SelectedNode = node;
+        }
+
+        /// <summary>
+        /// Clears the current tree and clears a shared selection owned by that tree.
+        /// </summary>
+        private void ResetTree()
+        {
+            var selectedElement = this.elementSelectionService.SelectedElement;
+            var shouldClearSelection = selectedElement != null && this.elementNodes.ContainsKey(selectedElement);
+
+            this.ApplySelectedElement(null);
+            this.RootNodes = [];
+            this.nodeIds.Clear();
+            this.elementNodes.Clear();
+
+            if (shouldClearSelection)
+            {
+                this.elementSelectionService.ClearSelection();
+            }
         }
 
         /// <summary>

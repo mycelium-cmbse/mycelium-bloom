@@ -14,6 +14,7 @@ namespace Mycelium.Bloom
     using Mycelium.Bloom.Components;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using OpenTelemetry.Resources;
@@ -56,6 +57,7 @@ namespace Mycelium.Bloom
             builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
             builder.Services.AddScoped<IElementSelectionService, ElementSelectionService>();
             builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+            builder.Services.AddTransient<HomeViewModel>();
 
             var app = builder.Build();
 

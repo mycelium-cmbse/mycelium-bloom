@@ -7,7 +7,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomComponentBase
+@inherits ReactiveInjectableComponentBase<IProjectBrowserViewModel>
 
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
     @if (this.ShouldShowLoadingState())

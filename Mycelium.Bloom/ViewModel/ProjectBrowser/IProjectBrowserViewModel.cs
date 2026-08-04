@@ -9,12 +9,15 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
-    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using System.ComponentModel;
+
+    using ReactiveUI;
+    using ReactiveUI.Primitives;
 
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
-    public interface IProjectBrowserViewModel
+    public interface IProjectBrowserViewModel : INotifyPropertyChanged, IActivatableViewModel
     {
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
@@ -42,27 +45,18 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         string ErrorMessage { get; }
 
         /// <summary>
-        /// Initializes the project browser tree from the Quantities SysML model.
+        /// Gets the command that initializes the project browser tree from the Quantities SysML model.
         /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        Task InitializeAsync();
+        ReactiveCommand<RxVoid, RxVoid> InitializeCommand { get; }
 
         /// <summary>
-        /// Initializes the project browser tree from the provided SysML namespace.
+        /// Gets the command that toggles a project browser node.
         /// </summary>
-        /// <param name="model">The loaded SysML namespace model.</param>
-        void Initialize(INamespace model);
+        ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> ToggleNodeCommand { get; }
 
         /// <summary>
-        /// Toggles the expanded state of the provided node.
+        /// Gets the command that selects a project browser node.
         /// </summary>
-        /// <param name="node">The node to expand or collapse.</param>
-        void ToggleNode(ProjectBrowserNodeViewModel node);
-
-        /// <summary>
-        /// Selects the provided node and clears the previous selection.
-        /// </summary>
-        /// <param name="node">The node to select.</param>
-        void SelectNode(ProjectBrowserNodeViewModel node);
+        ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> SelectNodeCommand { get; }
     }
 }
