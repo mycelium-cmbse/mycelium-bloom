@@ -83,7 +83,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.elementSelectionService = elementSelectionService;
             this.Activator = new ViewModelActivator();
             this.InitializeCommand = ReactiveCommand.CreateFromTask(this.InitializeAsync);
-            this.ToggleNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.ToggleNode);
+            this.ToggleNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(ToggleNode);
             this.SelectNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.SelectNode);
 
             this.WhenActivated((MultipleDisposable disposables) =>
@@ -207,7 +207,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Toggles the expanded state of the provided node.
         /// </summary>
         /// <param name="node">The node to expand or collapse.</param>
-        private void ToggleNode(ProjectBrowserNodeViewModel node)
+        private static void ToggleNode(ProjectBrowserNodeViewModel node)
         {
             ArgumentNullException.ThrowIfNull(node);
 
@@ -250,7 +250,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             if (rootNode.HasChildren && !rootNode.IsExpanded)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                this.ToggleNode(rootNode);
+                ToggleNode(rootNode);
             }
         }
 

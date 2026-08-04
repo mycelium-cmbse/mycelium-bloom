@@ -30,6 +30,12 @@ namespace Mycelium.Bloom.Tests.Core.Selection
     public sealed class ElementSelectionServiceTestFixture
     {
         /// <summary>
+        /// The expected notification order for the first selection.
+        /// </summary>
+        private static readonly string[] ExpectedFirstSelectionCallbacks =
+            ["changing:null", "changed:selected"];
+
+        /// <summary>
         /// Verifies the initial state and current-value observable behavior.
         /// </summary>
         [Test]
@@ -82,7 +88,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(service.SelectedElement, Is.SameAs(element));
-                Assert.That(callbacks, Is.EqualTo(new[] { "changing:null", "changed:selected" }));
+                Assert.That(callbacks, Is.EqualTo(ExpectedFirstSelectionCallbacks));
             }
         }
 
@@ -163,7 +169,8 @@ namespace Mycelium.Bloom.Tests.Core.Selection
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(firstElement.Object.Equals(secondElement.Object), Is.True);
+                Assert.That(firstElement.Object, Is.Not.SameAs(secondElement.Object));
+                Assert.That(firstElement.Object, Is.EqualTo(secondElement.Object));
                 Assert.That(service.SelectedElement, Is.SameAs(secondElement.Object));
                 Assert.That(propertyChangedCount, Is.EqualTo(2));
             }
