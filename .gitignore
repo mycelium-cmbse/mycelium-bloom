@@ -61,6 +61,7 @@ node_modules/
 .pnpm-store/
 pnpm-debug.log*
 lcov.info
+sonar-js-coverage.xml
 
 #Idea / VS files
 .idea

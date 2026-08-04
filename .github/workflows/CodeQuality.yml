@@ -59,32 +59,11 @@ jobs:
         run: |
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-coverage
-          dotnet sonarscanner begin /k:"mycelium-cmbse_mycelium-bloom" /o:"mycelium-cmbse" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.verbose=true /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.javascript.lcov.reportPaths="lcov.info" /d:sonar.cpd.exclusions="**/wwwroot/css/app.css" /d:sonar.exclusions="**/wwwroot/css/app.css"
+          dotnet sonarscanner begin /k:"mycelium-cmbse_mycelium-bloom" /o:"mycelium-cmbse" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.coverageReportPaths="sonar-js-coverage.xml" /d:sonar.cpd.exclusions="**/wwwroot/css/app.css" /d:sonar.exclusions="**/wwwroot/css/app.css"
 
-      - name: Run JavaScript Tests and Compute Coverage
+      - name: Run JavaScript Tests and Compute Coverage Reports
         working-directory: Mycelium.Bloom
-        run: pnpm run test:coverage
-
-      - name: Verify JavaScript Coverage Report
-        shell: bash
-        run: |
-          if [ ! -s lcov.info ]; then
-            echo "::error::lcov.info is missing or empty"
-            exit 1
-          fi
-
-          required_sources=(
-            "Mycelium.Bloom/Components/Pages/DesignSystem.razor.js"
-            "Mycelium.Bloom/Components/UI/Atoms/SearchInput/SearchInput.razor.js"
-            "Mycelium.Bloom/Components/UI/Atoms/SelectInput/SelectInput.razor.js"
-          )
-
-          for source in "${required_sources[@]}"; do
-            if ! grep -Fqx "SF:${source}" lcov.info; then
-              echo "::error::lcov.info is missing SF:${source}"
-              exit 1
-            fi
-          done
+        run: pnpm run test:coverage:sonar
 
       - name: Build
         run: dotnet build --no-restore --no-incremental /p:ContinuousIntegrationBuild=true
@@ -92,30 +71,94 @@ jobs:
       - name: Run Tests and Compute Coverage
         run: dotnet-coverage collect "dotnet test Mycelium.Bloom.sln --no-restore --no-build --verbosity normal" -f xml -o "coverage.xml" 
 
-      - name: Diagnose JavaScript Coverage Import
+      - name: Verify JavaScript Coverage Reports
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "Working directory: $(pwd)"
-          echo "LCOV absolute path: $(realpath lcov.info)"
-
           test -s lcov.info
+          test -s sonar-js-coverage.xml
 
-          echo "LCOV bytes: $(wc -c < lcov.info)"
-          echo "LCOV source records:"
-          grep '^SF:' lcov.info
+          node --input-type=module <<'NODE'
+          import { readFileSync, statSync } from "node:fs";
+          import { isAbsolute, posix, relative, resolve, sep, win32 } from "node:path";
 
-          while IFS= read -r record; do
-              source_path="${record#SF:}"
+          const repositoryRoot = process.cwd();
+          const lcov = readFileSync("lcov.info", "utf8");
+          const xml = readFileSync("sonar-js-coverage.xml", "utf8");
+          const requiredSources = [
+              "Mycelium.Bloom/Components/Pages/DesignSystem.razor.js",
+              "Mycelium.Bloom/Components/UI/Atoms/SearchInput/SearchInput.razor.js",
+              "Mycelium.Bloom/Components/UI/Atoms/SelectInput/SelectInput.razor.js"
+          ];
 
-              if [ ! -f "$source_path" ]; then
-                  echo "Unresolved LCOV source: $source_path"
-                  exit 1
-              fi
+          if (
+              !xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<coverage version="1">\n')
+              || !xml.endsWith("</coverage>\n")
+          ) {
+              throw new Error("Generic coverage XML does not have a coverage version 1 root.");
+          }
 
-              echo "Resolved LCOV source: $source_path"
-          done < <(grep '^SF:' lcov.info)
+          const lineRecords = [...xml.matchAll(/^    <lineToCover\b/gm)];
+
+          if (lineRecords.length === 0) {
+              throw new Error("Generic coverage XML has no lineToCover records.");
+          }
+
+          const xmlSources = [...xml.matchAll(/^  <file path="([^"]+)">$/gm)]
+              .map(match => decodeXmlAttribute(match[1]));
+          const lcovSources = [...lcov.matchAll(/^SF:(.+)\r?$/gm)]
+              .map(match => posix.normalize(match[1].replaceAll("\\", "/")));
+
+          if (
+              xmlSources.length !== lcovSources.length
+              || xmlSources.some(source => !lcovSources.includes(source))
+          ) {
+              throw new Error("Generic coverage XML source paths do not match LCOV.");
+          }
+
+          for (const requiredSource of requiredSources) {
+              if (!xmlSources.includes(requiredSource)) {
+                  throw new Error(`Generic coverage XML is missing ${requiredSource}.`);
+              }
+          }
+
+          for (const sourcePath of xmlSources) {
+              if (
+                  sourcePath.includes("\\")
+                  || isAbsolute(sourcePath)
+                  || posix.isAbsolute(sourcePath)
+                  || win32.isAbsolute(sourcePath)
+              ) {
+                  throw new Error(`Generic coverage XML contains an absolute or unnormalized path: ${sourcePath}`);
+              }
+
+              const resolvedPath = resolve(repositoryRoot, ...sourcePath.split("/"));
+              const relativePath = relative(repositoryRoot, resolvedPath);
+
+              if (
+                  relativePath === ".."
+                  || relativePath.startsWith(`..${sep}`)
+                  || isAbsolute(relativePath)
+                  || !statSync(resolvedPath).isFile()
+              ) {
+                  throw new Error(`Generic coverage XML source does not resolve: ${sourcePath}`);
+              }
+          }
+
+          console.log(
+              `Validated ${xmlSources.length} generic coverage source file(s) and ${lineRecords.length} executable line(s).`
+          );
+
+          function decodeXmlAttribute(value) {
+              return value
+                  .replaceAll("&quot;", '"')
+                  .replaceAll("&apos;", "'")
+                  .replaceAll("&lt;", "<")
+                  .replaceAll("&gt;", ">")
+                  .replaceAll("&amp;", "&");
+          }
+          NODE
 
       - name: Sonarqube end
         env:
