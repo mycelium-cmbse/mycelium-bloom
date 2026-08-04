@@ -50,10 +50,11 @@
         -->
         <PackageReference Include="BlazorBlueprint.Components" Version="3.14.1" />
         <!-- Intentionally direct: selects the security-reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when Blueprint is upgraded. -->
-        <PackageReference Include="HtmlSanitizer" Version="9.1.973" />
+        <PackageReference Include="HtmlSanitizer" Version="9.1.982" />
         <PackageReference Include="OpenTelemetry" Version="1.17.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+        <PackageReference Include="ReactiveUI.Blazor" Version="24.1.0" />
         <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.22.0" />
     </ItemGroup>
 

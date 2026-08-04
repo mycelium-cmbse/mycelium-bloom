@@ -287,7 +287,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(program, Does.Not.Contain("AddBlazorBlueprintPrimitives();"));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.14.1\""));
                 Assert.That(project, Does.Not.Contain("<PackageReference Include=\"BlazorBlueprint.Primitives\""));
-                Assert.That(project, Does.Contain("HtmlSanitizer\" Version=\"9.1.973\""));
+                Assert.That(project, Does.Contain("HtmlSanitizer\" Version=\"9.1.982\""));
                 Assert.That(project, Does.Contain("must be reassessed when Blueprint is upgraded"));
             }
         }
