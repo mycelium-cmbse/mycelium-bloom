@@ -16,7 +16,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.UserMenu
     using Mycelium.Bloom.Model;
 
     /// <summary>
-    /// Represents user identity information paired with parent-provided account actions.
+    /// Represents user identity information paired with parent-provided actions in a styled Blueprint menu.
     /// </summary>
     public partial class UserMenu : BloomComponentBase
     {
@@ -92,7 +92,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.UserMenu
         }
 
         /// <summary>
-        /// Gets the text displayed by the existing Avatar component.
+        /// Gets the text displayed by the Blueprint avatar fallback.
         /// </summary>
         /// <returns>The explicit avatar text or generated initials.</returns>
         private string GetAvatarText()
@@ -110,6 +110,19 @@ namespace Mycelium.Bloom.Components.UI.Molecules.UserMenu
                     .Select(part => char.ToUpperInvariant(part[0])));
 
             return initials;
+        }
+
+        /// <summary>
+        /// Gets the application colors consumed by the public Blueprint avatar classes.
+        /// </summary>
+        /// <returns>The avatar CSS variables, or null when no custom colors are configured.</returns>
+        private string GetAvatarStyle()
+        {
+            var style = CssStyleBuilder.Build(
+                ("--mb-user-avatar-background", this.AvatarBackgroundColor),
+                ("--mb-user-avatar-border", this.AvatarBorderColor));
+
+            return string.IsNullOrWhiteSpace(style) ? null : style;
         }
 
         /// <summary>

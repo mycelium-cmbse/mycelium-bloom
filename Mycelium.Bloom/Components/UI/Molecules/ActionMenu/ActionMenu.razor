@@ -7,91 +7,116 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
+@using BlazorBlueprint.Primitives
+@using BlazorBlueprint.Icons.Lucide.Components
 @inherits BloomComponentBase
 
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    @if (this.TriggerContent is null)
-    {
-        <IconButton
-            id="@(this.TriggerId)"
-            Class="@(this.GetTriggerCssClass())"
-            AriaLabel="@(this.TriggerAriaLabel)"
-            Title="@(this.TriggerTitle)"
-            Disabled="@(this.IsTriggerDisabled())"
-            OnClick="this.ToggleMenuAsync"
-            aria-haspopup="menu"
-            aria-expanded="@(this.IsOpen ? "true" : "false")"
-            aria-controls="@(this.MenuId)"
-            @onkeydown="this.HandleTriggerKeyDownAsync">
-            <span aria-hidden="true">•••</span>
-        </IconButton>
-    }
-    else
-    {
-        <button
-            id="@(this.TriggerId)"
+    <BbDropdownMenu>
+        <BbDropdownMenuTrigger
+            AsChild="false"
             type="button"
-            class="@(this.GetTriggerCssClass())"
+            Class="@(this.GetTriggerCssClass())"
+            ActiveClass="mb-action-menu__trigger--open"
             title="@(this.TriggerTitle)"
             aria-label="@(this.TriggerAriaLabel)"
-            aria-haspopup="menu"
-            aria-expanded="@(this.IsOpen ? "true" : "false")"
-            aria-controls="@(this.MenuId)"
-            disabled="@(this.IsTriggerDisabled())"
-            @onkeydown="this.HandleTriggerKeyDownAsync"
-            @onclick="this.ToggleMenuAsync">
-            @(this.TriggerContent)
-        </button>
-    }
-
-    @if (this.IsOpen)
-    {
-        <div
-            id="@(this.MenuId)"
-            class="@(this.GetMenuCssClass())"
-            role="menu"
-            aria-labelledby="@(this.TriggerId)">
-            @for (var index = 0; index < this.Items.Count; index++)
+            aria-disabled="@(this.IsTriggerDisabled() ? "true" : null)"
+            Disabled="@(this.IsTriggerDisabled())">
+            @if (this.TriggerContent is not null)
             {
-                var itemIndex = index;
-                var item = this.Items[itemIndex];
+                <span class="mb-action-menu__trigger-content">
+                    @(this.TriggerContent)
+                </span>
+            }
+            else if (!this.ShowChevron)
+            {
+                <LucideIcon Name="ellipsis"
+                            Size="16"
+                            StrokeWidth="1.75"
+                            role="presentation"
+                            aria-hidden="true"
+                            focusable="false" />
+            }
 
+            @if (this.TriggerContent is not null || this.ShowChevron)
+            {
+                <ChevronIcon Class="mb-action-menu__chevron" />
+            }
+        </BbDropdownMenuTrigger>
+
+        <BbDropdownMenuContent
+            Class="@(this.MenuClass)"
+            Side="PopoverSide.Bottom"
+            Align="@(this.GetPopoverAlignment())"
+            Offset="6"
+            MatchTriggerWidth="@(this.MatchTriggerWidth)">
+            @foreach (var item in this.Items)
+            {
                 @if (item.SeparatorBefore)
                 {
-                    <div class="mb-action-menu__separator" role="separator"></div>
+                    <BbDropdownMenuSeparator />
                 }
 
-                <button
-                    @ref="this.itemElements[itemIndex]"
-                    type="button"
-                    class="@(GetItemCssClass(item))"
-                    role="@(this.GetItemRole())"
-                    aria-disabled="@(item.Disabled ? "true" : "false")"
-                    aria-checked="@(this.GetAriaChecked(item))"
-                    disabled="@(item.Disabled)"
-                    tabindex="@(this.GetItemTabIndex(itemIndex))"
-                    @onkeydown="args => this.HandleItemKeyDownAsync(args, itemIndex)"
-                    @onclick="() => this.SelectItemAsync(item)">
-                    @if (!string.IsNullOrWhiteSpace(item.Icon))
-                    {
-                        <span class="mb-action-menu__item-icon" aria-hidden="true">@item.Icon</span>
-                    }
-
-                    <span class="mb-action-menu__item-content">
-                        <span class="mb-action-menu__item-label">@item.Label</span>
-
-                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                <BbDropdownMenuItem
+                    Class="@(GetItemCssClass(item))"
+                    Disabled="@(item.Disabled)"
+                    CloseOnSelect="true"
+                    OnClick="_ => this.HandleItemSelectedAsync(item)">
+                    <Icon>
+                        @if (item.Symbol.HasValue)
                         {
-                            <span class="mb-action-menu__item-description">@item.Description</span>
+                            <LucideIcon Name="@(item.Symbol.Value.ToLucideName())"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
                         }
-                    </span>
+                        else if (!string.IsNullOrWhiteSpace(item.Icon))
+                        {
+                            <span class="mb-action-menu__item-symbol" aria-hidden="true">
+                                @item.Icon
+                            </span>
+                        }
+                    </Icon>
 
-                    @if (this.IsSelectionMenu && item.IsSelected)
-                    {
-                        <span class="mb-action-menu__selection" aria-hidden="true">✓</span>
-                    }
-                </button>
+                    <ChildContent>
+                        <span class="mb-action-menu__item-content">
+                            <span class="mb-action-menu__item-label" title="@(item.Label)">
+                                @(item.Label)
+                            </span>
+
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <span class="mb-action-menu__item-description"
+                                      title="@(item.Description)">
+                                    @(item.Description)
+                                </span>
+                            }
+
+                            @if (item.Destructive)
+                            {
+                                <span class="sr-only">Destructive action</span>
+                            }
+
+                            @if (this.IsSelectionMenu && item.IsSelected)
+                            {
+                                <span class="sr-only">Current selection</span>
+                            }
+                        </span>
+
+                        @if (this.IsSelectionMenu && item.IsSelected)
+                        {
+                            <span class="mb-action-menu__selection" aria-hidden="true">
+                                <LucideIcon Name="check"
+                                            Size="16"
+                                            StrokeWidth="1.75"
+                                            focusable="false" />
+                            </span>
+                        }
+                    </ChildContent>
+                </BbDropdownMenuItem>
             }
-        </div>
-    }
+        </BbDropdownMenuContent>
+    </BbDropdownMenu>
 </div>

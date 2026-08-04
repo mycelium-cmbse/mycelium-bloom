@@ -1,0 +1,94 @@
+.mb-app-header {
+    --mb-app-header-min-height: 3.5rem;
+    --mb-app-header-center-max-width: 26.25rem;
+
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mb-spacing-4);
+    width: 100%;
+    min-width: 0;
+    min-height: var(--mb-app-header-min-height);
+    padding: 0 var(--mb-spacing-4);
+    border-bottom: 1px solid var(--mb-color-border-subtle);
+    background: var(--mb-color-surface);
+    color: var(--mb-color-component-text);
+}
+
+.mb-app-header--compact {
+    min-height: var(--mb-control-height-md);
+    gap: var(--mb-spacing-2);
+    padding-inline: var(--mb-spacing-2);
+}
+
+.mb-app-header__brand,
+.mb-app-header__navigation,
+.mb-app-header__context,
+.mb-app-header__project,
+.mb-app-header__center,
+.mb-app-header__actions,
+.mb-app-header__user {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--mb-spacing-2);
+}
+
+.mb-app-header__brand,
+.mb-app-header__navigation,
+.mb-app-header__project,
+.mb-app-header__actions,
+.mb-app-header__user {
+    flex: 0 0 auto;
+}
+
+.mb-app-header__context {
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-app-header__center {
+    flex: 1 1 16rem;
+    justify-content: center;
+    max-width: var(--mb-app-header-center-max-width);
+    margin-inline: auto;
+}
+
+.mb-app-header__actions {
+    margin-left: auto;
+}
+
+.mb-app-header__brand {
+    color: var(--mb-color-text-primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+@media (max-width: 50rem) {
+    .mb-app-header__center {
+        order: 10;
+        flex-basis: 100%;
+        justify-content: stretch;
+        max-width: none;
+        margin-inline: 0;
+        padding-bottom: var(--mb-spacing-2);
+    }
+
+    .mb-app-header__center ::deep > * {
+        max-width: none;
+    }
+}
+
+@media (max-width: 32.5rem) {
+    .mb-app-header__context,
+    .mb-app-header__project,
+    .mb-app-header__actions {
+        flex: 1 1 auto;
+    }
+
+    .mb-app-header__actions {
+        margin-left: 0;
+    }
+}

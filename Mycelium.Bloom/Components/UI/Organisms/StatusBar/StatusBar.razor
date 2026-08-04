@@ -1,0 +1,33 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="StatusBar.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<footer class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+    @if (this.LeadingContent is not null)
+    {
+        <div class="mb-status-bar__leading">
+            @(this.LeadingContent)
+        </div>
+    }
+
+    @if (this.ChildContent is not null)
+    {
+        <div class="mb-status-bar__content">
+            @(this.ChildContent)
+        </div>
+    }
+
+    @if (this.TrailingContent is not null)
+    {
+        <div class="mb-status-bar__trailing">
+            @(this.TrailingContent)
+        </div>
+    }
+</footer>

@@ -7,6 +7,8 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
+@using BlazorBlueprint.Primitives
+
 @inherits BloomFieldComponentBase
 
 <FieldShell
@@ -20,31 +22,56 @@
     Required="@(this.Required)"
     Class="@(this.GetCssClass())">
     <div class="mb-select-input__control">
-        <select
-            @attributes="this.AdditionalAttributes"
-            id="@(this.FieldId)"
-            name="@(this.FieldName)"
-            class="mb-select-input__field mb-field-control mb-field-control--single-line mb-field-control__native"
-            disabled="@(this.Disabled)"
-            required="@(this.Required)"
-            aria-invalid="@(this.AriaInvalid)"
-            aria-describedby="@(this.DescribedBy)"
-            @onchange="this.HandleValueChangedAsync">
-            @if (this.HasPlaceholder())
-            {
-                <option value="" disabled="@(this.Required)" selected="@(this.IsPlaceholderSelected())">
-                    @(this.Placeholder)
-                </option>
-            }
+        <BlazorBlueprint.Primitives.Select.BbSelect TValue="string"
+                  Value="@(this.Value)"
+                  ValueChanged="this.HandleValueChangedAsync"
+                  Open="@(this.IsOpen)"
+                  OpenChanged="this.HandleOpenChanged"
+                  Disabled="@(this.Disabled)"
+                  Required="@(this.Required)"
+                  DisplayTextSelector="this.GetDisplayTextForValue">
+            <BlazorBlueprint.Primitives.Select.BbSelectTrigger
+                @attributes="this.AdditionalAttributes"
+                id="@(this.FieldId)"
+                class="mb-select-input__trigger mb-field-control mb-field-control--single-line"
+                aria-haspopup="listbox"
+                aria-expanded="@(this.IsOpen ? "true" : "false")"
+                aria-invalid="@(this.GetAriaInvalid())"
+                aria-required="@(this.Required ? "true" : "false")"
+                aria-describedby="@(this.DescribedBy)">
+                <BlazorBlueprint.Primitives.Select.BbSelectValue Placeholder="@(this.Placeholder)"
+                                                                 class="@(this.GetValueCssClass())"
+                                                                 title="@(this.GetDisplayTextForValue(this.Value))" />
+                <ChevronIcon Class="mb-select-input__chevron" />
+            </BlazorBlueprint.Primitives.Select.BbSelectTrigger>
 
-            @foreach (var option in this.Options)
-            {
-                <option value="@(option.Value)" disabled="@(option.Disabled)" selected="@(this.IsSelected(option))">
-                    @(option.Label)
-                </option>
-            }
-        </select>
+            <BlazorBlueprint.Primitives.Select.BbSelectContent class="mb-select-input__listbox"
+                                                               Side="PopoverSide.Bottom"
+                                                               Align="PopoverAlign.Start"
+                                                               Offset="6"
+                                                               MatchTriggerWidth="true">
+                @foreach (var option in this.optionList)
+                {
+                    <BlazorBlueprint.Primitives.Select.BbSelectItem Value="@(option.Value)"
+                                                                    Text="@(option.Label)"
+                                                                    Disabled="@(option.Disabled)"
+                                                                    class="mb-select-input__option"
+                                                                    aria-selected="@(this.IsOptionSelected(option))"
+                                                                    aria-disabled="@(option.Disabled ? "true" : null)">
+                        <span class="mb-select-input__option-label" title="@(option.Label)">
+                            @(option.Label)
+                        </span>
+                    </BlazorBlueprint.Primitives.Select.BbSelectItem>
+                }
+            </BlazorBlueprint.Primitives.Select.BbSelectContent>
+        </BlazorBlueprint.Primitives.Select.BbSelect>
 
-        <span class="mb-select-input__chevron" aria-hidden="true"></span>
+        @if (!this.Disabled && !string.IsNullOrWhiteSpace(this.FieldName))
+        {
+            <input id="@(this.GetFormValueId())"
+                   type="hidden"
+                   name="@(this.FieldName)"
+                   value="@(this.Value)" />
+        }
     </div>
 </FieldShell>

@@ -15,10 +15,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <base href="/"/>
     <ResourcePreloader/>
+    @* Primitive positioning remains required by SelectInput and styled menu/popover content; direct TabsList/TabsTrigger use is localized to the Design System. *@
     <link rel="stylesheet" href="@(this.Assets["css/app.css"])"/>
+    <link rel="stylesheet" href="_content/BlazorBlueprint.Primitives/css/primitives.css"/>
+    <link rel="stylesheet" href="_content/BlazorBlueprint.Components/blazorblueprint.css"/>
     <link rel="stylesheet" href="@(this.Assets["Mycelium.Bloom.styles.css"])"/>
     <ImportMap/>
-    <link rel="icon" type="image/png" href="favicon.png"/>
+    <link rel="icon"
+          type="image/svg+xml"
+          sizes="any"
+          href="@(this.Assets["brand/bloom-mark.svg"])"/>
     <HeadOutlet/>
     <title>Mycelium - Bloom</title>
 </head>

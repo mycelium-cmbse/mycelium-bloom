@@ -7,77 +7,69 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
+@using BlazorBlueprint.Components
+@using BlazorBlueprint.Icons.Lucide.Components
+
 @inherits BloomComponentBase
 
-@if (this.IsOpen)
-{
-    <div class="mb-modal" role="presentation">
-        <div class="mb-modal__backdrop"
-             aria-hidden="true"
-             @onclick="this.HandleBackdropClickAsync"></div>
+<BbDialog Open="@(this.IsOpen)"
+          OpenChanged="this.HandleDialogOpenChangedAsync">
+    <BbDialogContent id="@(this.GetModalId())"
+                     Class="@(this.GetCssClass())"
+                     ShowClose="false"
+                     CloseOnOverlayClick="@(this.CloseOnBackdropClick)"
+                     aria-labelledby="@(this.HasTitle() ? this.GetTitleId() : null)"
+                     aria-label="@(this.GetDialogLabel())"
+                     aria-describedby="@(this.HasDescription() ? this.GetDescriptionId() : null)"
+                     @attributes="this.AdditionalAttributes">
+        @if (this.HasTitle() || this.HasDescription())
+        {
+            <BbDialogHeader Class="pr-8 text-left">
+                @if (this.HasTitle())
+                {
+                    <BbDialogTitle As="h2" id="@(this.GetTitleId())">
+                        @(this.Title)
+                    </BbDialogTitle>
+                }
 
-        <section id="@(this.GetModalId())"
-                 class="@(this.GetCssClass())"
-                 role="dialog"
-                 aria-modal="true"
-                 aria-labelledby="@(this.HasDefaultTitle() ? this.GetTitleId() : null)"
-                 aria-label="@(this.GetDialogLabel())"
-                 aria-describedby="@(this.HasDefaultDescription() ? this.GetDescriptionId() : null)"
-                 @onclick:stopPropagation="true"
-                 @attributes="this.AdditionalAttributes">
-            @if (this.HasHeader())
-            {
-                <header class="mb-modal__header">
-                    @if (this.HeaderContent is not null)
-                    {
-                        <div class="mb-modal__custom-header">
-                            @(this.HeaderContent)
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="mb-modal__heading">
-                            @if (!string.IsNullOrWhiteSpace(this.Title))
-                            {
-                                <h2 id="@(this.GetTitleId())" class="mb-modal__title">@(this.Title)</h2>
-                            }
+                @if (this.HasDescription())
+                {
+                    <BbDialogDescription id="@(this.GetDescriptionId())">
+                        @(this.Description)
+                    </BbDialogDescription>
+                }
+            </BbDialogHeader>
+        }
 
-                            @if (!string.IsNullOrWhiteSpace(this.Description))
-                            {
-                                <p id="@(this.GetDescriptionId())" class="mb-modal__description">@(this.Description)</p>
-                            }
-                        </div>
-                    }
+        @if (this.ShowCloseButton)
+        {
+            <BbDialogClose AsChild="true">
+                <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                          Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                          Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                          Class="absolute right-4 top-4"
+                          AriaLabel="Close dialog"
+                          title="Close dialog"
+                          Disabled="@(this.isClosing)">
+                    <LucideIcon Name="x"
+                                Size="16"
+                                StrokeWidth="1.75"
+                                role="presentation"
+                                aria-hidden="true"
+                                focusable="false" />
+                </BbButton>
+            </BbDialogClose>
+        }
 
-                    @if (this.ShowCloseButton)
-                    {
-                        <div class="mb-modal__close">
-                            <IconButton AriaLabel="Close dialog"
-                                        Title="Close"
-                                        Disabled="@(this.isClosing)"
-                                        OnClick="this.CloseAsync">
-                                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                    <path d="M3.5 3.5L12.5 12.5M12.5 3.5L3.5 12.5"
-                                          stroke="currentColor"
-                                          stroke-linecap="round"
-                                          stroke-width="1.5" />
-                                </svg>
-                            </IconButton>
-                        </div>
-                    }
-                </header>
-            }
+        <div class="min-h-0 overflow-auto">
+            @(this.ChildContent)
+        </div>
 
-            <div class="mb-modal__body">
-                @(this.ChildContent)
-            </div>
-
-            @if (this.FooterContent is not null)
-            {
-                <footer class="mb-modal__footer">
-                    @(this.FooterContent)
-                </footer>
-            }
-        </section>
-    </div>
-}
+        @if (this.FooterContent is not null)
+        {
+            <BbDialogFooter>
+                @(this.FooterContent)
+            </BbDialogFooter>
+        }
+    </BbDialogContent>
+</BbDialog>

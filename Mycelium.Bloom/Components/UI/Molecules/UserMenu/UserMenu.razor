@@ -19,26 +19,30 @@
         Alignment="ActionMenuAlignment.End"
         ItemSelected="this.HandleItemSelectedAsync">
         <TriggerContent>
-            <Avatar
-                Text="@(this.GetAvatarText())"
-                Title="@(this.DisplayName)"
-                BackgroundColor="@(this.AvatarBackgroundColor)"
-                BorderColor="@(this.AvatarBorderColor)"
-                Size="AvatarSize.Small" />
+            <span class="mb-user-menu__avatar-frame"
+                  style="@(this.GetAvatarStyle())"
+                  title="@(this.DisplayName)"
+                  aria-hidden="true">
+                <BbAvatar
+                    Size="BlazorBlueprint.Components.AvatarSize.Small"
+                    Class="mb-user-menu__avatar">
+                    <BbAvatarFallback Class="mb-user-menu__avatar-fallback">
+                        @(this.GetAvatarText())
+                    </BbAvatarFallback>
+                </BbAvatar>
+            </span>
 
             @if (!this.Compact)
             {
                 <span class="mb-user-menu__identity">
-                    <span class="mb-user-menu__name">@this.DisplayName</span>
+                    <span class="mb-user-menu__name" title="@this.DisplayName">@this.DisplayName</span>
 
                     @if (!string.IsNullOrWhiteSpace(this.Subtitle))
                     {
-                        <span class="mb-user-menu__subtitle">@this.Subtitle</span>
+                        <span class="mb-user-menu__subtitle" title="@this.Subtitle">@this.Subtitle</span>
                     }
                 </span>
             }
-
-            <span class="mb-user-menu__chevron" aria-hidden="true">⌄</span>
         </TriggerContent>
     </ActionMenu>
 </div>

@@ -1,10 +1,3 @@
-.mb-confirm-dialog__body {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--mb-spacing-3);
-    min-width: 0;
-}
-
 .mb-confirm-dialog__indicator {
     display: inline-flex;
     align-items: center;
@@ -13,7 +6,7 @@
     width: 28px;
     height: 28px;
     border-radius: var(--mb-radius-md);
-    background: var(--mb-color-neutral-100);
+    background: var(--mb-color-surface-muted);
     color: var(--mb-color-text-secondary);
     font-size: 14px;
     line-height: 1;
@@ -21,29 +14,11 @@
 }
 
 .mb-confirm-dialog__indicator--warning {
-    background: var(--mb-color-warning-50);
-    color: var(--mb-color-warning-700);
+    background: var(--mb-color-warning-surface);
+    color: var(--mb-color-warning-text);
 }
 
 .mb-confirm-dialog__indicator--danger {
-    background: var(--mb-color-danger-50);
-    color: var(--mb-color-danger-700);
-}
-
-.mb-confirm-dialog__description {
-    min-width: 0;
-    margin: var(--mb-spacing-1) 0 0;
-    color: var(--mb-color-text-secondary);
-    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
-    overflow-wrap: anywhere;
-}
-
-.mb-confirm-dialog__footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--mb-spacing-2);
-    width: 100%;
-    min-width: 0;
+    background: var(--mb-color-danger-surface);
+    color: var(--mb-color-danger-text);
 }

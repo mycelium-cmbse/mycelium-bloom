@@ -7,14 +7,11 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using System.Net.Http
-@using System.Net.Http.Json
-@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
-@using Microsoft.AspNetCore.Components.Web.Virtualization
 @using Microsoft.JSInterop
+@using BlazorBlueprint.Components
 @using Mycelium.Bloom
 @using Mycelium.Bloom.Model
 @using Mycelium.Bloom.Model.Enum
@@ -23,30 +20,21 @@
 @using Mycelium.Bloom.Components.UI.Common
 @using Mycelium.Bloom.Components.UI.Common.FieldShell
 @using Mycelium.Bloom.Components.Layout
-@using Mycelium.Bloom.Components.UI.Atoms.Button
-@using Mycelium.Bloom.Components.UI.Atoms.IconButton
-@using Mycelium.Bloom.Components.UI.Atoms.Chip
-@using Mycelium.Bloom.Components.UI.Atoms.Avatar
+@using Mycelium.Bloom.Components.UI.Atoms.BrandMark
+@using Mycelium.Bloom.Components.UI.Atoms.ChevronIcon
 @using Mycelium.Bloom.Components.UI.Atoms.SearchInput
-@using Mycelium.Bloom.Components.UI.Atoms.TextInput
 @using Mycelium.Bloom.Components.UI.Atoms.SelectInput
 @using Mycelium.Bloom.Components.UI.Atoms.TextArea
 @using Mycelium.Bloom.Components.UI.Atoms.Checkbox
-@using Mycelium.Bloom.Components.UI.Atoms.Toggle
-@using Mycelium.Bloom.Components.UI.Atoms.Panel
-@using Mycelium.Bloom.Components.UI.Atoms.SectionHeader
-@using Mycelium.Bloom.Components.UI.Atoms.Skeleton
 @using Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
-@using Mycelium.Bloom.Components.UI.Molecules.EmptyState
-@using Mycelium.Bloom.Components.UI.Molecules.LoadingState
 @using Mycelium.Bloom.Components.UI.Molecules.ModalShell
-@using Mycelium.Bloom.Components.UI.Molecules.NotificationToast
 @using Mycelium.Bloom.Components.UI.Molecules.ActionMenu
-@using Mycelium.Bloom.Components.UI.Molecules.Breadcrumbs
 @using Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher
 @using Mycelium.Bloom.Components.UI.Molecules.SplitButton
-@using Mycelium.Bloom.Components.UI.Molecules.Toolbar
 @using Mycelium.Bloom.Components.UI.Molecules.UserMenu
+@using Mycelium.Bloom.Components.UI.Molecules.ZoomControls
+@using Mycelium.Bloom.Components.UI.Organisms.AppHeader
 @using Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
-@using Mycelium.Bloom.Components.UI.Organisms.ToastContainer
+@using Mycelium.Bloom.Components.UI.Organisms.StatusBar
+@using Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
 @using Mycelium.Bloom.ViewModel.ProjectBrowser

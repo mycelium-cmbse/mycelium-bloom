@@ -1,25 +1,19 @@
 .mb-search-input {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
     width: 160px;
     max-width: 100%;
     min-width: 0;
+}
+
+.mb-search-input ::deep .mb-search-input__control {
+    width: 100%;
     height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--mb-color-component-border);
     border-radius: var(--mb-radius-full);
     background: var(--mb-color-component-soft);
     color: var(--mb-color-component-icon);
-    transition: background-color var(--mb-transition-fast),
-    border-color var(--mb-transition-fast),
-    box-shadow var(--mb-transition-fast);
 }
 
-.mb-search-input:focus-within {
+.mb-search-input:focus-within ::deep .mb-search-input__control {
     background: var(--mb-color-surface);
-    border-color: var(--mb-color-brand-action);
-    box-shadow: 0 0 0 2px var(--mb-color-brand-100);
 }
 
 .mb-search-input--full-width {
@@ -31,53 +25,49 @@
     cursor: not-allowed;
 }
 
-.mb-search-input__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 14px;
-    height: 14px;
+.mb-search-input ::deep .mb-search-input__icon {
+    padding-inline: 10px 0;
     color: var(--mb-color-component-icon);
 }
 
-.mb-search-input__icon > svg,
-.mb-search-input__icon ::deep > svg {
+.mb-search-input ::deep .mb-search-input__icon > svg,
+.mb-search-input ::deep .mb-search-input__icon > :first-child {
     width: 14px;
     height: 14px;
 }
 
-.mb-search-input__field {
+.mb-search-input ::deep .mb-search-input__field {
     min-width: 0;
-    flex: 1 1 auto;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--mb-color-component-text);
-    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    height: 100%;
+    padding-inline: var(--mb-spacing-2);
     font-size: 13px;
     line-height: 16px;
 }
 
-.mb-search-input__field::placeholder {
-    color: var(--mb-color-component-icon);
-}
-
-.mb-search-input__field:disabled {
-    cursor: not-allowed;
-}
-
-.mb-search-input__field::-webkit-search-cancel-button {
+.mb-search-input ::deep .mb-search-input__field::-webkit-search-cancel-button {
     display: none;
 }
 
+.mb-search-input ::deep .mb-search-input__shortcut-addon {
+    padding-inline: 0 6px;
+}
+
 .mb-search-input__shortcut {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
+    min-height: 1.125rem;
+    padding: 0.0625rem 0.3125rem;
+    border: 1px solid var(--mb-color-component-border);
+    border-radius: var(--mb-radius-sm);
+    background: var(--mb-color-surface);
     color: var(--mb-color-component-icon);
-    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 11px;
     line-height: 13px;
     font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 1px 1px color-mix(in srgb, var(--mb-color-component-text) 8%, transparent);
 }
 
 @media (max-width: 640px) {

@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Model
 {
+    using Mycelium.Bloom.Model.Enum;
+
     /// <summary>
     /// Represents an action displayed inside a reusable menu.
     /// </summary>
@@ -33,6 +35,11 @@ namespace Mycelium.Bloom.Model
         /// Gets or sets the optional short icon text.
         /// </summary>
         public string Icon { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets an optional repository-owned SVG symbol.
+        /// </summary>
+        public SymbolIconName? Symbol { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the action is disabled.

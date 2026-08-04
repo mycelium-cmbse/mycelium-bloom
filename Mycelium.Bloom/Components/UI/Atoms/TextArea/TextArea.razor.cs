@@ -50,6 +50,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.TextArea
         public int MaxLength { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the controlled value's character count is displayed.
+        /// </summary>
+        [Parameter]
+        public bool ShowCharacterCount { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the text area is read-only.
         /// </summary>
         [Parameter]
@@ -104,6 +110,54 @@ namespace Mycelium.Bloom.Components.UI.Atoms.TextArea
         private string GetMaxLength()
         {
             return this.MaxLength > 0 ? this.MaxLength.ToString() : null;
+        }
+
+        /// <summary>
+        /// Gets the current controlled value length.
+        /// </summary>
+        /// <returns>The current character count.</returns>
+        private int GetCurrentLength()
+        {
+            return this.Value?.Length ?? 0;
+        }
+
+        /// <summary>
+        /// Gets the character count element identifier.
+        /// </summary>
+        /// <returns>The character count identifier.</returns>
+        private string GetCharacterCountId()
+        {
+            return $"{this.FieldId}-count";
+        }
+
+        /// <summary>
+        /// Gets the accessible character count description.
+        /// </summary>
+        /// <returns>The current count, including the maximum when configured.</returns>
+        private string GetCharacterCountAriaLabel()
+        {
+            return this.MaxLength > 0
+                ? $"{this.GetCurrentLength()} of {this.MaxLength} characters"
+                : $"{this.GetCurrentLength()} characters";
+        }
+
+        /// <summary>
+        /// Gets the identifiers of all descriptions rendered for the text area.
+        /// </summary>
+        /// <returns>The help, error, and optional character-count identifiers.</returns>
+        private string GetDescribedBy()
+        {
+            var descriptionIds = new[]
+            {
+                this.DescribedBy,
+                this.ShowCharacterCount ? this.GetCharacterCountId() : string.Empty
+            };
+
+            var describedBy = string.Join(
+                " ",
+                descriptionIds.Where(descriptionId => !string.IsNullOrWhiteSpace(descriptionId)));
+
+            return string.IsNullOrWhiteSpace(describedBy) ? null : describedBy;
         }
 
         /// <summary>

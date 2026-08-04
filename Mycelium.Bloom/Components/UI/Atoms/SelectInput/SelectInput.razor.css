@@ -1,22 +1,56 @@
 .mb-select-input__control {
     position: relative;
     min-width: 0;
+    overflow: visible;
 }
 
-.mb-select-input__field {
-    padding: 0 34px 0 var(--mb-spacing-3);
+.mb-select-input__control ::deep .mb-select-input__trigger {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: var(--mb-spacing-2);
+    padding-block: 0;
+    padding-inline: var(--mb-spacing-3) var(--mb-spacing-2);
     appearance: none;
+    text-align: start;
+    cursor: pointer;
 }
 
-.mb-select-input__chevron {
-    position: absolute;
-    top: 50%;
-    right: var(--mb-spacing-3);
-    width: 7px;
-    height: 7px;
-    border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor;
+.mb-select-input__control ::deep .mb-select-input__trigger:focus-visible {
+    border-color: var(--mb-color-focus-ring);
+    outline: 0;
+    box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--mb-color-focus-ring) 28%, transparent);
+}
+
+.mb-select-input__control ::deep .mb-select-input__value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-select-input__control ::deep .mb-select-input__value--placeholder {
     color: var(--mb-color-component-icon);
-    pointer-events: none;
-    transform: translateY(-70%) rotate(45deg);
+}
+
+.mb-select-input__control ::deep .mb-select-input__chevron {
+    color: var(--mb-color-component-icon);
+    transition: transform var(--mb-transition-fast);
+}
+
+.mb-select-input--open ::deep .mb-select-input__chevron {
+    transform: rotate(180deg);
+}
+
+.mb-select-input--disabled ::deep .mb-select-input__trigger {
+    background: var(--mb-color-component-soft);
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mb-select-input__control ::deep .mb-select-input__chevron {
+        transition: none;
+    }
 }

@@ -17,6 +17,7 @@
         Items="@(this.ActionItems)"
         Disabled="@(this.Disabled)"
         IsSelectionMenu="true"
+        MatchTriggerWidth="true"
         Alignment="ActionMenuAlignment.Start"
         ItemSelected="this.HandleActionSelectedAsync">
         <TriggerContent>
@@ -27,11 +28,14 @@
             <span class="mb-project-switcher__content">
                 @if (this.GetSelectedProject() is { } selectedProject)
                 {
-                    <span class="mb-project-switcher__name">@selectedProject.Name</span>
+                    <span class="mb-project-switcher__name" title="@selectedProject.Name">@selectedProject.Name</span>
 
                     @if (!string.IsNullOrWhiteSpace(selectedProject.Description))
                     {
-                        <span class="mb-project-switcher__description">@selectedProject.Description</span>
+                        <span class="mb-project-switcher__description"
+                              title="@selectedProject.Description">
+                            @selectedProject.Description
+                        </span>
                     }
                 }
                 else
@@ -39,8 +43,6 @@
                     <span class="mb-project-switcher__placeholder">@this.Placeholder</span>
                 }
             </span>
-
-            <span class="mb-project-switcher__chevron" aria-hidden="true">⌄</span>
         </TriggerContent>
     </ActionMenu>
 </div>

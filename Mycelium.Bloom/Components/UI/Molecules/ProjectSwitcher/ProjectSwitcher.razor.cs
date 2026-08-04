@@ -16,7 +16,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ProjectSwitcher
     using Mycelium.Bloom.Model;
 
     /// <summary>
-    /// Represents a controlled compact project-selection menu.
+    /// Represents a controlled compact project-selection composition backed by a styled Blueprint menu.
     /// </summary>
     public partial class ProjectSwitcher : BloomComponentBase
     {

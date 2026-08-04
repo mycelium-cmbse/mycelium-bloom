@@ -15,6 +15,8 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
 
+    using BlueprintButtonVariant = BlazorBlueprint.Components.ButtonVariant;
+
     /// <summary>
     /// Represents a compact dialog for confirming important actions.
     /// </summary>
@@ -36,6 +38,12 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
         /// </summary>
         [Parameter]
         public EventCallback<bool> IsOpenChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets the stable element that receives focus after the dialog closes.
+        /// </summary>
+        [Parameter]
+        public ElementReference? FocusReturnTarget { get; set; }
 
         /// <summary>
         /// Gets or sets the confirmation dialog title.
@@ -92,19 +100,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
         public EventCallback Cancelled { get; set; }
 
         /// <summary>
-        /// Gets the final CSS class list applied to the dialog shell.
-        /// </summary>
-        /// <returns>The confirmation dialog CSS class list.</returns>
-        private string GetCssClass()
-        {
-            var cssClass = this.BuildRootCssClass(
-                "mb-confirm-dialog",
-                this.GetVariantClass());
-
-            return cssClass;
-        }
-
-        /// <summary>
         /// Gets the final CSS class list applied to the visual indicator.
         /// </summary>
         /// <returns>The indicator CSS class list.</returns>
@@ -113,17 +108,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
             var cssClass = CssClassBuilder.Build(
                 "mb-confirm-dialog__indicator",
                 $"mb-confirm-dialog__indicator--{this.GetVariantName()}");
-
-            return cssClass;
-        }
-
-        /// <summary>
-        /// Gets the CSS class matching the selected confirmation dialog variant.
-        /// </summary>
-        /// <returns>The confirmation dialog variant CSS class.</returns>
-        private string GetVariantClass()
-        {
-            var cssClass = $"mb-confirm-dialog--{this.GetVariantName()}";
 
             return cssClass;
         }
@@ -158,14 +142,14 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ConfirmDialog
         }
 
         /// <summary>
-        /// Gets the visual variant for the confirmation button.
+        /// Gets the Blueprint variant for the confirmation button.
         /// </summary>
-        /// <returns>The confirmation button variant.</returns>
-        private ButtonVariant GetConfirmButtonVariant()
+        /// <returns>The confirmation-button variant.</returns>
+        private BlueprintButtonVariant GetConfirmButtonVariant()
         {
             var buttonVariant = this.Variant == ConfirmDialogVariant.Danger
-                ? ButtonVariant.Danger
-                : ButtonVariant.Primary;
+                ? BlueprintButtonVariant.Destructive
+                : BlueprintButtonVariant.Default;
 
             return buttonVariant;
         }

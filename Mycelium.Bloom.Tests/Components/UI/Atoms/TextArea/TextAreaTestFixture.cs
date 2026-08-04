@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.TextArea
 {
+    using System.Threading.Tasks;
+
     using Bunit;
 
     using TextAreaComponent = Mycelium.Bloom.Components.UI.Atoms.TextArea.TextArea;
@@ -56,17 +58,79 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.TextArea
         }
 
         /// <summary>
+        /// Verifies that the optional character counter is hidden by default.
+        /// </summary>
+        [Test]
+        public void VerifyRenderHidesCharacterCounterByDefault()
+        {
+            var component = this.Render<TextAreaComponent>(parameters => parameters
+                .Add(textArea => textArea.Value, "Review note")
+                .Add(textArea => textArea.MaxLength, 120));
+
+            Assert.That(component.FindAll(".mb-text-area__count"), Is.Empty);
+        }
+
+        /// <summary>
+        /// Verifies that the character counter includes the configured maximum and accessible description.
+        /// </summary>
+        [Test]
+        public void VerifyRenderDisplaysCharacterCounterWithMaximum()
+        {
+            var component = this.Render<TextAreaComponent>(parameters => parameters
+                .Add(textArea => textArea.Id, "review-note")
+                .Add(textArea => textArea.Value, "Review")
+                .Add(textArea => textArea.HelpText, "Keep the note concise.")
+                .Add(textArea => textArea.MaxLength, 120)
+                .Add(textArea => textArea.ShowCharacterCount, true));
+
+            var counter = component.Find("#review-note-count");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(counter.TextContent, Does.Match(@"^\s*6\s*/\s*120\s*$"));
+                Assert.That(counter.GetAttribute("aria-label"), Is.EqualTo("6 of 120 characters"));
+                Assert.That(component.Find("textarea").GetAttribute("aria-describedby"),
+                    Is.EqualTo("review-note-help review-note-count"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the counter derives from the controlled value and omits an unconfigured maximum.
+        /// </summary>
+        [Test]
+        public void VerifyRenderDisplaysControlledCharacterCountWithoutMaximum()
+        {
+            var component = this.Render<TextAreaComponent>(parameters => parameters
+                .Add(textArea => textArea.Id, "summary")
+                .Add(textArea => textArea.Value, "Draft")
+                .Add(textArea => textArea.ShowCharacterCount, true));
+
+            component.Render(parameters => parameters
+                .Add(textArea => textArea.Value, "Approved"));
+
+            var counter = component.Find("#summary-count");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(counter.TextContent.Trim(), Is.EqualTo("8"));
+                Assert.That(counter.GetAttribute("aria-label"), Is.EqualTo("8 characters"));
+                Assert.That(component.Find("textarea").HasAttribute("maxlength"), Is.False);
+                Assert.That(component.Find("textarea").GetAttribute("aria-describedby"), Is.EqualTo("summary-count"));
+            }
+        }
+
+        /// <summary>
         /// Verifies that input updates use the value binding callback.
         /// </summary>
         [Test]
-        public void VerifyInputInvokesValueChanged()
+        public async Task VerifyInputInvokesValueChanged()
         {
             var changedValue = string.Empty;
 
             var component = this.Render<TextAreaComponent>(parameters => parameters
                 .Add(component => component.ValueChanged, value => changedValue = value));
 
-            component.Find("textarea").Input("Updated description");
+            await component.Find("textarea").InputAsync("Updated description");
 
             using (Assert.EnterMultipleScope())
             {

@@ -7,37 +7,80 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-<div class="flex h-full flex-col bg-white">
-    <div class="flex h-14 items-center border-b border-slate-200 px-4">
-        <a href="" class="text-lg font-semibold tracking-tight text-slate-950">
-            Mycelium - Bloom
+@using BlazorBlueprint.Icons.Lucide.Components
+
+<div class="mb-nav-menu">
+    <div class="mb-nav-menu__brand">
+        <a class="mb-nav-menu__brand-link" href="">
+            <span class="mb-nav-menu__brand-mark" aria-hidden="true">
+                <BrandMark />
+            </span>
+            <span>Mycelium - Bloom</span>
         </a>
+
+        <button type="button"
+                class="mb-nav-menu__toggle"
+                aria-label="@(this.IsExpanded ? "Close primary navigation" : "Open primary navigation")"
+                aria-expanded="@(this.IsExpanded ? "true" : "false")"
+                aria-controls="bloom-primary-navigation"
+                @onclick="this.ToggleNavigation">
+            <LucideIcon Name="@(this.IsExpanded ? "x" : "menu")"
+                        Size="16"
+                        StrokeWidth="1.75"
+                        Class="mb-nav-menu__icon"
+                        role="presentation"
+                        aria-hidden="true"
+                        focusable="false" />
+        </button>
     </div>
 
-    <nav class="flex-1 space-y-1 overflow-y-auto p-3">
+    <nav id="bloom-primary-navigation"
+         class="@(this.GetLinksCssClass())"
+         aria-label="Primary navigation">
         <NavLink
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
-            ActiveClass="bg-slate-900 text-white hover:bg-slate-900 hover:text-white"
+            class="mb-nav-menu__link"
+            ActiveClass="mb-nav-menu__link--active"
             href=""
-            Match="NavLinkMatch.All">
-            <span aria-hidden="true">🏠</span>
-            <span>Home</span>
+            Match="NavLinkMatch.All"
+            @onclick="this.CloseNavigation">
+            <LucideIcon Name="house"
+                        Size="16"
+                        StrokeWidth="1.75"
+                        Class="mb-nav-menu__icon"
+                        role="presentation"
+                        aria-hidden="true"
+                        focusable="false" />
+            <span class="mb-nav-menu__label">Home</span>
         </NavLink>
 
         <NavLink
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
-            ActiveClass="bg-slate-900 text-white hover:bg-slate-900 hover:text-white"
-            href="design-system">
-            <span aria-hidden="true">🧩</span>
-            <span>Design System</span>
+            class="mb-nav-menu__link"
+            ActiveClass="mb-nav-menu__link--active"
+            href="design-system"
+            @onclick="this.CloseNavigation">
+            <LucideIcon Name="grid-2x2"
+                        Size="16"
+                        StrokeWidth="1.75"
+                        Class="mb-nav-menu__icon"
+                        role="presentation"
+                        aria-hidden="true"
+                        focusable="false" />
+            <span class="mb-nav-menu__label">Design System</span>
         </NavLink>
 
         <NavLink
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
-            ActiveClass="bg-slate-900 text-white hover:bg-slate-900 hover:text-white"
-            href="ModelLoaderTest">
-            <span aria-hidden="true">📄</span>
-            <span>Model Loader Test</span>
+            class="mb-nav-menu__link"
+            ActiveClass="mb-nav-menu__link--active"
+            href="ModelLoaderTest"
+            @onclick="this.CloseNavigation">
+            <LucideIcon Name="file-text"
+                        Size="16"
+                        StrokeWidth="1.75"
+                        Class="mb-nav-menu__icon"
+                        role="presentation"
+                        aria-hidden="true"
+                        focusable="false" />
+            <span class="mb-nav-menu__label">Model Loader Test</span>
         </NavLink>
     </nav>
 </div>

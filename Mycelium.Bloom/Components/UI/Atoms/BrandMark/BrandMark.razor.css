@@ -1,0 +1,9 @@
+.mb-brand-mark {
+    display: block;
+    flex: 0 0 auto;
+    width: 1em;
+    height: auto;
+    aspect-ratio: 475 / 342;
+    object-fit: contain;
+    user-select: none;
+}

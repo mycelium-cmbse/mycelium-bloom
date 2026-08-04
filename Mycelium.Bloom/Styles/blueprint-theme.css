@@ -1,0 +1,29 @@
+:root {
+    /*
+       Blazor Blueprint Components semantic bridge.
+       Bloom tokens remain authoritative for styled components and portalled
+       overlays in both light and dark document themes.
+    */
+    --background: var(--mb-color-background);
+    --foreground: var(--mb-color-text-primary);
+    --card: var(--mb-color-surface);
+    --card-foreground: var(--mb-color-text-primary);
+    --popover: var(--mb-color-popover);
+    --popover-foreground: var(--mb-color-text-primary);
+    --primary: var(--mb-color-action-primary);
+    --primary-foreground: var(--mb-color-action-primary-foreground);
+    --secondary: var(--mb-color-surface-muted);
+    --secondary-foreground: var(--mb-color-text-primary);
+    --muted: var(--mb-color-surface-muted);
+    --muted-foreground: var(--mb-color-text-muted);
+    --accent: var(--mb-color-surface-selected);
+    --accent-foreground: var(--mb-color-text-primary);
+    --destructive: var(--mb-color-danger-action);
+    --destructive-foreground: var(--mb-color-danger-action-foreground);
+    --border: var(--mb-color-border);
+    --input: var(--mb-color-input-border);
+    --ring: var(--mb-color-focus-ring);
+    --radius: var(--mb-radius-control);
+    --font-sans: var(--mb-font-family-sans);
+    --font-mono: var(--mb-font-family-mono);
+}

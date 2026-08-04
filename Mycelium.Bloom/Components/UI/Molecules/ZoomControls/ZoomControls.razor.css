@@ -1,0 +1,69 @@
+.mb-zoom-controls {
+    --mb-zoom-controls-inset: 0.125rem;
+    --mb-zoom-controls-min-height: 2.125rem;
+    --mb-zoom-controls-action-size: 1.75rem;
+    --mb-zoom-controls-compact-min-height: 1.875rem;
+    --mb-zoom-controls-compact-action-size: 1.625rem;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    min-height: var(--mb-zoom-controls-min-height);
+    padding: var(--mb-zoom-controls-inset);
+    border: 1px solid var(--mb-color-border-subtle);
+    border-radius: var(--mb-radius-control);
+    background: var(--mb-color-toolbar-background);
+    color: var(--mb-color-component-text);
+    box-shadow: none;
+}
+
+.mb-zoom-controls ::deep .mb-zoom-controls__action {
+    width: var(--mb-zoom-controls-action-size);
+    height: var(--mb-zoom-controls-action-size);
+    padding: 0;
+    border-radius: var(--mb-radius-sm);
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    font-weight: 600;
+}
+
+.mb-zoom-controls ::deep .mb-zoom-controls__action:hover:not(:disabled) {
+    background: var(--mb-color-surface-hover);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-zoom-controls__value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    min-width: 3.25rem;
+    height: var(--mb-zoom-controls-action-size);
+    padding-inline: var(--mb-spacing-1);
+    color: var(--mb-color-text-primary);
+    font-family: var(--mb-font-family-mono), monospace;
+    font-size: var(--mb-font-size-mono-xs);
+    line-height: var(--mb-line-height-mono-xs);
+    font-weight: var(--mb-font-weight-mono-xs);
+    white-space: nowrap;
+}
+
+.mb-zoom-controls--compact {
+    min-height: var(--mb-zoom-controls-compact-min-height);
+    padding: 1px;
+}
+
+.mb-zoom-controls--compact ::deep .mb-zoom-controls__action {
+    width: var(--mb-zoom-controls-compact-action-size);
+    height: var(--mb-zoom-controls-compact-action-size);
+}
+
+.mb-zoom-controls--compact .mb-zoom-controls__value {
+    width: 3.25rem;
+    min-width: 3.25rem;
+    height: var(--mb-zoom-controls-compact-action-size);
+}

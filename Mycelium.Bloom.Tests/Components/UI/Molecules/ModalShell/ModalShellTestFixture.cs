@@ -9,15 +9,21 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
 {
+    using System;
+    using System.Linq;
     using System.Threading.Tasks;
+
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
-    using Microsoft.AspNetCore.Components.Web;
+    using Microsoft.AspNetCore.Components;
+    using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.Tests.Common;
 
-    using IconButtonComponent = Mycelium.Bloom.Components.UI.Atoms.IconButton.IconButton;
     using ModalShellComponent = Mycelium.Bloom.Components.UI.Molecules.ModalShell.ModalShell;
 
     /// <summary>
@@ -27,13 +33,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ModalShellTestFixture : BunitContext
     {
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
+        private readonly RecordingFocusManager focusManager = new();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ModalShellTestFixture" /> class.
+        /// </summary>
+        public ModalShellTestFixture()
+        {
+            BlueprintTestSetup.Configure(this);
+            this.Services.AddSingleton<IFocusManager>(this.focusManager);
+            this.portalHost = this.Render<BbPortalHost>();
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public System.Threading.Tasks.Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
@@ -46,7 +66,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
                 .Add(component => component.IsOpen, false)
                 .AddChildContent("Dialog content"));
 
-            Assert.That(component.FindAll("[role='dialog']"), Is.Empty);
+            Assert.That(this.portalHost.FindAll("[role='dialog']"), Is.Empty);
         }
 
         /// <summary>
@@ -55,20 +75,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         [Test]
         public void VerifyOpenModalRendersNamedContent()
         {
-            var component = this.Render<ModalShellComponent>(parameters => parameters
+            _ = this.Render<ModalShellComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Title, "Edit selection")
                 .Add(component => component.Description, "Update the selected item.")
-                .Add(component => component.HeaderContent, "<span class='custom-header'>Custom header</span>")
                 .AddChildContent("<div class='custom-body'>Body</div>")
                 .Add(component => component.FooterContent, "<span class='custom-footer'>Footer</span>"));
 
+            var dialog = this.portalHost.WaitForElement("[role='dialog']");
+            var titleId = dialog.GetAttribute("aria-labelledby");
+            var descriptionId = dialog.GetAttribute("aria-describedby");
+
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find("[role='dialog']").GetAttribute("aria-label"), Is.EqualTo("Edit selection"));
-                Assert.That(component.Find(".custom-header").TextContent, Is.EqualTo("Custom header"));
-                Assert.That(component.Find(".custom-body").TextContent, Is.EqualTo("Body"));
-                Assert.That(component.Find(".custom-footer").TextContent, Is.EqualTo("Footer"));
+                Assert.That(dialog.GetAttribute("aria-label"), Is.Null);
+                Assert.That(this.portalHost.Find($"#{titleId}").TextContent, Is.EqualTo("Edit selection"));
+                Assert.That(this.portalHost.Find($"#{descriptionId}").TextContent, Is.EqualTo("Update the selected item."));
+                Assert.That(this.portalHost.Find(".custom-body").TextContent, Is.EqualTo("Body"));
+                Assert.That(this.portalHost.Find(".custom-footer").TextContent, Is.EqualTo("Footer"));
             }
         }
 
@@ -78,22 +102,52 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         [Test]
         public void VerifyConfiguredIdLabelsDefaultHeadingContent()
         {
-            var component = this.Render<ModalShellComponent>(parameters => parameters
+            _ = this.Render<ModalShellComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Id, "edit-dialog")
                 .Add(component => component.Title, "Edit selection")
                 .Add(component => component.Description, "Update the selected item.")
                 .Add(component => component.ShowCloseButton, false));
 
-            var dialog = component.Find("[role='dialog']");
+            var dialog = this.portalHost.WaitForElement("[role='dialog']");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(dialog.Id, Is.EqualTo("edit-dialog"));
                 Assert.That(dialog.GetAttribute("aria-labelledby"), Is.EqualTo("edit-dialog-title"));
                 Assert.That(dialog.GetAttribute("aria-describedby"), Is.EqualTo("edit-dialog-description"));
-                Assert.That(component.Find("#edit-dialog-title").TextContent, Is.EqualTo("Edit selection"));
-                Assert.That(component.Find("#edit-dialog-description").TextContent, Is.EqualTo("Update the selected item."));
+                Assert.That(this.portalHost.Find("#edit-dialog-title").TextContent, Is.EqualTo("Edit selection"));
+                Assert.That(this.portalHost.Find("#edit-dialog-description").TextContent, Is.EqualTo("Update the selected item."));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that multiple modal instances own unique accessible relationships.
+        /// </summary>
+        [Test]
+        public void VerifyMultipleInstancesGenerateUniqueAccessibleRelationships()
+        {
+            _ = this.Render<ModalShellComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.Title, "First dialog")
+                .Add(component => component.Description, "First description"));
+            _ = this.Render<ModalShellComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.Title, "Second dialog")
+                .Add(component => component.Description, "Second description"));
+
+            var dialogs = this.portalHost.WaitForElements("[role='dialog']", 2);
+            var titleIds = dialogs.Select(dialog => dialog.GetAttribute("aria-labelledby")).ToArray();
+            var descriptionIds = dialogs.Select(dialog => dialog.GetAttribute("aria-describedby")).ToArray();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(titleIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
+                Assert.That(titleIds, Is.Unique);
+                Assert.That(descriptionIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
+                Assert.That(descriptionIds, Is.Unique);
+                Assert.That(titleIds.All(id => this.portalHost.FindAll($"#{id}").Count == 1), Is.True);
+                Assert.That(descriptionIds.All(id => this.portalHost.FindAll($"#{id}").Count == 1), Is.True);
             }
         }
 
@@ -101,23 +155,67 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         /// Verifies that the close button invokes both close callbacks.
         /// </summary>
         [Test]
-        public void VerifyCloseButtonInvokesCloseBehavior()
+        public async Task VerifyCloseButtonInvokesCloseBehavior()
         {
             var changedState = true;
             var closeCount = 0;
 
-            var component = this.Render<ModalShellComponent>(parameters => parameters
+            _ = this.Render<ModalShellComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Title, "Dialog")
                 .Add(component => component.IsOpenChanged, (bool isOpen) => changedState = isOpen)
                 .Add(component => component.OnClose, () => closeCount++));
 
-            component.Find("button[aria-label='Close dialog']").Click();
+            var closeButton = this.portalHost.WaitForElement("button[aria-label='Close dialog']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(closeButton.GetAttribute("title"), Is.EqualTo("Close dialog"));
+                Assert.That(this.portalHost.FindAll("[role='tooltip']"), Is.Empty);
+            }
+
+            await closeButton.ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(changedState, Is.False);
                 Assert.That(closeCount, Is.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that controlled closing restores the per-open-cycle focus target and supports reopening.
+        /// </summary>
+        [Test]
+        public void VerifyControlledCloseRestoresFocusAndSupportsReopening()
+        {
+            ElementReference focusReturnTarget = default;
+
+            var component = this.Render<ModalShellComponent>(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.FocusReturnTarget, focusReturnTarget)
+                .Add(component => component.ShowCloseButton, false));
+
+            component.Render(parameters => parameters
+                .Add(component => component.IsOpen, false)
+                .Add(component => component.FocusReturnTarget, focusReturnTarget)
+                .Add(component => component.ShowCloseButton, false));
+
+            Assert.That(this.focusManager.RestoreFocusCallCount, Is.EqualTo(1));
+
+            component.Render(parameters => parameters
+                .Add(component => component.IsOpen, true)
+                .Add(component => component.FocusReturnTarget, focusReturnTarget)
+                .Add(component => component.ShowCloseButton, false));
+            component.Render(parameters => parameters
+                .Add(component => component.IsOpen, false)
+                .Add(component => component.FocusReturnTarget, focusReturnTarget)
+                .Add(component => component.ShowCloseButton, false));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.focusManager.RestoreFocusCallCount, Is.EqualTo(2));
+                Assert.That(this.portalHost.FindAll("[role='dialog']"), Is.Empty);
             }
         }
 
@@ -143,19 +241,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
                 })
                 .Add(component => component.OnClose, () => closeCount++));
 
-            var closeButton = component.FindComponent<IconButtonComponent>();
-            var closeAction = closeButton.Instance.OnClick;
-            var firstClose = component.InvokeAsync(() => closeAction.InvokeAsync(new MouseEventArgs()));
+            var firstClose = this.portalHost.WaitForElement("button[aria-label='Close dialog']").ClickAsync();
 
             await callbackStarted.Task;
 
-            closeButton = component.FindComponent<IconButtonComponent>();
-            Assert.That(closeButton.Instance.Disabled, Is.True);
+            var closeButton = this.portalHost.Find("button[aria-label='Close dialog']");
+            Assert.That(closeButton.HasAttribute("disabled"), Is.True);
 
-            var repeatedClose = component.InvokeAsync(() => closeAction.InvokeAsync(new MouseEventArgs()));
+            closeButton.Click();
 
             releaseCallback.SetResult();
-            await Task.WhenAll(firstClose, repeatedClose);
+            await firstClose;
+
+            component.WaitForAssertion(() => Assert.That(closeCount, Is.EqualTo(1)));
 
             using (Assert.EnterMultipleScope())
             {
@@ -165,24 +263,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         }
 
         /// <summary>
-        /// Verifies that a backdrop click follows the configured close behavior.
+        /// Verifies that backdrop dismissal policy is mapped to the styled Blueprint dialog.
         /// </summary>
         /// <param name="closeOnBackdropClick">A value indicating whether backdrop closing is enabled.</param>
-        /// <param name="expectedCloseCount">The expected callback invocation count.</param>
-        [TestCase(true, 1)]
-        [TestCase(false, 0)]
-        public void VerifyBackdropClickFollowsConfiguration(bool closeOnBackdropClick, int expectedCloseCount)
+        [TestCase(true)]
+        [TestCase(false)]
+        public void VerifyBackdropDismissalPolicy(bool closeOnBackdropClick)
         {
-            var closeCount = 0;
-
             var component = this.Render<ModalShellComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
-                .Add(component => component.CloseOnBackdropClick, closeOnBackdropClick)
-                .Add(component => component.OnClose, () => closeCount++));
+                .Add(component => component.CloseOnBackdropClick, closeOnBackdropClick));
 
-            component.Find(".mb-modal__backdrop").Click();
+            var dialogContent = component.FindComponent<BbDialogContent>();
 
-            Assert.That(closeCount, Is.EqualTo(expectedCloseCount));
+            Assert.That(dialogContent.Instance.CloseOnOverlayClick, Is.EqualTo(closeOnBackdropClick));
         }
 
         /// <summary>
@@ -190,17 +284,59 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         /// </summary>
         /// <param name="size">The modal size.</param>
         /// <param name="expectedCssClass">The expected CSS class.</param>
-        [TestCase(ModalSize.Small, "mb-modal__panel--small")]
-        [TestCase(ModalSize.Medium, "mb-modal__panel--medium")]
-        [TestCase(ModalSize.Large, "mb-modal__panel--large")]
-        [TestCase(ModalSize.Wide, "mb-modal__panel--wide")]
+        [TestCase(ModalSize.Small, "max-w-[22.5rem]")]
+        [TestCase(ModalSize.Medium, "max-w-[30rem]")]
+        [TestCase(ModalSize.Large, "max-w-[40rem]")]
+        [TestCase(ModalSize.Wide, "max-w-[52.5rem]")]
         public void VerifySelectedSizeRendersExpectedClass(ModalSize size, string expectedCssClass)
         {
-            var component = this.Render<ModalShellComponent>(parameters => parameters
+            _ = this.Render<ModalShellComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Size, size));
 
-            Assert.That(component.Find("[role='dialog']").GetAttribute("class"), Does.Contain(expectedCssClass));
+            Assert.That(this.portalHost.WaitForElement("[role='dialog']").GetAttribute("class"), Does.Contain(expectedCssClass));
+        }
+
+        private sealed class RecordingFocusManager : IFocusManager
+        {
+            /// <summary>
+            /// Gets the number of focus-restoration requests.
+            /// </summary>
+            internal int RestoreFocusCallCount { get; private set; }
+
+            /// <inheritdoc />
+            public Task<IAsyncDisposable> TrapFocus(ElementReference container)
+            {
+                return Task.FromResult<IAsyncDisposable>(new EmptyAsyncDisposable());
+            }
+
+            /// <inheritdoc />
+            public Task RestoreFocus(ElementReference? previousElement)
+            {
+                this.RestoreFocusCallCount++;
+                return Task.CompletedTask;
+            }
+
+            /// <inheritdoc />
+            public Task FocusFirst(ElementReference container)
+            {
+                return Task.CompletedTask;
+            }
+
+            /// <inheritdoc />
+            public Task FocusLast(ElementReference container)
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        private sealed class EmptyAsyncDisposable : IAsyncDisposable
+        {
+            /// <inheritdoc />
+            public ValueTask DisposeAsync()
+            {
+                return ValueTask.CompletedTask;
+            }
         }
     }
 }

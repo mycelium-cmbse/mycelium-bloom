@@ -9,43 +9,46 @@
 
 @inherits BloomComponentBase
 
+@using BlazorBlueprint.Components
+
 <ModalShell IsOpen="@(this.IsOpen)"
             IsOpenChanged="this.IsOpenChanged"
             Title="@(this.Title)"
+            Description="@(this.Description)"
+            FocusReturnTarget="@(this.FocusReturnTarget)"
             Size="ModalSize.Small"
             ShowCloseButton="false"
             CloseOnBackdropClick="false"
-            Class="@(this.GetCssClass())"
+            Class="@(this.Class)"
             @attributes="this.AdditionalAttributes">
     <ChildContent>
-        <div class="mb-confirm-dialog__body">
-            <span class="@(this.GetIndicatorCssClass())" aria-hidden="true">
-                @(this.GetIndicatorText())
-            </span>
-
-            @if (!string.IsNullOrWhiteSpace(this.Description))
-            {
-                <p class="mb-confirm-dialog__description">@(this.Description)</p>
-            }
-        </div>
+        <span class="@(this.GetIndicatorCssClass())"
+              role="@(this.IsActionInProgress() ? "status" : null)"
+              aria-label="@(this.IsActionInProgress() ? "Confirmation in progress" : null)"
+              aria-hidden="@(this.IsActionInProgress() ? null : "true")"
+              tabindex="@(this.IsActionInProgress() ? "0" : null)">
+            @(this.GetIndicatorText())
+        </span>
     </ChildContent>
 
     <FooterContent>
-        <div class="mb-confirm-dialog__footer">
-            <Button Variant="ButtonVariant.Secondary"
-                    Size="ButtonSize.Small"
-                    Disabled="@(this.IsActionInProgress())"
-                    OnClick="this.HandleCancelAsync">
-                @(this.CancelText)
-            </Button>
+        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                  Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                  Size="BlazorBlueprint.Components.ButtonSize.Small"
+                  Disabled="@(this.IsActionInProgress())"
+                  OnClick="this.HandleCancelAsync">
+            @(this.CancelText)
+        </BbButton>
 
-            <Button Variant="@(this.GetConfirmButtonVariant())"
-                    Size="ButtonSize.Small"
-                    Disabled="@(this.IsActionInProgress())"
-                    IsLoading="@(this.IsActionInProgress())"
-                    OnClick="this.HandleConfirmAsync">
-                @(this.ConfirmText)
-            </Button>
-        </div>
+        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                  Variant="@(this.GetConfirmButtonVariant())"
+                  Size="BlazorBlueprint.Components.ButtonSize.Small"
+                  Disabled="@(this.IsActionInProgress())"
+                  Loading="@(this.IsActionInProgress())"
+                  LoadingText="@(this.ConfirmText)"
+                  aria-busy="@(this.IsActionInProgress() ? "true" : "false")"
+                  OnClick="this.HandleConfirmAsync">
+            @(this.ConfirmText)
+        </BbButton>
     </FooterContent>
 </ModalShell>

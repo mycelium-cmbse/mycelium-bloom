@@ -1,0 +1,61 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="AppHeader.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<header class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+    @if (this.BrandContent is not null)
+    {
+        <div class="mb-app-header__brand">
+            @(this.BrandContent)
+        </div>
+    }
+
+    @if (this.NavigationContent is not null)
+    {
+        <nav class="mb-app-header__navigation" aria-label="@(this.NavigationAriaLabel)">
+            @(this.NavigationContent)
+        </nav>
+    }
+
+    @if (this.ContextContent is not null)
+    {
+        <div class="mb-app-header__context">
+            @(this.ContextContent)
+        </div>
+    }
+
+    @if (this.ProjectContent is not null)
+    {
+        <div class="mb-app-header__project">
+            @(this.ProjectContent)
+        </div>
+    }
+
+    @if (this.CenterContent is not null)
+    {
+        <div class="mb-app-header__center">
+            @(this.CenterContent)
+        </div>
+    }
+
+    @if (this.ActionsContent is not null)
+    {
+        <div class="mb-app-header__actions">
+            @(this.ActionsContent)
+        </div>
+    }
+
+    @if (this.UserContent is not null)
+    {
+        <div class="mb-app-header__user">
+            @(this.UserContent)
+        </div>
+    }
+</header>

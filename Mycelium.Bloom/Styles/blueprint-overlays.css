@@ -1,0 +1,77 @@
+/*
+   Portal-safe SelectInput presentation for the Blueprint 3.14.1 Select
+   primitive. Every rule in this file belongs to SelectInput content rendered
+   outside the component's CSS-isolation boundary. The file remains unlayered
+   so these consumer-owned classes win over Tailwind's layered reset without
+   undocumented Blueprint selectors or priority hacks.
+*/
+
+.mb-select-input__listbox {
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    min-width: min(11.5rem, calc(100vw - (2 * var(--mb-spacing-4))));
+    max-width: min(24rem, calc(100vw - (2 * var(--mb-spacing-4))));
+    max-height: min(20rem, calc(100dvh - (2 * var(--mb-spacing-6))));
+    padding: var(--mb-spacing-1);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--mb-color-border);
+    border-radius: var(--mb-radius-control);
+    background: var(--mb-color-popover);
+    box-shadow: var(--mb-shadow-md);
+    color: var(--mb-color-component-text);
+}
+
+.mb-select-input__listbox:focus-visible {
+    outline: none;
+}
+
+.mb-select-input__option {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.25rem;
+    border: 0;
+    border-radius: var(--mb-radius-sm);
+    background: transparent;
+    color: var(--mb-color-component-text);
+    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    text-align: start;
+    display: flex;
+    align-items: center;
+    padding: 0.4375rem 0.5rem;
+}
+
+.mb-select-input__option:hover:not([aria-disabled="true"]),
+.mb-select-input__option:focus-visible,
+.mb-select-input__option[data-focused="true"]:not([aria-disabled="true"]) {
+    outline: none;
+    background: var(--mb-color-surface-hover);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-select-input__option[aria-selected="true"] {
+    background: var(--mb-color-surface-selected);
+    color: var(--mb-color-action-primary);
+    font-weight: 600;
+}
+
+.mb-select-input__option[aria-disabled="true"] {
+    color: var(--mb-color-text-disabled);
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.mb-select-input__option-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mb-select-input__listbox {
+        animation: none;
+        transition: none;
+    }
+}

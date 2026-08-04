@@ -1,3 +1,9 @@
+.mb-text-area__control {
+    display: grid;
+    gap: var(--mb-spacing-1);
+    min-width: 0;
+}
+
 .mb-text-area__field {
     min-height: 72px;
     padding: var(--mb-spacing-2) var(--mb-spacing-3);
@@ -6,4 +12,12 @@
 
 .mb-text-area__field--fixed {
     resize: none;
+}
+
+.mb-text-area__count {
+    justify-self: end;
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-body-sm);
+    line-height: var(--mb-line-height-body-sm);
+    font-variant-numeric: tabular-nums;
 }

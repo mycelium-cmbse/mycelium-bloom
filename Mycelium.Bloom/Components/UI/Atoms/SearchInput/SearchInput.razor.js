@@ -1,48 +1,77 @@
-﻿let keydownHandler;
+const registrations = new Map();
 
-// Called from SearchInput.razor.cs through JS interop.
-export function registerSearchShortcut(inputId, shortcut) {
-    disposeSearchShortcut();
+let documentKeydownHandler;
 
-    const shortcutKey = (shortcut?.key ?? "k").toLowerCase();
-    const requiresControlOrMeta = shortcut?.requiresControlOrMeta ?? true;
-    const requiresAlt = shortcut?.requiresAlt ?? false;
-    const requiresShift = shortcut?.requiresShift ?? false;
+// Called from SearchInput.razor.cs through JS interop. Re-inserting an existing
+// registration moves it to the newest position without affecting other inputs.
+export function registerSearchShortcut(registrationId, inputId, shortcut) {
+    registrations.delete(registrationId);
+    registrations.set(registrationId, {
+        inputId,
+        key: (shortcut?.key ?? "k").toLowerCase(),
+        requiresControlOrMeta: shortcut?.requiresControlOrMeta ?? true,
+        requiresAlt: shortcut?.requiresAlt ?? false,
+        requiresShift: shortcut?.requiresShift ?? false
+    });
 
-    keydownHandler = function (event) {
-        const key = event.key?.toLowerCase();
-        const hasControlOrMeta = event.ctrlKey || event.metaKey;
+    ensureDocumentHandler();
+}
 
-        const matchesControlOrMeta = requiresControlOrMeta
-            ? hasControlOrMeta
-            : !hasControlOrMeta;
+export function disposeSearchShortcut(registrationId) {
+    registrations.delete(registrationId);
 
-        const isSearchShortcut = key === shortcutKey
-            && matchesControlOrMeta
-            && event.altKey === requiresAlt
-            && event.shiftKey === requiresShift;
+    if (registrations.size === 0 && documentKeydownHandler) {
+        document.removeEventListener("keydown", documentKeydownHandler, true);
+        documentKeydownHandler = undefined;
+    }
+}
 
-        if (!isSearchShortcut) {
-            return;
+function ensureDocumentHandler() {
+    if (documentKeydownHandler) {
+        return;
+    }
+
+    documentKeydownHandler = handleDocumentKeyDown;
+    document.addEventListener("keydown", documentKeydownHandler, true);
+}
+
+function handleDocumentKeyDown(event) {
+    if (event.defaultPrevented) {
+        return;
+    }
+
+    const registrationList = Array.from(registrations.values());
+
+    for (let index = registrationList.length - 1; index >= 0; index--) {
+        const registration = registrationList[index];
+
+        if (!matchesShortcut(event, registration)) {
+            continue;
+        }
+
+        const input = document.getElementById(registration.inputId);
+
+        if (!(input instanceof HTMLInputElement) || input.disabled) {
+            continue;
         }
 
         event.preventDefault();
         event.stopPropagation();
+        input.focus({preventScroll: true});
+        input.select();
 
-        const input = document.getElementById(inputId);
-
-        if (input instanceof HTMLInputElement) {
-            input.focus({preventScroll: true});
-            input.select();
-        }
-    };
-
-    document.addEventListener("keydown", keydownHandler, true);
+        return;
+    }
 }
 
-export function disposeSearchShortcut() {
-    if (keydownHandler) {
-        document.removeEventListener("keydown", keydownHandler, true);
-        keydownHandler = undefined;
-    }
+function matchesShortcut(event, registration) {
+    const hasControlOrMeta = event.ctrlKey || event.metaKey;
+    const matchesControlOrMeta = registration.requiresControlOrMeta
+        ? hasControlOrMeta
+        : !hasControlOrMeta;
+
+    return event.key?.toLowerCase() === registration.key
+        && matchesControlOrMeta
+        && event.altKey === registration.requiresAlt
+        && event.shiftKey === registration.requiresShift;
 }

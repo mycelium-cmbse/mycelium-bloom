@@ -19,7 +19,7 @@
 
 .mb-field-shell__required,
 .mb-field-shell__error {
-    color: var(--mb-color-danger-700);
+    color: var(--mb-color-danger-text);
 }
 
 .mb-field-shell__help,
@@ -57,16 +57,16 @@
 .mb-field-shell ::deep .mb-field-control:focus,
 .mb-field-shell ::deep .mb-field-control:focus-within {
     border-color: var(--mb-color-focus-ring);
-    box-shadow: 0 0 0 2px var(--mb-color-brand-100);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mb-color-focus-ring) 28%, transparent);
 }
 
 .mb-field-shell--error ::deep .mb-field-control {
-    border-color: var(--mb-color-danger-500);
+    border-color: var(--mb-color-danger-border);
 }
 
 .mb-field-shell--error ::deep .mb-field-control:focus,
 .mb-field-shell--error ::deep .mb-field-control:focus-within {
-    box-shadow: 0 0 0 2px var(--mb-color-danger-50);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mb-color-danger-border) 28%, transparent);
 }
 
 .mb-field-shell--readonly ::deep .mb-field-control {

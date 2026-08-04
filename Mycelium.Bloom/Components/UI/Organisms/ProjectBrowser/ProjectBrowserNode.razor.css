@@ -3,7 +3,7 @@
 }
 
 .mb-project-browser-node__row {
-    --mb-project-browser-node-element-color: var(--mb-color-neutral-600);
+    --mb-project-browser-node-element-color: var(--mb-color-text-secondary);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -21,15 +21,15 @@
 }
 
 .mb-project-browser-node__row:hover {
-    background: var(--mb-color-neutral-100);
+    background: var(--mb-color-model-tree-hover);
 }
 
 .mb-project-browser-node__row--selected {
-    background: var(--mb-color-brand-50);
+    background: var(--mb-color-model-tree-selected);
 }
 
 .mb-project-browser-node__row--selected .mb-project-browser-node__title {
-    color: var(--mb-color-brand-700);
+    color: var(--mb-color-action-primary);
     font-weight: 500;
 }
 

@@ -24,22 +24,37 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
+        <Content Include="..\NOTICE" Link="NOTICE">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="Components\Core\"/>
-        <Folder Include="Components\Features\Auth\"/>
-        <Folder Include="Components\Features\Dashboard\"/>
-        <Folder Include="Components\Features\Projects\"/>
-        <Folder Include="Components\UI\Shared\"/>
-        <Folder Include="Components\UI\Templates\"/>
-        <Folder Include="wwwroot\css\"/>
+        <Folder Include="Components\Core\" />
+        <Folder Include="Components\Features\Auth\" />
+        <Folder Include="Components\Features\Dashboard\" />
+        <Folder Include="Components\Features\Projects\" />
+        <Folder Include="Components\UI\Shared\" />
+        <Folder Include="Components\UI\Templates\" />
+        <Folder Include="wwwroot\css\" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OpenTelemetry" Version="1.16.0"/>
-        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.16.0"/>
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0"/>
-        <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.22.0"/>
+        <!--
+          Blueprint Components 3.14.1 compatibility exceptions are deliberately narrow:
+          SelectInput bridges verified keyboard, ARIA, and Tab-order limitations; SplitButton bridges the verified
+          Enter-key limitation. TextArea and Checkbox remain native because Blueprint cannot preserve their required
+          contracts. Direct Primitive TabsList and TabsTrigger use is localized for verified accessibility gaps.
+          Bloom has no production Tooltip implementation because Escape dismissal and description relationships are
+          incomplete. Reassess only these exceptions after upgrading Blueprint.
+        -->
+        <PackageReference Include="BlazorBlueprint.Components" Version="3.14.1" />
+        <!-- Intentionally direct: selects the security-reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when Blueprint is upgraded. -->
+        <PackageReference Include="HtmlSanitizer" Version="9.1.973" />
+        <PackageReference Include="OpenTelemetry" Version="1.17.0" />
+        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+        <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.22.0" />
     </ItemGroup>
 
 </Project>

@@ -9,6 +9,9 @@
 
 namespace Mycelium.Bloom.Components.UI.Molecules.SplitButton
 {
+    using BlueprintButtonSize = BlazorBlueprint.Components.ButtonSize;
+    using BlueprintButtonVariant = BlazorBlueprint.Components.ButtonVariant;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
 
@@ -120,6 +123,34 @@ namespace Mycelium.Bloom.Components.UI.Molecules.SplitButton
                 ButtonSize.Small => "mb-split-button--small",
                 ButtonSize.Large => "mb-split-button--large",
                 _ => "mb-split-button--medium"
+            };
+        }
+
+        /// <summary>
+        /// Gets the styled Blueprint variant matching Bloom's public contract.
+        /// </summary>
+        /// <returns>The Blueprint button variant.</returns>
+        private BlueprintButtonVariant GetBlueprintVariant()
+        {
+            return this.Variant switch
+            {
+                ButtonVariant.Secondary => BlueprintButtonVariant.Outline,
+                ButtonVariant.Ghost => BlueprintButtonVariant.Ghost,
+                ButtonVariant.Danger => BlueprintButtonVariant.Destructive,
+                _ => BlueprintButtonVariant.Default
+            };
+        }
+
+        /// <summary>
+        /// Gets the closest compact styled Blueprint size matching Bloom's public contract.
+        /// </summary>
+        /// <returns>The Blueprint button size.</returns>
+        private BlueprintButtonSize GetBlueprintSize()
+        {
+            return this.Size switch
+            {
+                ButtonSize.Large => BlueprintButtonSize.Default,
+                _ => BlueprintButtonSize.Small
             };
         }
 

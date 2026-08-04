@@ -37,12 +37,12 @@
 .mb-project-browser__state {
     border: 1px solid var(--mb-color-border);
     border-radius: var(--mb-radius-md);
-    background: var(--mb-color-neutral-50);
+    background: var(--mb-color-surface-muted);
 }
 
 .mb-project-browser__state--error {
-    border-color: var(--mb-color-danger-500);
-    background: var(--mb-color-danger-50);
+    border-color: var(--mb-color-danger-border);
+    background: var(--mb-color-danger-surface);
 }
 
 .mb-project-browser__state-title {

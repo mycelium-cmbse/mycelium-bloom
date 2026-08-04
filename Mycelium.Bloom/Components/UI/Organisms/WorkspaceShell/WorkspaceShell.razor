@@ -1,0 +1,100 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="WorkspaceShell.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<section class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+    @if (this.Header is not null)
+    {
+        <div class="mb-workspace-shell__header" role="region" aria-label="@(this.HeaderAriaLabel)">
+            @(this.Header)
+        </div>
+    }
+
+    @if (this.ShouldRenderPaneSwitcher())
+    {
+        <div class="mb-workspace-shell__pane-switcher"
+             role="group"
+             aria-label="Workspace regions">
+            @if (this.ShouldRenderLeftPanel())
+            {
+                <button type="button"
+                        class="@(this.GetPaneButtonCssClass(NarrowPane.Left))"
+                        aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Left))"
+                        aria-controls="@(this.leftPanelId)"
+                        @onclick="() => this.SelectNarrowPane(NarrowPane.Left)">
+                    Navigation
+                </button>
+            }
+
+            <button type="button"
+                    class="@(this.GetPaneButtonCssClass(NarrowPane.Main))"
+                    aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Main))"
+                    aria-controls="@(this.mainContentId)"
+                    @onclick="() => this.SelectNarrowPane(NarrowPane.Main)">
+                Canvas
+            </button>
+
+            @if (this.ShouldRenderRightPanel())
+            {
+                <button type="button"
+                        class="@(this.GetPaneButtonCssClass(NarrowPane.Right))"
+                        aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Right))"
+                        aria-controls="@(this.rightPanelId)"
+                        @onclick="() => this.SelectNarrowPane(NarrowPane.Right)">
+                    Details
+                </button>
+            }
+        </div>
+    }
+
+    <div class="mb-workspace-shell__body">
+        @if (this.ShouldRenderLeftPanel())
+        {
+            <aside id="@(this.leftPanelId)"
+                   class="mb-workspace-shell__left-panel"
+                   aria-label="@(this.LeftPanelAriaLabel)"
+                   data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Left))">
+                @(this.LeftPanel)
+            </aside>
+        }
+
+        <div id="@(this.mainContentId)"
+             class="mb-workspace-shell__main"
+             role="region"
+             aria-label="@(this.MainContentAriaLabel)"
+             data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Main))">
+            @(this.MainContent)
+        </div>
+
+        @if (this.ShouldRenderRightPanel())
+        {
+            <aside id="@(this.rightPanelId)"
+                   class="mb-workspace-shell__right-panel"
+                   aria-label="@(this.RightPanelAriaLabel)"
+                   data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Right))">
+                @(this.RightPanel)
+            </aside>
+        }
+    </div>
+
+    @if (this.StatusBar is not null)
+    {
+        <div class="mb-workspace-shell__status" role="region" aria-label="@(this.StatusBarAriaLabel)">
+            @(this.StatusBar)
+        </div>
+    }
+
+    @if (this.OverlayContent is not null)
+    {
+        <div class="mb-workspace-shell__overlay">
+            @(this.OverlayContent)
+        </div>
+    }
+</section>

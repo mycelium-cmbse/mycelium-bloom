@@ -9,7 +9,10 @@
 
 namespace Mycelium.Bloom.Components.Pages
 {
+    using System.Globalization;
+
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -17,8 +20,29 @@ namespace Mycelium.Bloom.Components.Pages
     /// <summary>
     /// Provides a development-only composition surface for the reusable Bloom component library.
     /// </summary>
-    public partial class DesignSystem : ComponentBase
+    public partial class DesignSystem : ComponentBase, IAsyncDisposable
     {
+        /// <summary>
+        /// Identifies this page instance as the current owner of the document theme preview.
+        /// </summary>
+        private readonly string themeOwnerId = $"mb-design-system-theme-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// References the page-scoped theme module after interactive rendering begins.
+        /// </summary>
+        private IJSObjectReference themeModule;
+
+        /// <summary>
+        /// Gets or sets the JavaScript runtime used to apply the preview theme to the document root.
+        /// </summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the active page-level preview theme.
+        /// </summary>
+        private string ThemeName { get; set; } = "light";
+
         /// <summary>
         /// Gets the local select options used by the form examples.
         /// </summary>
@@ -27,29 +51,8 @@ namespace Mycelium.Bloom.Components.Pages
             new() { Value = "preparation", Label = "Preparation" },
             new() { Value = "open", Label = "Open" },
             new() { Value = "review", Label = "In review" },
+            new() { Value = "verification", Label = "Verification pending across multiple engineering workspaces" },
             new() { Value = "archived", Label = "Archived", Disabled = true }
-        ];
-
-        /// <summary>
-        /// Gets the local tab items used by the tabs example.
-        /// </summary>
-        private IReadOnlyList<TabItem> TabItems { get; } =
-        [
-            new() { Value = "overview", Label = "Overview" },
-            new() { Value = "properties", Label = "Properties" },
-            new() { Value = "relationships", Label = "Relationships" },
-            new() { Value = "history", Label = "History", Disabled = true }
-        ];
-
-        /// <summary>
-        /// Gets the local breadcrumb items used by the navigation example.
-        /// </summary>
-        private IReadOnlyList<BreadcrumbItem> BreadcrumbItems { get; } =
-        [
-            new() { Id = "workspace", Label = "Workspace", Target = "workspace" },
-            new() { Id = "projects", Label = "Projects", Target = "projects" },
-            new() { Id = "restricted", Label = "Restricted", Disabled = true },
-            new() { Id = "architecture", Label = "Architecture", IsCurrent = true }
         ];
 
         /// <summary>
@@ -57,10 +60,10 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<ActionMenuItem> ActionMenuItems { get; } =
         [
-            new() { Id = "open", Label = "Open details", Description = "Inspect the selected element", Icon = "O" },
-            new() { Id = "duplicate", Label = "Duplicate", Description = "Create a local copy", Icon = "D" },
+            new() { Id = "open", Label = "Open details", Description = "Inspect the selected element", Symbol = SymbolIconName.Inspect },
+            new() { Id = "duplicate", Label = "Duplicate into another architecture workspace", Description = "Create a local copy", Symbol = SymbolIconName.Copy },
             new() { Id = "publish", Label = "Publish", Disabled = true },
-            new() { Id = "delete", Label = "Delete", Destructive = true, SeparatorBefore = true }
+            new() { Id = "delete", Label = "Delete", Symbol = SymbolIconName.Delete, Destructive = true, SeparatorBefore = true }
         ];
 
         /// <summary>
@@ -68,8 +71,10 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<ActionMenuItem> SplitButtonItems { get; } =
         [
-            new() { Id = "save-draft", Label = "Save as draft" },
-            new() { Id = "save-copy", Label = "Save a copy" }
+            new() { Id = "save-draft", Label = "Save as draft", Symbol = SymbolIconName.Document },
+            new() { Id = "save-copy", Label = "Save a copy", Symbol = SymbolIconName.Copy },
+            new() { Id = "save-protected", Label = "Save protected copy", Symbol = SymbolIconName.Document, Disabled = true },
+            new() { Id = "discard", Label = "Discard changes", Symbol = SymbolIconName.Delete, Destructive = true, SeparatorBefore = true }
         ];
 
         /// <summary>
@@ -77,9 +82,9 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<ActionMenuItem> UserMenuItems { get; } =
         [
-            new() { Id = "profile", Label = "Profile", Description = "Manage local presentation settings" },
-            new() { Id = "preferences", Label = "Preferences" },
-            new() { Id = "sign-out", Label = "Sign out", Destructive = true, SeparatorBefore = true }
+            new() { Id = "profile", Label = "Profile", Description = "Manage local presentation settings", Symbol = SymbolIconName.User },
+            new() { Id = "preferences", Label = "Preferences", Symbol = SymbolIconName.Preferences },
+            new() { Id = "sign-out", Label = "Sign out", Symbol = SymbolIconName.SignOut, Destructive = true, SeparatorBefore = true }
         ];
 
         /// <summary>
@@ -89,29 +94,71 @@ namespace Mycelium.Bloom.Components.Pages
         [
             new() { Id = "orbital", Name = "Orbital Platform", Description = "Systems engineering", Initial = "O" },
             new() { Id = "lunar", Name = "Lunar Habitat", Description = "Concept development", Initial = "L" },
-            new() { Id = "payload", Name = "Payload Study", Description = "Read-only archive", Initial = "P", Disabled = true }
+            new() { Id = "payload", Name = "Payload Study", Description = "Read-only archive", Initial = "P", Disabled = true },
+            new() { Id = "deep-space", Name = "Deep-space exploration architecture workspace", Description = "Long-name truncation example", Initial = "D" }
         ];
 
         /// <summary>
-        /// Gets the standalone notification examples that remain visible until dismissed.
+        /// Gets the deterministic element names used to demonstrate left-panel scrolling.
         /// </summary>
-        private List<ToastNotification> StandaloneNotifications { get; } =
+        private IReadOnlyList<string> WorkspaceNavigationItems { get; } =
         [
-            new() { Id = "standalone-info", Title = "Information", Message = "A neutral update is available.", Variant = ToastNotificationVariant.Info },
-            new() { Id = "standalone-success", Title = "Saved", Message = "The local example was saved.", Variant = ToastNotificationVariant.Success },
-            new() { Id = "standalone-warning", Title = "Review needed", Message = "Check the pending values.", Variant = ToastNotificationVariant.Warning },
-            new() { Id = "standalone-danger", Title = "Connection lost", Message = "This non-dismissible state remains visible.", Variant = ToastNotificationVariant.Danger, IsDismissible = false }
+            "Vehicle",
+            "Mission",
+            "Payload",
+            "Thermal control",
+            "Power distribution",
+            "Communications",
+            "Attitude control",
+            "Structures",
+            "Propulsion",
+            "Flight software",
+            "Ground segment",
+            "Interfaces",
+            "Requirements",
+            "Verification",
+            "Allocations",
+            "Views"
         ];
 
         /// <summary>
-        /// Gets the notifications currently displayed by the toast-container example.
+        /// Gets the deterministic property labels used to demonstrate right-panel scrolling.
         /// </summary>
-        private List<ToastNotification> ToastNotifications { get; } = [];
+        private IReadOnlyList<string> WorkspacePropertyItems { get; } =
+        [
+            "Name",
+            "Identifier",
+            "Definition",
+            "Owner",
+            "Lifecycle",
+            "Multiplicity",
+            "Direction",
+            "Type",
+            "Documentation",
+            "Constraints",
+            "Relationships",
+            "Modified"
+        ];
 
         /// <summary>
         /// Gets or sets the interactive search value.
         /// </summary>
         private string SearchValue { get; set; } = "architecture";
+
+        /// <summary>
+        /// Gets or sets the controlled value of the primary shortcut-search example.
+        /// </summary>
+        private string PrimaryShortcutSearchValue { get; set; } = "architecture";
+
+        /// <summary>
+        /// Gets or sets the controlled value of the newest shortcut-search example.
+        /// </summary>
+        private string SecondaryShortcutSearchValue { get; set; } = "interfaces";
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the newest shortcut registration is rendered.
+        /// </summary>
+        private bool SecondaryShortcutSearchVisible { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the interactive text-input value.
@@ -122,6 +169,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the interactive select value.
         /// </summary>
         private string SelectValue { get; set; } = "review";
+
+        /// <summary>
+        /// Gets or sets the second independent interactive select value.
+        /// </summary>
+        private string SecondarySelectValue { get; set; } = "preparation";
 
         /// <summary>
         /// Gets or sets the interactive text-area value.
@@ -144,24 +196,24 @@ namespace Mycelium.Bloom.Components.Pages
         private string ActiveTabValue { get; set; } = "overview";
 
         /// <summary>
+        /// Gets or sets the selected manual review tab value.
+        /// </summary>
+        private string ActiveReviewTabValue { get; set; } = "summary";
+
+        /// <summary>
         /// Gets or sets the latest selected breadcrumb label.
         /// </summary>
         private string LastBreadcrumbSelection { get; set; } = "None";
 
         /// <summary>
-        /// Gets or sets the open state of the first standalone action menu.
-        /// </summary>
-        private bool PrimaryActionMenuOpen { get; set; }
-
-        /// <summary>
-        /// Gets or sets the open state of the second standalone action menu.
-        /// </summary>
-        private bool SecondaryActionMenuOpen { get; set; }
-
-        /// <summary>
         /// Gets or sets the latest selected menu action.
         /// </summary>
         private string LastMenuAction { get; set; } = "None";
+
+        /// <summary>
+        /// Gets or sets the number of standalone menu selections delivered to the page.
+        /// </summary>
+        private int ActionMenuSelectionCount { get; set; }
 
         /// <summary>
         /// Gets or sets the latest split-button action.
@@ -194,6 +246,21 @@ namespace Mycelium.Bloom.Components.Pages
         private bool ModalOpen { get; set; }
 
         /// <summary>
+        /// Gets or sets the compact-modal invoking control.
+        /// </summary>
+        private ElementReference CompactModalTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the wide-modal invoking control.
+        /// </summary>
+        private ElementReference WideModalTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the focus target captured for the active modal example.
+        /// </summary>
+        private ElementReference? ModalFocusReturnTarget { get; set; }
+
+        /// <summary>
         /// Gets or sets the size used by the active modal example.
         /// </summary>
         private ModalSize ActiveModalSize { get; set; } = ModalSize.Small;
@@ -204,9 +271,44 @@ namespace Mycelium.Bloom.Components.Pages
         private string LastModalAction { get; set; } = "Not opened";
 
         /// <summary>
+        /// Gets or sets the number of close-state requests observed for the active modal cycle.
+        /// </summary>
+        private int ModalStateChangeCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of completed close callbacks observed for the active modal cycle.
+        /// </summary>
+        private int ModalCloseCallbackCount { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the confirmation example is open.
         /// </summary>
         private bool ConfirmDialogOpen { get; set; }
+
+        /// <summary>
+        /// Gets or sets the default confirmation invoking control.
+        /// </summary>
+        private ElementReference DefaultConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the warning confirmation invoking control.
+        /// </summary>
+        private ElementReference WarningConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the danger confirmation invoking control.
+        /// </summary>
+        private ElementReference DangerConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the loading confirmation invoking control.
+        /// </summary>
+        private ElementReference LoadingConfirmDialogTrigger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the focus target captured for the active confirmation example.
+        /// </summary>
+        private ElementReference? ConfirmDialogFocusReturnTarget { get; set; }
 
         /// <summary>
         /// Gets or sets the active confirmation-dialog variant.
@@ -214,14 +316,133 @@ namespace Mycelium.Bloom.Components.Pages
         private ConfirmDialogVariant ActiveConfirmDialogVariant { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the active confirmation is externally loading.
+        /// </summary>
+        private bool ConfirmDialogIsConfirming { get; set; }
+
+        /// <summary>
         /// Gets or sets the latest confirmation result.
         /// </summary>
         private string LastConfirmationAction { get; set; } = "None";
 
         /// <summary>
-        /// Gets or sets the next deterministic toast sequence number.
+        /// Gets or sets the search value used by the workspace header example.
         /// </summary>
-        private int NextToastNumber { get; set; } = 1;
+        private string WorkspaceSearchValue { get; set; } = "thermal";
+
+        /// <summary>
+        /// Gets or sets the controlled project used by the workspace header example.
+        /// </summary>
+        private string WorkspaceProjectId { get; set; } = "orbital";
+
+        /// <summary>
+        /// Gets or sets the controlled zoom percentage used by workspace examples.
+        /// </summary>
+        private double WorkspaceZoom { get; set; } = 100d;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the workspace example shows its left panel.
+        /// </summary>
+        private bool WorkspaceLeftPanelVisible { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the workspace example shows its right panel.
+        /// </summary>
+        private bool WorkspaceRightPanelVisible { get; set; } = true;
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (!firstRender)
+            {
+                return;
+            }
+
+            this.themeModule = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/Pages/DesignSystem.razor.js");
+
+            await this.ApplyThemeAsync();
+        }
+
+        /// <summary>
+        /// Selects and applies a supported document-level preview theme.
+        /// </summary>
+        /// <param name="themeName">The supported theme name.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task SetThemeAsync(string themeName)
+        {
+            if (!string.Equals(themeName, "light", StringComparison.Ordinal) &&
+                !string.Equals(themeName, "dark", StringComparison.Ordinal))
+            {
+                throw new ArgumentOutOfRangeException(nameof(themeName), themeName, "Only light and dark preview themes are supported.");
+            }
+
+            this.ThemeName = themeName;
+            await this.ApplyThemeAsync();
+        }
+
+        /// <summary>
+        /// Applies the selected preview theme to the document root when the module is ready.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task ApplyThemeAsync()
+        {
+            if (this.themeModule is not null)
+            {
+                await this.themeModule.InvokeVoidAsync(
+                    "applyTheme",
+                    this.themeOwnerId,
+                    this.ThemeName);
+            }
+        }
+
+        /// <summary>
+        /// Gets the CSS classes for a theme option.
+        /// </summary>
+        /// <param name="themeName">The theme represented by the option.</param>
+        /// <returns>The theme-option CSS class list.</returns>
+        private string GetThemeButtonCssClass(string themeName)
+        {
+            return string.Equals(this.ThemeName, themeName, StringComparison.Ordinal)
+                ? "mb-design-system__theme-button mb-design-system__theme-button--selected"
+                : "mb-design-system__theme-button";
+        }
+
+        /// <summary>
+        /// Gets the accessible pressed state for a theme option.
+        /// </summary>
+        /// <param name="themeName">The theme represented by the option.</param>
+        /// <returns>True when the theme option is selected; otherwise, false.</returns>
+        private string GetThemeAriaPressed(string themeName)
+        {
+            return string.Equals(this.ThemeName, themeName, StringComparison.Ordinal) ? "true" : "false";
+        }
+
+        /// <summary>
+        /// Gets or sets the latest application-header callback result.
+        /// </summary>
+        private string LastWorkspaceAction { get; set; } = "None";
+
+        /// <summary>
+        /// Gets or sets the latest canvas-toolbar callback result.
+        /// </summary>
+        private string LastCanvasToolbarAction { get; set; } = "None";
+
+        /// <summary>
+        /// Gets or sets the parent-owned active tool used by the canvas-toolbar examples.
+        /// </summary>
+        private string ActiveCanvasToolbarTool { get; set; } = "Select";
+
+        /// <summary>
+        /// Gets or sets the latest zoom-controls callback result.
+        /// </summary>
+        private string LastZoomAction { get; set; } = "Zoom is 100%";
+
+        /// <summary>
+        /// Gets or sets the latest status-bar callback result.
+        /// </summary>
+        private string LastStatusAction { get; set; } = "No status action selected";
 
         /// <summary>
         /// Updates the interactive search value.
@@ -230,6 +451,32 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleSearchValueChanged(string value)
         {
             this.SearchValue = value;
+        }
+
+        /// <summary>
+        /// Updates the primary shortcut-search value.
+        /// </summary>
+        /// <param name="value">The updated value.</param>
+        private void HandlePrimaryShortcutSearchValueChanged(string value)
+        {
+            this.PrimaryShortcutSearchValue = value;
+        }
+
+        /// <summary>
+        /// Updates the newest shortcut-search value.
+        /// </summary>
+        /// <param name="value">The updated value.</param>
+        private void HandleSecondaryShortcutSearchValueChanged(string value)
+        {
+            this.SecondaryShortcutSearchValue = value;
+        }
+
+        /// <summary>
+        /// Adds or removes the newest search shortcut registration for lifecycle verification.
+        /// </summary>
+        private void ToggleSecondaryShortcutSearch()
+        {
+            this.SecondaryShortcutSearchVisible = !this.SecondaryShortcutSearchVisible;
         }
 
         /// <summary>
@@ -248,6 +495,31 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleSelectValueChanged(string value)
         {
             this.SelectValue = value;
+        }
+
+        /// <summary>
+        /// Updates the second independent select value.
+        /// </summary>
+        /// <param name="value">The selected value.</param>
+        private void HandleSecondarySelectValueChanged(string value)
+        {
+            this.SecondarySelectValue = value;
+        }
+
+        /// <summary>
+        /// Applies an external controlled-value update to the primary Select example.
+        /// </summary>
+        private void SetPrimarySelectToOpen()
+        {
+            this.SelectValue = "open";
+        }
+
+        /// <summary>
+        /// Restores the primary Select example to its deterministic initial value.
+        /// </summary>
+        private void ResetPrimarySelect()
+        {
+            this.SelectValue = "review";
         }
 
         /// <summary>
@@ -278,6 +550,152 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
+        /// Updates the workspace-header search value.
+        /// </summary>
+        /// <param name="value">The updated local search value.</param>
+        private void HandleWorkspaceSearchValueChanged(string value)
+        {
+            this.WorkspaceSearchValue = value;
+        }
+
+        /// <summary>
+        /// Updates the workspace-header project selection and result text.
+        /// </summary>
+        /// <param name="projectId">The selected local project identifier.</param>
+        private void HandleWorkspaceProjectChanged(string projectId)
+        {
+            this.WorkspaceProjectId = projectId;
+            this.LastWorkspaceAction = $"Selected {this.GetProjectName(projectId)}";
+        }
+
+        /// <summary>
+        /// Records the workspace-header share action.
+        /// </summary>
+        private void HandleShareWorkspace()
+        {
+            this.LastWorkspaceAction = "Share requested";
+        }
+
+        /// <summary>
+        /// Records the workspace-header validation action.
+        /// </summary>
+        private void HandleValidateWorkspace()
+        {
+            this.LastWorkspaceAction = "Validation requested";
+        }
+
+        /// <summary>
+        /// Records the compact-header action.
+        /// </summary>
+        private void HandleCompactHeaderAction()
+        {
+            this.LastWorkspaceAction = "Compact action requested";
+        }
+
+        /// <summary>
+        /// Records the selected canvas-toolbar action.
+        /// </summary>
+        /// <param name="action">The local tool label.</param>
+        private void HandleCanvasToolbarAction(string action)
+        {
+            this.LastCanvasToolbarAction = action;
+        }
+
+        /// <summary>
+        /// Updates the parent-owned active canvas tool and records the callback result.
+        /// </summary>
+        /// <param name="tool">The selected local tool label.</param>
+        private void HandleCanvasToolbarToolChanged(string tool)
+        {
+            this.ActiveCanvasToolbarTool = tool;
+            this.LastCanvasToolbarAction = tool;
+        }
+
+        /// <summary>
+        /// Gets the presentation classes for a selectable canvas-toolbar action.
+        /// </summary>
+        /// <param name="tool">The local tool label.</param>
+        /// <returns>The canvas-toolbar action classes.</returns>
+        private string GetCanvasToolbarToolCssClass(string tool)
+        {
+            return this.IsCanvasToolbarToolActive(tool)
+                ? "mb-design-system__canvas-toolbar-action mb-design-system__canvas-toolbar-action--active"
+                : "mb-design-system__canvas-toolbar-action";
+        }
+
+        /// <summary>
+        /// Gets the pressed-state value for a selectable canvas-toolbar action.
+        /// </summary>
+        /// <param name="tool">The local tool label.</param>
+        /// <returns>True when the tool is active; otherwise, false.</returns>
+        private string GetCanvasToolbarToolAriaPressed(string tool)
+        {
+            return this.IsCanvasToolbarToolActive(tool) ? "true" : "false";
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the provided canvas tool is active.
+        /// </summary>
+        /// <param name="tool">The local tool label.</param>
+        /// <returns>True when the tool is active; otherwise, false.</returns>
+        private bool IsCanvasToolbarToolActive(string tool)
+        {
+            return string.Equals(this.ActiveCanvasToolbarTool, tool, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Updates the parent-owned workspace zoom percentage.
+        /// </summary>
+        /// <param name="zoom">The requested zoom percentage.</param>
+        private void HandleWorkspaceZoomChanged(double zoom)
+        {
+            this.WorkspaceZoom = zoom;
+            this.LastZoomAction = $"Zoom changed to {zoom.ToString("0.#", CultureInfo.InvariantCulture)}%";
+        }
+
+        /// <summary>
+        /// Resets the local workspace zoom percentage.
+        /// </summary>
+        private void HandleResetWorkspaceZoom()
+        {
+            this.WorkspaceZoom = 100d;
+            this.LastZoomAction = "Zoom reset to 100%";
+        }
+
+        /// <summary>
+        /// Applies a deterministic fit-to-view zoom percentage.
+        /// </summary>
+        private void HandleFitWorkspaceToView()
+        {
+            this.WorkspaceZoom = 75d;
+            this.LastZoomAction = "Fit to view at 75%";
+        }
+
+        /// <summary>
+        /// Records activation of the status-bar detail action.
+        /// </summary>
+        private void HandleStatusDetails()
+        {
+            this.LastStatusAction = "Status details requested";
+        }
+
+        /// <summary>
+        /// Toggles the local workspace left-panel visibility.
+        /// </summary>
+        private void ToggleWorkspaceLeftPanel()
+        {
+            this.WorkspaceLeftPanelVisible = !this.WorkspaceLeftPanelVisible;
+        }
+
+        /// <summary>
+        /// Toggles the local workspace right-panel visibility.
+        /// </summary>
+        private void ToggleWorkspaceRightPanel()
+        {
+            this.WorkspaceRightPanelVisible = !this.WorkspaceRightPanelVisible;
+        }
+
+        /// <summary>
         /// Updates the selected tab.
         /// </summary>
         /// <param name="value">The selected tab value.</param>
@@ -287,30 +705,32 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
+        /// Updates the selected manual review tab.
+        /// </summary>
+        /// <param name="value">The selected review tab value.</param>
+        private void HandleReviewTabChanged(string value)
+        {
+            this.ActiveReviewTabValue = value;
+        }
+
+        /// <summary>
+        /// Gets an explicit ARIA selected state for a controlled direct Blueprint tab.
+        /// </summary>
+        /// <param name="activeValue">The active controlled tab value.</param>
+        /// <param name="tabValue">The candidate tab value.</param>
+        /// <returns>The lowercase ARIA Boolean value.</returns>
+        private static string GetTabAriaSelected(string activeValue, string tabValue)
+        {
+            return string.Equals(activeValue, tabValue, StringComparison.Ordinal) ? "true" : "false";
+        }
+
+        /// <summary>
         /// Records the selected breadcrumb.
         /// </summary>
-        /// <param name="item">The selected breadcrumb item.</param>
-        private void HandleBreadcrumbSelected(BreadcrumbItem item)
+        /// <param name="label">The selected breadcrumb label.</param>
+        private void HandleBreadcrumbSelected(string label)
         {
-            this.LastBreadcrumbSelection = item.Label;
-        }
-
-        /// <summary>
-        /// Updates the open state of the primary action menu.
-        /// </summary>
-        /// <param name="isOpen">The updated open state.</param>
-        private void HandlePrimaryActionMenuOpenChanged(bool isOpen)
-        {
-            this.PrimaryActionMenuOpen = isOpen;
-        }
-
-        /// <summary>
-        /// Updates the open state of the secondary action menu.
-        /// </summary>
-        /// <param name="isOpen">The updated open state.</param>
-        private void HandleSecondaryActionMenuOpenChanged(bool isOpen)
-        {
-            this.SecondaryActionMenuOpen = isOpen;
+            this.LastBreadcrumbSelection = label;
         }
 
         /// <summary>
@@ -320,6 +740,7 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleActionMenuItemSelected(ActionMenuItem item)
         {
             this.LastMenuAction = item.Label;
+            this.ActionMenuSelectionCount++;
         }
 
         /// <summary>
@@ -382,9 +803,13 @@ namespace Mycelium.Bloom.Components.Pages
         /// Opens the modal example with the requested size.
         /// </summary>
         /// <param name="size">The modal size.</param>
-        private void OpenModal(ModalSize size)
+        /// <param name="focusReturnTarget">The invoking control that receives focus after closing.</param>
+        private void OpenModal(ModalSize size, ElementReference focusReturnTarget)
         {
             this.ActiveModalSize = size;
+            this.ModalFocusReturnTarget = focusReturnTarget;
+            this.ModalStateChangeCount = 0;
+            this.ModalCloseCallbackCount = 0;
             this.ModalOpen = true;
             this.LastModalAction = $"Opened {size.ToString().ToLowerInvariant()} modal";
         }
@@ -399,8 +824,17 @@ namespace Mycelium.Bloom.Components.Pages
 
             if (!isOpen)
             {
+                this.ModalStateChangeCount++;
                 this.LastModalAction = "Closed modal";
             }
+        }
+
+        /// <summary>
+        /// Records completion of a dialog-requested close cycle.
+        /// </summary>
+        private void HandleModalClosed()
+        {
+            this.ModalCloseCallbackCount++;
         }
 
         /// <summary>
@@ -415,9 +849,16 @@ namespace Mycelium.Bloom.Components.Pages
         /// Opens a confirmation-dialog variant.
         /// </summary>
         /// <param name="variant">The dialog variant.</param>
-        private void OpenConfirmDialog(ConfirmDialogVariant variant)
+        /// <param name="focusReturnTarget">The invoking control that receives focus after closing.</param>
+        /// <param name="isConfirming">A value indicating whether the actions render in their externally controlled loading state.</param>
+        private void OpenConfirmDialog(
+            ConfirmDialogVariant variant,
+            ElementReference focusReturnTarget,
+            bool isConfirming = false)
         {
             this.ActiveConfirmDialogVariant = variant;
+            this.ConfirmDialogFocusReturnTarget = focusReturnTarget;
+            this.ConfirmDialogIsConfirming = isConfirming;
             this.ConfirmDialogOpen = true;
             this.LastConfirmationAction = $"Opened {variant.ToString().ToLowerInvariant()} confirmation";
         }
@@ -429,6 +870,11 @@ namespace Mycelium.Bloom.Components.Pages
         private void HandleConfirmDialogOpenChanged(bool isOpen)
         {
             this.ConfirmDialogOpen = isOpen;
+
+            if (!isOpen)
+            {
+                this.ConfirmDialogIsConfirming = false;
+            }
         }
 
         /// <summary>
@@ -447,57 +893,30 @@ namespace Mycelium.Bloom.Components.Pages
             this.LastConfirmationAction = $"Cancelled {this.ActiveConfirmDialogVariant.ToString().ToLowerInvariant()} action";
         }
 
-        /// <summary>
-        /// Dismisses a standalone notification example.
-        /// </summary>
-        /// <param name="notificationId">The notification identifier.</param>
-        private void DismissStandaloneNotification(string notificationId)
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
         {
-            this.StandaloneNotifications.RemoveAll(notification =>
-                string.Equals(notification.Id, notificationId, StringComparison.Ordinal));
-        }
+            var module = this.themeModule;
+            this.themeModule = null;
 
-        /// <summary>
-        /// Dismisses a notification from the toast-container example.
-        /// </summary>
-        /// <param name="notificationId">The notification identifier.</param>
-        private void DismissToastNotification(string notificationId)
-        {
-            this.ToastNotifications.RemoveAll(notification =>
-                string.Equals(notification.Id, notificationId, StringComparison.Ordinal));
-        }
-
-        /// <summary>
-        /// Adds a deterministic local notification to the toast-container example.
-        /// </summary>
-        private void AddToastNotification()
-        {
-            var sequenceNumber = this.NextToastNumber++;
-
-            this.ToastNotifications.Add(new ToastNotification
+            if (module is not null)
             {
-                Id = $"container-sample-{sequenceNumber}",
-                Title = $"Sample notification {sequenceNumber}",
-                Message = "Added from the local showcase controls.",
-                Variant = sequenceNumber % 2 == 0
-                    ? ToastNotificationVariant.Warning
-                    : ToastNotificationVariant.Info
-            });
-        }
+                try
+                {
+                    await module.InvokeVoidAsync("releaseTheme", this.themeOwnerId);
+                    await module.DisposeAsync();
+                }
+                catch (JSDisconnectedException)
+                {
+                    // The circuit has already ended, so the browser no longer accepts cleanup calls.
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The renderer disposed the JavaScript module before component cleanup completed.
+                }
+            }
 
-        /// <summary>
-        /// Restores the initial toast-container notifications.
-        /// </summary>
-        private void ResetToastNotifications()
-        {
-            this.ToastNotifications.Clear();
-            this.ToastNotifications.AddRange(
-            [
-                new() { Id = "container-sync", Title = "Model synchronized", Message = "Local changes are up to date.", Variant = ToastNotificationVariant.Success },
-                new() { Id = "container-review", Title = "Review ready", Message = "Two items are ready for inspection.", Variant = ToastNotificationVariant.Info }
-            ]);
-
-            this.NextToastNumber = 3;
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -1,0 +1,65 @@
+.mb-status-bar {
+    --mb-status-bar-min-height: 2rem;
+    --mb-status-bar-compact-min-height: 1.75rem;
+
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--mb-spacing-3);
+    width: 100%;
+    min-width: 0;
+    min-height: var(--mb-status-bar-min-height);
+    padding: 0 var(--mb-spacing-3);
+    border-top: 1px solid var(--mb-color-border-subtle);
+    background: var(--mb-color-surface);
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-label-sm);
+    line-height: var(--mb-line-height-label-sm);
+}
+
+.mb-status-bar--compact {
+    min-height: var(--mb-status-bar-compact-min-height);
+    gap: var(--mb-spacing-2);
+    padding-inline: var(--mb-spacing-2);
+}
+
+.mb-status-bar__leading,
+.mb-status-bar__trailing {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--mb-spacing-2);
+}
+
+.mb-status-bar__content {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--mb-color-text-primary);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-status-bar__trailing {
+    justify-content: flex-end;
+}
+
+@media (max-width: 35rem) {
+    .mb-status-bar {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .mb-status-bar__content {
+        order: 3;
+        flex: 1 1 100%;
+        overflow: visible;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .mb-status-bar__trailing {
+        margin-left: auto;
+    }
+}
