@@ -53,69 +53,14 @@ export function parseLcov(lcov, options = {}) {
         throw new TypeError("LCOV input must be a string.");
     }
 
-    const repositoryRoot = resolve(options.repositoryRoot ?? process.cwd());
-
-    if (!existsSync(repositoryRoot) || !statSync(repositoryRoot).isDirectory()) {
-        throw new Error(`Repository root does not exist: ${repositoryRoot}`);
-    }
-
-    const realRepositoryRoot = realpathSync(repositoryRoot);
-    const records = [];
-    const seenSources = new Set();
-    let currentRecord;
+    const parser = createLcovParser(options.repositoryRoot ?? process.cwd());
     const inputLines = lcov.replace(/^\uFEFF/, "").split(/\r?\n/);
 
     for (const [index, line] of inputLines.entries()) {
-        const reportLineNumber = index + 1;
-
-        if (line.startsWith("SF:")) {
-            if (currentRecord !== undefined) {
-                throw new Error(`LCOV line ${reportLineNumber}: source record is missing end_of_record.`);
-            }
-
-            const source = resolveSource(
-                line.slice("SF:".length),
-                repositoryRoot,
-                realRepositoryRoot,
-                reportLineNumber
-            );
-            const duplicateKey = process.platform === "win32"
-                ? source.realPath.toLowerCase()
-                : source.realPath;
-
-            if (seenSources.has(duplicateKey)) {
-                throw new Error(`LCOV line ${reportLineNumber}: duplicate source record for ${source.path}.`);
-            }
-
-            seenSources.add(duplicateKey);
-            currentRecord = {
-                branches: new Map(),
-                lines: new Map(),
-                path: source.path
-            };
-        } else if (line.startsWith("DA:")) {
-            requireCurrentRecord(currentRecord, reportLineNumber, "DA");
-            parseLineCoverage(currentRecord, line, reportLineNumber);
-        } else if (line.startsWith("BRDA:")) {
-            requireCurrentRecord(currentRecord, reportLineNumber, "BRDA");
-            parseBranchCoverage(currentRecord, line, reportLineNumber);
-        } else if (line === "end_of_record") {
-            requireCurrentRecord(currentRecord, reportLineNumber, "end_of_record");
-            finalizeRecord(currentRecord, reportLineNumber);
-            records.push(currentRecord);
-            currentRecord = undefined;
-        }
+        parseLcovLine(parser, line, index + 1);
     }
 
-    if (currentRecord !== undefined) {
-        throw new Error("LCOV input ended before end_of_record.");
-    }
-
-    if (records.length === 0) {
-        throw new Error("LCOV input contains no source records.");
-    }
-
-    return records;
+    return completeLcovParsing(parser);
 }
 
 export function escapeXmlAttribute(value) {
@@ -132,6 +77,101 @@ export function convertLcovFile(inputPath, outputPath, options = {}) {
     const xml = convertLcovToSonarXml(lcov, options);
     writeFileSync(outputPath, xml, "utf8");
     return xml;
+}
+
+function createLcovParser(repositoryRootPath) {
+    const repositoryRoot = resolve(repositoryRootPath);
+
+    if (!existsSync(repositoryRoot) || !statSync(repositoryRoot).isDirectory()) {
+        throw new Error(`Repository root does not exist: ${repositoryRoot}`);
+    }
+
+    return {
+        currentRecord: undefined,
+        realRepositoryRoot: realpathSync(repositoryRoot),
+        records: [],
+        repositoryRoot,
+        seenSources: new Set()
+    };
+}
+
+function parseLcovLine(parser, line, reportLineNumber) {
+    if (line.startsWith("SF:")) {
+        startSourceRecord(parser, line.slice("SF:".length), reportLineNumber);
+        return;
+    }
+
+    if (line.startsWith("DA:")) {
+        addLineCoverage(parser, line, reportLineNumber);
+        return;
+    }
+
+    if (line.startsWith("BRDA:")) {
+        addBranchCoverage(parser, line, reportLineNumber);
+        return;
+    }
+
+    if (line === "end_of_record") {
+        finishSourceRecord(parser, reportLineNumber);
+    }
+}
+
+function startSourceRecord(parser, sourcePath, reportLineNumber) {
+    if (parser.currentRecord !== undefined) {
+        throw new Error(`LCOV line ${reportLineNumber}: source record is missing end_of_record.`);
+    }
+
+    const source = resolveSource(
+        sourcePath,
+        parser.repositoryRoot,
+        parser.realRepositoryRoot,
+        reportLineNumber
+    );
+    const duplicateKey = getDuplicateSourceKey(source.realPath);
+
+    if (parser.seenSources.has(duplicateKey)) {
+        throw new Error(`LCOV line ${reportLineNumber}: duplicate source record for ${source.path}.`);
+    }
+
+    parser.seenSources.add(duplicateKey);
+    parser.currentRecord = {
+        branches: new Map(),
+        lines: new Map(),
+        path: source.path
+    };
+}
+
+function addLineCoverage(parser, line, reportLineNumber) {
+    requireCurrentRecord(parser.currentRecord, reportLineNumber, "DA");
+    parseLineCoverage(parser.currentRecord, line, reportLineNumber);
+}
+
+function addBranchCoverage(parser, line, reportLineNumber) {
+    requireCurrentRecord(parser.currentRecord, reportLineNumber, "BRDA");
+    parseBranchCoverage(parser.currentRecord, line, reportLineNumber);
+}
+
+function finishSourceRecord(parser, reportLineNumber) {
+    requireCurrentRecord(parser.currentRecord, reportLineNumber, "end_of_record");
+    finalizeRecord(parser.currentRecord, reportLineNumber);
+    parser.records.push(parser.currentRecord);
+    parser.currentRecord = undefined;
+}
+
+function completeLcovParsing(parser) {
+    if (parser.currentRecord !== undefined) {
+        throw new Error("LCOV input ended before end_of_record.");
+    }
+
+    if (parser.records.length === 0) {
+        throw new Error("LCOV input contains no source records.");
+    }
+
+    return parser.records;
+}
+
+function getDuplicateSourceKey(realPath) {
+    return process.platform === "win32" ? realPath.toLowerCase() : realPath;
 }
 
 function resolveSource(sourcePath, repositoryRoot, realRepositoryRoot, reportLineNumber) {
