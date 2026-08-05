@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using System.Collections.ObjectModel;
     using System.ComponentModel;
 
     using ReactiveUI;
@@ -17,12 +18,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
-    public interface IProjectBrowserViewModel : INotifyPropertyChanged, IActivatableViewModel
+    public interface IProjectBrowserViewModel : INotifyPropertyChanged, IActivatableViewModel, IDisposable
     {
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
         /// </summary>
-        IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; }
+        ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }
 
         /// <summary>
         /// Gets the currently selected node.
@@ -47,7 +48,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets the command that initializes the project browser tree from the Quantities SysML model.
         /// </summary>
-        ReactiveCommand<RxVoid, RxVoid> InitializeCommand { get; }
+        ReactiveCommand<RxVoid, bool> InitializeCommand { get; }
 
         /// <summary>
         /// Gets the command that toggles a project browser node.

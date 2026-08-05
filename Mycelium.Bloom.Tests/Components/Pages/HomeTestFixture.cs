@@ -24,6 +24,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Mycelium.Bloom.ViewModel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
+    using ReactiveUI.Blazor;
+
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
@@ -47,7 +49,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         /// Verifies that the home page displays the expected workspace content.
         /// </summary>
         [Test]
-        public void VerifyRenderDisplaysHomeContent()
+        public void VerifyRenderDisplaysHomeContentWithoutCodeBehind()
         {
             var viewModel = new ProjectBrowserViewModelStub
             {
@@ -66,6 +68,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Markup, Does.Contain("Selected element"));
                 Assert.That(component.Markup, Does.Contain("None"));
                 Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
+                Assert.That(component.Instance, Is.AssignableTo<ReactiveInjectableComponentBase<HomeViewModel>>());
                 Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
             }
         }
@@ -104,7 +107,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
 
-            selectionService.ClearSelection();
+            selectionService.SelectedElement = null;
 
             component.WaitForState(() =>
                 component.Find("[role='treeitem']").GetAttribute("aria-selected") == "false");
@@ -137,7 +140,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             var component = this.Render<Home>();
 
-            selectionService.SelectElement(new LibraryPackage());
+            selectionService.SelectedElement = new LibraryPackage();
 
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain(nameof(LibraryPackage))));
         }

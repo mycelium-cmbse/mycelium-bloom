@@ -24,36 +24,20 @@ namespace Mycelium.Bloom.Core.Selection
         private IElement selectedElement;
 
         /// <inheritdoc />
-        public IElement SelectedElement => this.selectedElement;
-
-        /// <inheritdoc />
-        public void SelectElement(IElement element)
+        public IElement SelectedElement
         {
-            ArgumentNullException.ThrowIfNull(element);
-
-            this.SetSelectedElement(element);
-        }
-
-        /// <inheritdoc />
-        public void ClearSelection()
-        {
-            this.SetSelectedElement(null);
-        }
-
-        /// <summary>
-        /// Updates selection using object identity instead of value equality.
-        /// </summary>
-        /// <param name="element">The new selection, or <see langword="null" /> to clear it.</param>
-        private void SetSelectedElement(IElement element)
-        {
-            if (ReferenceEquals(this.selectedElement, element))
+            get => this.selectedElement;
+            set
             {
-                return;
-            }
+                if (ReferenceEquals(this.selectedElement, value))
+                {
+                    return;
+                }
 
-            this.RaisePropertyChanging(nameof(this.SelectedElement));
-            this.selectedElement = element;
-            this.RaisePropertyChanged(nameof(this.SelectedElement));
+                this.RaisePropertyChanging(nameof(this.SelectedElement));
+                this.selectedElement = value;
+                this.RaisePropertyChanged(nameof(this.SelectedElement));
+            }
         }
     }
 }

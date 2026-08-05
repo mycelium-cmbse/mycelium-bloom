@@ -63,7 +63,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var service = new ElementSelectionService();
             var viewModel = new HomeViewModel(service);
 
-            service.SelectElement(CreateElement("Declared", "Name", "Qualified"));
+            service.SelectedElement = CreateElement("Declared", "Name", "Qualified");
 
             Assert.That(viewModel.SelectedElementName, Is.EqualTo("Declared"));
         }
@@ -77,7 +77,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var service = new ElementSelectionService();
             var viewModel = new HomeViewModel(service);
 
-            service.SelectElement(CreateElement(" ", "Name", "Qualified"));
+            service.SelectedElement = CreateElement(" ", "Name", "Qualified");
 
             Assert.That(viewModel.SelectedElementName, Is.EqualTo("Name"));
         }
@@ -91,7 +91,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var service = new ElementSelectionService();
             var viewModel = new HomeViewModel(service);
 
-            service.SelectElement(CreateElement(" ", " ", "Qualified"));
+            service.SelectedElement = CreateElement(" ", " ", "Qualified");
 
             Assert.That(viewModel.SelectedElementName, Is.EqualTo("Qualified"));
         }
@@ -105,7 +105,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var service = new ElementSelectionService();
             var viewModel = new HomeViewModel(service);
 
-            service.SelectElement(new Namespace { DeclaredName = " " });
+            service.SelectedElement = new Namespace { DeclaredName = " " };
 
             Assert.That(viewModel.SelectedElementName, Is.EqualTo(nameof(Namespace)));
         }
@@ -125,7 +125,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using var activation = viewModel.Activator.Activate();
 
             var element = new LibraryPackage();
-            service.SelectElement(element);
+            service.SelectedElement = element;
 
             using (Assert.EnterMultipleScope())
             {
@@ -150,7 +150,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using var secondActivation = secondViewModel.Activator.Activate();
 
             var element = new Namespace();
-            service.SelectElement(element);
+            service.SelectedElement = element;
 
             using (Assert.EnterMultipleScope())
             {
@@ -181,7 +181,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var activation = viewModel.Activator.Activate();
             selectionNotificationCount = 0;
             activation.Dispose();
-            service.SelectElement(new Namespace());
+            service.SelectedElement = new Namespace();
 
             Assert.That(selectionNotificationCount, Is.Zero);
         }

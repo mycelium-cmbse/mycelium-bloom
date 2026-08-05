@@ -9,29 +9,18 @@
 
 namespace Mycelium.Bloom.Core.Selection
 {
-    using System.ComponentModel;
+    using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
     /// Provides the circuit-scoped source of truth for the selected SysML element.
     /// </summary>
-    public interface IElementSelectionService : INotifyPropertyChanged
+    public interface IElementSelectionService : IReactiveObject
     {
         /// <summary>
-        /// Gets the currently selected SysML element, or <see langword="null" /> when no element is selected.
+        /// Gets or sets the currently selected SysML element, or <see langword="null" /> when no element is selected.
         /// </summary>
-        IElement SelectedElement { get; }
-
-        /// <summary>
-        /// Selects a SysML element.
-        /// </summary>
-        /// <param name="element">The element to select.</param>
-        void SelectElement(IElement element);
-
-        /// <summary>
-        /// Clears the current selection.
-        /// </summary>
-        void ClearSelection();
+        IElement SelectedElement { get; set; }
     }
 }

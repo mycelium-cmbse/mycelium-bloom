@@ -100,9 +100,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var viewModel = new ProjectBrowserViewModelStub
             {
-                IsLoaded = true,
-                RootNodes = [node]
+                IsLoaded = true
             };
+
+            viewModel.ReplaceRootNodes(node);
 
             this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
 
@@ -118,7 +119,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that the project browser initializes an unloaded view model.
+        /// Verifies that the project browser initializes an unloaded view model without a synthetic selection callback.
         /// </summary>
         [Test]
         public void VerifyOnInitializedAsyncInitializesViewModel()
@@ -129,7 +130,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             viewModel.InitializeHandler = () =>
             {
-                viewModel.RootNodes = [node];
+                viewModel.ReplaceRootNodes(node);
                 viewModel.IsLoaded = true;
                 viewModel.ApplySelection(node);
 
@@ -149,7 +150,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             component.WaitForAssertion(() => Assert.That(viewModel.InitializeAsyncCallCount, Is.EqualTo(1)));
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Quantities")));
 
-            Assert.That(selectedNode, Is.SameAs(node));
+            Assert.That(selectedNode, Is.Null);
         }
 
         /// <summary>
@@ -167,9 +168,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             var viewModel = new ProjectBrowserViewModelStub
             {
-                IsLoaded = true,
-                RootNodes = [node]
+                IsLoaded = true
             };
+
+            viewModel.ReplaceRootNodes(node);
 
             this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
 
@@ -211,7 +213,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
 
-            selectionService.ClearSelection();
+            selectionService.SelectedElement = null;
 
             component.WaitForState(() =>
                 component.Find("[role='treeitem']").GetAttribute("aria-selected") == "false");
@@ -234,14 +236,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [Test]
         public void VerifyExternalSelectionUpdatesVisualHighlight()
         {
-            using var initializationCallback = new ManualResetEventSlim();
-
             var model = new Namespace();
             var selectionService = new ElementSelectionService();
             var callbackCount = 0;
             var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(model).Object,
                 selectionService);
+            var initializationCompleted = ObserveSuccessfulInitialization(viewModel);
 
             this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
 
@@ -249,14 +250,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Add(browser => browser.SelectedNodeChanged, _ =>
                 {
                     callbackCount++;
-                    initializationCallback.Set();
                 }));
 
-            Assert.That(initializationCallback.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
+            Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
 
-            selectionService.ClearSelection();
-            callbackCount = 0;
-            selectionService.SelectElement(viewModel.RootNodes[0].SourceElement);
+            selectionService.SelectedElement = null;
+            selectionService.SelectedElement = viewModel.RootNodes[0].SourceElement;
 
             component.WaitForAssertion(() =>
                 Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true")));
@@ -288,10 +287,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
 
             var rootNode = viewModel.RootNodes[0];
-            selectionService.ClearSelection();
+            selectionService.SelectedElement = null;
             component.Instance.Dispose();
 
-            selectionService.SelectElement(rootNode.SourceElement);
+            selectionService.SelectedElement = rootNode.SourceElement;
 
             using (Assert.EnterMultipleScope())
             {

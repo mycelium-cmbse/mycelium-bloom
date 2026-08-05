@@ -49,6 +49,7 @@
           incomplete. Reassess only these exceptions after upgrading Blueprint.
         -->
         <PackageReference Include="BlazorBlueprint.Components" Version="3.14.1" />
+        <PackageReference Include="DynamicData" Version="9.4.33" />
         <!-- Intentionally direct: selects the security-reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when Blueprint is upgraded. -->
         <PackageReference Include="HtmlSanitizer" Version="9.1.982" />
         <PackageReference Include="OpenTelemetry" Version="1.17.0" />

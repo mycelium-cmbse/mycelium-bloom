@@ -52,18 +52,28 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the asynchronous operation.</returns>
         protected override async Task OnInitializedAsync()
         {
-            if (this.ViewModel.IsLoaded
+            if (this.isDisposed
+                || this.ViewModel.IsLoaded
                 || this.ViewModel.IsLoading
                 || !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage))
             {
                 return;
             }
 
-            await this.ViewModel.InitializeCommand.Execute();
-
-            if (!this.isDisposed && this.ViewModel.IsLoaded && this.ViewModel.SelectedNode != null)
+            try
             {
-                await this.SelectedNodeChanged.InvokeAsync(this.ViewModel.SelectedNode);
+                await this.ViewModel.InitializeCommand.Execute();
+            }
+            catch (Exception)
+            {
+                // The command's ThrownExceptions subscription maps genuine failures to the rendered error state.
+            }
+            finally
+            {
+                if (this.isDisposed)
+                {
+                    this.ViewModel.Dispose();
+                }
             }
         }
 
@@ -75,9 +85,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (disposing && !this.isDisposed)
             {
                 this.isDisposed = true;
+                var viewModel = this.ViewModel;
+
+                try
+                {
+                    base.Dispose(disposing);
+                }
+                finally
+                {
+                    if (!viewModel.IsLoading)
+                    {
+                        viewModel.Dispose();
+                    }
+                }
+
+                return;
             }
 
             base.Dispose(disposing);
@@ -122,7 +147,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleNodeSelectedAsync(ProjectBrowserNodeViewModel node)
         {
-            if (node == null)
+            if (node == null || this.isDisposed)
             {
                 return;
             }

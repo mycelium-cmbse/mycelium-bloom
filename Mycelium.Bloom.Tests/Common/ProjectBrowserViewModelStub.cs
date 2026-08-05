@@ -10,7 +10,7 @@
 namespace Mycelium.Bloom.Tests.Common
 {
     using System;
-    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Threading.Tasks;
 
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -26,7 +26,12 @@ namespace Mycelium.Bloom.Tests.Common
         /// <summary>
         /// The root nodes.
         /// </summary>
-        private IReadOnlyList<ProjectBrowserNodeViewModel> rootNodes = [];
+        private readonly ObservableCollection<ProjectBrowserNodeViewModel> rootNodeSource = [];
+
+        /// <summary>
+        /// The read-only root nodes exposed by the stub.
+        /// </summary>
+        private readonly ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> rootNodes;
 
         /// <summary>
         /// The selected node.
@@ -49,13 +54,19 @@ namespace Mycelium.Bloom.Tests.Common
         private string errorMessage = string.Empty;
 
         /// <summary>
+        /// A value indicating whether the stub has been disposed.
+        /// </summary>
+        private bool isDisposed;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserViewModelStub" /> class.
         /// </summary>
         internal ProjectBrowserViewModelStub()
         {
             this.Activator = new ViewModelActivator();
+            this.rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(this.rootNodeSource);
             this.InitializeCommand = ReactiveCommand.CreateFromTask(this.InitializeAsync);
-            this.ToggleNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.ToggleNode);
+            this.ToggleNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(ToggleNode);
             this.SelectNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.SelectNode);
         }
 
@@ -63,11 +74,7 @@ namespace Mycelium.Bloom.Tests.Common
         public ViewModelActivator Activator { get; }
 
         /// <inheritdoc />
-        public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes
-        {
-            get => this.rootNodes;
-            set => this.RaiseAndSetIfChanged(ref this.rootNodes, value);
-        }
+        public ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes => this.rootNodes;
 
         /// <inheritdoc />
         public ProjectBrowserNodeViewModel SelectedNode
@@ -98,7 +105,7 @@ namespace Mycelium.Bloom.Tests.Common
         }
 
         /// <inheritdoc />
-        public ReactiveCommand<RxVoid, RxVoid> InitializeCommand { get; }
+        public ReactiveCommand<RxVoid, bool> InitializeCommand { get; }
 
         /// <inheritdoc />
         public ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> ToggleNodeCommand { get; }
@@ -126,9 +133,23 @@ namespace Mycelium.Bloom.Tests.Common
         }
 
         /// <summary>
+        /// Replaces the root nodes exposed by the stub.
+        /// </summary>
+        /// <param name="nodes">The replacement root nodes.</param>
+        public void ReplaceRootNodes(params ProjectBrowserNodeViewModel[] nodes)
+        {
+            this.rootNodeSource.Clear();
+
+            foreach (var node in nodes)
+            {
+                this.rootNodeSource.Add(node);
+            }
+        }
+
+        /// <summary>
         /// Runs controlled asynchronous initialization.
         /// </summary>
-        private async Task InitializeAsync()
+        private async Task<bool> InitializeAsync()
         {
             this.InitializeAsyncCallCount++;
             this.IsLoading = true;
@@ -141,13 +162,29 @@ namespace Mycelium.Bloom.Tests.Common
             {
                 this.IsLoading = false;
             }
+
+            return true;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+            this.InitializeCommand.Dispose();
+            this.ToggleNodeCommand.Dispose();
+            this.SelectNodeCommand.Dispose();
         }
 
         /// <summary>
         /// Toggles a node for component interaction tests.
         /// </summary>
         /// <param name="node">The node to toggle.</param>
-        private void ToggleNode(ProjectBrowserNodeViewModel node)
+        private static void ToggleNode(ProjectBrowserNodeViewModel node)
         {
             ArgumentNullException.ThrowIfNull(node);
 

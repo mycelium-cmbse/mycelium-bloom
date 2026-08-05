@@ -59,7 +59,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
         /// Verifies first-selection state and notification ordering.
         /// </summary>
         [Test]
-        public void VerifySelectElementPublishesAfterStateChanges()
+        public void VerifySelectedElementPublishesAfterStateChanges()
         {
             var service = new ElementSelectionService();
             var element = new Namespace();
@@ -83,7 +83,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
                 }
             };
 
-            service.SelectElement(element);
+            service.SelectedElement = element;
 
             using (Assert.EnterMultipleScope())
             {
@@ -96,7 +96,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
         /// Verifies that selecting the same object reference twice is silent.
         /// </summary>
         [Test]
-        public void VerifySelectElementIsSilentForSameReference()
+        public void VerifySelectedElementIsSilentForSameReference()
         {
             var service = new ElementSelectionService();
             var element = new Namespace();
@@ -110,8 +110,8 @@ namespace Mycelium.Bloom.Tests.Core.Selection
                 }
             };
 
-            service.SelectElement(element);
-            service.SelectElement(element);
+            service.SelectedElement = element;
+            service.SelectedElement = element;
 
             Assert.That(propertyChangedCount, Is.EqualTo(1));
         }
@@ -120,7 +120,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
         /// Verifies that distinct references with the same ElementId still publish.
         /// </summary>
         [Test]
-        public void VerifySelectElementPublishesForDistinctReferencesWithSameElementId()
+        public void VerifySelectedElementPublishesForDistinctReferencesWithSameElementId()
         {
             var service = new ElementSelectionService();
             var firstElement = new Namespace { ElementId = "shared-id" };
@@ -131,8 +131,8 @@ namespace Mycelium.Bloom.Tests.Core.Selection
                 service.WhenAnyValue(selection => selection.SelectedElement),
                 observedValues.Add);
 
-            service.SelectElement(firstElement);
-            service.SelectElement(secondElement);
+            service.SelectedElement = firstElement;
+            service.SelectedElement = secondElement;
 
             using (Assert.EnterMultipleScope())
             {
@@ -146,7 +146,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
         /// Verifies that distinct references publish even when value equality returns true.
         /// </summary>
         [Test]
-        public void VerifySelectElementPublishesForDistinctReferencesThatCompareEqual()
+        public void VerifySelectedElementPublishesForDistinctReferencesThatCompareEqual()
         {
             var service = new ElementSelectionService();
             var firstElement = new Mock<IElement>();
@@ -164,8 +164,8 @@ namespace Mycelium.Bloom.Tests.Core.Selection
                 }
             };
 
-            service.SelectElement(firstElement.Object);
-            service.SelectElement(secondElement.Object);
+            service.SelectedElement = firstElement.Object;
+            service.SelectedElement = secondElement.Object;
 
             using (Assert.EnterMultipleScope())
             {
@@ -180,7 +180,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
         /// Verifies clear and repeated-clear semantics.
         /// </summary>
         [Test]
-        public void VerifyClearSelectionPublishesOnlyWhenSelectionExists()
+        public void VerifySelectedElementNullPublishesOnlyWhenSelectionExists()
         {
             var service = new ElementSelectionService();
             var observedValues = new List<IElement>();
@@ -189,10 +189,10 @@ namespace Mycelium.Bloom.Tests.Core.Selection
                 service.WhenAnyValue(selection => selection.SelectedElement),
                 observedValues.Add);
 
-            service.ClearSelection();
-            service.SelectElement(new Namespace());
-            service.ClearSelection();
-            service.ClearSelection();
+            service.SelectedElement = null;
+            service.SelectedElement = new Namespace();
+            service.SelectedElement = null;
+            service.SelectedElement = null;
 
             using (Assert.EnterMultipleScope())
             {
@@ -222,9 +222,9 @@ namespace Mycelium.Bloom.Tests.Core.Selection
                 service.WhenAnyValue(selection => selection.SelectedElement),
                 _ => secondSubscriberCount++);
 
-            service.SelectElement(new Namespace());
+            service.SelectedElement = new Namespace();
             firstSubscription.Dispose();
-            service.ClearSelection();
+            service.SelectedElement = null;
 
             using (Assert.EnterMultipleScope())
             {
@@ -250,7 +250,7 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             var secondService = secondScope.ServiceProvider.GetRequiredService<IElementSelectionService>();
             var element = new Namespace();
 
-            firstService.SelectElement(element);
+            firstService.SelectedElement = element;
 
             using (Assert.EnterMultipleScope())
             {
@@ -261,17 +261,14 @@ namespace Mycelium.Bloom.Tests.Core.Selection
         }
 
         /// <summary>
-        /// Verifies null cannot be selected under the repository nullable policy.
+        /// Verifies the service explicitly fulfills the ReactiveUI object contract.
         /// </summary>
         [Test]
-        public void VerifySelectElementRejectsNull()
+        public void VerifyServiceImplementsReactiveObjectContract()
         {
-            var service = new ElementSelectionService();
+            IElementSelectionService service = new ElementSelectionService();
 
-            Assert.That(
-                () => service.SelectElement(null),
-                Throws.TypeOf<ArgumentNullException>()
-                    .With.Property("ParamName").EqualTo("element"));
+            Assert.That(service, Is.AssignableTo<IReactiveObject>());
         }
     }
 }

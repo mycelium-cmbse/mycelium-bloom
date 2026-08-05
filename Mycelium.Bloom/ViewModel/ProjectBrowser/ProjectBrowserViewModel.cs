@@ -9,7 +9,11 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using System.Collections.ObjectModel;
     using System.Globalization;
+
+    using DynamicData;
+    using DynamicData.Binding;
 
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
@@ -53,9 +57,19 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             new(ReferenceEqualityComparer.Instance);
 
         /// <summary>
-        /// The root nodes displayed by the project browser.
+        /// Owns the root node collection and publishes batched root changes.
         /// </summary>
-        private IReadOnlyList<ProjectBrowserNodeViewModel> rootNodes = [];
+        private readonly SourceList<ProjectBrowserNodeViewModel> rootNodeSource = new();
+
+        /// <summary>
+        /// The read-only root node collection bound from <see cref="rootNodeSource" />.
+        /// </summary>
+        private readonly ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> rootNodes;
+
+        /// <summary>
+        /// Owns commands and subscriptions that live until final view model disposal.
+        /// </summary>
+        private readonly MultipleDisposable lifetimeDisposables = new();
 
         /// <summary>
         /// The visual projection of the globally selected element.
@@ -65,7 +79,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Cancels initialization when the view model is no longer active.
         /// </summary>
-        private CancellationToken initializationLifetimeToken = CancellationToken.None;
+        private CancellationDisposable initializationCancellation;
+
+        /// <summary>
+        /// A value indicating whether final view model disposal has occurred.
+        /// </summary>
+        private bool isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserViewModel" /> class.
@@ -86,15 +105,59 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.ToggleNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(ToggleNode);
             this.SelectNodeCommand = ReactiveCommand.Create<ProjectBrowserNodeViewModel>(this.SelectNode);
 
+            System.ObservableExtensions
+                .Subscribe(
+                    this.rootNodeSource.Connect().Bind(out var boundRootNodes))
+                .DisposeWith(this.lifetimeDisposables);
+
+            this.rootNodes = boundRootNodes;
+            this.rootNodeSource.DisposeWith(this.lifetimeDisposables);
+            this.InitializeCommand.DisposeWith(this.lifetimeDisposables);
+            this.ToggleNodeCommand.DisposeWith(this.lifetimeDisposables);
+            this.SelectNodeCommand.DisposeWith(this.lifetimeDisposables);
+
+            System.ObservableExtensions
+                .Subscribe(
+                    this.InitializeCommand.IsExecuting,
+                    this.UpdateLoadingState)
+                .DisposeWith(this.lifetimeDisposables);
+
+            System.ObservableExtensions
+                .Subscribe(
+                    this.InitializeCommand,
+                    initialized =>
+                    {
+                        if (initialized)
+                        {
+                            this.SetLoaded();
+                        }
+                    })
+                .DisposeWith(this.lifetimeDisposables);
+
+            System.ObservableExtensions
+                .Subscribe(
+                    this.InitializeCommand.ThrownExceptions,
+                    this.HandleInitializationError)
+                .DisposeWith(this.lifetimeDisposables);
+
             this.WhenActivated((MultipleDisposable disposables) =>
             {
-                var initializationCancellation = new CancellationDisposable();
-                this.initializationLifetimeToken = initializationCancellation.Token;
-                initializationCancellation.DisposeWith(disposables);
+                this.initializationCancellation = new CancellationDisposable();
+                this.initializationCancellation.DisposeWith(disposables);
+
+                var selectedElementChanges = this.elementSelectionService
+                    .WhenAnyValue(service => service.SelectedElement);
+
+                var rootChanges = System.Reactive.Linq.Observable.Select(
+                    this.rootNodeSource.Connect(),
+                    _ => true);
 
                 System.ObservableExtensions
                     .Subscribe(
-                        this.elementSelectionService.WhenAnyValue(service => service.SelectedElement),
+                        System.Reactive.Linq.Observable.CombineLatest(
+                            selectedElementChanges,
+                            rootChanges,
+                            (selectedElement, _) => selectedElement),
                         this.ApplySelectedElement)
                     .DisposeWith(disposables);
             });
@@ -106,11 +169,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
         /// </summary>
-        public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes
-        {
-            get => this.rootNodes;
-            private set => this.RaiseAndSetIfChanged(ref this.rootNodes, value);
-        }
+        public ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes => this.rootNodes;
 
         /// <summary>
         /// Gets the currently selected node.
@@ -122,7 +181,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <inheritdoc />
-        public ReactiveCommand<RxVoid, RxVoid> InitializeCommand { get; }
+        public ReactiveCommand<RxVoid, bool> InitializeCommand { get; }
 
         /// <inheritdoc />
         public ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> ToggleNodeCommand { get; }
@@ -130,30 +189,40 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <inheritdoc />
         public ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> SelectNodeCommand { get; }
 
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+            this.initializationCancellation?.Dispose();
+            this.lifetimeDisposables.Dispose();
+        }
+
         /// <summary>
         /// Initializes the project browser tree from the Quantities SysML model.
         /// </summary>
         /// <param name="commandCancellationToken">Cancels the current command execution.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task InitializeAsync(CancellationToken commandCancellationToken)
+        private async Task<bool> InitializeAsync(CancellationToken commandCancellationToken)
         {
-            if (this.IsLoaded || this.IsLoading)
+            if (this.IsLoaded)
             {
-                return;
+                return false;
             }
 
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 commandCancellationToken,
-                this.initializationLifetimeToken);
+                this.initializationCancellation?.Token ?? CancellationToken.None);
 
             var cancellationToken = linkedCancellation.Token;
-            var loadingStarted = false;
 
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                this.StartLoading();
-                loadingStarted = true;
 
                 var model = await Task.Run(
                     this.modelLoaderService.LoadQuantitiesModel,
@@ -163,22 +232,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 this.InitializeTree(model, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 this.SelectDefaultRootNode(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+
+                return true;
             }
             catch (Exception) when (cancellationToken.IsCancellationRequested)
             {
                 // Deactivation cancels initialization without presenting a loading failure.
-            }
-            catch (Exception exception)
-            {
-                this.ResetTree();
-                this.SetError(exception.Message);
-            }
-            finally
-            {
-                if (loadingStarted)
-                {
-                    this.StopLoading();
-                }
+                return false;
             }
         }
 
@@ -192,15 +253,16 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             ArgumentNullException.ThrowIfNull(model);
             cancellationToken.ThrowIfCancellationRequested();
 
-            this.ResetTree();
+            this.ClearTreeIndexesAndOwnedSelection();
 
             var rootNode = this.BuildNode(model, "root");
 
             cancellationToken.ThrowIfCancellationRequested();
-            this.RootNodes = [rootNode];
-            this.ApplySelectedElement(this.elementSelectionService.SelectedElement);
-            cancellationToken.ThrowIfCancellationRequested();
-            this.SetLoaded();
+            this.rootNodeSource.Edit(nodes =>
+            {
+                nodes.Clear();
+                nodes.Add(rootNode);
+            });
         }
 
         /// <summary>
@@ -225,8 +287,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            this.elementSelectionService.SelectElement(node.SourceElement);
-            this.ApplySelectedElement(this.elementSelectionService.SelectedElement);
+            this.elementSelectionService.SelectedElement = node.SourceElement;
         }
 
         /// <summary>
@@ -324,18 +385,50 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private void ResetTree()
         {
+            this.ClearTreeIndexesAndOwnedSelection();
+            this.rootNodeSource.Edit(nodes => nodes.Clear());
+        }
+
+        /// <summary>
+        /// Clears visual lookup indexes and clears a shared selection owned by the current tree.
+        /// </summary>
+        private void ClearTreeIndexesAndOwnedSelection()
+        {
             var selectedElement = this.elementSelectionService.SelectedElement;
             var shouldClearSelection = selectedElement != null && this.elementNodes.ContainsKey(selectedElement);
 
-            this.ApplySelectedElement(null);
-            this.RootNodes = [];
             this.nodeIds.Clear();
             this.elementNodes.Clear();
 
             if (shouldClearSelection)
             {
-                this.elementSelectionService.ClearSelection();
+                this.elementSelectionService.SelectedElement = null;
             }
+        }
+
+        /// <summary>
+        /// Updates loading state from <see cref="InitializeCommand" /> execution state.
+        /// </summary>
+        /// <param name="isExecuting">A value indicating whether initialization is executing.</param>
+        private void UpdateLoadingState(bool isExecuting)
+        {
+            if (isExecuting)
+            {
+                this.StartLoading();
+                return;
+            }
+
+            this.StopLoading();
+        }
+
+        /// <summary>
+        /// Resets the tree and exposes a genuine initialization failure.
+        /// </summary>
+        /// <param name="exception">The initialization failure.</param>
+        private void HandleInitializationError(Exception exception)
+        {
+            this.ResetTree();
+            this.SetError(exception.Message);
         }
 
         /// <summary>
