@@ -39,6 +39,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     public sealed class ProjectBrowserViewModelTestFixture
     {
         /// <summary>
+        /// The expected display-name order of the root node's children.
+        /// </summary>
+        private static readonly string[] ExpectedRootChildDisplayNames =
+            ["First child", "Second child"];
+
+        /// <summary>
         /// Verifies that the constructor rejects a null model loader service.
         /// </summary>
         [Test]
@@ -453,7 +459,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(exposedRoots, Has.Count.EqualTo(1));
                 Assert.That(
                     exposedRoots[0].Children.Select(node => node.DisplayName),
-                    Is.EqualTo(new[] { "First child", "Second child" }));
+                    Is.EqualTo(ExpectedRootChildDisplayNames));
             }
         }
 
