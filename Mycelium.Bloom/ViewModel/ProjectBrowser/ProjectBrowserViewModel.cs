@@ -258,7 +258,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var rootNode = this.BuildNode(model, "root");
 
             cancellationToken.ThrowIfCancellationRequested();
-            this.rootNodeSource.Edit(nodes =>
+            this.EditRootNodes(nodes =>
             {
                 nodes.Clear();
                 nodes.Add(rootNode);
@@ -386,7 +386,22 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private void ResetTree()
         {
             this.ClearTreeIndexesAndOwnedSelection();
-            this.rootNodeSource.Edit(nodes => nodes.Clear());
+
+            if (this.RootNodes.Count > 0)
+            {
+                this.EditRootNodes(nodes => nodes.Clear());
+            }
+        }
+
+        /// <summary>
+        /// Edits the root collection in one transaction and notifies reactive component observers.
+        /// </summary>
+        /// <param name="editAction">The batched root-node edit.</param>
+        private void EditRootNodes(Action<IExtendedList<ProjectBrowserNodeViewModel>> editAction)
+        {
+            this.RaisePropertyChanging(nameof(this.RootNodes));
+            this.rootNodeSource.Edit(editAction);
+            this.RaisePropertyChanged(nameof(this.RootNodes));
         }
 
         /// <summary>

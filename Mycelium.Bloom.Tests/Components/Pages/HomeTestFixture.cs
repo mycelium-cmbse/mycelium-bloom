@@ -9,16 +9,11 @@
 
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
-    using System.Threading.Tasks;
-
     using Bunit;
 
     using Microsoft.Extensions.DependencyInjection;
 
-    using Moq;
-
     using Mycelium.Bloom.Components.Pages;
-    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel;
@@ -51,14 +46,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void VerifyRenderDisplaysHomeContentWithoutCodeBehind()
         {
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                IsLoading = true
-            };
+            using var context = new ProjectBrowserViewModelMockContext();
+            context.SetIsLoading(true);
+            this.RegisterServices(context.Object);
 
-            this.RegisterServices(viewModel);
-
-            var component = this.Render<Home>();
+            using var component = this.Render<Home>();
 
             using (Assert.EnterMultipleScope())
             {
@@ -69,59 +61,37 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Markup, Does.Contain("None"));
                 Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
                 Assert.That(component.Instance, Is.AssignableTo<ReactiveInjectableComponentBase<HomeViewModel>>());
-                Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
+                Assert.That(context.InitializeCallCount, Is.Zero);
             }
         }
 
         /// <summary>
-        /// Verifies Project Browser publication updates Home through the shared scoped service.
+        /// Verifies the Project Browser child boundary updates Home through the shared scoped service.
         /// </summary>
         [Test]
         public void VerifyProjectBrowserSelectionUpdatesHome()
         {
-            var model = new Namespace();
-            var modelLoaderService = new Mock<IModelLoaderService>();
-
-            modelLoaderService
-                .Setup(x => x.LoadQuantitiesModel())
-                .Returns(model);
-
             var selectionService = new ElementSelectionService();
-            var viewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                selectionService);
-            var initializationCompleted = new TaskCompletionSource<bool>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            using var context = new ProjectBrowserViewModelMockContext();
+            context.ReplaceRootNodes(node);
+            context.SetIsLoaded(true);
+            context.SelectHandler = selectedNode =>
+                selectionService.SelectedElement = selectedNode.SourceElement;
+            this.RegisterServices(context.Object, selectionService);
 
-            viewModel.PropertyChanged += (_, _) =>
-            {
-                if (viewModel.IsLoaded && !viewModel.IsLoading)
-                {
-                    initializationCompleted.TrySetResult(true);
-                }
-            };
-
-            this.RegisterServices(viewModel, selectionService);
-
-            var component = this.Render<Home>();
-
-            Assert.That(initializationCompleted.Task.Wait(System.TimeSpan.FromSeconds(10)), Is.True);
-
-            selectionService.SelectedElement = null;
-
-            component.WaitForState(() =>
-                component.Find("[role='treeitem']").GetAttribute("aria-selected") == "false");
+            using var component = this.Render<Home>();
 
             component.Find(".mb-project-browser-node__row").Click();
 
-            component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Namespace")));
-
-            var node = viewModel.RootNodes[0];
+            component.WaitForAssertion(() =>
+                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo(nameof(Namespace))));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
-                Assert.That(viewModel.SelectedNode, Is.SameAs(node));
+                Assert.That(context.SelectCallCount, Is.EqualTo(1));
+                Assert.That(context.LastSelectedNode, Is.SameAs(node));
             }
         }
 
@@ -131,14 +101,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void VerifyExternalSelectionRerendersHome()
         {
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                IsLoading = true
-            };
+            using var context = new ProjectBrowserViewModelMockContext();
+            context.SetIsLoading(true);
+            var selectionService = this.RegisterServices(context.Object);
 
-            var selectionService = this.RegisterServices(viewModel);
-
-            var component = this.Render<Home>();
+            using var component = this.Render<Home>();
 
             selectionService.SelectedElement = new LibraryPackage();
 
@@ -148,7 +115,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         /// <summary>
         /// Registers the shared selection service and reactive view models for Home component tests.
         /// </summary>
-        /// <param name="projectBrowserViewModel">The Project Browser test view model.</param>
+        /// <param name="projectBrowserViewModel">The mocked Project Browser contract.</param>
         /// <param name="selectionService">The shared selection service, when a preconfigured instance is required.</param>
         /// <returns>The selection service registered for the component scope.</returns>
         private IElementSelectionService RegisterServices(

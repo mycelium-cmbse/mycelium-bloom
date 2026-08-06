@@ -28,6 +28,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
+    using ReactiveUI;
     using ReactiveUI.Primitives.Signals;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -43,6 +44,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// </summary>
         private static readonly string[] ExpectedRootChildDisplayNames =
             ["First child", "Second child"];
+
+        /// <summary>
+        /// The expected ordered IsLoading values during initialization.
+        /// </summary>
+        private static readonly bool[] ExpectedInitializationLoadingStates =
+            [false, true, false];
+
+        /// <summary>
+        /// The expected ordered IsLoaded values during successful initialization.
+        /// </summary>
+        private static readonly bool[] ExpectedInitializationLoadedStates =
+            [false, true];
+
+        /// <summary>
+        /// The expected ordered ErrorMessage values during failed initialization.
+        /// </summary>
+        private static readonly string[] ExpectedInitializationErrorMessages =
+            [string.Empty, "Model load failed"];
 
         /// <summary>
         /// Verifies that the constructor rejects a null model loader service.
@@ -211,6 +230,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 .Throws(new InvalidOperationException("Model load failed"));
 
             using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            var observedErrors = new List<string>();
+
+            using var errorSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.ErrorMessage),
+                observedErrors.Add);
 
             Assert.That(
                 async () => await viewModel.InitializeCommand.Execute(),
@@ -224,6 +248,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.IsLoaded, Is.False);
                 Assert.That(viewModel.IsLoading, Is.False);
                 Assert.That(viewModel.ErrorMessage, Is.EqualTo("Model load failed"));
+                Assert.That(observedErrors, Is.EqualTo(ExpectedInitializationErrorMessages));
                 modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
             }
         }
@@ -464,6 +489,49 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies the SourceList root replacement exposes the same reactive property contract consumed by the component.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeCommandNotifiesRootNodesAroundSourceListReplacement()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                new ElementSelectionService());
+            using var activation = viewModel.Activator.Activate();
+            var rootCountsDuringChanging = new List<int>();
+            var rootCountsDuringChanged = new List<int>();
+
+            using var changingSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.GetChangingObservable(),
+                args =>
+                {
+                    if (args.PropertyName == nameof(ProjectBrowserViewModel.RootNodes))
+                    {
+                        rootCountsDuringChanging.Add(viewModel.RootNodes.Count);
+                    }
+                });
+            using var changedSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.GetChangedObservable(),
+                args =>
+                {
+                    if (args.PropertyName == nameof(ProjectBrowserViewModel.RootNodes))
+                    {
+                        rootCountsDuringChanged.Add(viewModel.RootNodes.Count);
+                    }
+                });
+
+            await viewModel.InitializeCommand.Execute();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(rootCountsDuringChanging, Has.Count.EqualTo(1));
+                Assert.That(rootCountsDuringChanging[0], Is.Zero);
+                Assert.That(rootCountsDuringChanged, Has.Count.EqualTo(1));
+                Assert.That(rootCountsDuringChanged[0], Is.EqualTo(1));
+            }
+        }
+
+        /// <summary>
         /// Verifies local selection has no imperative visual shortcut while the reactive projection is inactive.
         /// </summary>
         [Test]
@@ -508,15 +576,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             await viewModel.InitializeCommand.Execute();
 
-            var selectionNotifications = 0;
+            var observedSelections = new List<ProjectBrowserNodeViewModel>();
 
-            viewModel.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName == nameof(viewModel.SelectedNode))
-                {
-                    selectionNotifications++;
-                }
-            };
+            using var selectionSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.SelectedNode),
+                observedSelections.Add);
+
+            var notificationCountBeforeSelection = observedSelections.Count;
 
             var node = viewModel.RootNodes[0].Children[0];
             await viewModel.SelectNodeCommand.Execute(node);
@@ -524,7 +590,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.SelectedNode, Is.SameAs(node));
-                Assert.That(selectionNotifications, Is.EqualTo(1));
+                Assert.That(observedSelections, Has.Count.EqualTo(notificationCountBeforeSelection + 1));
+                Assert.That(observedSelections[observedSelections.Count - 1], Is.SameAs(node));
             }
         }
 
@@ -556,11 +623,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 modelLoaderService.Object,
                 new ElementSelectionService());
             using var activation = viewModel.Activator.Activate();
-            var observedStates = new List<(bool IsExecuting, bool IsLoading)>();
+            var observedLoadingStates = new List<bool>();
+            var observedLoadedStates = new List<bool>();
 
-            using var stateSubscription = System.ObservableExtensions.Subscribe(
-                viewModel.InitializeCommand.IsExecuting,
-                isExecuting => observedStates.Add((isExecuting, viewModel.IsLoading)));
+            using var loadingSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.IsLoading),
+                observedLoadingStates.Add);
+            using var loadedSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.IsLoaded),
+                observedLoadedStates.Add);
 
             var initialization = Task.Run(async () => await viewModel.InitializeCommand.Execute());
 
@@ -581,10 +652,70 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(observedStates, Does.Contain((true, true)));
-                Assert.That(observedStates[observedStates.Count - 1], Is.EqualTo((false, false)));
+                Assert.That(observedLoadingStates, Is.EqualTo(ExpectedInitializationLoadingStates));
+                Assert.That(observedLoadedStates, Is.EqualTo(ExpectedInitializationLoadedStates));
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.ErrorMessage, Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies deactivation cancels in-flight initialization before model state can be exposed.
+        /// </summary>
+        [Test]
+        public async Task VerifyDeactivationCancelsInFlightInitialization()
+        {
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            using var loadFinished = new ManualResetEventSlim();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    loadStarted.Set();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    loadFinished.Set();
+
+                    return CreateMinimalModel();
+                });
+
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            Task initialization = null;
+
+            try
+            {
+                using (viewModel.Activator.Activate())
+                {
+                    initialization = Task.Run(async () => await viewModel.InitializeCommand.Execute());
+
+                    Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+                }
+            }
+            finally
+            {
+                releaseLoad.Set();
+            }
+
+            await initialization;
+            Assert.That(loadFinished.Wait(TimeSpan.FromSeconds(10)), Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.Null);
+                Assert.That(viewModel.RootNodes, Is.Empty);
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.IsLoaded, Is.False);
+                Assert.That(viewModel.IsLoading, Is.False);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
             }
         }
 
