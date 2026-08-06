@@ -308,9 +308,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             {
                 var titles = component.FindAll(".mb-project-browser-node__title");
 
-                Assert.That(titles, Has.Count.EqualTo(2));
-                Assert.That(titles[0].TextContent, Is.EqualTo("Second"));
-                Assert.That(titles[1].TextContent, Is.EqualTo("Third"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(titles, Has.Count.EqualTo(2));
+                    Assert.That(titles[0].TextContent, Is.EqualTo("Second"));
+                    Assert.That(titles[1].TextContent, Is.EqualTo("Third"));
+                }
             });
 
             using (Assert.EnterMultipleScope())
@@ -342,8 +345,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             component.WaitForAssertion(() =>
             {
-                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true"));
-                Assert.That(component.Find("button").ClassList, Does.Contain("mb-project-browser-node__row--selected"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true"));
+                    Assert.That(component.Find("button").ClassList, Does.Contain("mb-project-browser-node__row--selected"));
+                }
             });
         }
 
