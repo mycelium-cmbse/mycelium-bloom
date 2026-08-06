@@ -225,8 +225,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using var component = this.Render<Home>();
 
-            Assert.That(component.Instance.ElementSelectionService, Is.SameAs(selectionService));
-            Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo("First"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Instance.ElementSelectionService, Is.SameAs(selectionService));
+                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo("First"));
+            }
 
             selectionService.SelectedElement = secondElement;
             component.WaitForAssertion(() =>
