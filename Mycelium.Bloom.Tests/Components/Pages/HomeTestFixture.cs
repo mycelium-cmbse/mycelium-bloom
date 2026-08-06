@@ -9,9 +9,14 @@
 
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
+    using System.Collections.ObjectModel;
+    using System.Threading;
+
     using Bunit;
 
     using Microsoft.Extensions.DependencyInjection;
+
+    using Moq;
 
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.Core.Selection;
@@ -46,9 +51,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void VerifyRenderDisplaysHomeContentWithoutCodeBehind()
         {
-            using var context = new ProjectBrowserViewModelMockContext();
-            context.SetIsLoading(true);
-            this.RegisterServices(context.Object);
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            projectBrowserViewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            projectBrowserViewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            projectBrowserViewModel.SetupGet(x => x.IsLoading).Returns(true);
+            projectBrowserViewModel.Setup(x => x.Dispose());
+            this.RegisterServices(projectBrowserViewModel.Object);
 
             using var component = this.Render<Home>();
 
@@ -61,7 +71,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Markup, Does.Contain("None"));
                 Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
                 Assert.That(component.Instance, Is.AssignableTo<ReactiveInjectableComponentBase<HomeViewModel>>());
-                Assert.That(context.InitializeCallCount, Is.Zero);
+                projectBrowserViewModel.Verify(
+                    x => x.InitializeAsync(It.IsAny<CancellationToken>()),
+                    Times.Never);
             }
         }
 
@@ -73,12 +85,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         {
             var selectionService = new ElementSelectionService();
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
-            using var context = new ProjectBrowserViewModelMockContext();
-            context.ReplaceRootNodes(node);
-            context.SetIsLoaded(true);
-            context.SelectHandler = selectedNode =>
-                selectionService.SelectedElement = selectedNode.SourceElement;
-            this.RegisterServices(context.Object, selectionService);
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            projectBrowserViewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            projectBrowserViewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            projectBrowserViewModel.SetupGet(x => x.IsLoading).Returns(false);
+            projectBrowserViewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            projectBrowserViewModel
+                .Setup(x => x.SelectNode(node))
+                .Callback<ProjectBrowserNodeViewModel>(selectedNode =>
+                    selectionService.SelectedElement = selectedNode.SourceElement);
+            projectBrowserViewModel.Setup(x => x.Dispose());
+            this.RegisterServices(projectBrowserViewModel.Object, selectionService);
 
             using var component = this.Render<Home>();
 
@@ -90,8 +109,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
-                Assert.That(context.SelectCallCount, Is.EqualTo(1));
-                Assert.That(context.LastSelectedNode, Is.SameAs(node));
+                projectBrowserViewModel.Verify(x => x.SelectNode(node), Times.Once);
+                projectBrowserViewModel.Verify(
+                    x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()),
+                    Times.Never);
             }
         }
 
@@ -101,9 +122,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void VerifyExternalSelectionRerendersHome()
         {
-            using var context = new ProjectBrowserViewModelMockContext();
-            context.SetIsLoading(true);
-            var selectionService = this.RegisterServices(context.Object);
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            projectBrowserViewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            projectBrowserViewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            projectBrowserViewModel.SetupGet(x => x.IsLoading).Returns(true);
+            projectBrowserViewModel.Setup(x => x.Dispose());
+            var selectionService = this.RegisterServices(projectBrowserViewModel.Object);
 
             using var component = this.Render<Home>();
 

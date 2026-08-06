@@ -10,15 +10,11 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using System.Collections.ObjectModel;
-    using System.ComponentModel;
-
-    using ReactiveUI;
-    using ReactiveUI.Primitives;
 
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
-    public interface IProjectBrowserViewModel : INotifyPropertyChanged, IActivatableViewModel, IDisposable
+    public interface IProjectBrowserViewModel : IDisposable
     {
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
@@ -46,18 +42,22 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         string ErrorMessage { get; }
 
         /// <summary>
-        /// Gets the command that initializes the project browser tree from the Quantities SysML model.
+        /// Initializes the project browser tree from the Quantities SysML model.
         /// </summary>
-        ReactiveCommand<RxVoid, bool> InitializeCommand { get; }
+        /// <param name="cancellationToken">Cancels initialization.</param>
+        /// <returns><see langword="true" /> when a new tree is loaded; otherwise, <see langword="false" />.</returns>
+        Task<bool> InitializeAsync(CancellationToken cancellationToken);
 
         /// <summary>
-        /// Gets the command that toggles a project browser node.
+        /// Toggles a project browser node.
         /// </summary>
-        ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> ToggleNodeCommand { get; }
+        /// <param name="node">The node to expand or collapse.</param>
+        void ToggleNode(ProjectBrowserNodeViewModel node);
 
         /// <summary>
-        /// Gets the command that selects a project browser node.
+        /// Selects a project browser node.
         /// </summary>
-        ReactiveCommand<ProjectBrowserNodeViewModel, RxVoid> SelectNodeCommand { get; }
+        /// <param name="node">The node to select.</param>
+        void SelectNode(ProjectBrowserNodeViewModel node);
     }
 }
