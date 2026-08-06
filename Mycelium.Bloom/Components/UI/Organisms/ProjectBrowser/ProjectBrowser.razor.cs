@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public partial class ProjectBrowser : BloomComponentBase, IDisposable
+    public sealed partial class ProjectBrowser : BloomComponentBase, IDisposable
     {
         /// <summary>
         /// Cancels component-owned initialization when the component is disposed.
@@ -234,17 +234,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 this.ViewModel.ToggleNode(node);
             }
 
-            if (this.isDisposed)
-            {
-                return;
-            }
-
             this.ViewModel.SelectNode(node);
-
-            if (!this.isDisposed)
-            {
-                await this.SelectedNodeChanged.InvokeAsync(node);
-            }
+            await this.SelectedNodeChanged.InvokeAsync(node);
         }
     }
 }

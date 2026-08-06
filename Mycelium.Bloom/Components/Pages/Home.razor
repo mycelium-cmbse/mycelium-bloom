@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @page "/"
-@inherits ReactiveInjectableComponentBase<HomeViewModel>
+@inherits ComponentBase
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
@@ -35,7 +35,7 @@
                     Selected element
                 </p>
                 <h2 class="mb-text-heading-sm mt-1">
-                    @(this.ViewModel.SelectedElementName)
+                    @(GetSelectedElementName(this.ElementSelectionService.SelectedElement))
                 </h2>
             </section>
 

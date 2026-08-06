@@ -34,11 +34,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     public sealed class ProjectBrowserViewModel : BloomBaseViewModel, IProjectBrowserViewModel
     {
         /// <summary>
-        /// Synchronizes final disposal with state publication and selection projection.
-        /// </summary>
-        private readonly object lifecycleGate = new();
-
-        /// <summary>
         /// The model loader service used to retrieve SysML models.
         /// </summary>
         private readonly IModelLoaderService modelLoaderService;
@@ -92,7 +87,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// A value indicating whether initialization is currently in progress.
         /// </summary>
-        private bool initializationInProgress;
+        private bool isInitializing;
 
         /// <summary>
         /// A value indicating whether final ViewModel disposal has occurred.
@@ -147,79 +142,66 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <inheritdoc />
         public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
         {
-            CancellationTokenSource linkedCancellation;
-
-            lock (this.lifecycleGate)
+            if (this.isDisposed
+                || cancellationToken.IsCancellationRequested
+                || this.IsLoaded
+                || this.isInitializing)
             {
-                if (this.isDisposed || this.IsLoaded || this.initializationInProgress)
-                {
-                    return false;
-                }
-
-                linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken,
-                    this.lifetimeCancellation.Token);
-
-                this.initializationInProgress = true;
-                this.StartLoading();
+                return false;
             }
 
-            using (linkedCancellation)
+            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                this.lifetimeCancellation.Token);
+            var initializationToken = linkedCancellation.Token;
+            this.isInitializing = true;
+            this.StartLoading();
+
+            try
             {
-                var initializationToken = linkedCancellation.Token;
+                var loadingTask = Task.Run(
+                    this.modelLoaderService.LoadQuantitiesModel,
+                    CancellationToken.None);
 
-                try
+                var model = await loadingTask.WaitAsync(initializationToken);
+
+                initializationToken.ThrowIfCancellationRequested();
+                ArgumentNullException.ThrowIfNull(model);
+
+                var stagedNodeIds = new HashSet<string>(StringComparer.Ordinal);
+                var stagedElementNodes = new Dictionary<IElement, ProjectBrowserNodeViewModel>(
+                    ReferenceEqualityComparer.Instance);
+                var rootNode = this.BuildNode(
+                    model,
+                    "root",
+                    stagedNodeIds,
+                    stagedElementNodes,
+                    initializationToken);
+
+                initializationToken.ThrowIfCancellationRequested();
+
+                return this.TryPublishTree(
+                    rootNode,
+                    stagedNodeIds,
+                    stagedElementNodes,
+                    initializationToken);
+            }
+            catch (Exception) when (initializationToken.IsCancellationRequested || this.isDisposed)
+            {
+                return false;
+            }
+            catch (Exception exception)
+            {
+                this.HandleInitializationError(exception);
+
+                return false;
+            }
+            finally
+            {
+                if (!this.isDisposed)
                 {
-                    initializationToken.ThrowIfCancellationRequested();
-
-                    var loadingTask = Task.Run(
-                        this.modelLoaderService.LoadQuantitiesModel,
-                        CancellationToken.None);
-
-                    var model = await loadingTask.WaitAsync(initializationToken);
-
-                    initializationToken.ThrowIfCancellationRequested();
-                    ArgumentNullException.ThrowIfNull(model);
-
-                    var stagedNodeIds = new HashSet<string>(StringComparer.Ordinal);
-                    var stagedElementNodes = new Dictionary<IElement, ProjectBrowserNodeViewModel>(
-                        ReferenceEqualityComparer.Instance);
-                    var rootNode = this.BuildNode(
-                        model,
-                        "root",
-                        stagedNodeIds,
-                        stagedElementNodes,
-                        initializationToken);
-
-                    initializationToken.ThrowIfCancellationRequested();
-
-                    return this.TryPublishTree(
-                        rootNode,
-                        stagedNodeIds,
-                        stagedElementNodes,
-                        initializationToken);
-                }
-                catch (Exception) when (initializationToken.IsCancellationRequested)
-                {
-                    return false;
-                }
-                catch (Exception exception)
-                {
-                    this.HandleInitializationError(exception);
-
-                    return false;
-                }
-                finally
-                {
-                    lock (this.lifecycleGate)
-                    {
-                        this.initializationInProgress = false;
-
-                        if (!this.isDisposed)
-                        {
-                            this.StopLoading();
-                        }
-                    }
+                    this.isInitializing = false;
+                    this.StopLoading();
                 }
             }
         }
@@ -229,12 +211,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            lock (this.lifecycleGate)
+            if (!this.isDisposed && node.HasChildren)
             {
-                if (!this.isDisposed && node.HasChildren)
-                {
-                    node.IsExpanded = !node.IsExpanded;
-                }
+                node.IsExpanded = !node.IsExpanded;
             }
         }
 
@@ -243,28 +222,21 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            lock (this.lifecycleGate)
+            if (!this.isDisposed)
             {
-                if (!this.isDisposed)
-                {
-                    this.elementSelectionService.SelectedElement = node.SourceElement;
-                }
+                this.elementSelectionService.SelectedElement = node.SourceElement;
             }
         }
 
         /// <inheritdoc />
         public void Dispose()
         {
-            lock (this.lifecycleGate)
+            if (this.isDisposed)
             {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                this.isDisposed = true;
+                return;
             }
 
+            this.isDisposed = true;
             this.lifetimeCancellation.Cancel();
             this.selectionProjectionSubscription.Dispose();
             this.rootNodeBinding.Dispose();
@@ -273,12 +245,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Atomically publishes a completely staged project browser tree.
+        /// Publishes a completely staged project browser tree.
         /// </summary>
         /// <param name="rootNode">The staged root node.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
         /// <param name="stagedElementNodes">The reference-identity lookup built while staging.</param>
-        /// <param name="cancellationToken">Cancels publication before its atomic commit point.</param>
+        /// <param name="cancellationToken">Cancels publication before staged state is exposed.</param>
         /// <returns><see langword="true" /> when the staged tree was published; otherwise, <see langword="false" />.</returns>
         private bool TryPublishTree(
             ProjectBrowserNodeViewModel rootNode,
@@ -286,32 +258,29 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             Dictionary<IElement, ProjectBrowserNodeViewModel> stagedElementNodes,
             CancellationToken cancellationToken)
         {
-            lock (this.lifecycleGate)
+            if (this.isDisposed || cancellationToken.IsCancellationRequested)
             {
-                if (this.isDisposed || cancellationToken.IsCancellationRequested)
-                {
-                    return false;
-                }
-
-                this.ClearTreeIndexesAndOwnedSelection();
-                this.nodeIds.UnionWith(stagedNodeIds);
-
-                foreach (var elementNode in stagedElementNodes)
-                {
-                    this.elementNodes.Add(elementNode.Key, elementNode.Value);
-                }
-
-                this.EditRootNodes(nodes =>
-                {
-                    nodes.Clear();
-                    nodes.Add(rootNode);
-                });
-
-                this.SelectDefaultRootNode();
-                this.SetLoaded();
-
-                return true;
+                return false;
             }
+
+            this.ClearTreeIndexesAndOwnedSelection();
+            this.nodeIds.UnionWith(stagedNodeIds);
+
+            foreach (var elementNode in stagedElementNodes)
+            {
+                this.elementNodes.Add(elementNode.Key, elementNode.Value);
+            }
+
+            this.EditRootNodes(nodes =>
+            {
+                nodes.Clear();
+                nodes.Add(rootNode);
+            });
+
+            this.SelectDefaultRootNode();
+            this.SetLoaded();
+
+            return true;
         }
 
         /// <summary>
@@ -391,37 +360,34 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="element">The selected element, or <see langword="null" />.</param>
         private void ApplySelectedElement(IElement element)
         {
-            lock (this.lifecycleGate)
+            if (this.isDisposed)
             {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                ProjectBrowserNodeViewModel node = null;
-
-                if (element != null)
-                {
-                    this.elementNodes.TryGetValue(element, out node);
-                }
-
-                if (ReferenceEquals(this.SelectedNode, node))
-                {
-                    return;
-                }
-
-                if (this.SelectedNode != null)
-                {
-                    this.SelectedNode.IsSelected = false;
-                }
-
-                if (node != null)
-                {
-                    node.IsSelected = true;
-                }
-
-                this.SelectedNode = node;
+                return;
             }
+
+            ProjectBrowserNodeViewModel node = null;
+
+            if (element != null)
+            {
+                this.elementNodes.TryGetValue(element, out node);
+            }
+
+            if (ReferenceEquals(this.SelectedNode, node))
+            {
+                return;
+            }
+
+            if (this.SelectedNode != null)
+            {
+                this.SelectedNode.IsSelected = false;
+            }
+
+            if (node != null)
+            {
+                node.IsSelected = true;
+            }
+
+            this.SelectedNode = node;
         }
 
         /// <summary>
@@ -469,16 +435,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="exception">The initialization failure.</param>
         private void HandleInitializationError(Exception exception)
         {
-            lock (this.lifecycleGate)
+            if (this.isDisposed)
             {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                this.ResetTree();
-                this.SetError(exception.Message);
+                return;
             }
+
+            this.ResetTree();
+            this.SetError(exception.Message);
         }
 
         /// <summary>

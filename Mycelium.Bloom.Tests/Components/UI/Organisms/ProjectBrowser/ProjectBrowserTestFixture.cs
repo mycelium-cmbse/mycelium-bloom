@@ -36,6 +36,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     public sealed class ProjectBrowserTestFixture : BunitContext
     {
         /// <summary>
+        /// The expected parent-node interaction order.
+        /// </summary>
+        private static readonly string[] ExpectedParentNodeInteractions = ["toggle", "select", "callback"];
+
+        /// <summary>
+        /// The expected leaf-node interaction order.
+        /// </summary>
+        private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -207,7 +217,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(interactions, Is.EqualTo(new[] { "toggle", "select", "callback" }));
+                Assert.That(interactions, Is.EqualTo(ExpectedParentNodeInteractions));
                 viewModel.Verify(x => x.ToggleNode(node), Times.Once);
                 viewModel.Verify(x => x.SelectNode(node), Times.Once);
             }
@@ -239,7 +249,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(interactions, Is.EqualTo(new[] { "select", "callback" }));
+                Assert.That(interactions, Is.EqualTo(ExpectedLeafNodeInteractions));
                 viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
                 viewModel.Verify(x => x.SelectNode(node), Times.Once);
             }
