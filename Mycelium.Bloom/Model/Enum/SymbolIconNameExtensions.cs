@@ -30,7 +30,7 @@ namespace Mycelium.Bloom.Model.Enum
                 SymbolIconName.Preferences => "settings-2",
                 SymbolIconName.SignOut => "log-out",
                 SymbolIconName.Delete => "trash-2",
-                _ => "circle-help"
+                _ => "info"
             };
         }
     }

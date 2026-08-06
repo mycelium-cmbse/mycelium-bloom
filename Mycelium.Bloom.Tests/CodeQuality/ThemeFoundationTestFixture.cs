@@ -14,8 +14,10 @@ namespace Mycelium.Bloom.Tests.CodeQuality
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Text.Json;
 
     using BlazorBlueprint.Components;
+    using BlazorBlueprint.Icons.Lucide.Data;
 
     using Mycelium.Bloom.Tests.Common;
 
@@ -97,6 +99,50 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 ["--mb-color-sysml-allocations-header"] = "#4f46e5",
                 ["--mb-color-sysml-metadata-header"] = "#6b7280"
             };
+
+        private static readonly IReadOnlyDictionary<string, string> RequiredPackageVersions =
+            new Dictionary<string, string>
+            {
+                ["AngleSharp"] = "1.7.0",
+                ["BlazorBlueprint.Components"] = "3.15.0",
+                ["BlazorBlueprint.Icons.Lucide"] = "2.0.2",
+                ["BlazorBlueprint.Primitives"] = "3.15.0",
+                ["DynamicData"] = "9.4.33",
+                ["HtmlSanitizer"] = "9.1.982",
+                ["ReactiveUI.Blazor"] = "24.1.0"
+            };
+
+        private static readonly string[] RequiredLucideIconNames =
+        [
+            "arrow-right",
+            "check",
+            "copy",
+            "ellipsis",
+            "eye",
+            "file-text",
+            "focus",
+            "grid-2x2",
+            "house",
+            "info",
+            "link-2",
+            "log-out",
+            "maximize",
+            "menu",
+            "minus",
+            "mouse-pointer-2",
+            "move",
+            "pencil",
+            "plus",
+            "scan-line",
+            "search",
+            "settings-2",
+            "share-2",
+            "sticky-note",
+            "trash-2",
+            "undo-2",
+            "user",
+            "x"
+        ];
 
         /// <summary>
         /// Verifies the light root and dark override each define every required semantic concept.
@@ -272,6 +318,17 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         }
 
         /// <summary>
+        /// Verifies every Lucide icon name used directly or by a valid Bloom symbol remains available.
+        /// </summary>
+        [Test]
+        public void VerifyRequiredLucideIconsAreAvailable()
+        {
+            Assert.That(
+                RequiredLucideIconNames.Where(iconName => !LucideIconData.IconExists(iconName)),
+                Is.Empty);
+        }
+
+        /// <summary>
         /// Verifies the application uses the official Components registration and minimal package graph.
         /// </summary>
         [Test]
@@ -285,10 +342,50 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(program, Does.Contain("using BlazorBlueprint.Components;"));
                 Assert.That(program, Does.Contain("AddBlazorBlueprintComponents();"));
                 Assert.That(program, Does.Not.Contain("AddBlazorBlueprintPrimitives();"));
-                Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.14.1\""));
+                Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.15.0\""));
+                Assert.That(project, Does.Contain("BlazorBlueprint.Icons.Lucide\" Version=\"2.0.2\""));
                 Assert.That(project, Does.Not.Contain("<PackageReference Include=\"BlazorBlueprint.Primitives\""));
                 Assert.That(project, Does.Contain("HtmlSanitizer\" Version=\"9.1.982\""));
                 Assert.That(project, Does.Contain("must be reassessed when Blueprint is upgraded"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies the restored application graph keeps the approved direct and transitive package versions.
+        /// </summary>
+        [Test]
+        public void VerifyResolvedDependencyGraphMatchesApprovedVersions()
+        {
+            using var assets = JsonDocument.Parse(File.ReadAllText(GetProjectFile("obj", "project.assets.json")));
+            var libraries = assets.RootElement.GetProperty("libraries")
+                .EnumerateObject()
+                .Select(library => library.Name)
+                .ToArray();
+
+            using (Assert.EnterMultipleScope())
+            {
+                foreach (var requiredPackage in RequiredPackageVersions)
+                {
+                    var resolvedVersions = libraries
+                        .Where(library => library.StartsWith($"{requiredPackage.Key}/", StringComparison.OrdinalIgnoreCase))
+                        .Select(library => library[(library.IndexOf('/') + 1)..])
+                        .ToArray();
+
+                    Assert.That(
+                        resolvedVersions,
+                        Has.Length.EqualTo(1),
+                        $"{requiredPackage.Key} must resolve exactly once.");
+                    Assert.That(
+                        resolvedVersions.ElementAtOrDefault(0),
+                        Is.EqualTo(requiredPackage.Value),
+                        $"{requiredPackage.Key} must resolve at the approved version.");
+                }
+
+                Assert.That(
+                    libraries,
+                    Has.None.Matches<string>(library =>
+                        library.StartsWith("BlazorBlueprint.", StringComparison.OrdinalIgnoreCase)
+                        && library.EndsWith("/3.14.1", StringComparison.Ordinal)));
             }
         }
 
