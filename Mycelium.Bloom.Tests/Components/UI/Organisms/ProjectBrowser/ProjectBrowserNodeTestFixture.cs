@@ -97,5 +97,70 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Markup, Does.Not.Contain("Length"));
             }
         }
+
+        /// <summary>
+        /// Verifies that changing the reactive selection state rerenders the node.
+        /// </summary>
+        [Test]
+        public void VerifyIsSelectedChangeRerendersNode()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(component => component.ViewModel, node));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("false"));
+                Assert.That(
+                    component.Find("button").ClassList.Contains("mb-project-browser-node__row--selected"),
+                    Is.False);
+            }
+
+            node.IsSelected = true;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true"));
+                    Assert.That(
+                        component.Find("button").ClassList.Contains("mb-project-browser-node__row--selected"),
+                        Is.True);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies that changing the reactive expansion state rerenders the node and its children.
+        /// </summary>
+        [Test]
+        public void VerifyIsExpandedChangeRerendersNode()
+        {
+            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                "quantities/length",
+                "Length",
+                "length",
+                "Quantities::Length");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities", child);
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(component => component.ViewModel, node));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(component.Markup, Does.Not.Contain("Length"));
+            }
+
+            node.IsExpanded = true;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                    Assert.That(component.Markup, Does.Contain("Length"));
+                }
+            });
+        }
     }
 }

@@ -10,17 +10,21 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
     using System.Collections.Specialized;
-    using System.ComponentModel;
+    using System.Reactive.Linq;
 
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
+    using ReactiveUI;
+    using ReactiveUI.Blazor;
+    using ReactiveUI.Primitives;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public sealed partial class ProjectBrowser : BloomComponentBase, IDisposable
+    public sealed partial class ProjectBrowser : ReactiveInjectableComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
         /// Cancels component-owned initialization when the component is disposed.
@@ -28,25 +32,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private CancellationTokenSource initializationCancellation;
 
         /// <summary>
-        /// The runtime scalar-state notification source, when the injected implementation provides one.
-        /// </summary>
-        private INotifyPropertyChanged notifyingViewModel;
-
-        /// <summary>
-        /// The stable root collection notification source.
-        /// </summary>
-        private INotifyCollectionChanged notifyingRootNodes;
-
-        /// <summary>
         /// A value indicating whether the component has been disposed.
         /// </summary>
         private bool isDisposed;
 
         /// <summary>
-        /// Gets or sets the project browser ViewModel.
+        /// Gets the injected ViewModel required by this component.
         /// </summary>
-        [Inject]
-        public IProjectBrowserViewModel ViewModel { get; set; }
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the Project Browser ViewModel has not been provided through dependency injection.
+        /// </exception>
+        private IProjectBrowserViewModel RequiredViewModel =>
+            this.ViewModel
+            ?? throw new InvalidOperationException(
+                $"{nameof(ProjectBrowser)} requires an {nameof(IProjectBrowserViewModel)}.");
+
+        /// <summary>
+        /// Gets or sets additional CSS classes applied to the component root element.
+        /// </summary>
+        [Parameter]
+        public string Class { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets additional unmatched attributes applied to the component root element.
+        /// </summary>
+        [Parameter(CaptureUnmatchedValues = true)]
+        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets or sets the callback invoked when the selected node changes.
@@ -55,25 +66,26 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public EventCallback<ProjectBrowserNodeViewModel> SelectedNodeChanged { get; set; }
 
         /// <summary>
-        /// Subscribes once to scalar ViewModel state and the stable root collection.
+        /// Creates component-owned initialization cancellation and observes the stable root collection while active.
         /// </summary>
         protected override void OnInitialized()
         {
             this.initializationCancellation = new CancellationTokenSource();
 
-            this.notifyingViewModel = this.ViewModel as INotifyPropertyChanged;
-
-            if (this.notifyingViewModel != null)
+            this.WhenActivated(disposables =>
             {
-                this.notifyingViewModel.PropertyChanged += this.HandleViewModelPropertyChanged;
-            }
+                INotifyCollectionChanged rootNodes = this.RequiredViewModel.RootNodes;
 
-            this.notifyingRootNodes = this.ViewModel.RootNodes;
+                var rootChanges = Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(
+                    handler => rootNodes.CollectionChanged += handler,
+                    handler => rootNodes.CollectionChanged -= handler);
+                var renderRequests = System.Reactive.Linq.Observable.SelectMany(
+                    rootChanges,
+                    _ => Observable.FromAsync(this.QueueRenderAsync));
 
-            if (this.notifyingRootNodes != null)
-            {
-                this.notifyingRootNodes.CollectionChanged += this.HandleRootNodesCollectionChanged;
-            }
+                System.ObservableExtensions.Subscribe(renderRequests)
+                    .DisposeWith(disposables);
+            });
 
             base.OnInitialized();
         }
@@ -84,17 +96,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the asynchronous operation.</returns>
         protected override async Task OnInitializedAsync()
         {
-            if (this.isDisposed
-                || this.ViewModel.IsLoaded
-                || this.ViewModel.IsLoading
-                || !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage))
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            var viewModel = this.RequiredViewModel;
+
+            if (viewModel.IsLoaded
+                || viewModel.IsLoading
+                || !string.IsNullOrWhiteSpace(viewModel.ErrorMessage))
             {
                 return;
             }
 
             try
             {
-                await this.ViewModel.InitializeAsync(this.initializationCancellation.Token);
+                await viewModel.InitializeAsync(this.initializationCancellation.Token);
             }
             catch (Exception)
             {
@@ -103,9 +121,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Cancels initialization and releases component-owned subscriptions.
+        /// Cancels initialization, releases reactive subscriptions and disposes the injected ViewModel.
         /// </summary>
-        public void Dispose()
+        /// <param name="disposing">
+        /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
+        /// </param>
+        protected override void Dispose(bool disposing)
         {
             if (this.isDisposed)
             {
@@ -114,29 +135,33 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             this.isDisposed = true;
 
+            if (!disposing)
+            {
+                base.Dispose(false);
+
+                return;
+            }
+
             try
             {
                 this.initializationCancellation?.Cancel();
             }
             finally
             {
-                if (this.notifyingViewModel != null)
-                {
-                    this.notifyingViewModel.PropertyChanged -= this.HandleViewModelPropertyChanged;
-                }
-
-                if (this.notifyingRootNodes != null)
-                {
-                    this.notifyingRootNodes.CollectionChanged -= this.HandleRootNodesCollectionChanged;
-                }
-
                 try
                 {
-                    this.ViewModel?.Dispose();
+                    base.Dispose(true);
                 }
                 finally
                 {
-                    this.initializationCancellation?.Dispose();
+                    try
+                    {
+                        this.ViewModel?.Dispose();
+                    }
+                    finally
+                    {
+                        this.initializationCancellation?.Dispose();
+                    }
                 }
             }
         }
@@ -147,49 +172,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The project browser CSS class list.</returns>
         private string GetCssClass()
         {
-            var cssClass = this.BuildRootCssClass("mb-project-browser");
+            var cssClass = CssClassBuilder.Build("mb-project-browser", this.Class);
 
             return cssClass;
         }
 
         /// <summary>
-        /// Queues a renderer-safe refresh for relevant scalar ViewModel state.
+        /// Dispatches a root-collection refresh through the Blazor renderer while the component remains active.
         /// </summary>
-        /// <param name="sender">The notification source.</param>
-        /// <param name="eventArgs">The changed property.</param>
-        private void HandleViewModelPropertyChanged(object sender, PropertyChangedEventArgs eventArgs)
-        {
-            if (string.IsNullOrEmpty(eventArgs.PropertyName)
-                || eventArgs.PropertyName is nameof(IProjectBrowserViewModel.IsLoading)
-                    or nameof(IProjectBrowserViewModel.IsLoaded)
-                    or nameof(IProjectBrowserViewModel.ErrorMessage)
-                    or nameof(IProjectBrowserViewModel.SelectedNode))
-            {
-                this.QueueRender();
-            }
-        }
-
-        /// <summary>
-        /// Queues a renderer-safe refresh when the stable root collection changes.
-        /// </summary>
-        /// <param name="sender">The notification source.</param>
-        /// <param name="eventArgs">The collection change.</param>
-        private void HandleRootNodesCollectionChanged(object sender, NotifyCollectionChangedEventArgs eventArgs)
-        {
-            this.QueueRender();
-        }
-
-        /// <summary>
-        /// Dispatches a render only while this component remains alive.
-        /// </summary>
-        private void QueueRender()
+        /// <returns>A task representing the dispatched render.</returns>
+        private Task QueueRenderAsync()
         {
             if (this.isDisposed)
             {
-                return;
+                return Task.CompletedTask;
             }
 
-            _ = this.InvokeAsync(() =>
+            return this.InvokeAsync(() =>
             {
                 if (!this.isDisposed)
                 {
@@ -204,8 +203,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A value indicating whether the loading state should be shown.</returns>
         private bool ShouldShowLoadingState()
         {
-            return this.ViewModel.IsLoading
-                   || (!this.ViewModel.IsLoaded && string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage));
+            var viewModel = this.RequiredViewModel;
+
+            return viewModel.IsLoading
+                   || (!viewModel.IsLoaded && string.IsNullOrWhiteSpace(viewModel.ErrorMessage));
         }
 
         /// <summary>
@@ -214,7 +215,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A value indicating whether the error state should be shown.</returns>
         private bool ShouldShowErrorState()
         {
-            return !string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage);
+            return !string.IsNullOrWhiteSpace(this.RequiredViewModel.ErrorMessage);
         }
 
         /// <summary>
@@ -229,12 +230,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 return;
             }
 
+            var viewModel = this.RequiredViewModel;
+
             if (node.HasChildren)
             {
-                this.ViewModel.ToggleNode(node);
+                viewModel.ToggleNode(node);
             }
 
-            this.ViewModel.SelectNode(node);
+            viewModel.SelectNode(node);
             await this.SelectedNodeChanged.InvokeAsync(node);
         }
     }

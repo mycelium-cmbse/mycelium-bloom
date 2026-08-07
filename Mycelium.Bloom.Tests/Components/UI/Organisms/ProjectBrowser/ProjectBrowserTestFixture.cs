@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Bunit;
 
+    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
@@ -558,18 +559,49 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies rerendering does not duplicate scalar or collection subscriptions.
+        /// Verifies a normal rerender does not duplicate the root collection subscription.
         /// </summary>
         [Test]
-        public void VerifyRerenderDoesNotDuplicateSubscriptions()
+        public void VerifyRerenderDoesNotDuplicateRootNodesSubscription()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            component.Render(ParameterView.Empty);
+            var renderCount = component.RenderCount;
+
+            mutableRoots.Clear();
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.RenderCount, Is.EqualTo(renderCount + 1));
+                    Assert.That(component.Markup, Does.Contain("No model elements available."));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies root collection changes cannot rerender the component after reactive deactivation.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposedComponentIgnoresRootNodesCollectionChanges()
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var isLoaded = true;
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
             viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
             viewModel.Setup(x => x.Dispose());
@@ -577,16 +609,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.Render<ProjectBrowserComponent>();
 
-            mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First"));
-            component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("First")));
-            var renderCount = component.RenderCount;
+            await this.DisposeComponentsAsync();
+            var renderCountAfterDisposal = component.RenderCount;
 
-            isLoaded = false;
-            notifyingViewModel.Raise(
-                x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.IsLoaded)));
+            await this.Renderer.Dispatcher.InvokeAsync(() =>
+                mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First")));
 
-            component.WaitForAssertion(() => Assert.That(component.RenderCount, Is.EqualTo(renderCount + 1)));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
+                viewModel.Verify(x => x.Dispose(), Times.Once);
+            }
         }
 
         /// <summary>

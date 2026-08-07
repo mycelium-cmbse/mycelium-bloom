@@ -16,7 +16,7 @@ namespace Mycelium.Bloom.Components.UI.Common
     /// <summary>
     /// Provides common parameters shared by reusable Bloom UI components.
     /// </summary>
-    public class BloomComponentBase : ComponentBase
+    public abstract class BloomComponentBase : ComponentBase
     {
         /// <summary>
         /// Gets or sets additional CSS classes applied to the component root element.
