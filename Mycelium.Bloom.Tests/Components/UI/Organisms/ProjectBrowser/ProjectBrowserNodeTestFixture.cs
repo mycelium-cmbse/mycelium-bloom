@@ -65,6 +65,32 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies a project browser node renders parameters inherited from the Bloom reactive base.
+        /// </summary>
+        [Test]
+        public void VerifyRenderUsesInheritedBloomParameters()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(projectBrowserNode => projectBrowserNode.ViewModel, node)
+                .Add(projectBrowserNode => projectBrowserNode.Class, "custom-project-browser-node")
+                .AddUnmatched("data-testid", "project-browser-node")
+                .AddUnmatched("role", "presentation")
+                .AddUnmatched("aria-selected", "true"));
+
+            var root = component.Find("[role='treeitem']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root.ClassList.Contains("mb-project-browser-node"), Is.True);
+                Assert.That(root.ClassList.Contains("custom-project-browser-node"), Is.True);
+                Assert.That(root.GetAttribute("data-testid"), Is.EqualTo("project-browser-node"));
+                Assert.That(root.GetAttribute("role"), Is.EqualTo("treeitem"));
+                Assert.That(root.GetAttribute("aria-selected"), Is.EqualTo("false"));
+            }
+        }
+
+        /// <summary>
         /// Verifies that selecting a parent node raises the selected node callback.
         /// </summary>
         [Test]
@@ -96,6 +122,71 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(selectedNode, Is.SameAs(node));
                 Assert.That(component.Markup, Does.Not.Contain("Length"));
             }
+        }
+
+        /// <summary>
+        /// Verifies that changing the reactive selection state rerenders the node.
+        /// </summary>
+        [Test]
+        public void VerifyIsSelectedChangeRerendersNode()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(component => component.ViewModel, node));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("false"));
+                Assert.That(
+                    component.Find("button").ClassList.Contains("mb-project-browser-node__row--selected"),
+                    Is.False);
+            }
+
+            node.IsSelected = true;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true"));
+                    Assert.That(
+                        component.Find("button").ClassList.Contains("mb-project-browser-node__row--selected"),
+                        Is.True);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies that changing the reactive expansion state rerenders the node and its children.
+        /// </summary>
+        [Test]
+        public void VerifyIsExpandedChangeRerendersNode()
+        {
+            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                "quantities/length",
+                "Length",
+                "length",
+                "Quantities::Length");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities", child);
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(component => component.ViewModel, node));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(component.Markup, Does.Not.Contain("Length"));
+            }
+
+            node.IsExpanded = true;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                    Assert.That(component.Markup, Does.Contain("Length"));
+                }
+            });
         }
     }
 }

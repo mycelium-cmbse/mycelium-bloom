@@ -9,43 +9,125 @@
 
 namespace Mycelium.Bloom.Components.Pages
 {
+    using System.ComponentModel;
+    using System.Globalization;
+
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.Core.Selection;
+
+    using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
-    /// Represents the Bloom home page with the issue #8 Project Browser feature.
+    /// Renders the Bloom home workspace.
     /// </summary>
-    public partial class Home : ComponentBase
+    public sealed partial class Home : ComponentBase, IDisposable
     {
         /// <summary>
-        /// Gets the selected model element name.
+        /// A value indicating whether the component has been disposed.
         /// </summary>
-        private string SelectedModelElementName
-        {
-            get
-            {
-                var displayName = this.SelectedProjectBrowserNode?.DisplayName;
+        private bool isDisposed;
 
-                return string.IsNullOrWhiteSpace(displayName) ? "None" : displayName;
+        /// <summary>
+        /// Gets or sets the shared element selection service.
+        /// </summary>
+        [Inject]
+        public IElementSelectionService ElementSelectionService { get; set; }
+
+        /// <summary>
+        /// Subscribes to the shared selected element.
+        /// </summary>
+        protected override void OnInitialized()
+        {
+            this.ElementSelectionService.PropertyChanged += this.HandleSelectionChanged;
+
+            base.OnInitialized();
+        }
+
+        /// <summary>
+        /// Removes the shared selection subscription.
+        /// </summary>
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+            this.ElementSelectionService.PropertyChanged -= this.HandleSelectionChanged;
+        }
+
+        /// <summary>
+        /// Queues a renderer-safe refresh when the selected element changes.
+        /// </summary>
+        /// <param name="sender">The notification source.</param>
+        /// <param name="eventArgs">The changed property.</param>
+        private void HandleSelectionChanged(object sender, PropertyChangedEventArgs eventArgs)
+        {
+            if (string.IsNullOrEmpty(eventArgs.PropertyName)
+                || eventArgs.PropertyName == nameof(IElementSelectionService.SelectedElement))
+            {
+                this.QueueRender();
             }
         }
 
         /// <summary>
-        /// Gets or sets the selected project browser node.
+        /// Dispatches a render only while this component remains alive.
         /// </summary>
-        private ProjectBrowserNodeViewModel SelectedProjectBrowserNode { get; set; }
+        private void QueueRender()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            _ = this.InvokeAsync(() =>
+            {
+                if (!this.isDisposed)
+                {
+                    this.StateHasChanged();
+                }
+            });
+        }
 
         /// <summary>
-        /// Handles project browser node selection changes.
+        /// Gets the best available display name for the selected element.
         /// </summary>
-        /// <param name="node">The selected project browser node.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private Task HandleProjectBrowserNodeSelectedAsync(ProjectBrowserNodeViewModel node)
+        /// <param name="element">The selected element, or <see langword="null" />.</param>
+        /// <returns>The selected element display name.</returns>
+        private static string GetSelectedElementName(IElement element)
         {
-            this.SelectedProjectBrowserNode = node;
+            if (element == null)
+            {
+                return "None";
+            }
 
-            return this.InvokeAsync(this.StateHasChanged);
+            var displayName = ToDisplayString(element.DeclaredName);
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = ToDisplayString(element.name);
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = ToDisplayString(element.qualifiedName);
+            }
+
+            return string.IsNullOrWhiteSpace(displayName) ? element.GetType().Name : displayName;
+        }
+
+        /// <summary>
+        /// Converts a SysML SDK value into an invariant display string.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <returns>The converted value, or an empty string when no value is available.</returns>
+        private static string ToDisplayString(object value)
+        {
+            var displayString = Convert.ToString(value, CultureInfo.InvariantCulture);
+
+            return displayString ?? string.Empty;
         }
     }
 }

@@ -14,19 +14,25 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Renders one recursive node in the project browser tree.
     /// </summary>
-    public partial class ProjectBrowserNode : ComponentBase
+    public partial class ProjectBrowserNode : BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
         /// <summary>
-        /// Gets or sets the project browser node view model.
+        /// Gets the node ViewModel required while rendering an assigned node.
         /// </summary>
-        [Parameter]
-        public ProjectBrowserNodeViewModel ViewModel { get; set; }
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when node rendering is attempted without an assigned ViewModel.
+        /// </exception>
+        private ProjectBrowserNodeViewModel RequiredViewModel =>
+            this.ViewModel
+            ?? throw new InvalidOperationException(
+                $"{nameof(ProjectBrowserNode)} requires a {nameof(ProjectBrowserNodeViewModel)}.");
 
         /// <summary>
         /// Gets or sets the tree depth of this node.
@@ -46,12 +52,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task SelectNodeAsync()
         {
-            if (this.ViewModel == null)
+            var viewModel = this.ViewModel;
+
+            if (viewModel == null)
             {
                 return;
             }
 
-            await this.OnNodeSelected.InvokeAsync(this.ViewModel);
+            await this.OnNodeSelected.InvokeAsync(viewModel);
         }
 
         /// <summary>
@@ -62,7 +70,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-project-browser-node__row",
-                CssClassBuilder.When("mb-project-browser-node__row--selected", this.ViewModel.IsSelected));
+                CssClassBuilder.When("mb-project-browser-node__row--selected", this.RequiredViewModel.IsSelected));
 
             return cssClass;
         }
@@ -105,7 +113,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The design token color for the node element kind.</returns>
         private string GetElementColor()
         {
-            return this.ViewModel.ElementKind.ToColorToken();
+            return this.RequiredViewModel.ElementKind.ToColorToken();
         }
 
         /// <summary>
@@ -114,16 +122,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The tooltip text for the node.</returns>
         private string GetTooltip()
         {
+            var viewModel = this.RequiredViewModel;
             var suffix = this.GetTypeLabel();
 
-            if (!string.IsNullOrWhiteSpace(this.ViewModel.QualifiedName))
+            if (!string.IsNullOrWhiteSpace(viewModel.QualifiedName))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{this.ViewModel.QualifiedName} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.QualifiedName} - {suffix}");
             }
 
-            if (!string.IsNullOrWhiteSpace(this.ViewModel.ElementId))
+            if (!string.IsNullOrWhiteSpace(viewModel.ElementId))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{this.ViewModel.ElementId} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.ElementId} - {suffix}");
             }
 
             return suffix;
@@ -135,14 +144,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The most specific type label available for the node.</returns>
         private string GetTypeLabel()
         {
-            if (!string.IsNullOrWhiteSpace(this.ViewModel.RuntimeTypeName))
+            var viewModel = this.RequiredViewModel;
+
+            if (!string.IsNullOrWhiteSpace(viewModel.RuntimeTypeName))
             {
-                return this.ViewModel.RuntimeTypeName;
+                return viewModel.RuntimeTypeName;
             }
 
-            if (this.ViewModel.ElementKind != SysmlModelElementKind.Unknown)
+            if (viewModel.ElementKind != SysmlModelElementKind.Unknown)
             {
-                return this.ViewModel.ElementKind.ToString();
+                return viewModel.ElementKind.ToString();
             }
 
             return SysmlModelElementKind.Unknown.ToString();
@@ -154,12 +165,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The ARIA expanded value for the node.</returns>
         private string GetAriaExpanded()
         {
-            if (!this.ViewModel.HasChildren)
+            var viewModel = this.RequiredViewModel;
+
+            if (!viewModel.HasChildren)
             {
                 return null;
             }
 
-            return this.ViewModel.IsExpanded.ToString().ToLowerInvariant();
+            return viewModel.IsExpanded.ToString().ToLowerInvariant();
         }
 
         /// <summary>
@@ -168,7 +181,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The ARIA selected value for the node.</returns>
         private string GetAriaSelected()
         {
-            return this.ViewModel.IsSelected.ToString().ToLowerInvariant();
+            return this.RequiredViewModel.IsSelected.ToString().ToLowerInvariant();
         }
     }
 }

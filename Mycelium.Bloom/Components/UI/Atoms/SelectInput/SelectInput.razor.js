@@ -3,7 +3,7 @@ const registrations = new Map();
 let documentKeydownHandler;
 let mutationObserver;
 
-// Blazor Blueprint Primitives 3.14.1 sets its keydown prevent-default flag
+// Blazor Blueprint Primitives 3.15.0 sets its keydown prevent-default flag
 // after the native event has already been dispatched. Preventing the native
 // button activation here allows the primitive's own handler to open the Select
 // exactly once for Enter and Space.

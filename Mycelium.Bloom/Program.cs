@@ -13,9 +13,12 @@ namespace Mycelium.Bloom
 
     using Mycelium.Bloom.Components;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using OpenTelemetry.Resources;
+
+    using ReactiveUI.Builder;
 
     /// <summary>
     /// Provides the entry point for the Mycelium Bloom web application.
@@ -32,6 +35,10 @@ namespace Mycelium.Bloom
         {
             const string serviceName = "Mycelium.Bloom";
 
+            RxAppBuilder.CreateReactiveUIBuilder()
+                .WithBlazor()
+                .BuildApp();
+
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddOpenTelemetry()
@@ -47,6 +54,7 @@ namespace Mycelium.Bloom
 
             // Add application services.
             builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
+            builder.Services.AddScoped<IElementSelectionService, ElementSelectionService>();
             builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
 
             var app = builder.Build();

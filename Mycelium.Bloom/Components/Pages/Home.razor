@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @page "/"
+@inherits ComponentBase
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
@@ -24,8 +25,7 @@
             </header>
 
             <div class="min-h-0 flex-1">
-                <ProjectBrowser
-                    SelectedNodeChanged="this.HandleProjectBrowserNodeSelectedAsync"/>
+                <ProjectBrowser/>
             </div>
         </aside>
 
@@ -35,7 +35,7 @@
                     Selected element
                 </p>
                 <h2 class="mb-text-heading-sm mt-1">
-                    @(this.SelectedModelElementName)
+                    @(GetSelectedElementName(this.ElementSelectionService.SelectedElement))
                 </h2>
             </section>
 
@@ -44,7 +44,7 @@
                     Workspace
                 </h3>
                 <p class="mb-text-body-sm mt-2 text-(--mb-color-text-secondary)">
-                    Element workspace content will use the selected Project Browser node.
+                    Element workspace content will use the selected element.
                 </p>
             </section>
         </main>

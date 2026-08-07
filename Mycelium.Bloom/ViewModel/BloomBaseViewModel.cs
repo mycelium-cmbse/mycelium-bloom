@@ -9,25 +9,54 @@
 
 namespace Mycelium.Bloom.ViewModel
 {
+    using ReactiveUI;
+
     /// <summary>
     /// Provides common loading and error state for Bloom view models.
     /// </summary>
-    public abstract class BloomBaseViewModel
+    public abstract class BloomBaseViewModel : ReactiveObject
     {
+        /// <summary>
+        /// A value indicating whether the view model has loaded.
+        /// </summary>
+        private bool isLoaded;
+
+        /// <summary>
+        /// A value indicating whether the view model is loading.
+        /// </summary>
+        private bool isLoading;
+
+        /// <summary>
+        /// The view model loading error message.
+        /// </summary>
+        private string errorMessage = string.Empty;
+
         /// <summary>
         /// Gets a value indicating whether the view model is loading.
         /// </summary>
-        public bool IsLoading { get; protected set; }
+        public bool IsLoading
+        {
+            get => this.isLoading;
+            protected set => this.RaiseAndSetIfChanged(ref this.isLoading, value);
+        }
 
         /// <summary>
         /// Gets a value indicating whether the view model has loaded.
         /// </summary>
-        public bool IsLoaded { get; protected set; }
+        public bool IsLoaded
+        {
+            get => this.isLoaded;
+            protected set => this.RaiseAndSetIfChanged(ref this.isLoaded, value);
+        }
 
         /// <summary>
         /// Gets the view model loading error message.
         /// </summary>
-        public string ErrorMessage { get; protected set; } = string.Empty;
+        public string ErrorMessage
+        {
+            get => this.errorMessage;
+            protected set => this.RaiseAndSetIfChanged(ref this.errorMessage, value);
+        }
 
         /// <summary>
         /// Marks the view model as loading and clears previous errors.
@@ -58,11 +87,11 @@ namespace Mycelium.Bloom.ViewModel
         /// <summary>
         /// Marks the view model as not loaded and stores the loading error.
         /// </summary>
-        /// <param name="errorMessage">The loading error message.</param>
-        protected void SetError(string errorMessage)
+        /// <param name="errorMsg">The loading error message.</param>
+        protected void SetError(string errorMsg)
         {
             this.IsLoaded = false;
-            this.ErrorMessage = errorMessage ?? string.Empty;
+            this.ErrorMessage = errorMsg ?? string.Empty;
         }
     }
 }

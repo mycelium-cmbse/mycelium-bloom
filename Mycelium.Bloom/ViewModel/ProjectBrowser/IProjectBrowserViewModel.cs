@@ -9,21 +9,24 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
-    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
-    public interface IProjectBrowserViewModel
+    public interface IProjectBrowserViewModel : IDisposable, INotifyPropertyChanged
     {
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
         /// </summary>
-        IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; }
+        ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }
 
         /// <summary>
-        /// Gets the currently selected node.
+        /// Gets the currently selected node, or <see langword="null" /> when no node is selected.
         /// </summary>
+        [MaybeNull]
         ProjectBrowserNodeViewModel SelectedNode { get; }
 
         /// <summary>
@@ -44,23 +47,18 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Initializes the project browser tree from the Quantities SysML model.
         /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        Task InitializeAsync();
+        /// <param name="cancellationToken">Cancels initialization.</param>
+        /// <returns><see langword="true" /> when a new tree is loaded; otherwise, <see langword="false" />.</returns>
+        Task<bool> InitializeAsync(CancellationToken cancellationToken);
 
         /// <summary>
-        /// Initializes the project browser tree from the provided SysML namespace.
-        /// </summary>
-        /// <param name="model">The loaded SysML namespace model.</param>
-        void Initialize(INamespace model);
-
-        /// <summary>
-        /// Toggles the expanded state of the provided node.
+        /// Toggles a project browser node.
         /// </summary>
         /// <param name="node">The node to expand or collapse.</param>
         void ToggleNode(ProjectBrowserNodeViewModel node);
 
         /// <summary>
-        /// Selects the provided node and clears the previous selection.
+        /// Selects a project browser node.
         /// </summary>
         /// <param name="node">The node to select.</param>
         void SelectNode(ProjectBrowserNodeViewModel node);

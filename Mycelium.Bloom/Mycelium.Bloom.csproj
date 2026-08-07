@@ -41,19 +41,26 @@
 
     <ItemGroup>
         <!--
-          Blueprint Components 3.14.1 compatibility exceptions are deliberately narrow:
+          Blueprint Components 3.15.0 compatibility exceptions are deliberately narrow:
           SelectInput bridges verified keyboard, ARIA, and Tab-order limitations; SplitButton bridges the verified
           Enter-key limitation. TextArea and Checkbox remain native because Blueprint cannot preserve their required
           contracts. Direct Primitive TabsList and TabsTrigger use is localized for verified accessibility gaps.
           Bloom has no production Tooltip implementation because Escape dismissal and description relationships are
           incomplete. Reassess only these exceptions after upgrading Blueprint.
         -->
-        <PackageReference Include="BlazorBlueprint.Components" Version="3.14.1" />
+        <PackageReference Include="BlazorBlueprint.Components" Version="3.15.0" />
+        <!--
+          Intentionally direct: Bloom renders LucideIcon components in production markup and therefore compiles
+          against this package's public API.
+        -->
+        <PackageReference Include="BlazorBlueprint.Icons.Lucide" Version="2.0.2" />
+        <PackageReference Include="DynamicData" Version="9.4.33" />
         <!-- Intentionally direct: selects the security-reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when Blueprint is upgraded. -->
-        <PackageReference Include="HtmlSanitizer" Version="9.1.973" />
+        <PackageReference Include="HtmlSanitizer" Version="9.1.982" />
         <PackageReference Include="OpenTelemetry" Version="1.17.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+        <PackageReference Include="ReactiveUI.Blazor" Version="24.1.0" />
         <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.22.0" />
     </ItemGroup>
 

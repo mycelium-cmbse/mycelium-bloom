@@ -1,5 +1,5 @@
 /*
-   Portal-safe SelectInput presentation for the Blueprint 3.14.1 Select
+   Portal-safe SelectInput presentation for the Blueprint 3.15.0 Select
    primitive. Every rule in this file belongs to SelectInput content rendered
    outside the component's CSS-isolation boundary. The file remains unlayered
    so these consumer-owned classes win over Tailwind's layered reset without

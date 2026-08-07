@@ -39,10 +39,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         [Test]
         public void VerifyDefaults()
         {
-            var component = this.Render<BloomComponentBase>();
+            var component = this.Render<TestBloomComponent>();
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(component.Instance, Is.AssignableTo<IBloomComponentBase>());
                 Assert.That(component.Instance.Class, Is.Empty);
                 Assert.That(component.Instance.AdditionalAttributes, Is.Not.Null);
                 Assert.That(component.Instance.AdditionalAttributes, Is.Empty);
@@ -55,7 +56,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         [Test]
         public void VerifyParameterBinding()
         {
-            var component = this.Render<BloomComponentBase>(parameters => parameters
+            var component = this.Render<TestBloomComponent>(parameters => parameters
                 .Add(component => component.Class, "custom-component")
                 .AddUnmatched("data-testid", "common-base"));
 
@@ -133,6 +134,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
         /// </summary>
         private sealed class TestBloomComponent : BloomComponentBase
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TestBloomComponent" /> class.
+            /// </summary>
+            public TestBloomComponent()
+            {
+            }
+
             /// <summary>
             /// Initializes a new instance of the <see cref="TestBloomComponent" /> class.
             /// </summary>

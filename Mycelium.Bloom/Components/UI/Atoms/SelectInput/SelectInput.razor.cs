@@ -38,7 +38,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SelectInput
         private IReadOnlyList<SelectInputOption> optionList = [];
 
         /// <summary>
-        /// The JavaScript module that bridges verified Blueprint 3.14.1 browser-behavior gaps.
+        /// The JavaScript module that bridges verified Blueprint 3.15.0 browser-behavior gaps.
         /// </summary>
         private IJSObjectReference compatibilityModule;
 

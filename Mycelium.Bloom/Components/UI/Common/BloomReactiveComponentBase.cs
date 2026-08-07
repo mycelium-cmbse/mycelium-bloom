@@ -1,32 +1,34 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="BloomComponentBase.cs" company="Starion Group S.A.">
-// 
+// <copyright file="BloomReactiveComponentBase.cs" company="Starion Group S.A.">
+//
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-// 
+//
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
 namespace Mycelium.Bloom.Components.UI.Common
 {
+    using System.ComponentModel;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
 
+    using ReactiveUI.Blazor;
+
     /// <summary>
-    /// Provides common parameters shared by reusable Bloom UI components.
+    /// Provides common Bloom parameters for reactive components whose ViewModel is supplied as a parameter.
     /// </summary>
-    public abstract class BloomComponentBase : ComponentBase, IBloomComponentBase
+    /// <typeparam name="TViewModel">The observable ViewModel type.</typeparam>
+    public abstract class BloomReactiveComponentBase<TViewModel> : ReactiveComponentBase<TViewModel>, IBloomComponentBase
+        where TViewModel : class, INotifyPropertyChanged
     {
-        /// <summary>
-        /// Gets or sets additional CSS classes applied to the component root element.
-        /// </summary>
+        /// <inheritdoc />
         [Parameter]
         public string Class { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the component root element.
-        /// </summary>
+        /// <inheritdoc />
         [Parameter(CaptureUnmatchedValues = true)]
         public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
@@ -40,16 +42,6 @@ namespace Mycelium.Bloom.Components.UI.Common
             var rootCssClass = CssClassBuilder.Build([.. cssClasses, this.Class]);
 
             return rootCssClass;
-        }
-
-        /// <summary>
-        /// Creates a unique component identifier using the provided prefix.
-        /// </summary>
-        /// <param name="prefix">The component-specific identifier prefix.</param>
-        /// <returns>The generated component identifier.</returns>
-        protected static string CreateGeneratedId(string prefix)
-        {
-            return $"{prefix}-{Guid.NewGuid():N}";
         }
     }
 }

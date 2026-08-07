@@ -52,7 +52,7 @@ namespace Mycelium.Bloom.Tests.Model.Enum
         {
             var unknownSymbol = (SymbolIconName)int.MaxValue;
 
-            Assert.That(unknownSymbol.ToLucideName(), Is.EqualTo("circle-help"));
+            Assert.That(unknownSymbol.ToLucideName(), Is.EqualTo("info"));
         }
     }
 }

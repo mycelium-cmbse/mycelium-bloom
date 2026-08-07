@@ -7,7 +7,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomComponentBase
+@inherits BloomReactiveInjectableComponentBase<IProjectBrowserViewModel>
 
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
     @if (this.ShouldShowLoadingState())
@@ -31,10 +31,10 @@
                     Unable to load project browser
                 </strong>
 
-                @if (!string.IsNullOrWhiteSpace(this.ViewModel.ErrorMessage))
+                @if (!string.IsNullOrWhiteSpace(this.RequiredViewModel.ErrorMessage))
                 {
                     <p class="mb-project-browser__state-description">
-                        @(this.ViewModel.ErrorMessage)
+                        @(this.RequiredViewModel.ErrorMessage)
                     </p>
                 }
             </div>
@@ -43,7 +43,7 @@
     else
     {
         <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
-            @if (this.ViewModel.RootNodes.Count == 0)
+            @if (this.RequiredViewModel.RootNodes.Count == 0)
             {
                 <div class="mb-project-browser__empty">
                     No model elements available.
@@ -51,7 +51,7 @@
             }
             else
             {
-                @foreach (var node in this.ViewModel.RootNodes)
+                @foreach (var node in this.RequiredViewModel.RootNodes)
                 {
                     <ProjectBrowserNode
                         ViewModel="node"

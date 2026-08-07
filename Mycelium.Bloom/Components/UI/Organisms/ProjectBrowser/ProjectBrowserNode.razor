@@ -7,9 +7,13 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@if (this.ViewModel != null)
+@inherits BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
+
+@if (this.ViewModel is { } viewModel)
 {
-    <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
+    <div @attributes="this.AdditionalAttributes"
+         class="@(this.BuildRootCssClass("mb-project-browser-node"))"
+         role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
          aria-selected="@(this.GetAriaSelected())">
         <button
             type="button"
@@ -19,10 +23,10 @@
             @onclick="this.SelectNodeAsync">
             <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())"></span>
 
-            @if (this.ViewModel.HasChildren)
+            @if (viewModel.HasChildren)
             {
                 <span class="mb-project-browser-node__toggle" aria-hidden="true">
-                    @(this.ViewModel.IsExpanded ? "v" : ">")
+                    @(viewModel.IsExpanded ? "v" : ">")
                 </span>
             }
             else
@@ -40,14 +44,14 @@
             }
 
             <span class="mb-project-browser-node__title">
-                @(this.ViewModel.DisplayName)
+                @(viewModel.DisplayName)
             </span>
         </button>
 
-        @if (this.ViewModel.IsExpanded)
+        @if (viewModel.IsExpanded)
         {
             <div class="mb-project-browser-node__children" role="group">
-                @foreach (var child in this.ViewModel.Children)
+                @foreach (var child in viewModel.Children)
                 {
                     <ProjectBrowserNode
                         ViewModel="child"

@@ -11,18 +11,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.ComponentModel;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using Bunit;
 
+    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
+
+    using Moq;
 
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
-    using SysML2.NET.Core.POCO.Root.Namespaces;
-
     using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
+    using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
 
     /// <summary>
     /// Tests the <see cref="ProjectBrowserComponent" /> component.
@@ -31,6 +36,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectBrowserTestFixture : BunitContext
     {
+        /// <summary>
+        /// The expected parent-node interaction order.
+        /// </summary>
+        private static readonly string[] ExpectedParentNodeInteractions = ["toggle", "select", "callback"];
+
+        /// <summary>
+        /// The expected leaf-node interaction order.
+        /// </summary>
+        private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
@@ -41,220 +56,659 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that the project browser renders a loading state while the view model is loading.
+        /// Verifies that the project browser renders a loading state while the ViewModel is loading.
         /// </summary>
         [Test]
         public void VerifyRenderDisplaysLoadingState()
         {
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                IsLoading = true
-            };
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            viewModel.SetupGet(x => x.IsLoading).Returns(true);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
 
-            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
-
-            var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.Render<ProjectBrowserComponent>();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
                 Assert.That(component.Markup, Does.Contain("Preparing the SysML project browser..."));
                 Assert.That(component.Markup, Does.Contain("mb-project-browser__state"));
-                Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
+                viewModel.Verify(
+                    x => x.InitializeAsync(It.IsAny<CancellationToken>()),
+                    Times.Never);
             }
         }
 
         /// <summary>
-        /// Verifies that the project browser renders a compact error state when loading fails.
+        /// Verifies that the project browser renders its error state when loading fails.
         /// </summary>
         [Test]
         public void VerifyRenderDisplaysErrorState()
         {
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                ErrorMessage = "Model load failed"
-            };
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns("Model load failed");
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
 
-            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
-
-            var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.Render<ProjectBrowserComponent>();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Markup, Does.Contain("Unable to load project browser"));
                 Assert.That(component.Markup, Does.Contain("Model load failed"));
                 Assert.That(component.Find("[role='alert']"), Is.Not.Null);
-                Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
+                viewModel.Verify(
+                    x => x.InitializeAsync(It.IsAny<CancellationToken>()),
+                    Times.Never);
             }
         }
 
         /// <summary>
-        /// Verifies that the project browser renders tree nodes when the view model has loaded.
+        /// Verifies that the project browser renders tree nodes when the ViewModel has loaded.
         /// </summary>
         [Test]
         public void VerifyRenderDisplaysLoadedTree()
         {
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                IsLoaded = true,
-                RootNodes = [node]
-            };
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
 
-            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
-
-            var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.Render<ProjectBrowserComponent>();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Markup, Does.Contain("Quantities"));
                 Assert.That(component.Find(".mb-project-browser__tree").GetAttribute("role"), Is.EqualTo("tree"));
                 Assert.That(component.Markup, Does.Not.Contain("Loading Quantities model"));
-                Assert.That(viewModel.InitializeAsyncCallCount, Is.Zero);
+                viewModel.Verify(
+                    x => x.InitializeAsync(It.IsAny<CancellationToken>()),
+                    Times.Never);
             }
         }
 
         /// <summary>
-        /// Verifies that the project browser initializes an unloaded view model.
+        /// Verifies the project browser renders parameters inherited from the injectable Bloom reactive base.
         /// </summary>
         [Test]
-        public void VerifyOnInitializedAsyncInitializesViewModel()
+        public void VerifyRenderUsesInheritedBloomParameters()
         {
-            ProjectBrowserNodeViewModel selectedNode = null;
-            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
-            var viewModel = new ProjectBrowserViewModelStub();
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
 
-            viewModel.InitializeHandler = () =>
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.Class, "custom-project-browser")
+                .AddUnmatched("data-testid", "project-browser"));
+
+            var root = component.Find(".mb-project-browser");
+
+            using (Assert.EnterMultipleScope())
             {
-                viewModel.RootNodes = [node];
-                viewModel.IsLoaded = true;
-                viewModel.SelectNode(node);
-
-                return Task.CompletedTask;
-            };
-
-            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
-
-            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
-                .Add(browser => browser.SelectedNodeChanged, changedNode =>
-                {
-                    selectedNode = changedNode;
-
-                    return Task.CompletedTask;
-                }));
-
-            component.WaitForAssertion(() => Assert.That(viewModel.InitializeAsyncCallCount, Is.EqualTo(1)));
-            component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Quantities")));
-
-            Assert.That(selectedNode, Is.SameAs(node));
+                Assert.That(root.ClassList.Contains("custom-project-browser"), Is.True);
+                Assert.That(root.GetAttribute("data-testid"), Is.EqualTo("project-browser"));
+            }
         }
 
         /// <summary>
-        /// Verifies that selecting a parent node expands it and marks it as selected.
+        /// Verifies component initialization directly invokes <see cref="IProjectBrowserViewModel.InitializeAsync" />.
         /// </summary>
         [Test]
-        public void VerifyHandleNodeSelectedSelectsAndExpandsParentNode()
+        public void VerifyOnInitializedAsyncInvokesInitializeAsync()
         {
-            ProjectBrowserNodeViewModel selectedNode = null;
-            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities/length", "Length");
-            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
-                "quantities",
-                "Quantities",
-                child);
-
-            var viewModel = new ProjectBrowserViewModelStub
-            {
-                IsLoaded = true,
-                RootNodes = [node]
-            };
-
-            this.Services.AddSingleton<IProjectBrowserViewModel>(viewModel);
-
-            var component = this.Render<ProjectBrowserComponent>(parameters => parameters
-                .Add(browser => browser.SelectedNodeChanged, changedNode =>
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var isLoaded = false;
+            var selectedNodeCallbackCount = 0;
+            CancellationToken capturedToken = default;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel
+                .Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Returns<CancellationToken>(token =>
                 {
-                    selectedNode = changedNode;
+                    capturedToken = token;
+                    mutableRoots.Add(node);
+                    isLoaded = true;
 
-                    return Task.CompletedTask;
+                    return Task.FromResult(true);
+                });
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, _ => selectedNodeCallbackCount++));
+
+            component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Quantities")));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(capturedToken.CanBeCanceled, Is.True);
+                Assert.That(capturedToken.IsCancellationRequested, Is.False);
+                Assert.That(selectedNodeCallbackCount, Is.Zero);
+                viewModel.Verify(x => x.InitializeAsync(capturedToken), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies parent-node interaction invokes ordinary ViewModel methods before the local callback.
+        /// </summary>
+        [Test]
+        public void VerifyHandleNodeSelectedInvokesToggleSelectAndCallbackInOrder()
+        {
+            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities/length", "Length");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities", child);
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var interactions = new List<string>();
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.ToggleNode(node)).Callback(() => interactions.Add("toggle"));
+            viewModel.Setup(x => x.SelectNode(node)).Callback(() => interactions.Add("select"));
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, selectedNode =>
+                {
+                    Assert.That(selectedNode, Is.SameAs(node));
+                    interactions.Add("callback");
                 }));
 
             component.Find("button").Click();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(node.IsExpanded, Is.True);
-                Assert.That(node.IsSelected, Is.True);
-                Assert.That(selectedNode, Is.SameAs(node));
-                Assert.That(component.Markup, Does.Contain("Length"));
+                Assert.That(interactions, Is.EqualTo(ExpectedParentNodeInteractions));
+                viewModel.Verify(x => x.ToggleNode(node), Times.Once);
+                viewModel.Verify(x => x.SelectNode(node), Times.Once);
             }
         }
 
-        private sealed class ProjectBrowserViewModelStub : IProjectBrowserViewModel
+        /// <summary>
+        /// Verifies leaf interaction invokes selection and the callback without toggling.
+        /// </summary>
+        [Test]
+        public void VerifyHandleNodeSelectedSkipsToggleForLeaf()
         {
-            /// <inheritdoc />
-            public IReadOnlyList<ProjectBrowserNodeViewModel> RootNodes { get; set; } = [];
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var interactions = new List<string>();
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.SelectNode(node)).Callback(() => interactions.Add("select"));
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
 
-            /// <inheritdoc />
-            public ProjectBrowserNodeViewModel SelectedNode { get; private set; }
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, _ => interactions.Add("callback")));
 
-            /// <inheritdoc />
-            public bool IsLoading { get; set; }
+            component.Find("button").Click();
 
-            /// <inheritdoc />
-            public bool IsLoaded { get; set; }
-
-            /// <inheritdoc />
-            public string ErrorMessage { get; set; } = string.Empty;
-
-            /// <summary>
-            /// Gets the number of times asynchronous initialization was requested.
-            /// </summary>
-            public int InitializeAsyncCallCount { get; private set; }
-
-            /// <summary>
-            /// Gets or sets the handler invoked during asynchronous initialization.
-            /// </summary>
-            public Func<Task> InitializeHandler { get; set; } = () => Task.CompletedTask;
-
-            /// <inheritdoc />
-            public async Task InitializeAsync()
+            using (Assert.EnterMultipleScope())
             {
-                this.InitializeAsyncCallCount++;
-                this.IsLoading = true;
+                Assert.That(interactions, Is.EqualTo(ExpectedLeafNodeInteractions));
+                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                viewModel.Verify(x => x.SelectNode(node), Times.Once);
+            }
+        }
 
-                try
+        /// <summary>
+        /// Verifies a runtime loading-state notification rerenders the real component.
+        /// </summary>
+        [Test]
+        public void VerifyIsLoadingPropertyChangedRerendersComponent()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var isLoading = true;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(() => isLoading);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
+
+            isLoading = false;
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.IsLoading)));
+
+            component.WaitForAssertion(() =>
+                Assert.That(component.Markup, Does.Contain("No model elements available.")));
+        }
+
+        /// <summary>
+        /// Verifies a runtime loaded-state notification rerenders the real component.
+        /// </summary>
+        [Test]
+        public void VerifyIsLoadedPropertyChangedRerendersComponent()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var isLoaded = true;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            Assert.That(component.Markup, Does.Contain("No model elements available."));
+
+            isLoaded = false;
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.IsLoaded)));
+
+            component.WaitForAssertion(() =>
+                Assert.That(component.Markup, Does.Contain("Loading Quantities model")));
+        }
+
+        /// <summary>
+        /// Verifies a runtime error-state notification rerenders the real component.
+        /// </summary>
+        [Test]
+        public void VerifyErrorMessagePropertyChangedRerendersComponent()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var errorMessage = string.Empty;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(() => errorMessage);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+
+            errorMessage = "Reactive model failure";
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.ErrorMessage)));
+
+            component.WaitForAssertion(() =>
+                Assert.That(component.Find("[role='alert']").TextContent, Does.Contain("Reactive model failure")));
+        }
+
+        /// <summary>
+        /// Verifies a runtime selected-node notification rerenders without synthesizing the local callback.
+        /// </summary>
+        [Test]
+        public void VerifySelectedNodePropertyChangedRerendersComponentWithoutCallback()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            ProjectBrowserNodeViewModel selectedNode = null;
+            var callbackCount = 0;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.SelectedNode).Returns(() => selectedNode);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, _ => callbackCount++));
+            var renderCount = component.RenderCount;
+
+            node.IsSelected = true;
+            selectedNode = node;
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.SelectedNode)));
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
                 {
-                    await this.InitializeHandler();
+                    Assert.That(component.RenderCount, Is.GreaterThan(renderCount));
+                    Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("true"));
+                    Assert.That(callbackCount, Is.Zero);
                 }
-                finally
+            });
+        }
+
+        /// <summary>
+        /// Verifies the stable root collection's native notification rerenders the real component.
+        /// </summary>
+        [Test]
+        public void VerifyRootNodesCollectionChangedRerendersComponent()
+        {
+            var firstNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
+            var secondNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second");
+            var thirdNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("third", "Third");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { firstNode };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            Assert.That(component.Find(".mb-project-browser-node__title").TextContent, Is.EqualTo("First"));
+
+            mutableRoots.Clear();
+            mutableRoots.Add(secondNode);
+            mutableRoots.Add(thirdNode);
+
+            component.WaitForAssertion(() =>
+            {
+                var titles = component.FindAll(".mb-project-browser-node__title");
+
+                using (Assert.EnterMultipleScope())
                 {
-                    this.IsLoading = false;
+                    Assert.That(titles, Has.Count.EqualTo(2));
+                    Assert.That(titles[0].TextContent, Is.EqualTo("Second"));
+                    Assert.That(titles[1].TextContent, Is.EqualTo("Third"));
                 }
-            }
+            });
+        }
 
-            /// <inheritdoc />
-            public void Initialize(INamespace model)
-            {
-                this.IsLoaded = true;
-            }
+        /// <summary>
+        /// Verifies changing test-local state without publishing PropertyChanged does not rerender.
+        /// </summary>
+        [Test]
+        public void VerifyMissingPropertyChangedNotificationDoesNotRerenderComponent()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var isLoaded = true;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.As<INotifyPropertyChanged>();
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
 
-            /// <inheritdoc />
-            public void ToggleNode(ProjectBrowserNodeViewModel node)
-            {
-                node.IsExpanded = !node.IsExpanded;
-            }
+            using var component = this.Render<ProjectBrowserComponent>();
+            var renderCount = component.RenderCount;
 
-            /// <inheritdoc />
-            public void SelectNode(ProjectBrowserNodeViewModel node)
-            {
-                if (this.SelectedNode != null)
+            isLoaded = false;
+
+            Assert.That(component.RenderCount, Is.EqualTo(renderCount));
+        }
+
+        /// <summary>
+        /// Verifies initialization failure state produced by the ViewModel renders after lifecycle completion.
+        /// </summary>
+        [Test]
+        public void VerifyInitializationFailureRendersViewModelError()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var errorMessage = string.Empty;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(() => errorMessage);
+            viewModel
+                .Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Returns(() =>
                 {
-                    this.SelectedNode.IsSelected = false;
-                }
+                    errorMessage = "Model load failed";
 
-                node.IsSelected = true;
-                this.SelectedNode = node;
+                    return Task.FromResult(false);
+                });
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+
+            Assert.That(component.Find("[role='alert']").TextContent, Does.Contain("Model load failed"));
+        }
+
+        /// <summary>
+        /// Verifies component disposal cancels a blocked initialization and disposes the ViewModel once.
+        /// </summary>
+        [Test]
+        public void VerifyDisposeDuringInitializationCancelsAndQuarantinesCompletion()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            CancellationToken capturedToken = default;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel
+                .Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Returns<CancellationToken>(token =>
+                {
+                    capturedToken = token;
+
+                    return initialization.Task;
+                });
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            Assert.That(capturedToken.CanBeCanceled, Is.True);
+            var renderCount = component.RenderCount;
+
+            component.Instance.Dispose();
+            initialization.SetResult(true);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(capturedToken.IsCancellationRequested, Is.True);
+                Assert.That(component.RenderCount, Is.EqualTo(renderCount));
+                viewModel.Verify(x => x.Dispose(), Times.Once);
             }
+        }
+
+        /// <summary>
+        /// Verifies a captured child callback cannot invoke methods or callbacks after component disposal.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposedComponentIgnoresCapturedNodeSelection()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var callbackCount = 0;
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, _ => callbackCount++));
+            var nodeCallback = component.FindComponent<ProjectBrowserNodeComponent>().Instance.OnNodeSelected;
+
+            await this.DisposeComponentsAsync();
+            var renderCountAfterDisposal = component.RenderCount;
+            await this.Renderer.Dispatcher.InvokeAsync(() => nodeCallback.InvokeAsync(node));
+
+            using (Assert.EnterMultipleScope())
+            {
+                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                viewModel.Verify(x => x.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                Assert.That(callbackCount, Is.Zero);
+                Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
+            }
+        }
+
+        /// <summary>
+        /// Verifies a normal rerender does not duplicate the root collection subscription.
+        /// </summary>
+        [Test]
+        public void VerifyRerenderDoesNotDuplicateRootNodesSubscription()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            component.Render(ParameterView.Empty);
+            var renderCount = component.RenderCount;
+
+            mutableRoots.Clear();
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.RenderCount, Is.EqualTo(renderCount + 1));
+                    Assert.That(component.Markup, Does.Contain("No model elements available."));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies root collection changes cannot rerender the component after reactive deactivation.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposedComponentIgnoresRootNodesCollectionChanges()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+
+            await this.DisposeComponentsAsync();
+            var renderCountAfterDisposal = component.RenderCount;
+
+            await this.Renderer.Dispatcher.InvokeAsync(() =>
+                mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First")));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
+                viewModel.Verify(x => x.Dispose(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies an unexpected interface implementation failure does not escape the component lifecycle.
+        /// </summary>
+        [Test]
+        public void VerifyUnexpectedInitializationExceptionDoesNotEscapeLifecycle()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(false);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel
+                .Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("Unexpected implementation failure"));
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            Assert.That(
+                () =>
+                {
+                    using var component = this.Render<ProjectBrowserComponent>();
+                    Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
+                },
+                Throws.Nothing);
+        }
+
+        /// <summary>
+        /// Verifies the component disposes its injected ViewModel boundary exactly once.
+        /// </summary>
+        [Test]
+        public void VerifyComponentDisposesMockedViewModelBoundary()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>();
+            component.Instance.Dispose();
+            component.Instance.Dispose();
+
+            viewModel.Verify(x => x.Dispose(), Times.Once);
+        }
+
+        /// <summary>
+        /// Registers the already configured Project Browser contract for the component under test.
+        /// </summary>
+        /// <param name="viewModel">The scenario-local mocked ViewModel.</param>
+        private void RegisterViewModel(IProjectBrowserViewModel viewModel)
+        {
+            this.Services.AddSingleton(viewModel);
         }
     }
 }

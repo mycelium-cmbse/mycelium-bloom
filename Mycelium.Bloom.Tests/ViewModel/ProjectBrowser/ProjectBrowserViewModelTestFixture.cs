@@ -10,6 +10,12 @@
 namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 {
     using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
+    using System.ComponentModel;
+    using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using Microsoft.Extensions.Caching.Memory;
@@ -19,9 +25,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using Moq;
 
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
+    using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
@@ -32,87 +41,80 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     public sealed class ProjectBrowserViewModelTestFixture
     {
         /// <summary>
+        /// The expected display-name order of the root node's children.
+        /// </summary>
+        private static readonly string[] ExpectedRootChildDisplayNames =
+            ["First child", "Second child"];
+
+        /// <summary>
+        /// The expected ordered IsLoading values during initialization.
+        /// </summary>
+        private static readonly bool[] ExpectedInitializationLoadingStates =
+            [false, true, false];
+
+        /// <summary>
+        /// The expected ordered IsLoaded values during successful initialization.
+        /// </summary>
+        private static readonly bool[] ExpectedInitializationLoadedStates =
+            [false, true];
+
+        /// <summary>
+        /// The expected ordered ErrorMessage values during failed initialization.
+        /// </summary>
+        private static readonly string[] ExpectedInitializationErrorMessages =
+            [string.Empty, "Model load failed"];
+
+        /// <summary>
         /// Verifies that the constructor rejects a null model loader service.
         /// </summary>
         [Test]
         public void VerifyConstructorThrowsExceptionWhenModelLoaderServiceIsNull()
         {
             Assert.That(
-                () => new ProjectBrowserViewModel(null),
+                () =>
+                {
+                    using var viewModel = new ProjectBrowserViewModel(null, new ElementSelectionService());
+                },
                 Throws.TypeOf<ArgumentNullException>()
                     .With.Property("ParamName").EqualTo("modelLoaderService"));
         }
 
         /// <summary>
-        /// Verifies that the view model can initialize from a provided namespace.
+        /// Verifies that the constructor rejects a null selection service.
         /// </summary>
         [Test]
-        public void VerifyInitializeBuildsTreeFromNamespace()
+        public void VerifyConstructorThrowsExceptionWhenSelectionServiceIsNull()
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
 
-            viewModel.Initialize(LoadQuantitiesModel());
+            Assert.That(
+                () =>
+                {
+                    using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, null);
+                },
+                Throws.TypeOf<ArgumentNullException>()
+                    .With.Property("ParamName").EqualTo("elementSelectionService"));
+        }
+
+        /// <summary>
+        /// Verifies that initialization builds the complete Quantities tree.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncBuildsTreeFromNamespace()
+        {
+            var model = LoadQuantitiesModel();
+            var modelLoaderService = CreateModelLoader(model);
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(initialized, Is.True);
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
                 Assert.That(viewModel.RootNodes[0].DisplayName, Is.Not.Empty);
                 Assert.That(viewModel.RootNodes[0].ElementKind, Is.EqualTo(SysmlModelElementKind.Namespace));
                 Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
-                Assert.That(viewModel.IsLoaded, Is.True);
-                Assert.That(viewModel.IsLoading, Is.False);
-                Assert.That(viewModel.ErrorMessage, Is.Empty);
-                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Never);
-            }
-        }
-
-        /// <summary>
-        /// Verifies that constructing the view model does not load the Quantities model.
-        /// </summary>
-        [Test]
-        public void VerifyConstructorDefersModelLoading()
-        {
-            var modelLoaderService = new Mock<IModelLoaderService>();
-
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel, Is.Not.Null);
-                Assert.That(viewModel.RootNodes, Is.Empty);
-                Assert.That(viewModel.IsLoaded, Is.False);
-                Assert.That(viewModel.IsLoading, Is.False);
-                Assert.That(viewModel.ErrorMessage, Is.Empty);
-                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Never);
-            }
-        }
-
-        /// <summary>
-        /// Verifies that the Quantities project browser view model loads the model asynchronously.
-        /// </summary>
-        [Test]
-        public async Task VerifyInitializeAsyncLoadsQuantitiesModel()
-        {
-            var model = LoadQuantitiesModel();
-            var modelLoaderService = new Mock<IModelLoaderService>();
-
-            modelLoaderService
-                .Setup(x => x.LoadQuantitiesModel())
-                .Returns(model);
-
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
-
-            await viewModel.InitializeAsync();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
-                Assert.That(viewModel.RootNodes[0].DisplayName, Is.Not.Empty);
-                Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
-                Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
-                Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.IsLoading, Is.False);
                 Assert.That(viewModel.ErrorMessage, Is.Empty);
@@ -121,32 +123,75 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that separate project browser view model instances keep independent state.
+        /// Verifies that constructing the ViewModel does not load the Quantities model.
+        /// </summary>
+        [Test]
+        public void VerifyConstructorDefersModelLoading()
+        {
+            var modelLoaderService = new Mock<IModelLoaderService>();
+
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.RootNodes, Is.Empty);
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.IsLoaded, Is.False);
+                Assert.That(viewModel.IsLoading, Is.False);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Never);
+            }
+        }
+
+        /// <summary>
+        /// Verifies successful initialization loads, selects, and expands the default root.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncLoadsQuantitiesModelAndSelectsDefaultRoot()
+        {
+            var model = CreateMinimalModel();
+            var modelLoaderService = CreateModelLoader(model);
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.True);
+                Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
+                Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
+                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
+                Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
+                Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(viewModel.RootNodes[0].SourceElement));
+                Assert.That(viewModel.IsLoaded, Is.True);
+                Assert.That(viewModel.IsLoading, Is.False);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that separate Project Browser ViewModels keep independent visual state.
         /// </summary>
         [Test]
         public async Task VerifyProjectBrowserViewModelsKeepIndependentState()
         {
-            var model = LoadQuantitiesModel();
-            var modelLoaderService = new Mock<IModelLoaderService>();
+            var model = CreateMinimalModel();
+            var modelLoaderService = CreateModelLoader(model);
+            using var firstViewModel = new ProjectBrowserViewModel(
+                modelLoaderService.Object,
+                new ElementSelectionService());
+            using var secondViewModel = new ProjectBrowserViewModel(
+                modelLoaderService.Object,
+                new ElementSelectionService());
 
-            modelLoaderService
-                .Setup(x => x.LoadQuantitiesModel())
-                .Returns(model);
-
-            var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
-            var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
-
-            await firstViewModel.InitializeAsync();
-            await secondViewModel.InitializeAsync();
+            await firstViewModel.InitializeAsync(CancellationToken.None);
+            await secondViewModel.InitializeAsync(CancellationToken.None);
 
             var firstRootNode = firstViewModel.RootNodes[0];
             var secondRootNode = secondViewModel.RootNodes[0];
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(firstRootNode.Children, Is.Not.Empty);
-                Assert.That(secondRootNode.Children, Is.Not.Empty);
-            }
 
             firstViewModel.ToggleNode(firstRootNode);
             firstViewModel.SelectNode(firstRootNode.Children[0]);
@@ -166,57 +211,691 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that model loading exceptions are captured in the project browser view model.
+        /// Verifies genuine loading failures are handled once by the ViewModel.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncCapturesModelLoadingErrors()
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
-
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())
                 .Throws(new InvalidOperationException("Model load failed"));
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            var observedErrors = new List<string>();
+            var observedLoadingStates = new List<bool>();
 
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
+            using var errorSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.ErrorMessage),
+                observedErrors.Add);
+            using var loadingSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.IsLoading),
+                observedLoadingStates.Add);
 
-            await viewModel.InitializeAsync();
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(initialized, Is.False);
                 Assert.That(viewModel.RootNodes, Is.Empty);
                 Assert.That(viewModel.SelectedNode, Is.Null);
                 Assert.That(viewModel.IsLoaded, Is.False);
                 Assert.That(viewModel.IsLoading, Is.False);
                 Assert.That(viewModel.ErrorMessage, Is.EqualTo("Model load failed"));
+                Assert.That(observedErrors, Is.EqualTo(ExpectedInitializationErrorMessages));
+                Assert.That(observedLoadingStates, Is.EqualTo(ExpectedInitializationLoadingStates));
                 modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
             }
         }
 
         /// <summary>
-        /// Verifies that repeated initialization does not reload an already loaded project browser.
+        /// Verifies repeated initialization does not reload an already loaded browser.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncReturnsEarlyWhenAlreadyLoaded()
         {
-            var model = LoadQuantitiesModel();
-            var modelLoaderService = new Mock<IModelLoaderService>();
+            var modelLoaderService = CreateModelLoader(CreateMinimalModel());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
 
+            var firstResult = await viewModel.InitializeAsync(CancellationToken.None);
+            var secondResult = await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstResult, Is.True);
+                Assert.That(secondResult, Is.False);
+                Assert.That(viewModel.IsLoaded, Is.True);
+                Assert.That(viewModel.IsLoading, Is.False);
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies a concurrent initialization attempt returns without starting another load.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncReturnsEarlyWhenAlreadyInitializing()
+        {
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    loadStarted.Set();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    return CreateMinimalModel();
+                });
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+
+            var firstInitialization = viewModel.InitializeAsync(CancellationToken.None);
+
+            try
+            {
+                Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+                var concurrentResult = await viewModel.InitializeAsync(CancellationToken.None);
+
+                Assert.That(concurrentResult, Is.False);
+            }
+            finally
+            {
+                releaseLoad.Set();
+            }
+
+            Assert.That(await firstInitialization, Is.True);
+            modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+        }
+
+        /// <summary>
+        /// Verifies ordinary selection publishes the node's source element and projects it once.
+        /// </summary>
+        [Test]
+        public async Task VerifySelectNodePublishesSourceElement()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var node = viewModel.RootNodes[0].Children[0];
+
+            viewModel.SelectNode(node);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(node));
+                Assert.That(node.IsSelected, Is.True);
+            }
+        }
+
+        /// <summary>
+        /// Verifies ordinary toggle changes only nodes with children.
+        /// </summary>
+        [Test]
+        public async Task VerifyToggleNodeTogglesOnlyNodesWithChildren()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                new ElementSelectionService());
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var rootNode = viewModel.RootNodes[0];
+            var leafNode = rootNode.Children[0];
+
+            viewModel.ToggleNode(rootNode);
+            viewModel.ToggleNode(leafNode);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(rootNode.IsExpanded, Is.False);
+                Assert.That(leafNode.IsExpanded, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies ordinary methods preserve their null argument validation.
+        /// </summary>
+        [Test]
+        public void VerifyNodeMethodsRejectNullNodes()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>().Object,
+                new ElementSelectionService());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(() => viewModel.ToggleNode(null), Throws.ArgumentNullException);
+                Assert.That(() => viewModel.SelectNode(null), Throws.ArgumentNullException);
+            }
+        }
+
+        /// <summary>
+        /// Verifies external selection updates the Project Browser visual projection for its full lifetime.
+        /// </summary>
+        [Test]
+        public async Task VerifyExternalSelectionUpdatesVisualProjection()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var node = viewModel.RootNodes[0].Children[0];
+
+            selectionService.SelectedElement = node.SourceElement;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.SelectedNode, Is.SameAs(node));
+                Assert.That(node.IsSelected, Is.True);
+                Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies externally clearing selection clears the visual projection.
+        /// </summary>
+        [Test]
+        public async Task VerifyExternalClearSelectionClearsVisualProjection()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var node = viewModel.RootNodes[0].Children[0];
+
+            selectionService.SelectedElement = node.SourceElement;
+            selectionService.SelectedElement = null;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(node.IsSelected, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies final disposal removes the external selection subscription.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposedViewModelDoesNotObserveExternalSelection()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var node = viewModel.RootNodes[0].Children[0];
+            selectionService.SelectedElement = null;
+
+            viewModel.Dispose();
+            selectionService.SelectedElement = node.SourceElement;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(node.IsSelected, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies two Project Browser consumers synchronize through one scoped selection service.
+        /// </summary>
+        [Test]
+        public async Task VerifyTwoViewModelsObserveSameSelectionService()
+        {
+            var model = CreateMinimalModel();
+            var selectionService = new ElementSelectionService();
+            var modelLoaderService = CreateModelLoader(model);
+            using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+
+            await firstViewModel.InitializeAsync(CancellationToken.None);
+            await secondViewModel.InitializeAsync(CancellationToken.None);
+
+            selectionService.SelectedElement = null;
+            var selectedElement = firstViewModel.RootNodes[0].Children[0].SourceElement;
+            selectionService.SelectedElement = selectedElement;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstViewModel.SelectedNode.SourceElement, Is.SameAs(selectedElement));
+                Assert.That(secondViewModel.SelectedNode.SourceElement, Is.SameAs(selectedElement));
+                Assert.That(firstViewModel.SelectedNode, Is.Not.SameAs(secondViewModel.SelectedNode));
+            }
+        }
+
+        /// <summary>
+        /// Verifies initialization preserves an external selection absent from the loaded tree.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncPreservesExternalSelectionAbsentFromTree()
+        {
+            var externalElement = new Namespace { ElementId = "external" };
+            var selectionService = new ElementSelectionService
+            {
+                SelectedElement = externalElement
+            };
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.True);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(externalElement));
+                Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
+                Assert.That(viewModel.IsLoaded, Is.True);
+            }
+        }
+
+        /// <summary>
+        /// Verifies an external selection present before initialization maps by object identity.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncProjectsExistingExternalSelection()
+        {
+            var model = CreateMinimalModel();
+            var selectionService = new ElementSelectionService
+            {
+                SelectedElement = model
+            };
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.True);
+                Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
+                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
+                Assert.That(viewModel.RootNodes[0].IsExpanded, Is.False);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(model));
+            }
+        }
+
+        /// <summary>
+        /// Verifies a distinct external object with the same ElementId does not match a visual node.
+        /// </summary>
+        [Test]
+        public async Task VerifyExternalSelectionUsesReferenceIdentity()
+        {
+            var model = new Namespace { ElementId = "shared-id" };
+            var distinctElement = new Namespace { ElementId = "shared-id" };
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+
+            selectionService.SelectedElement = distinctElement;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.SameAs(distinctElement));
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies roots remain read-only, stable, and intrinsically ordered.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncBindsOrderedRootsIntoReadOnlyCollection()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                new ElementSelectionService());
+            var exposedRoots = viewModel.RootNodes;
+
+            await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exposedRoots, Is.InstanceOf<ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>>());
+                Assert.That(((IList<ProjectBrowserNodeViewModel>)exposedRoots).IsReadOnly, Is.True);
+                Assert.That(viewModel.RootNodes, Is.SameAs(exposedRoots));
+                Assert.That(exposedRoots, Has.Count.EqualTo(1));
+                Assert.That(
+                    exposedRoots[0].Children.Select(node => node.DisplayName),
+                    Is.EqualTo(ExpectedRootChildDisplayNames));
+            }
+        }
+
+        /// <summary>
+        /// Verifies SourceList publication uses the stable collection's native notification contract.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncPublishesRootCollectionChanges()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                new ElementSelectionService());
+            var exposedRoots = viewModel.RootNodes;
+            var collectionChanges = new List<NotifyCollectionChangedEventArgs>();
+            var rootPropertyChanges = new List<string>();
+            var notifyingCollection = (INotifyCollectionChanged)exposedRoots;
+            NotifyCollectionChangedEventHandler collectionHandler = (_, args) => collectionChanges.Add(args);
+            PropertyChangedEventHandler propertyHandler = (_, args) => rootPropertyChanges.Add(args.PropertyName);
+            notifyingCollection.CollectionChanged += collectionHandler;
+            viewModel.PropertyChanged += propertyHandler;
+
+            try
+            {
+                await viewModel.InitializeAsync(CancellationToken.None);
+            }
+            finally
+            {
+                notifyingCollection.CollectionChanged -= collectionHandler;
+                viewModel.PropertyChanged -= propertyHandler;
+            }
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(collectionChanges, Is.Not.Empty);
+                Assert.That(viewModel.RootNodes, Is.SameAs(exposedRoots));
+                Assert.That(exposedRoots, Has.Count.EqualTo(1));
+                Assert.That(
+                    exposedRoots[0].Children.Select(node => node.DisplayName),
+                    Is.EqualTo(ExpectedRootChildDisplayNames));
+                Assert.That(rootPropertyChanges, Does.Not.Contain(nameof(ProjectBrowserViewModel.RootNodes)));
+            }
+        }
+
+        /// <summary>
+        /// Verifies one local selection produces one visual projection notification.
+        /// </summary>
+        [Test]
+        public async Task VerifySelectNodeDoesNotDuplicateSelectionProjection()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var observedSelections = new List<ProjectBrowserNodeViewModel>();
+
+            using var selectionSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.SelectedNode),
+                observedSelections.Add);
+            var notificationCountBeforeSelection = observedSelections.Count;
+            var node = viewModel.RootNodes[0].Children[0];
+
+            viewModel.SelectNode(node);
+            viewModel.SelectNode(node);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.SelectedNode, Is.SameAs(node));
+                Assert.That(observedSelections, Has.Count.EqualTo(notificationCountBeforeSelection + 1));
+                Assert.That(observedSelections[observedSelections.Count - 1], Is.SameAs(node));
+            }
+        }
+
+        /// <summary>
+        /// Verifies ordinary initialization reactively reports loading and loaded state.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncNotifiesLoadingAndLoadedState()
+        {
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    loadStarted.Set();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    return CreateMinimalModel();
+                });
+            using var viewModel = new ProjectBrowserViewModel(
+                modelLoaderService.Object,
+                new ElementSelectionService());
+            var observedLoadingStates = new List<bool>();
+            var observedLoadedStates = new List<bool>();
+
+            using var loadingSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.IsLoading),
+                observedLoadingStates.Add);
+            using var loadedSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(modelView => modelView.IsLoaded),
+                observedLoadedStates.Add);
+
+            var initialization = viewModel.InitializeAsync(CancellationToken.None);
+
+            try
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+                    Assert.That(viewModel.IsLoading, Is.True);
+                }
+            }
+            finally
+            {
+                releaseLoad.Set();
+            }
+
+            Assert.That(await initialization, Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(observedLoadingStates, Is.EqualTo(ExpectedInitializationLoadingStates));
+                Assert.That(observedLoadedStates, Is.EqualTo(ExpectedInitializationLoadedStates));
+                Assert.That(viewModel.IsLoaded, Is.True);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies caller cancellation is non-error and quarantines a late synchronous loader result.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncCancellationIsNonErrorAndQuarantinesResult()
+        {
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            using var loadFinished = new ManualResetEventSlim();
+            using var cancellation = new CancellationTokenSource();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    loadStarted.Set();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    loadFinished.Set();
+
+                    return CreateMinimalModel();
+                });
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            var initialization = viewModel.InitializeAsync(cancellation.Token);
+
+            Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+            cancellation.Cancel();
+
+            var initialized = await initialization;
+            releaseLoad.Set();
+            Assert.That(loadFinished.Wait(TimeSpan.FromSeconds(10)), Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.False);
+                Assert.That(selectionService.SelectedElement, Is.Null);
+                Assert.That(viewModel.RootNodes, Is.Empty);
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.IsLoaded, Is.False);
+                Assert.That(viewModel.IsLoading, Is.False);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies disposal during a blocked load quarantines its result and emits no later state changes.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposeCancelsInFlightInitializationAndQuarantinesResult()
+        {
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            using var loadFinished = new ManualResetEventSlim();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    loadStarted.Set();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    loadFinished.Set();
+
+                    return CreateMinimalModel();
+                });
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            var observedState = new List<(bool IsLoading, bool IsLoaded, string ErrorMessage)>();
+            using var stateSubscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(
+                    modelView => modelView.IsLoading,
+                    modelView => modelView.IsLoaded,
+                    modelView => modelView.ErrorMessage,
+                    (isLoading, isLoaded, errorMessage) => (isLoading, isLoaded, errorMessage)),
+                observedState.Add);
+            var initialization = viewModel.InitializeAsync(CancellationToken.None);
+
+            Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+            viewModel.Dispose();
+            var stateCountAfterDisposal = observedState.Count;
+            var initialized = await initialization;
+            releaseLoad.Set();
+            Assert.That(loadFinished.Wait(TimeSpan.FromSeconds(10)), Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.False);
+                Assert.That(observedState, Has.Count.EqualTo(stateCountAfterDisposal));
+                Assert.That(selectionService.SelectedElement, Is.Null);
+                Assert.That(viewModel.RootNodes, Is.Empty);
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.IsLoaded, Is.False);
+                Assert.That(viewModel.IsLoading, Is.True);
+                Assert.That(viewModel.ErrorMessage, Is.Empty);
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies final disposal is idempotent and does not clear scoped selection.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposeIsIdempotentAndPreservesSharedSelection()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var selectedElement = selectionService.SelectedElement;
+
+            Assert.That(viewModel.Dispose, Throws.Nothing);
+            Assert.That(viewModel.Dispose, Throws.Nothing);
+
+            Assert.That(selectionService.SelectedElement, Is.SameAs(selectedElement));
+        }
+
+        /// <summary>
+        /// Verifies ordinary methods do not mutate state after final disposal.
+        /// </summary>
+        [Test]
+        public async Task VerifyMethodsDoNotMutateStateAfterDisposal()
+        {
+            var selectionService = new ElementSelectionService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var rootNode = viewModel.RootNodes[0];
+            var childNode = rootNode.Children[0];
+            var selectedElement = selectionService.SelectedElement;
+            var wasExpanded = rootNode.IsExpanded;
+
+            viewModel.Dispose();
+            viewModel.ToggleNode(rootNode);
+            viewModel.SelectNode(childNode);
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.False);
+                Assert.That(rootNode.IsExpanded, Is.EqualTo(wasExpanded));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(selectedElement));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(rootNode));
+            }
+        }
+
+        /// <summary>
+        /// Creates a model loader that returns the provided namespace.
+        /// </summary>
+        /// <param name="model">The namespace returned by the loader.</param>
+        /// <returns>The configured model loader mock.</returns>
+        private static Mock<IModelLoaderService> CreateModelLoader(INamespace model)
+        {
+            var modelLoaderService = new Mock<IModelLoaderService>();
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())
                 .Returns(model);
 
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object);
+            return modelLoaderService;
+        }
 
-            await viewModel.InitializeAsync();
-            await viewModel.InitializeAsync();
+        /// <summary>
+        /// Creates a small model with two selectable children.
+        /// </summary>
+        /// <returns>The minimal namespace model.</returns>
+        private static INamespace CreateMinimalModel()
+        {
+            var firstChild = new Mock<INamespace>();
+            firstChild.SetupGet(x => x.ElementId).Returns("first-child");
+            firstChild.SetupGet(x => x.DeclaredName).Returns("First child");
+            firstChild.SetupGet(x => x.ownedElement).Returns([]);
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.IsLoaded, Is.True);
-                Assert.That(viewModel.IsLoading, Is.False);
-                Assert.That(viewModel.ErrorMessage, Is.Empty);
-                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
-            }
+            var secondChild = new Mock<INamespace>();
+            secondChild.SetupGet(x => x.ElementId).Returns("second-child");
+            secondChild.SetupGet(x => x.DeclaredName).Returns("Second child");
+            secondChild.SetupGet(x => x.ownedElement).Returns([]);
+
+            var root = new Mock<INamespace>();
+            root.SetupGet(x => x.ElementId).Returns("root");
+            root.SetupGet(x => x.DeclaredName).Returns("Root");
+            root.SetupGet(x => x.ownedElement).Returns([firstChild.Object, secondChild.Object]);
+
+            return root.Object;
         }
 
         /// <summary>

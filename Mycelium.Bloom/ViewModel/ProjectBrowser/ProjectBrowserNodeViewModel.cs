@@ -11,13 +11,25 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using Mycelium.Bloom.Model.Enum;
 
+    using ReactiveUI;
+
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
     /// Represents one SysML element node in the project browser tree.
     /// </summary>
-    public sealed class ProjectBrowserNodeViewModel
+    public sealed class ProjectBrowserNodeViewModel : ReactiveObject
     {
+        /// <summary>
+        /// A value indicating whether the node is expanded.
+        /// </summary>
+        private bool isExpanded;
+
+        /// <summary>
+        /// A value indicating whether the node is selected.
+        /// </summary>
+        private bool isSelected;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserNodeViewModel" /> class.
         /// </summary>
@@ -86,12 +98,20 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets or sets a value indicating whether the node is expanded.
         /// </summary>
-        public bool IsExpanded { get; set; }
+        public bool IsExpanded
+        {
+            get => this.isExpanded;
+            set => this.RaiseAndSetIfChanged(ref this.isExpanded, value);
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether the node is selected.
         /// </summary>
-        public bool IsSelected { get; set; }
+        public bool IsSelected
+        {
+            get => this.isSelected;
+            set => this.RaiseAndSetIfChanged(ref this.isSelected, value);
+        }
 
         /// <summary>
         /// Gets a value indicating whether the node has child nodes.
