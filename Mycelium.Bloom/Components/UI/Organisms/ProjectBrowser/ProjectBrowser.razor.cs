@@ -14,17 +14,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using ReactiveUI;
-    using ReactiveUI.Blazor;
     using ReactiveUI.Primitives;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public sealed partial class ProjectBrowser : ReactiveInjectableComponentBase<IProjectBrowserViewModel>
+    public sealed partial class ProjectBrowser : BloomReactiveInjectableComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
         /// Cancels component-owned initialization when the component is disposed.
@@ -46,18 +45,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.ViewModel
             ?? throw new InvalidOperationException(
                 $"{nameof(ProjectBrowser)} requires an {nameof(IProjectBrowserViewModel)}.");
-
-        /// <summary>
-        /// Gets or sets additional CSS classes applied to the component root element.
-        /// </summary>
-        [Parameter]
-        public string Class { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets additional unmatched attributes applied to the component root element.
-        /// </summary>
-        [Parameter(CaptureUnmatchedValues = true)]
-        public IReadOnlyDictionary<string, object> AdditionalAttributes { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Gets or sets the callback invoked when the selected node changes.
@@ -172,7 +159,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The project browser CSS class list.</returns>
         private string GetCssClass()
         {
-            var cssClass = CssClassBuilder.Build("mb-project-browser", this.Class);
+            var cssClass = this.BuildRootCssClass("mb-project-browser");
 
             return cssClass;
         }

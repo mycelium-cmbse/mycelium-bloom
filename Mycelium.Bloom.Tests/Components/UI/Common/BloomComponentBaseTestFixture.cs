@@ -43,6 +43,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Common
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(component.Instance, Is.AssignableTo<IBloomComponentBase>());
                 Assert.That(component.Instance.Class, Is.Empty);
                 Assert.That(component.Instance.AdditionalAttributes, Is.Not.Null);
                 Assert.That(component.Instance.AdditionalAttributes, Is.Empty);

@@ -7,11 +7,13 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits ReactiveComponentBase<ProjectBrowserNodeViewModel>
+@inherits BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
 
 @if (this.ViewModel is { } viewModel)
 {
-    <div class="mb-project-browser-node" role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
+    <div @attributes="this.AdditionalAttributes"
+         class="@(this.BuildRootCssClass("mb-project-browser-node"))"
+         role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
          aria-selected="@(this.GetAriaSelected())">
         <button
             type="button"

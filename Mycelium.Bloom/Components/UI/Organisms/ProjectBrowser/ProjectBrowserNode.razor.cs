@@ -14,15 +14,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-
-    using ReactiveUI.Blazor;
 
     /// <summary>
     /// Renders one recursive node in the project browser tree.
     /// </summary>
-    public partial class ProjectBrowserNode : ReactiveComponentBase<ProjectBrowserNodeViewModel>
+    public partial class ProjectBrowserNode : BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
         /// <summary>
         /// Gets the node ViewModel required while rendering an assigned node.

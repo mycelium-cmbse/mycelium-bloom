@@ -143,6 +143,35 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies the project browser renders parameters inherited from the injectable Bloom reactive base.
+        /// </summary>
+        [Test]
+        public void VerifyRenderUsesInheritedBloomParameters()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(browser => browser.Class, "custom-project-browser")
+                .AddUnmatched("data-testid", "project-browser"));
+
+            var root = component.Find(".mb-project-browser");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root.ClassList.Contains("custom-project-browser"), Is.True);
+                Assert.That(root.GetAttribute("data-testid"), Is.EqualTo("project-browser"));
+            }
+        }
+
+        /// <summary>
         /// Verifies component initialization directly invokes <see cref="IProjectBrowserViewModel.InitializeAsync" />.
         /// </summary>
         [Test]
