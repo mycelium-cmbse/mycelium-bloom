@@ -13,7 +13,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Globalization;
 
     using DynamicData;
-    using DynamicData.Binding;
 
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;

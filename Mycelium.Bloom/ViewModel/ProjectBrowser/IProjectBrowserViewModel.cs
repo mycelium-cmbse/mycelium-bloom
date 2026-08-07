@@ -10,11 +10,12 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
 
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
-    public interface IProjectBrowserViewModel : IDisposable
+    public interface IProjectBrowserViewModel : IDisposable, INotifyPropertyChanged
     {
         /// <summary>
         /// Gets the root nodes displayed by the project browser.
