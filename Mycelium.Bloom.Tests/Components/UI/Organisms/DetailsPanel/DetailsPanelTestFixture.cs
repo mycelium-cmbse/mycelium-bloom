@@ -28,6 +28,33 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     public sealed class DetailsPanelTestFixture : BunitContext
     {
         /// <summary>
+        /// The expected labels in their required display order.
+        /// </summary>
+        private static readonly string[] ExpectedPropertyLabels =
+        [
+            "ID",
+            "Declared name",
+            "Declared short name",
+            "Qualified name"
+        ];
+
+        /// <summary>
+        /// The expected values for a fully populated element.
+        /// </summary>
+        private static readonly string[] ExpectedPropertyValues =
+        [
+            "element-42",
+            "Declared element",
+            "declared-short",
+            "Package::Declared element"
+        ];
+
+        /// <summary>
+        /// The expected fallback values for unavailable element properties.
+        /// </summary>
+        private static readonly string[] ExpectedMissingPropertyValues = ["—", "—", "—", "—"];
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -73,20 +100,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(labels, Is.EqualTo(new[]
-                {
-                    "ID",
-                    "Declared name",
-                    "Declared short name",
-                    "Qualified name"
-                }));
-                Assert.That(values, Is.EqualTo(new[]
-                {
-                    "element-42",
-                    "Declared element",
-                    "declared-short",
-                    "Package::Declared element"
-                }));
+                Assert.That(labels, Is.EqualTo(ExpectedPropertyLabels));
+                Assert.That(values, Is.EqualTo(ExpectedPropertyValues));
             }
         }
 
@@ -101,7 +116,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 .Add(panel => panel.Element, element));
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
-            Assert.That(values, Is.EqualTo(new[] { "—", "—", "—", "—" }));
+            Assert.That(values, Is.EqualTo(ExpectedMissingPropertyValues));
         }
 
         /// <summary>
