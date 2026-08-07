@@ -21,13 +21,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Moq;
 
     using Mycelium.Bloom.Components.Pages;
+    using Mycelium.Bloom.Components.UI.Organisms.DetailsPanel;
+    using Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Elements;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
 
     /// <summary>
     /// Tests the <see cref="Home" /> page.
@@ -46,10 +47,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies that the home page displays the expected workspace content and null selection fallback.
+        /// Verifies Home composes the workspace regions and displays an empty details panel.
         /// </summary>
         [Test]
-        public void VerifyRenderDisplaysHomeContentAndNullSelection()
+        public void VerifyRenderComposesWorkspaceShellWithEmptyDetailsPanel()
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
@@ -61,15 +62,21 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             this.RegisterServices(projectBrowserViewModel.Object);
 
             using var component = this.Render<Home>();
+            var detailsPanel = component.FindComponent<DetailsPanel>();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Markup, Does.Contain("Project Browser"));
-                Assert.That(component.Markup, Does.Contain("Quantities model"));
-                Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
-                Assert.That(component.Markup, Does.Contain("Selected element"));
-                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo("None"));
+                Assert.That(component.FindComponents<WorkspaceShell>(), Has.Count.EqualTo(1));
+                Assert.That(component.Find("aside.mb-workspace-shell__left-panel").TextContent,
+                    Does.Contain("Project Browser"));
+                Assert.That(component.Find("aside.mb-workspace-shell__left-panel").TextContent,
+                    Does.Contain("Quantities model"));
                 Assert.That(component.Find(".mb-project-browser"), Is.Not.Null);
+                Assert.That(component.Find(".mb-workspace-shell__main").TextContent, Does.Contain("Workspace"));
+                Assert.That(component.Find("aside.mb-workspace-shell__right-panel .mb-details-panel"), Is.Not.Null);
+                Assert.That(detailsPanel.Instance.Element, Is.Null);
+                Assert.That(detailsPanel.Find(".mb-details-panel__empty").TextContent.Trim(),
+                    Is.EqualTo("Select an element to display its details."));
                 Assert.That(component.Instance, Is.AssignableTo<ComponentBase>());
                 projectBrowserViewModel.Verify(
                     x => x.InitializeAsync(It.IsAny<CancellationToken>()),
@@ -78,66 +85,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies the selected-element display-name precedence implemented by Home.
-        /// </summary>
-        /// <param name="declaredName">The declared name.</param>
-        /// <param name="name">The effective name.</param>
-        /// <param name="qualifiedName">The qualified name.</param>
-        /// <param name="expectedName">The expected displayed name.</param>
-        [TestCase("Declared", " ", " ", "Declared", TestName = "VerifySelectedElementDisplaysDeclaredName")]
-        [TestCase(" ", "Name", "Qualified", "Name", TestName = "VerifySelectedElementUsesNameFallback")]
-        [TestCase(" ", " ", "Qualified", "Qualified", TestName = "VerifySelectedElementUsesQualifiedNameFallback")]
-        [TestCase("Declared", "Name", "Qualified", "Declared", TestName = "VerifySelectedElementNamePrecedence")]
-        public void VerifySelectedElementDisplayName(
-            string declaredName,
-            string name,
-            string qualifiedName,
-            string expectedName)
-        {
-            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
-            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            projectBrowserViewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            projectBrowserViewModel.SetupGet(x => x.IsLoaded).Returns(false);
-            projectBrowserViewModel.SetupGet(x => x.IsLoading).Returns(true);
-            projectBrowserViewModel.Setup(x => x.Dispose());
-            var selectionService = new ElementSelectionService
-            {
-                SelectedElement = CreateElement(declaredName, name, qualifiedName)
-            };
-            this.RegisterServices(projectBrowserViewModel.Object, selectionService);
-
-            using var component = this.Render<Home>();
-
-            Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo(expectedName));
-        }
-
-        /// <summary>
-        /// Verifies Home uses the runtime type when the selected element has no display name.
-        /// </summary>
-        [Test]
-        public void VerifySelectedElementUsesRuntimeTypeFallback()
-        {
-            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
-            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            projectBrowserViewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            projectBrowserViewModel.SetupGet(x => x.IsLoaded).Returns(false);
-            projectBrowserViewModel.SetupGet(x => x.IsLoading).Returns(true);
-            projectBrowserViewModel.Setup(x => x.Dispose());
-            var selectionService = new ElementSelectionService
-            {
-                SelectedElement = new Namespace { DeclaredName = " " }
-            };
-            this.RegisterServices(projectBrowserViewModel.Object, selectionService);
-
-            using var component = this.Render<Home>();
-
-            Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo(nameof(Namespace)));
-        }
-
-        /// <summary>
-        /// Verifies the Project Browser child boundary updates Home through the shared scoped service.
+        /// Verifies the Project Browser child boundary updates the details panel through the real selection service.
         /// </summary>
         [Test]
         public void VerifyProjectBrowserSelectionUpdatesHome()
@@ -163,11 +111,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             component.Find(".mb-project-browser-node__row").Click();
 
             component.WaitForAssertion(() =>
-                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo(nameof(Namespace))));
+                Assert.That(component.FindComponent<DetailsPanel>().Instance.Element, Is.SameAs(node.SourceElement)));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
+                Assert.That(component.Find("aside.mb-workspace-shell__right-panel dl"), Is.Not.Null);
                 projectBrowserViewModel.Verify(x => x.SelectNode(node), Times.Once);
                 projectBrowserViewModel.Verify(
                     x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()),
@@ -192,14 +141,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using var component = this.Render<Home>();
             var renderCount = component.RenderCount;
+            var selectedElement = new LibraryPackage();
 
-            selectionService.SelectedElement = new LibraryPackage();
+            selectionService.SelectedElement = selectedElement;
 
             component.WaitForAssertion(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo(nameof(LibraryPackage)));
+                    Assert.That(component.FindComponent<DetailsPanel>().Instance.Element, Is.SameAs(selectedElement));
+                    Assert.That(component.FindAll(".mb-details-panel__empty"), Is.Empty);
                     Assert.That(component.RenderCount, Is.GreaterThan(renderCount));
                 }
             });
@@ -228,16 +179,25 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Instance.ElementSelectionService, Is.SameAs(selectionService));
-                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo("First"));
+                Assert.That(component.FindComponent<DetailsPanel>().Instance.Element, Is.SameAs(firstElement));
             }
 
             selectionService.SelectedElement = secondElement;
             component.WaitForAssertion(() =>
-                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo("Second")));
+                Assert.That(component.FindComponent<DetailsPanel>().Instance.Element, Is.SameAs(secondElement)));
 
             selectionService.SelectedElement = null;
             component.WaitForAssertion(() =>
-                Assert.That(component.Find("main h2").TextContent.Trim(), Is.EqualTo("None")));
+            {
+                var detailsPanel = component.FindComponent<DetailsPanel>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(detailsPanel.Instance.Element, Is.Null);
+                    Assert.That(detailsPanel.Find(".mb-details-panel__empty").TextContent.Trim(),
+                        Is.EqualTo("Select an element to display its details."));
+                }
+            });
         }
 
         /// <summary>

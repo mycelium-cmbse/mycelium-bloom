@@ -1,0 +1,58 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DetailsPanel.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<section class="@(this.GetCssClass())"
+         aria-labelledby="@(this.headingId)"
+         @attributes="this.AdditionalAttributes">
+    <header class="mb-details-panel__header">
+        <h2 id="@(this.headingId)" class="mb-details-panel__title">
+            Details
+        </h2>
+
+        @if (this.Element is not null)
+        {
+            <p class="mb-details-panel__element-name">
+                @(GetDisplayName(this.Element))
+            </p>
+        }
+    </header>
+
+    @if (this.Element is null)
+    {
+        <p class="mb-details-panel__empty">
+            Select an element to display its details.
+        </p>
+    }
+    else
+    {
+        <dl class="mb-details-panel__properties">
+            <div class="mb-details-panel__property">
+                <dt class="mb-details-panel__label">ID</dt>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.ElementId))</dd>
+            </div>
+
+            <div class="mb-details-panel__property">
+                <dt class="mb-details-panel__label">Declared name</dt>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.DeclaredName))</dd>
+            </div>
+
+            <div class="mb-details-panel__property">
+                <dt class="mb-details-panel__label">Declared short name</dt>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.DeclaredShortName))</dd>
+            </div>
+
+            <div class="mb-details-panel__property">
+                <dt class="mb-details-panel__label">Qualified name</dt>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.qualifiedName))</dd>
+            </div>
+        </dl>
+    }
+</section>

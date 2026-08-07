@@ -1,0 +1,79 @@
+// ------------------------------------------------------------------------------------------------
+// <copyright file="DetailsPanel.razor.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
+{
+    using Microsoft.AspNetCore.Components;
+
+    using Mycelium.Bloom.Components.UI.Common;
+
+    using static Mycelium.Bloom.Components.Common.DisplayStringFormatter;
+
+    using SysML2.NET.Core.POCO.Root.Elements;
+
+    /// <summary>
+    /// Displays the identifying properties of a selected SysML element.
+    /// </summary>
+    public sealed partial class DetailsPanel : BloomComponentBase
+    {
+        /// <summary>
+        /// The stable identifier of the panel heading.
+        /// </summary>
+        private readonly string headingId = CreateGeneratedId("mb-details-panel-title");
+
+        /// <summary>
+        /// Gets or sets the SysML element to display.
+        /// </summary>
+        [Parameter]
+        public IElement Element { get; set; }
+
+        /// <summary>
+        /// Gets the final CSS class list applied to the details panel.
+        /// </summary>
+        /// <returns>The details-panel CSS class list.</returns>
+        private string GetCssClass()
+        {
+            return this.BuildRootCssClass("mb-details-panel");
+        }
+
+        /// <summary>
+        /// Gets the best available display name for an element.
+        /// </summary>
+        /// <param name="element">The element to describe.</param>
+        /// <returns>The display name for the element.</returns>
+        private static string GetDisplayName(IElement element)
+        {
+            var displayName = ToDisplayString(element.DeclaredName);
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = ToDisplayString(element.name);
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = ToDisplayString(element.qualifiedName);
+            }
+
+            return string.IsNullOrWhiteSpace(displayName) ? element.GetType().Name : displayName;
+        }
+
+        /// <summary>
+        /// Gets an invariant property value for display.
+        /// </summary>
+        /// <param name="value">The value to display.</param>
+        /// <returns>The converted value, or an em dash when the value is unavailable.</returns>
+        private static string GetDisplayValue(object value)
+        {
+            var displayValue = ToDisplayString(value);
+
+            return string.IsNullOrWhiteSpace(displayValue) ? "—" : displayValue;
+        }
+    }
+}

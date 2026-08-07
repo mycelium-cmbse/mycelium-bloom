@@ -10,13 +10,10 @@
 namespace Mycelium.Bloom.Components.Pages
 {
     using System.ComponentModel;
-    using System.Globalization;
 
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Core.Selection;
-
-    using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
     /// Renders the Bloom home workspace.
@@ -91,43 +88,5 @@ namespace Mycelium.Bloom.Components.Pages
             });
         }
 
-        /// <summary>
-        /// Gets the best available display name for the selected element.
-        /// </summary>
-        /// <param name="element">The selected element, or <see langword="null" />.</param>
-        /// <returns>The selected element display name.</returns>
-        private static string GetSelectedElementName(IElement element)
-        {
-            if (element == null)
-            {
-                return "None";
-            }
-
-            var displayName = ToDisplayString(element.DeclaredName);
-
-            if (string.IsNullOrWhiteSpace(displayName))
-            {
-                displayName = ToDisplayString(element.name);
-            }
-
-            if (string.IsNullOrWhiteSpace(displayName))
-            {
-                displayName = ToDisplayString(element.qualifiedName);
-            }
-
-            return string.IsNullOrWhiteSpace(displayName) ? element.GetType().Name : displayName;
-        }
-
-        /// <summary>
-        /// Converts a SysML SDK value into an invariant display string.
-        /// </summary>
-        /// <param name="value">The value to convert.</param>
-        /// <returns>The converted value, or an empty string when no value is available.</returns>
-        private static string ToDisplayString(object value)
-        {
-            var displayString = Convert.ToString(value, CultureInfo.InvariantCulture);
-
-            return displayString ?? string.Empty;
-        }
     }
 }
