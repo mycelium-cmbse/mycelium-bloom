@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
@@ -23,8 +24,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }
 
         /// <summary>
-        /// Gets the currently selected node.
+        /// Gets the currently selected node, or <see langword="null" /> when no node is selected.
         /// </summary>
+        [MaybeNull]
         ProjectBrowserNodeViewModel SelectedNode { get; }
 
         /// <summary>

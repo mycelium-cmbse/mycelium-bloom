@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using System.Collections.ObjectModel;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
 
     using DynamicData;
@@ -81,6 +82,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// The visual projection of the globally selected element.
         /// </summary>
+        [AllowNull]
+        [MaybeNull]
         private ProjectBrowserNodeViewModel selectedNode;
 
         /// <summary>
@@ -132,6 +135,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         public ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes => this.rootNodes;
 
         /// <inheritdoc />
+        [AllowNull]
+        [MaybeNull]
         public ProjectBrowserNodeViewModel SelectedNode
         {
             get => this.selectedNode;
@@ -357,20 +362,29 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Applies the shared selected element to the visual node projection.
         /// </summary>
         /// <param name="element">The selected element, or <see langword="null" />.</param>
-        private void ApplySelectedElement(IElement element)
+        private void ApplySelectedElement([AllowNull] IElement element)
         {
             if (this.isDisposed)
             {
                 return;
             }
 
-            ProjectBrowserNodeViewModel node = null;
-
-            if (element != null)
+            if (element != null && this.elementNodes.TryGetValue(element, out var node))
             {
-                this.elementNodes.TryGetValue(element, out node);
+                this.ApplySelectedNode(node);
+
+                return;
             }
 
+            this.ApplySelectedNode(null);
+        }
+
+        /// <summary>
+        /// Applies the selected node to the visual tree projection.
+        /// </summary>
+        /// <param name="node">The selected node, or <see langword="null" /> when no node is selected.</param>
+        private void ApplySelectedNode([AllowNull] ProjectBrowserNodeViewModel node)
+        {
             if (ReferenceEquals(this.SelectedNode, node))
             {
                 return;

@@ -87,11 +87,11 @@ namespace Mycelium.Bloom.ViewModel
         /// <summary>
         /// Marks the view model as not loaded and stores the loading error.
         /// </summary>
-        /// <param name="errorMessage">The loading error message.</param>
-        protected void SetError(string errorMessage)
+        /// <param name="errorMsg">The loading error message.</param>
+        protected void SetError(string errorMsg)
         {
             this.IsLoaded = false;
-            this.ErrorMessage = errorMessage ?? string.Empty;
+            this.ErrorMessage = errorMsg ?? string.Empty;
         }
     }
 }
