@@ -19,6 +19,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
 
+    using static Mycelium.Bloom.Components.Common.DisplayStringFormatter;
+
     using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Core.Features;
@@ -581,18 +583,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             };
 
             return elementKind;
-        }
-
-        /// <summary>
-        /// Converts a SysML SDK value into an invariant display string.
-        /// </summary>
-        /// <param name="value">The value to convert.</param>
-        /// <returns>The display string, or an empty string when the value cannot be converted.</returns>
-        private static string ToDisplayString(object value)
-        {
-            var displayString = Convert.ToString(value, CultureInfo.InvariantCulture);
-
-            return displayString ?? string.Empty;
         }
     }
 }
