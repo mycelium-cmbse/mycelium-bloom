@@ -18,7 +18,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AngleSharp" Version="1.7.0" />
+        <PackageReference Include="AngleSharp" Version="1.7.1" />
         <PackageReference Include="BlazorBlueprint.Components" Version="3.15.0" />
         <PackageReference Include="bunit" Version="2.7.2"/>
         <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.1.1"/>

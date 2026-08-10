@@ -55,8 +55,8 @@
         -->
         <PackageReference Include="BlazorBlueprint.Icons.Lucide" Version="2.0.2" />
         <PackageReference Include="DynamicData" Version="9.4.33" />
-        <!-- Intentionally direct: selects the security-reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when Blueprint is upgraded. -->
-        <PackageReference Include="HtmlSanitizer" Version="9.1.982" />
+        <!-- Intentionally direct: selects the reviewed HtmlSanitizer version used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when either dependency is upgraded. -->
+        <PackageReference Include="HtmlSanitizer" Version="9.2.995" />
         <PackageReference Include="OpenTelemetry" Version="1.17.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.17.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
