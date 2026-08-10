@@ -21,7 +21,7 @@ namespace Mycelium.Bloom.Components.Common
         /// </summary>
         /// <param name="value">The value to convert.</param>
         /// <returns>The converted value, or an empty string when no value is available.</returns>
-        public static string ToDisplayString(object value)
+        public static string ToDisplayString(this object value)
         {
             var displayString = Convert.ToString(value, CultureInfo.InvariantCulture);
 

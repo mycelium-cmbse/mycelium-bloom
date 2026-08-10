@@ -9,10 +9,9 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
+    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Core.Selection;
-
-    using static Mycelium.Bloom.Components.Common.DisplayStringFormatter;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -58,16 +57,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <returns>The display name for the element.</returns>
         private static string GetDisplayName(IElement element)
         {
-            var displayName = ToDisplayString(element.DeclaredName);
+            var displayName = element.DeclaredName.ToDisplayString();
 
             if (string.IsNullOrWhiteSpace(displayName))
             {
-                displayName = ToDisplayString(element.name);
+                displayName = element.name.ToDisplayString();
             }
 
             if (string.IsNullOrWhiteSpace(displayName))
             {
-                displayName = ToDisplayString(element.qualifiedName);
+                displayName = element.qualifiedName.ToDisplayString();
             }
 
             return string.IsNullOrWhiteSpace(displayName) ? element.GetType().Name : displayName;
@@ -80,7 +79,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <returns>The converted value, or an em dash when the value is unavailable.</returns>
         private static string GetDisplayValue(object value)
         {
-            var displayValue = ToDisplayString(value);
+            var displayValue = value.ToDisplayString();
 
             return string.IsNullOrWhiteSpace(displayValue) ? "—" : displayValue;
         }

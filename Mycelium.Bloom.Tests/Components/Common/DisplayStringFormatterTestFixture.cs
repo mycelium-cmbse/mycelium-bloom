@@ -13,8 +13,6 @@ namespace Mycelium.Bloom.Tests.Components.Common
 
     using Mycelium.Bloom.Components.Common;
 
-    using static Mycelium.Bloom.Components.Common.DisplayStringFormatter;
-
     /// <summary>
     /// Tests the <see cref="DisplayStringFormatter" /> helper.
     /// </summary>
@@ -27,7 +25,9 @@ namespace Mycelium.Bloom.Tests.Components.Common
         [Test]
         public void VerifyToDisplayStringReturnsEmptyForNull()
         {
-            Assert.That(ToDisplayString(null), Is.Empty);
+            object value = null;
+
+            Assert.That(value.ToDisplayString(), Is.Empty);
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace Mycelium.Bloom.Tests.Components.Common
         [Test]
         public void VerifyToDisplayStringPreservesString()
         {
-            Assert.That(ToDisplayString("display value"), Is.EqualTo("display value"));
+            Assert.That("display value".ToDisplayString(), Is.EqualTo("display value"));
         }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace Mycelium.Bloom.Tests.Components.Common
             {
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
 
-                Assert.That(ToDisplayString(1234.5m), Is.EqualTo("1234.5"));
+                Assert.That(1234.5m.ToDisplayString(), Is.EqualTo("1234.5"));
             }
             finally
             {
