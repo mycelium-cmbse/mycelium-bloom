@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
     using DynamicData;
 
+    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
@@ -326,7 +327,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             cancellationToken.ThrowIfCancellationRequested();
 
             var runtimeTypeName = element.GetType().Name;
-            var elementId = ToDisplayString(element.ElementId);
+            var elementId = element.ElementId.ToDisplayString();
             var nodeId = CreateUniqueNodeId(
                 stagedNodeIds,
                 string.IsNullOrWhiteSpace(elementId) ? fallbackId : elementId);
@@ -337,7 +338,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 stagedElementNodes,
                 cancellationToken);
             var displayName = GetDisplayName(element, runtimeTypeName);
-            var qualifiedName = ToDisplayString(element.qualifiedName);
+            var qualifiedName = element.qualifiedName.ToDisplayString();
             var elementKind = GetElementKind(element);
 
             var metadata = new ProjectBrowserNodeMetadata(
@@ -535,21 +536,21 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <returns>The display name for the SysML element.</returns>
         private static string GetDisplayName(IElement element, string runtimeTypeName)
         {
-            var declaredName = ToDisplayString(element.DeclaredName);
+            var declaredName = element.DeclaredName.ToDisplayString();
 
             if (!string.IsNullOrWhiteSpace(declaredName))
             {
                 return declaredName;
             }
 
-            var name = ToDisplayString(element.name);
+            var name = element.name.ToDisplayString();
 
             if (!string.IsNullOrWhiteSpace(name))
             {
                 return name;
             }
 
-            var qualifiedName = ToDisplayString(element.qualifiedName);
+            var qualifiedName = element.qualifiedName.ToDisplayString();
 
             if (!string.IsNullOrWhiteSpace(qualifiedName))
             {
@@ -581,18 +582,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             };
 
             return elementKind;
-        }
-
-        /// <summary>
-        /// Converts a SysML SDK value into an invariant display string.
-        /// </summary>
-        /// <param name="value">The value to convert.</param>
-        /// <returns>The display string, or an empty string when the value cannot be converted.</returns>
-        private static string ToDisplayString(object value)
-        {
-            var displayString = Convert.ToString(value, CultureInfo.InvariantCulture);
-
-            return displayString ?? string.Empty;
         }
     }
 }

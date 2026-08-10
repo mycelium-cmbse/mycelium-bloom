@@ -25,6 +25,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Restore dependencies
+        run: dotnet restore Mycelium.Bloom.sln
+
       - name: Check for outdated packages
         id: outdated
         run: |
@@ -32,7 +35,7 @@ jobs:
             
           IGNORE_PACKAGES="Microsoft\.NETCore\.Platforms|Microsoft\.NETCore\.Targets"
             
-          dotnet list Mycelium.Bloom.sln package --outdated --include-transitive > outdated-raw.log
+          dotnet list Mycelium.Bloom.sln package --outdated --no-restore > outdated-raw.log
             
           grep -v -E "$IGNORE_PACKAGES" outdated-raw.log > outdated.log || true
             
@@ -58,7 +61,7 @@ jobs:
         run: |
           set -e
             
-          dotnet list Mycelium.Bloom.sln package --deprecated --include-transitive > deprecated.log
+          dotnet list Mycelium.Bloom.sln package --deprecated --include-transitive --no-restore > deprecated.log
             
           echo "=== Full deprecated packages report ==="
           cat deprecated.log
@@ -82,7 +85,7 @@ jobs:
         run: |
           set -e
             
-          dotnet list Mycelium.Bloom.sln package --vulnerable --include-transitive > vulnerabilities.log
+          dotnet list Mycelium.Bloom.sln package --vulnerable --include-transitive --no-restore > vulnerabilities.log
             
           echo "=== Full vulnerable packages report ==="
           cat vulnerabilities.log
@@ -102,7 +105,9 @@ jobs:
           fi
 
       - name: Synchronize NuGet package issue
-        if: github.event_name != 'pull_request'
+        if: >-
+          github.event_name == 'schedule' ||
+          (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -165,12 +170,14 @@ jobs:
             issueBody += '**Action Required:** Please review and update the affected packages.';
               
             if (existingIssue) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existingIssue.number,
-                body: `New check results:\n\n${issueBody}`,
-              });
+              if (existingIssue.body !== issueBody) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existingIssue.number,
+                  body: issueBody,
+                });
+              }
             } else {
               await github.rest.issues.create({
                 owner: context.repo.owner,
