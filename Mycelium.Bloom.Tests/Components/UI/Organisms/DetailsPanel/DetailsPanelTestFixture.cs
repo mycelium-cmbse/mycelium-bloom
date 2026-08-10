@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 {
+    using System.ComponentModel;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -62,15 +63,22 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// <summary>
         /// The reactive selection source injected into the component under test.
         /// </summary>
-        private readonly IElementSelectionService selectionService;
+        private readonly Mock<IElementSelectionService> selectionService;
+
+        /// <summary>
+        /// The selected element returned by the mocked selection source.
+        /// </summary>
+        private IElement selectedElement;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DetailsPanelTestFixture" /> class.
         /// </summary>
         public DetailsPanelTestFixture()
         {
-            this.selectionService = new ElementSelectionService();
-            this.Services.AddSingleton(this.selectionService);
+            this.selectionService = new Mock<IElementSelectionService>();
+            this.selectionService.SetupGet(service => service.SelectedElement)
+                .Returns(() => this.selectedElement);
+            this.Services.AddSingleton(this.selectionService.Object);
         }
 
         /// <summary>
@@ -92,7 +100,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Instance.ViewModel, Is.SameAs(this.selectionService));
+                Assert.That(component.Instance.ViewModel, Is.SameAs(this.selectionService.Object));
                 Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Details"));
                 Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                     Is.EqualTo("Select an element to display its details."));
@@ -113,7 +121,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 "declared-short",
                 "Effective element",
                 "Package::Declared element");
-            this.selectionService.SelectedElement = element;
+            this.SetSelectedElement(element);
             var component = this.Render<DetailsPanelComponent>();
             var labels = component.FindAll("dl dt").Select(term => term.TextContent.Trim()).ToArray();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
@@ -132,7 +140,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         public void VerifyMissingPropertyValuesUseFallback()
         {
             var element = CreateElement(null, string.Empty, " ", "Display name", "\t");
-            this.selectionService.SelectedElement = element;
+            this.SetSelectedElement(element);
             var component = this.Render<DetailsPanelComponent>();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
@@ -157,7 +165,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             string expectedName)
         {
             var element = CreateElement("element", declaredName, "short", name, qualifiedName);
-            this.selectionService.SelectedElement = element;
+            this.SetSelectedElement(element);
             var component = this.Render<DetailsPanelComponent>();
 
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
@@ -170,7 +178,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         [Test]
         public void VerifyHeadingUsesRuntimeTypeFallback()
         {
-            this.selectionService.SelectedElement = new Namespace { DeclaredName = " " };
+            this.SetSelectedElement(new Namespace { DeclaredName = " " });
             var component = this.Render<DetailsPanelComponent>();
 
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
@@ -190,7 +198,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                 Is.EqualTo("Select an element to display its details."));
 
-            this.selectionService.SelectedElement = firstElement;
+            this.SetSelectedElement(firstElement);
 
             component.WaitForAssertion(() =>
             {
@@ -202,7 +210,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 }
             });
 
-            this.selectionService.SelectedElement = secondElement;
+            this.SetSelectedElement(secondElement);
 
             component.WaitForAssertion(() =>
             {
@@ -214,7 +222,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 }
             });
 
-            this.selectionService.SelectedElement = null;
+            this.SetSelectedElement(null);
 
             component.WaitForAssertion(() =>
             {
@@ -240,12 +248,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
             await this.Renderer.Dispatcher.InvokeAsync(() =>
             {
-                this.selectionService.SelectedElement = new Namespace();
+                this.SetSelectedElement(new Namespace());
             });
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.selectionService.SelectedElement, Is.TypeOf<Namespace>());
+                Assert.That(this.selectedElement, Is.TypeOf<Namespace>());
                 Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
             }
         }
@@ -257,7 +265,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         public void VerifySemanticStructureAndRootAttributes()
         {
             var element = CreateElement("element", "Element", "short", "Name", "Package::Element");
-            this.selectionService.SelectedElement = element;
+            this.SetSelectedElement(element);
             var component = this.Render<DetailsPanelComponent>(parameters => parameters
                 .Add(panel => panel.Class, "custom-details")
                 .AddUnmatched("data-testid", "details-panel"));
@@ -274,6 +282,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(section.QuerySelectorAll("dl"), Has.Length.EqualTo(1));
                 Assert.That(section.QuerySelectorAll("dl > div"), Has.Length.EqualTo(4));
             }
+        }
+
+        /// <summary>
+        /// Updates the mocked selection and publishes its reactive notification.
+        /// </summary>
+        /// <param name="element">The newly selected element.</param>
+        private void SetSelectedElement(IElement element)
+        {
+            this.selectedElement = element;
+            this.selectionService.Raise(
+                service => service.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IElementSelectionService.SelectedElement)));
         }
 
         /// <summary>

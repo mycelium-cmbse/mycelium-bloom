@@ -27,9 +27,20 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         private readonly string headingId = $"mb-details-panel-title-{Guid.NewGuid():N}";
 
         /// <summary>
+        /// Gets the injected selection service required by this component.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the selection service has not been provided through dependency injection.
+        /// </exception>
+        private IElementSelectionService RequiredViewModel =>
+            this.ViewModel
+            ?? throw new InvalidOperationException(
+                $"{nameof(DetailsPanel)} requires an {nameof(IElementSelectionService)}.");
+
+        /// <summary>
         /// Gets the currently selected SysML element.
         /// </summary>
-        private IElement SelectedElement => this.ViewModel!.SelectedElement;
+        private IElement SelectedElement => this.RequiredViewModel.SelectedElement;
 
         /// <summary>
         /// Gets the final CSS class list applied to the details panel.
