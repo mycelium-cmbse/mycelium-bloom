@@ -10,10 +10,15 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 {
     using System.Linq;
+    using System.Threading.Tasks;
 
     using Bunit;
 
+    using Microsoft.Extensions.DependencyInjection;
+
     using Moq;
+
+    using Mycelium.Bloom.Core.Selection;
 
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -55,6 +60,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         private static readonly string[] ExpectedMissingPropertyValues = ["—", "—", "—", "—"];
 
         /// <summary>
+        /// The reactive selection source injected into the component under test.
+        /// </summary>
+        private readonly IElementSelectionService selectionService;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DetailsPanelTestFixture" /> class.
+        /// </summary>
+        public DetailsPanelTestFixture()
+        {
+            this.selectionService = new ElementSelectionService();
+            this.Services.AddSingleton(this.selectionService);
+        }
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -73,6 +92,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(component.Instance.ViewModel, Is.SameAs(this.selectionService));
                 Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Details"));
                 Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                     Is.EqualTo("Select an element to display its details."));
@@ -93,8 +113,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 "declared-short",
                 "Effective element",
                 "Package::Declared element");
-            var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.Element, element));
+            this.selectionService.SelectedElement = element;
+            var component = this.Render<DetailsPanelComponent>();
             var labels = component.FindAll("dl dt").Select(term => term.TextContent.Trim()).ToArray();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
@@ -112,8 +132,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         public void VerifyMissingPropertyValuesUseFallback()
         {
             var element = CreateElement(null, string.Empty, " ", "Display name", "\t");
-            var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.Element, element));
+            this.selectionService.SelectedElement = element;
+            var component = this.Render<DetailsPanelComponent>();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
             Assert.That(values, Is.EqualTo(ExpectedMissingPropertyValues));
@@ -137,8 +157,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             string expectedName)
         {
             var element = CreateElement("element", declaredName, "short", name, qualifiedName);
-            var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.Element, element));
+            this.selectionService.SelectedElement = element;
+            var component = this.Render<DetailsPanelComponent>();
 
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
                 Is.EqualTo(expectedName));
@@ -150,18 +170,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         [Test]
         public void VerifyHeadingUsesRuntimeTypeFallback()
         {
-            var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.Element, new Namespace { DeclaredName = " " }));
+            this.selectionService.SelectedElement = new Namespace { DeclaredName = " " };
+            var component = this.Render<DetailsPanelComponent>();
 
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
                 Is.EqualTo(nameof(Namespace)));
         }
 
         /// <summary>
-        /// Verifies parameter transitions replace the rendered element without retaining stale state.
+        /// Verifies reactive selection transitions replace the rendered element without retaining stale state.
         /// </summary>
         [Test]
-        public void VerifyElementParameterTransitions()
+        public void VerifySelectionServiceTransitions()
         {
             var firstElement = CreateElement("first-id", "First", "first", " ", " ");
             var secondElement = CreateElement("second-id", "Second", "second", " ", " ");
@@ -170,29 +190,63 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                 Is.EqualTo("Select an element to display its details."));
 
-            component.Render(parameters => parameters.Add(panel => panel.Element, firstElement));
+            this.selectionService.SelectedElement = firstElement;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
+                        Is.EqualTo("First"));
+                    Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("first-id"));
+                }
+            });
+
+            this.selectionService.SelectedElement = secondElement;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
+                        Is.EqualTo("Second"));
+                    Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("second-id"));
+                }
+            });
+
+            this.selectionService.SelectedElement = null;
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
+                        Is.EqualTo("Select an element to display its details."));
+                    Assert.That(component.FindAll("dl"), Is.Empty);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies disposal removes reactive selection observation and prevents later renders.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposedPanelIgnoresSelectionChanges()
+        {
+            var component = this.Render<DetailsPanelComponent>();
+
+            await this.DisposeComponentsAsync();
+            var renderCountAfterDisposal = component.RenderCount;
+
+            await this.Renderer.Dispatcher.InvokeAsync(() =>
+            {
+                this.selectionService.SelectedElement = new Namespace();
+            });
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(), Is.EqualTo("First"));
-                Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("first-id"));
-            }
-
-            component.Render(parameters => parameters.Add(panel => panel.Element, secondElement));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(), Is.EqualTo("Second"));
-                Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("second-id"));
-            }
-
-            component.Render(parameters => parameters.Add(panel => panel.Element, (IElement)null));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
-                    Is.EqualTo("Select an element to display its details."));
-                Assert.That(component.FindAll("dl"), Is.Empty);
+                Assert.That(this.selectionService.SelectedElement, Is.TypeOf<Namespace>());
+                Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
             }
         }
 
@@ -203,8 +257,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         public void VerifySemanticStructureAndRootAttributes()
         {
             var element = CreateElement("element", "Element", "short", "Name", "Package::Element");
+            this.selectionService.SelectedElement = element;
             var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.Element, element)
                 .Add(panel => panel.Class, "custom-details")
                 .AddUnmatched("data-testid", "details-panel"));
             var section = component.Find("section");

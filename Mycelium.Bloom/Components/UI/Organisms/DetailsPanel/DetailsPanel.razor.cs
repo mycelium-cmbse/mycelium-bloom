@@ -9,9 +9,8 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
-    using Microsoft.AspNetCore.Components;
-
     using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Core.Selection;
 
     using static Mycelium.Bloom.Components.Common.DisplayStringFormatter;
 
@@ -20,18 +19,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
     /// <summary>
     /// Displays the identifying properties of a selected SysML element.
     /// </summary>
-    public sealed partial class DetailsPanel : BloomComponentBase
+    public sealed partial class DetailsPanel : BloomReactiveInjectableComponentBase<IElementSelectionService>
     {
         /// <summary>
         /// The stable identifier of the panel heading.
         /// </summary>
-        private readonly string headingId = CreateGeneratedId("mb-details-panel-title");
+        private readonly string headingId = $"mb-details-panel-title-{Guid.NewGuid():N}";
 
         /// <summary>
-        /// Gets or sets the SysML element to display.
+        /// Gets the currently selected SysML element.
         /// </summary>
-        [Parameter]
-        public IElement Element { get; set; }
+        private IElement SelectedElement => this.ViewModel!.SelectedElement;
 
         /// <summary>
         /// Gets the final CSS class list applied to the details panel.

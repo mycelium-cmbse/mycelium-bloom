@@ -7,7 +7,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomComponentBase
+@inherits BloomReactiveInjectableComponentBase<IElementSelectionService>
 
 <section class="@(this.GetCssClass())"
          aria-labelledby="@(this.headingId)"
@@ -17,15 +17,15 @@
             Details
         </h2>
 
-        @if (this.Element is not null)
+        @if (this.SelectedElement is not null)
         {
             <p class="mb-details-panel__element-name">
-                @(GetDisplayName(this.Element))
+                @(GetDisplayName(this.SelectedElement))
             </p>
         }
     </header>
 
-    @if (this.Element is null)
+    @if (this.SelectedElement is null)
     {
         <p class="mb-details-panel__empty">
             Select an element to display its details.
@@ -36,22 +36,22 @@
         <dl class="mb-details-panel__properties">
             <div class="mb-details-panel__property">
                 <dt class="mb-details-panel__label">ID</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.ElementId))</dd>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.ElementId))</dd>
             </div>
 
             <div class="mb-details-panel__property">
                 <dt class="mb-details-panel__label">Declared name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.DeclaredName))</dd>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.DeclaredName))</dd>
             </div>
 
             <div class="mb-details-panel__property">
                 <dt class="mb-details-panel__label">Declared short name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.DeclaredShortName))</dd>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.DeclaredShortName))</dd>
             </div>
 
             <div class="mb-details-panel__property">
                 <dt class="mb-details-panel__label">Qualified name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.Element.qualifiedName))</dd>
+                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.qualifiedName))</dd>
             </div>
         </dl>
     }
