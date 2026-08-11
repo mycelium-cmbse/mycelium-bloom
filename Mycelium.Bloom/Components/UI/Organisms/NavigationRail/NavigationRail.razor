@@ -1,0 +1,68 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="NavigationRail.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Icons.Lucide.Components
+
+@inherits BloomComponentBase
+
+<nav @attributes="this.AdditionalAttributes"
+     class="@(this.GetCssClass())"
+     aria-label="@(this.AriaLabel)"
+     data-collapsed="@(this.Collapsed ? "true" : "false")">
+    <ul id="@(this.itemsId)" class="mb-navigation-rail__items">
+        @foreach (var item in this.Items)
+        {
+            @if (item.StartsNewSection)
+            {
+                <li class="mb-navigation-rail__divider"
+                    aria-hidden="true"></li>
+            }
+
+            <li class="mb-navigation-rail__item">
+                <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                          Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                          Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                          Class="@(this.GetItemCssClass(item))"
+                          AriaLabel="@(item.Label)"
+                          title="@(this.GetItemTitle(item))"
+                          aria-current="@(this.GetAriaCurrent(item))"
+                          OnClick="() => this.SelectItemAsync(item)">
+                    <LucideIcon Name="@(item.IconName)"
+                                Size="16"
+                                StrokeWidth="1.75"
+                                Class="mb-navigation-rail__icon"
+                                role="presentation"
+                                aria-hidden="true"
+                                focusable="false" />
+                    <span class="mb-navigation-rail__label">@(item.Label)</span>
+                </BbButton>
+            </li>
+        }
+    </ul>
+
+    @if (this.ShouldRenderCollapseToggle())
+    {
+        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                  Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                  Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                  Class="mb-navigation-rail__collapse-toggle"
+                  AriaLabel="@(this.GetToggleAriaLabel())"
+                  title="@(this.GetToggleAriaLabel())"
+                  aria-expanded="@(this.Collapsed ? "false" : "true")"
+                  aria-controls="@(this.itemsId)"
+                  OnClick="this.ToggleCollapsedAsync">
+            <LucideIcon Name="@(this.Collapsed ? "panel-left-open" : "panel-left-close")"
+                        Size="16"
+                        StrokeWidth="1.75"
+                        role="presentation"
+                        aria-hidden="true"
+                        focusable="false" />
+        </BbButton>
+    }
+</nav>
