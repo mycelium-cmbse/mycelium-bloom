@@ -102,10 +102,25 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         public string StatusBarAriaLabel { get; set; } = "Workspace status";
 
         /// <summary>
+        /// Gets or sets a value indicating whether the shell uses its full-application presentation.
+        /// </summary>
+        /// <remarks>
+        /// The embedded presentation remains the default for compatibility with existing consumers.
+        /// </remarks>
+        [Parameter]
+        public bool FullApplication { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the left panel is visible.
         /// </summary>
         [Parameter]
         public bool LeftPanelVisible { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the left panel uses its collapsed desktop width.
+        /// </summary>
+        [Parameter]
+        public bool LeftPanelCollapsed { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the right panel is visible.
@@ -168,7 +183,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         /// <returns>The workspace-shell CSS class list.</returns>
         private string GetCssClass()
         {
-            return this.BuildRootCssClass("mb-workspace-shell");
+            return this.BuildRootCssClass(
+                "mb-workspace-shell",
+                CssClassBuilder.When(
+                    "mb-workspace-shell--full-application",
+                    this.FullApplication),
+                CssClassBuilder.When(
+                    "mb-workspace-shell--left-panel-collapsed",
+                    this.LeftPanelCollapsed));
         }
 
         /// <summary>

@@ -9,7 +9,10 @@
 
 @inherits BloomComponentBase
 
-<section class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+<section @attributes="this.AdditionalAttributes"
+         class="@(this.GetCssClass())"
+         aria-label="@(this.AriaLabel)"
+         data-navigation-collapsed="@(this.LeftPanelCollapsed ? "true" : "false")">
     @if (this.Header is not null)
     {
         <div class="mb-workspace-shell__header" role="region" aria-label="@(this.HeaderAriaLabel)">
@@ -60,6 +63,7 @@
             <aside id="@(this.leftPanelId)"
                    class="mb-workspace-shell__left-panel"
                    aria-label="@(this.LeftPanelAriaLabel)"
+                   data-collapsed="@(this.LeftPanelCollapsed ? "true" : "false")"
                    data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Left))">
                 @(this.LeftPanel)
             </aside>
