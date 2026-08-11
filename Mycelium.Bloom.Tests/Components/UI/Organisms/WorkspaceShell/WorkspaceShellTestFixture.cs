@@ -9,9 +9,13 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
 {
+    using System;
+    using System.IO;
     using System.Linq;
 
     using Bunit;
+
+    using Mycelium.Bloom.Tests.Common;
 
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
 
@@ -200,6 +204,148 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
         }
 
         /// <summary>
+        /// Verifies collapsed navigation state changes the shell width contract without hiding its content.
+        /// </summary>
+        [Test]
+        public void VerifyLeftPanelCollapseStateAndCustomAttributesApply()
+        {
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.LeftPanel, "<span>Navigation remains</span>")
+                .Add(shell => shell.MainContent, "<span>Canvas</span>")
+                .Add(shell => shell.LeftPanelCollapsed, true)
+                .Add(shell => shell.Class, "custom-shell")
+                .AddUnmatched("data-testid", "workspace-shell"));
+            var root = component.Find("section.mb-workspace-shell");
+            var leftPanel = component.Find("aside.mb-workspace-shell__left-panel");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root.ClassList, Does.Contain("mb-workspace-shell--left-panel-collapsed"));
+                Assert.That(root.ClassList, Does.Contain("custom-shell"));
+                Assert.That(root.GetAttribute("data-testid"), Is.EqualTo("workspace-shell"));
+                Assert.That(root.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
+                Assert.That(leftPanel.GetAttribute("data-collapsed"), Is.EqualTo("true"));
+                Assert.That(leftPanel.TextContent, Does.Contain("Navigation remains"));
+            }
+
+            component.Render(parameters => parameters.Add(shell => shell.LeftPanelCollapsed, false));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("section.mb-workspace-shell").ClassList,
+                    Does.Not.Contain("mb-workspace-shell--left-panel-collapsed"));
+                Assert.That(component.Find("section.mb-workspace-shell")
+                    .GetAttribute("data-navigation-collapsed"), Is.EqualTo("false"));
+                Assert.That(component.Find("aside.mb-workspace-shell__left-panel")
+                    .GetAttribute("data-collapsed"), Is.EqualTo("false"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies controlled collapse state overrides a conflicting unmatched semantic attribute.
+        /// </summary>
+        [Test]
+        public void VerifyControlledCollapseStateOverridesConflictingUnmatchedAttribute()
+        {
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.MainContent, "<span>Canvas</span>")
+                .Add(shell => shell.LeftPanelCollapsed, true)
+                .AddUnmatched("data-navigation-collapsed", "false"));
+
+            Assert.That(component.Find("section.mb-workspace-shell")
+                .GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
+        }
+
+        /// <summary>
+        /// Verifies the full-application presentation remains explicit and preserves every optional shell region.
+        /// </summary>
+        [Test]
+        public void VerifyFullApplicationPresentationStateApplies()
+        {
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.Header, "<span>Header</span>")
+                .Add(shell => shell.LeftPanel, "<span>Navigation</span>")
+                .Add(shell => shell.MainContent, "<span>Editor</span>")
+                .Add(shell => shell.RightPanel, "<span>Auxiliary</span>")
+                .Add(shell => shell.StatusBar, "<span>Status</span>")
+                .Add(shell => shell.FullApplication, true)
+                .Add(shell => shell.LeftPanelCollapsed, true)
+                .Add(shell => shell.Class, "application-shell")
+                .AddUnmatched("data-testid", "application-workspace"));
+            var root = component.Find("section.mb-workspace-shell");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root.ClassList, Does.Contain("mb-workspace-shell--full-application"));
+                Assert.That(root.ClassList, Does.Contain("mb-workspace-shell--left-panel-collapsed"));
+                Assert.That(root.ClassList, Does.Contain("application-shell"));
+                Assert.That(root.GetAttribute("data-testid"), Is.EqualTo("application-workspace"));
+                Assert.That(root.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
+                Assert.That(component.FindAll(".mb-workspace-shell__header"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-workspace-shell__main"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-workspace-shell__status"), Has.Count.EqualTo(1));
+            }
+
+            component.Render(parameters => parameters
+                .Add(shell => shell.FullApplication, false)
+                .Add(shell => shell.LeftPanelCollapsed, false));
+            root = component.Find("section.mb-workspace-shell");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root.ClassList, Does.Not.Contain("mb-workspace-shell--full-application"));
+                Assert.That(root.ClassList, Does.Not.Contain("mb-workspace-shell--left-panel-collapsed"));
+                Assert.That(root.GetAttribute("data-navigation-collapsed"), Is.EqualTo("false"));
+                Assert.That(component.FindAll(".mb-workspace-shell__left-panel"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies embedded and full-application styles retain their distinct size and overflow contracts.
+        /// </summary>
+        [Test]
+        public void VerifyPresentationStyleContracts()
+        {
+            var style = File.ReadAllText(Path.Combine(
+                TestRepository.GetRootPath(),
+                "Mycelium.Bloom",
+                "Components",
+                "UI",
+                "Organisms",
+                "WorkspaceShell",
+                "WorkspaceShell.razor.css"));
+            var embeddedRule = GetStyleRule(style, ".mb-workspace-shell");
+            var fullApplicationRule = GetStyleRule(style, ".mb-workspace-shell--full-application");
+            var collapsedRule = GetStyleRule(
+                style,
+                ".mb-workspace-shell--left-panel-collapsed .mb-workspace-shell__body");
+            var fullApplicationRegionsRule = GetStyleRule(
+                style,
+                ".mb-workspace-shell--full-application .mb-workspace-shell__header,");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(embeddedRule, Does.Contain("--mb-workspace-left-panel-collapsed-width: 3.5rem;"));
+                Assert.That(embeddedRule, Does.Contain("min-width: 0;"));
+                Assert.That(embeddedRule, Does.Contain("min-height: 0;"));
+                Assert.That(embeddedRule, Does.Contain("overflow: hidden;"));
+                Assert.That(embeddedRule, Does.Contain("border: 1px solid var(--mb-color-border-subtle);"));
+                Assert.That(fullApplicationRule, Does.Contain("--mb-workspace-left-panel-collapsed-width: 52px;"));
+                Assert.That(fullApplicationRule, Does.Contain("margin: 0;"));
+                Assert.That(fullApplicationRule, Does.Contain("padding: 0;"));
+                Assert.That(fullApplicationRule, Does.Contain("border: 0;"));
+                Assert.That(fullApplicationRule, Does.Contain("border-radius: 0;"));
+                Assert.That(collapsedRule,
+                    Does.Contain("--mb-workspace-left-panel-width: var(--mb-workspace-left-panel-collapsed-width);"));
+                Assert.That(fullApplicationRegionsRule, Does.Contain("overflow: hidden;"));
+                Assert.That(style, Does.Contain("@media (prefers-reduced-motion: reduce)"));
+            }
+        }
+
+        /// <summary>
         /// Verifies absent optional fragments leave no empty regions or grid items.
         /// </summary>
         [Test]
@@ -240,6 +386,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 Assert.That(hiddenPanels.Find(".mb-workspace-shell__main").TextContent, Does.Contain("First"));
                 Assert.That(visiblePanels.Find(".mb-workspace-shell__main").TextContent, Does.Contain("Second"));
             }
+        }
+
+        /// <summary>
+        /// Extracts a CSS declaration block for contract-level style assertions.
+        /// </summary>
+        /// <param name="style">The complete scoped stylesheet.</param>
+        /// <param name="selector">The selector whose first declaration block should be returned.</param>
+        /// <returns>The declaration block without its braces.</returns>
+        private static string GetStyleRule(string style, string selector)
+        {
+            var selectorIndex = style.IndexOf(selector, StringComparison.Ordinal);
+            Assert.That(selectorIndex, Is.GreaterThanOrEqualTo(0), $"Could not find CSS selector '{selector}'.");
+
+            var openingBraceIndex = style.IndexOf('{', selectorIndex);
+            Assert.That(openingBraceIndex, Is.GreaterThan(selectorIndex));
+
+            var closingBraceIndex = style.IndexOf('}', openingBraceIndex);
+            Assert.That(closingBraceIndex, Is.GreaterThan(openingBraceIndex));
+
+            return style.Substring(openingBraceIndex + 1, closingBraceIndex - openingBraceIndex - 1);
         }
     }
 }
