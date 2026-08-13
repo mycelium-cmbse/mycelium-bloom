@@ -889,6 +889,16 @@
     min-width: 0;
 }
 
+.mb-design-system__navigation-rail-stage {
+    height: 32rem;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--mb-color-border-subtle);
+    border-radius: var(--mb-radius-md);
+    background: var(--mb-color-canvas-background);
+}
+
 .mb-design-system__brand-mark {
     display: inline-flex;
     align-items: center;

@@ -229,9 +229,43 @@
     display: none;
 }
 
+@supports (interpolate-size: allow-keywords) {
+    .mb-navigation-rail {
+        interpolate-size: allow-keywords;
+    }
+
+    .mb-navigation-rail ::deep .mb-navigation-rail__link {
+        transition:
+            background-color var(--mb-transition-fast),
+            color var(--mb-transition-fast),
+            outline-color var(--mb-transition-fast),
+            gap var(--mb-transition-fast);
+    }
+
+    .mb-navigation-rail__label {
+        display: block;
+        width: max-content;
+        opacity: 1;
+        transition:
+            width var(--mb-transition-fast),
+            opacity var(--mb-transition-fast);
+    }
+
+    .mb-navigation-rail--collapsed ::deep .mb-navigation-rail__link {
+        gap: 0;
+    }
+
+    .mb-navigation-rail--collapsed .mb-navigation-rail__label {
+        display: block;
+        width: 0;
+        opacity: 0;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mb-navigation-rail ::deep .mb-navigation-rail__link,
-    .mb-navigation-rail ::deep .mb-navigation-rail__link::before {
+    .mb-navigation-rail ::deep .mb-navigation-rail__link::before,
+    .mb-navigation-rail__label {
         transition: none;
     }
 }

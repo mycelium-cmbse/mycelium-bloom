@@ -10,6 +10,7 @@
 @page "/design-system"
 
 @using BlazorBlueprint.Icons.Lucide.Components
+@using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
 <PageTitle>Bloom Design System</PageTitle>
 
@@ -1174,6 +1175,25 @@
         </div>
 
         <div class="mb-design-system__grid">
+            <article id="navigation-rail-preview"
+                     class="mb-design-system__example mb-design-system__example--wide"
+                     data-component="navigation-rail">
+                <header class="mb-design-system__example-heading">
+                    <h3>NavigationRail</h3>
+                    <p>Representative preview destinations with controlled selection and Expanded, Collapsed, and Expand on hover presentation modes.</p>
+                </header>
+
+                <div class="mb-design-system__navigation-rail-stage">
+                    <NavigationRail ViewModel="this.NavigationRailPreviewViewModel"
+                                    AriaLabel="Navigation rail preview" />
+                </div>
+
+                <p id="navigation-rail-preview-result" class="mb-design-system__result">
+                    Selected: @this.NavigationRailPreviewViewModel.SelectedItemId.
+                    Presentation: @this.NavigationRailPreviewViewModel.PresentationMode.
+                </p>
+            </article>
+
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="app-header">
                 <header class="mb-design-system__example-heading">
                     <h3>AppHeader</h3>

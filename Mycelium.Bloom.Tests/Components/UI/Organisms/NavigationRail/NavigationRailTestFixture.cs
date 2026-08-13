@@ -605,6 +605,31 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     style,
                     Does.Match(
                         @"(?s)\.mb-navigation-rail--collapsed\s+\.mb-navigation-rail__label\s*\{[^}]*display:\s*none;"));
+                Assert.That(style, Does.Contain("@supports (interpolate-size: allow-keywords)"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail\s*\{[^}]*interpolate-size:\s*allow-keywords;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__link\s*\{[^}]*gap\s+var\(--mb-transition-fast\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__label\s*\{[^}]*display:\s*block;[^}]*width:\s*max-content;[^}]*opacity:\s*1;[^}]*width\s+var\(--mb-transition-fast\),[^}]*opacity\s+var\(--mb-transition-fast\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail--collapsed\s+::deep\s+\.mb-navigation-rail__link\s*\{[^}]*gap:\s*0;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail--collapsed\s+\.mb-navigation-rail__label\s*\{[^}]*display:\s*block;[^}]*width:\s*0;[^}]*opacity:\s*0;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)@media\s*\(prefers-reduced-motion:\s*reduce\).*?\.mb-navigation-rail__label\s*\{[^}]*transition:\s*none;"));
                 Assert.That(style, Does.Not.Contain("width: 52px;"));
             }
         }
