@@ -21,9 +21,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
     public sealed partial class NavigationRail : BloomComponentBase
     {
         /// <summary>
+        /// Gets the available sidebar-control modes in display order.
+        /// </summary>
+        private static readonly SidebarControlMode[] SidebarControlModes =
+        [
+            SidebarControlMode.Expanded,
+            SidebarControlMode.Collapsed,
+            SidebarControlMode.ExpandOnHover
+        ];
+
+        /// <summary>
         /// The stable identifier of the destination list.
         /// </summary>
         private readonly string itemsId = CreateGeneratedId("mb-navigation-rail-items");
+
+        /// <summary>
+        /// Tracks whether the current expansion request originated from hovering a collapsed rail.
+        /// </summary>
+        private bool hoverExpansionActive;
 
         /// <summary>
         /// Gets or sets the available navigation destinations.
@@ -54,6 +69,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// </summary>
         [Parameter]
         public EventCallback<bool> CollapsedChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether hovering a collapsed rail temporarily requests expansion.
+        /// </summary>
+        /// <remarks>
+        /// The caller remains responsible for applying <see cref="CollapsedChanged" /> requests to the rail and its containing layout.
+        /// </remarks>
+        [Parameter]
+        public bool ExpandOnHover { get; set; }
+
+        /// <summary>
+        /// Gets or sets the callback invoked when a different hover-expansion preference is requested.
+        /// </summary>
+        [Parameter]
+        public EventCallback<bool> ExpandOnHoverChanged { get; set; }
 
         /// <summary>
         /// Gets or sets the accessible label of the navigation region.
@@ -105,12 +135,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         }
 
         /// <summary>
-        /// Gets the accessible label of the collapse toggle.
+        /// Gets the label of a sidebar-control mode.
         /// </summary>
-        /// <returns>The action requested by the toggle.</returns>
-        private string GetToggleAriaLabel()
+        /// <param name="mode">The mode.</param>
+        /// <returns>The user-facing mode label.</returns>
+        private static string GetSidebarControlModeLabel(SidebarControlMode mode)
         {
-            return this.Collapsed ? "Expand workspace navigation" : "Collapse workspace navigation";
+            return mode switch
+            {
+                SidebarControlMode.Expanded => "Expanded",
+                SidebarControlMode.Collapsed => "Collapsed",
+                SidebarControlMode.ExpandOnHover => "Expand on hover",
+                _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
+            };
+        }
+
+        /// <summary>
+        /// Gets the accessible label and pointer hint for the sidebar-control button.
+        /// </summary>
+        /// <returns>The primary toggle action and context-menu hint.</returns>
+        private string GetSidebarControlLabel()
+        {
+            var action = this.Collapsed ? "Expand" : "Collapse";
+
+            return $"{action} workspace navigation; right-click for sidebar controls";
         }
 
         /// <summary>
@@ -124,12 +172,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         }
 
         /// <summary>
-        /// Determines whether the caller supplied a controlled collapse callback.
+        /// Gets the CSS class list for a sidebar-control option.
         /// </summary>
-        /// <returns>True when the collapse control can request a state change.</returns>
-        private bool ShouldRenderCollapseToggle()
+        /// <param name="mode">The mode.</param>
+        /// <returns>The option CSS class list.</returns>
+        private string GetSidebarControlItemCssClass(SidebarControlMode mode)
         {
-            return this.CollapsedChanged.HasDelegate;
+            return CssClassBuilder.Build(
+                "mb-navigation-rail__control-option",
+                CssClassBuilder.When(
+                    "mb-navigation-rail__control-option--selected",
+                    this.IsSidebarControlModeSelected(mode)));
         }
 
         /// <summary>
@@ -143,12 +196,156 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         }
 
         /// <summary>
-        /// Requests the opposite collapsed state without mutating controlled state.
+        /// Determines whether the caller supplied the callback required by a sidebar-control mode.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <returns>True when the mode can be requested.</returns>
+        private bool CanRequestSidebarControlMode(SidebarControlMode mode)
+        {
+            if (!this.CollapsedChanged.HasDelegate)
+            {
+                return false;
+            }
+
+            return mode == SidebarControlMode.ExpandOnHover
+                ? this.ExpandOnHover || this.ExpandOnHoverChanged.HasDelegate
+                : !this.ExpandOnHover || this.ExpandOnHoverChanged.HasDelegate;
+        }
+
+        /// <summary>
+        /// Determines whether a sidebar-control mode represents the caller-owned state.
+        /// </summary>
+        /// <param name="mode">The mode.</param>
+        /// <returns>True when the mode is selected.</returns>
+        private bool IsSidebarControlModeSelected(SidebarControlMode mode)
+        {
+            return mode == this.GetSidebarControlMode();
+        }
+
+        /// <summary>
+        /// Gets the sidebar-control mode represented by the caller-owned parameters.
+        /// </summary>
+        /// <returns>The current mode.</returns>
+        private SidebarControlMode GetSidebarControlMode()
+        {
+            if (this.ExpandOnHover)
+            {
+                return SidebarControlMode.ExpandOnHover;
+            }
+
+            return this.Collapsed
+                ? SidebarControlMode.Collapsed
+                : SidebarControlMode.Expanded;
+        }
+
+        /// <summary>
+        /// Determines whether the caller supplied a controlled collapse callback.
+        /// </summary>
+        /// <returns>True when the sidebar control can request a state change.</returns>
+        private bool ShouldRenderSidebarControl()
+        {
+            return this.CollapsedChanged.HasDelegate;
+        }
+
+        /// <summary>
+        /// Requests the opposite fixed collapse state without opening the options menu.
+        /// </summary>
+        /// <returns>A task representing the controlled callbacks.</returns>
+        private async Task ToggleCollapsedAsync()
+        {
+            var collapsed = !this.Collapsed;
+
+            this.hoverExpansionActive = false;
+
+            if (this.ExpandOnHover && this.ExpandOnHoverChanged.HasDelegate)
+            {
+                await this.ExpandOnHoverChanged.InvokeAsync(false);
+            }
+
+            await this.CollapsedChanged.InvokeAsync(collapsed);
+        }
+
+        /// <summary>
+        /// Requests a sidebar-control mode without mutating controlled state.
+        /// </summary>
+        /// <param name="mode">The requested mode.</param>
+        /// <returns>A task representing the callbacks.</returns>
+        private async Task RequestSidebarControlModeAsync(SidebarControlMode mode)
+        {
+            if (!this.CanRequestSidebarControlMode(mode))
+            {
+                return;
+            }
+
+            this.hoverExpansionActive = false;
+
+            var expandOnHover = mode == SidebarControlMode.ExpandOnHover;
+            var collapsed = mode != SidebarControlMode.Expanded;
+
+            if (this.ExpandOnHover != expandOnHover)
+            {
+                await this.ExpandOnHoverChanged.InvokeAsync(expandOnHover);
+            }
+
+            if (this.Collapsed != collapsed)
+            {
+                await this.CollapsedChanged.InvokeAsync(collapsed);
+            }
+        }
+
+        /// <summary>
+        /// Requests temporary expansion when the pointer enters an opted-in collapsed rail.
         /// </summary>
         /// <returns>A task representing the callback.</returns>
-        private Task ToggleCollapsedAsync()
+        private Task HandleMouseEnterAsync()
         {
-            return this.CollapsedChanged.InvokeAsync(!this.Collapsed);
+            if (!this.ExpandOnHover || this.hoverExpansionActive || !this.Collapsed || !this.CollapsedChanged.HasDelegate)
+            {
+                return Task.CompletedTask;
+            }
+
+            this.hoverExpansionActive = true;
+
+            return this.CollapsedChanged.InvokeAsync(false);
+        }
+
+        /// <summary>
+        /// Restores the collapsed state when a temporary hover expansion ends.
+        /// </summary>
+        /// <returns>A task representing the callback.</returns>
+        private Task HandleMouseLeaveAsync()
+        {
+            if (!this.hoverExpansionActive)
+            {
+                return Task.CompletedTask;
+            }
+
+            this.hoverExpansionActive = false;
+
+            return this.ExpandOnHover && this.CollapsedChanged.HasDelegate
+                ? this.CollapsedChanged.InvokeAsync(true)
+                : Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Identifies the mutually exclusive sidebar presentation preferences.
+        /// </summary>
+        private enum SidebarControlMode
+        {
+            /// <summary>
+            /// The rail remains expanded.
+            /// </summary>
+            Expanded,
+
+            /// <summary>
+            /// The rail remains collapsed.
+            /// </summary>
+            Collapsed,
+
+            /// <summary>
+            /// The rail rests collapsed and expands temporarily on hover.
+            /// </summary>
+            ExpandOnHover
         }
     }
 }

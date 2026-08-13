@@ -10,7 +10,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
+    width: fit-content;
+    max-width: 100%;
     height: 100%;
     min-width: 0;
     min-height: 0;
@@ -22,13 +23,14 @@
 }
 
 .mb-navigation-rail__items {
+    align-self: flex-start;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     align-items: center;
     gap: var(--mb-spacing-1);
     width: 100%;
-    min-width: 0;
+    min-width: var(--mb-navigation-rail-target-size);
     min-height: 0;
     margin: 0;
     padding: 0;
@@ -51,16 +53,21 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--mb-spacing-2);
+    gap: var(--mb-spacing-3);
     width: 100%;
-    min-width: 0;
+    min-width: var(--mb-navigation-rail-target-size);
     height: var(--mb-navigation-rail-target-size);
-    padding: 0 var(--mb-spacing-2);
+    padding-block: 0;
+    padding-inline-start: calc(
+        (var(--mb-navigation-rail-target-size) - var(--mb-navigation-rail-icon-size)) / 2
+    );
+    padding-inline-end: var(--mb-spacing-2);
     overflow: hidden;
     border-radius: var(--mb-radius-md);
     background: transparent;
     color: var(--mb-color-text-muted);
     transition:
+        background-color var(--mb-transition-fast),
         color var(--mb-transition-fast),
         outline-color var(--mb-transition-fast);
 }
@@ -68,19 +75,21 @@
 .mb-navigation-rail ::deep .mb-navigation-rail__link::before {
     position: absolute;
     z-index: 0;
+    top: 50%;
+    inset-inline-start: calc(
+        (var(--mb-navigation-rail-target-size) - var(--mb-navigation-rail-active-size)) / 2
+    );
     width: var(--mb-navigation-rail-active-size);
     height: var(--mb-navigation-rail-active-size);
     border-radius: var(--mb-radius-control);
     background: transparent;
     content: "";
+    transform: translateY(-50%);
     transition: background-color var(--mb-transition-fast);
 }
 
-.mb-navigation-rail ::deep .mb-navigation-rail__link:hover::before {
-    background: var(--mb-color-surface-hover);
-}
-
 .mb-navigation-rail ::deep .mb-navigation-rail__link:hover {
+    background: var(--mb-color-surface-hover);
     color: var(--mb-color-text-primary);
 }
 
@@ -95,8 +104,21 @@
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link:focus-visible {
+    background: var(--mb-color-surface-hover);
+    color: var(--mb-color-text-primary);
     outline: 2px solid var(--mb-color-focus-ring);
     outline-offset: -2px;
+    box-shadow: none;
+}
+
+.mb-navigation-rail ::deep .mb-navigation-rail__link--active:focus-visible {
+    color: var(--mb-color-action-primary);
+}
+
+.mb-navigation-rail:not(.mb-navigation-rail--collapsed) ::deep .mb-navigation-rail__link--active,
+.mb-navigation-rail:not(.mb-navigation-rail--collapsed) ::deep .mb-navigation-rail__link--active:hover,
+.mb-navigation-rail:not(.mb-navigation-rail--collapsed) ::deep .mb-navigation-rail__link--active:focus-visible {
+    background: var(--mb-color-action-primary-soft);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__icon {
@@ -121,56 +143,90 @@
 
 .mb-navigation-rail__divider {
     position: relative;
+    align-self: stretch;
     flex: none;
-    width: var(--mb-navigation-rail-target-size);
+    width: 100%;
     height: var(--mb-navigation-rail-divider-height);
 }
 
 .mb-navigation-rail__divider::before {
     position: absolute;
     top: 50%;
-    left: 50%;
-    width: var(--mb-navigation-rail-divider-width);
+    inset-inline-start: var(--mb-spacing-2);
+    width: max(
+        var(--mb-navigation-rail-divider-width),
+        calc(100% - (2 * var(--mb-spacing-2)))
+    );
     height: 1px;
     background: var(--mb-color-border-subtle);
     content: "";
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
+}
+
+.mb-navigation-rail__sidebar-control {
+    align-self: flex-start;
+    display: flex;
+    flex: none;
+    justify-content: center;
+    width: var(--mb-navigation-rail-target-size);
+    margin-top: var(--mb-spacing-1);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__collapse-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: none;
     width: var(--mb-navigation-rail-collapse-size);
     height: var(--mb-navigation-rail-collapse-size);
-    margin-top: var(--mb-spacing-1);
+    margin: 0;
     padding: 0;
     border-radius: var(--mb-radius-control);
     color: var(--mb-color-action-primary);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__collapse-toggle:hover {
-    background: var(--mb-color-surface-hover);
+    background: transparent;
     color: var(--mb-color-action-primary-hover);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__collapse-toggle:focus-visible {
+    background: transparent;
     outline: 2px solid var(--mb-color-focus-ring);
     outline-offset: 1px;
+    box-shadow: none;
 }
 
-.mb-navigation-rail--collapsed .mb-navigation-rail__items,
-.mb-navigation-rail--collapsed .mb-navigation-rail__item {
-    width: var(--mb-navigation-rail-target-size);
+.mb-navigation-rail__control-menu-content {
+    min-width: 13rem;
 }
 
-.mb-navigation-rail--collapsed ::deep .mb-navigation-rail__link {
-    justify-content: center;
-    width: var(--mb-navigation-rail-target-size);
-    min-width: var(--mb-navigation-rail-target-size);
-    padding: 0;
+.mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option:not([aria-disabled="true"]) {
+    cursor: pointer;
+}
+
+.mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option:not([aria-disabled="true"]):hover {
+    background: var(--mb-color-surface-hover);
+    color: var(--mb-color-text-primary);
+}
+
+.mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option:focus {
+    background: transparent;
+    color: var(--mb-color-text-primary);
+    outline: 2px solid var(--mb-color-focus-ring);
+    outline-offset: -2px;
+}
+
+.mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected,
+.mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected:hover,
+.mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected:focus {
+    background: var(--mb-color-action-primary-soft);
+    color: var(--mb-color-action-primary);
+    font-weight: var(--mb-font-weight-label-xs);
 }
 
 .mb-navigation-rail--collapsed .mb-navigation-rail__label {
-    display: none;
+    visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

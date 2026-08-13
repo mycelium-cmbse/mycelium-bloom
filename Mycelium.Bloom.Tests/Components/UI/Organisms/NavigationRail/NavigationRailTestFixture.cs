@@ -14,7 +14,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
     using System.Linq;
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Icons.Lucide.Components;
+
     using Bunit;
+
+    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
@@ -49,6 +54,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         ];
 
         private static readonly string[] ExpectedLabels = ["Overview", "Traceability", "Compare", "Review"];
+
+        private static readonly bool[] ExpectedHoverExpansionRequest = [false];
+
+        private static readonly bool[] ExpectedHoverRoundTripRequests = [false, true];
+
+        private static readonly bool[] ExpectedSidebarControlHoverRequests = [true, false];
+
+        private static readonly bool[] ExpectedSidebarControlCollapseRequests = [true, false, true];
+
+        private static readonly bool[] ExpectedInitialSidebarControlRequests = [true];
+
+        private static readonly bool[] ExpectedSidebarToggleRequests = [true, false];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="NavigationRailTestFixture" /> class.
@@ -159,52 +176,271 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             }
         }
 
-        /// <summary>
-        /// Verifies collapse requests and icon-first accessibility remain controlled by the caller.
-        /// </summary>
         [Test]
-        public async Task VerifyCollapseCallbackReportsRequestedState()
+        public async Task VerifySidebarControlMenuExposesAccessiblePresentationChoices()
         {
-            bool? requestedCollapsedState = null;
+            var collapseRequests = new List<bool>();
             var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.Items, Items)
-                .Add(rail => rail.CollapsedChanged, collapsed => requestedCollapsedState = collapsed));
-            var itemsId = component.Find(".mb-navigation-rail__items").Id;
-            var collapseToggle = component.Find("button[aria-label='Collapse workspace navigation']");
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add)
+                .Add(rail => rail.ExpandOnHoverChanged, _ => { }));
+            var trigger = component.Find(".mb-navigation-rail__collapse-toggle");
 
-            await collapseToggle.ClickAsync();
+            await OpenSidebarControlMenuAsync(component);
+
+            var menu = component.WaitForElement("[role='menu']");
+            var options = component.WaitForElements("[role='menuitem']", 3);
+            var selectedOption = options.Single(option => option.TextContent.Contains("Expand on hover"));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(requestedCollapsedState, Is.True);
+                Assert.That(trigger.GetAttribute("aria-label"),
+                    Is.EqualTo("Expand workspace navigation; right-click for sidebar controls"));
+                Assert.That(trigger.GetAttribute("aria-keyshortcuts"), Is.EqualTo("Shift+F10"));
+                Assert.That(menu.TextContent, Does.Contain("Sidebar control"));
+                Assert.That(options.Any(option => option.TextContent.Contains("Expanded")), Is.True);
+                Assert.That(options.Any(option => option.TextContent.Contains("Collapsed")), Is.True);
+                Assert.That(options.Any(option => option.TextContent.Contains("Expand on hover")), Is.True);
+                Assert.That(component.FindAll("[role='separator']"), Has.Count.EqualTo(2));
+                Assert.That(selectedOption.ClassList,
+                    Does.Contain("mb-navigation-rail__control-option--selected"));
+                Assert.That(options.Count(option => option.ClassList
+                    .Contains("mb-navigation-rail__control-option--selected")), Is.EqualTo(1));
+                Assert.That(selectedOption.TextContent, Does.Contain("Current selection"));
+                Assert.That(selectedOption.QuerySelector("[aria-hidden='true']")?.TextContent, Does.Contain("•"));
+                Assert.That(component.FindComponents<BbContextMenu>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindComponents<BbContextMenuContent>(), Has.Count.EqualTo(1));
+                Assert.That(collapseRequests, Is.Empty);
+            }
+        }
+
+        private static Task OpenSidebarControlMenuAsync(
+            IRenderedComponent<NavigationRailComponent> component)
+        {
+            return component.Find(".mb-navigation-rail__context-trigger")
+                .TriggerEventAsync("oncontextmenu", new MouseEventArgs { Button = 2 });
+        }
+
+        [Test]
+        public async Task VerifySidebarControlPrimaryClickTogglesWithoutOpeningMenu()
+        {
+            var collapseRequests = new List<bool>();
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add));
+            var sidebarControlIcon = component.FindComponent<BbContextMenuTrigger>()
+                .FindComponent<LucideIcon>();
+
+            Assert.That(sidebarControlIcon.Instance.Name, Is.EqualTo("panel-left-close"));
+
+            await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(collapseRequests, Is.EqualTo(ExpectedInitialSidebarControlRequests));
+                Assert.That(component.FindAll("[role='menu']"), Is.Empty);
                 Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
-                Assert.That(collapseToggle.GetAttribute("aria-expanded"), Is.EqualTo("true"));
-                Assert.That(collapseToggle.GetAttribute("aria-controls"), Is.EqualTo(itemsId));
             }
 
             component.Render(parameters => parameters
                 .Add(rail => rail.Items, Items)
                 .Add(rail => rail.Collapsed, true)
-                .Add(rail => rail.CollapsedChanged, collapsed => requestedCollapsedState = collapsed));
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add));
 
-            var collapsedRoot = component.Find("nav");
-            var expandToggle = component.Find("button[aria-label='Expand workspace navigation']");
+            sidebarControlIcon = component.FindComponent<BbContextMenuTrigger>()
+                .FindComponent<LucideIcon>();
+
+            Assert.That(sidebarControlIcon.Instance.Name, Is.EqualTo("panel-left-open"));
+
+            await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(collapseRequests, Is.EqualTo(ExpectedSidebarToggleRequests));
+                Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+            }
+        }
+
+        [Test]
+        public async Task VerifySidebarControlPrimaryClickPinsHoverPresentation()
+        {
+            var hoverRequests = new List<bool>();
+            var collapseRequests = new List<bool>();
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add)
+                .Add(rail => rail.ExpandOnHoverChanged, hoverRequests.Add));
+
+            await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(hoverRequests, Is.EqualTo(ExpectedHoverExpansionRequest));
+                Assert.That(collapseRequests, Is.EqualTo(ExpectedInitialSidebarControlRequests));
+                Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+            }
+        }
+
+        [Test]
+        public async Task VerifySidebarControlMenuRequestsControlledModes()
+        {
+            var hoverRequests = new List<bool>();
+            var collapseRequests = new List<bool>();
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add)
+                .Add(rail => rail.ExpandOnHoverChanged, hoverRequests.Add));
+
+            await OpenSidebarControlMenuAsync(component);
+            await component.WaitForElements("[role='menuitem']", 3)
+                .Single(option => option.TextContent.Contains("Expand on hover"))
+                .ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(hoverRequests, Is.EqualTo(ExpectedInitialSidebarControlRequests));
+                Assert.That(collapseRequests, Is.EqualTo(ExpectedInitialSidebarControlRequests));
+                Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+            }
+
+            component.Render(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add)
+                .Add(rail => rail.ExpandOnHoverChanged, hoverRequests.Add));
+
+            await OpenSidebarControlMenuAsync(component);
+            await component.WaitForElements("[role='menuitem']", 3)
+                .Single(option => option.TextContent.Contains("Expanded"))
+                .ClickAsync();
+
+            component.Render(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, false)
+                .Add(rail => rail.ExpandOnHover, false)
+                .Add(rail => rail.CollapsedChanged, collapseRequests.Add)
+                .Add(rail => rail.ExpandOnHoverChanged, hoverRequests.Add));
+
+            await OpenSidebarControlMenuAsync(component);
+            await component.WaitForElements("[role='menuitem']", 3)
+                .Single(option => option.TextContent.Trim() == "Collapsed")
+                .ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(hoverRequests, Is.EqualTo(ExpectedSidebarControlHoverRequests));
+                Assert.That(collapseRequests, Is.EqualTo(ExpectedSidebarControlCollapseRequests));
+                Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+            }
+        }
+
+        [Test]
+        public void VerifyCollapsedPresentationRetainsIconFirstAccessibility()
+        {
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.CollapsedChanged, _ => { }));
+            var root = component.Find("nav");
             var links = component.FindAll(".mb-navigation-rail__link");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(collapsedRoot.GetAttribute("data-collapsed"), Is.EqualTo("true"));
-                Assert.That(collapsedRoot.ClassList, Does.Contain("mb-navigation-rail--collapsed"));
-                Assert.That(expandToggle.GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(root.GetAttribute("data-collapsed"), Is.EqualTo("true"));
+                Assert.That(root.ClassList, Does.Contain("mb-navigation-rail--collapsed"));
                 Assert.That(links.Select(link => link.GetAttribute("aria-label")), Is.EqualTo(ExpectedLabels));
                 Assert.That(links.Select(link => link.GetAttribute("title")), Is.EqualTo(ExpectedLabels));
                 Assert.That(component.FindAll(".mb-navigation-rail__label"), Has.Count.EqualTo(Items.Count));
                 Assert.That(component.FindAll("[role='tooltip']"), Is.Empty);
             }
+        }
 
-            await expandToggle.ClickAsync();
+        [Test]
+        public async Task VerifyUnavailableHoverPreferenceIsDisabled()
+        {
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.CollapsedChanged, _ => { }));
 
-            Assert.That(requestedCollapsedState, Is.False);
+            await OpenSidebarControlMenuAsync(component);
+
+            var options = component.WaitForElements("[role='menuitem']", 3);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(options.Single(option => option.TextContent.Contains("Expand on hover"))
+                    .GetAttribute("aria-disabled"), Is.EqualTo("true"));
+                Assert.That(options.Single(option => option.TextContent.Trim() == "Collapsed")
+                    .GetAttribute("aria-disabled"), Is.Not.EqualTo("true"));
+            }
+        }
+
+        [Test]
+        public async Task VerifyHoverExpansionIsOptIn()
+        {
+            bool? requestedCollapsedState = null;
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.CollapsedChanged, collapsed => requestedCollapsedState = collapsed));
+
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+            Assert.That(requestedCollapsedState, Is.Null);
+        }
+
+        [Test]
+        public async Task VerifyHoverExpansionRequestsControlledStates()
+        {
+            var requestedCollapsedStates = new List<bool>();
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, requestedCollapsedStates.Add));
+
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(requestedCollapsedStates, Is.EqualTo(ExpectedHoverExpansionRequest));
+                Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
+            }
+
+            component.Render(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, false)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, requestedCollapsedStates.Add));
+
+            Assert.That(component.FindAll(".mb-navigation-rail__collapse-toggle"), Has.Count.EqualTo(1));
+
+            await component.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
+
+            Assert.That(requestedCollapsedStates, Is.EqualTo(ExpectedHoverRoundTripRequests));
+        }
+
+        [Test]
+        public void VerifyHoverExpansionKeepsSidebarControlAvailable()
+        {
+            var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, _ => { }));
+
+            Assert.That(component.FindAll(".mb-navigation-rail__collapse-toggle"), Has.Count.EqualTo(1));
+
+            component.Render(parameters => parameters
+                .Add(rail => rail.Items, Items)
+                .Add(rail => rail.ExpandOnHover, true)
+                .Add(rail => rail.CollapsedChanged, _ => { }));
+
+            Assert.That(component.FindAll(".mb-navigation-rail__collapse-toggle"), Has.Count.EqualTo(1));
         }
 
         /// <summary>
@@ -215,25 +451,34 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         {
             string firstRequest = null;
             string secondRequest = null;
+            bool? firstCollapseRequest = null;
+            bool? secondCollapseRequest = null;
             var first = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.ExpandOnHover, true)
                 .Add(rail => rail.SelectedItemIdChanged, itemId => firstRequest = itemId)
-                .Add(rail => rail.CollapsedChanged, _ => { }));
+                .Add(rail => rail.CollapsedChanged, collapsed => firstCollapseRequest = collapsed));
             var second = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.Items, Items)
+                .Add(rail => rail.Collapsed, true)
+                .Add(rail => rail.ExpandOnHover, true)
                 .Add(rail => rail.SelectedItemIdChanged, itemId => secondRequest = itemId)
-                .Add(rail => rail.CollapsedChanged, _ => { }));
+                .Add(rail => rail.CollapsedChanged, collapsed => secondCollapseRequest = collapsed));
 
+            await first.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
             await first.Find("button[aria-label='Compare']").ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(firstRequest, Is.EqualTo("compare"));
                 Assert.That(secondRequest, Is.Null);
+                Assert.That(firstCollapseRequest, Is.False);
+                Assert.That(secondCollapseRequest, Is.Null);
                 Assert.That(first.Find(".mb-navigation-rail__items").Id,
                     Is.Not.EqualTo(second.Find(".mb-navigation-rail__items").Id));
-                Assert.That(first.Find(".mb-navigation-rail__collapse-toggle").GetAttribute("aria-controls"),
-                    Is.Not.EqualTo(second.Find(".mb-navigation-rail__collapse-toggle").GetAttribute("aria-controls")));
+                Assert.That(first.FindAll(".mb-navigation-rail__collapse-toggle"), Has.Count.EqualTo(1));
+                Assert.That(second.FindAll(".mb-navigation-rail__collapse-toggle"), Has.Count.EqualTo(1));
             }
         }
 
@@ -243,14 +488,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         [Test]
         public void VerifyNavigationRailStyleContracts()
         {
-            var style = File.ReadAllText(Path.Combine(
-                TestRepository.GetRootPath(),
+            var repositoryRoot = TestRepository.GetRootPath();
+            var componentDirectory = Path.Combine(
+                repositoryRoot,
                 "Mycelium.Bloom",
                 "Components",
                 "UI",
                 "Organisms",
-                "NavigationRail",
-                "NavigationRail.razor.css"));
+                "NavigationRail");
+            var style = File.ReadAllText(Path.Combine(componentDirectory, "NavigationRail.razor.css"));
 
             using (Assert.EnterMultipleScope())
             {
@@ -263,11 +509,80 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(style, Does.Contain("border-right: 1px solid var(--mb-color-border-subtle);"));
                 Assert.That(style, Does.Contain("background: var(--mb-color-action-primary-soft);"));
                 Assert.That(style, Does.Contain("overflow-y: auto;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail\s*\{[^}]*width:\s*fit-content;[^}]*max-width:\s*100%;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__items\s*\{[^}]*align-self:\s*flex-start;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__link\s*\{[^}]*gap:\s*var\(--mb-spacing-3\);[^}]*padding-inline-start:\s*calc\(\s*\(var\(--mb-navigation-rail-target-size\)\s*-\s*var\(--mb-navigation-rail-icon-size\)\)\s*/\s*2\s*\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__link:hover\s*\{[^}]*background:\s*var\(--mb-color-surface-hover\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__link:focus-visible\s*\{[^}]*background:\s*var\(--mb-color-surface-hover\);[^}]*box-shadow:\s*none;"));
+                Assert.That(style, Does.Not.Contain(".mb-navigation-rail__link:hover::before"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__link::before\s*\{[^}]*inset-inline-start:\s*calc\(\s*\(var\(--mb-navigation-rail-target-size\)\s*-\s*var\(--mb-navigation-rail-active-size\)\)\s*/\s*2\s*\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--collapsed\).*?\.mb-navigation-rail__link--active:focus-visible\s*\{[^}]*background:\s*var\(--mb-color-action-primary-soft\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__sidebar-control\s*\{[^}]*justify-content:\s*center;[^}]*width:\s*var\(--mb-navigation-rail-target-size\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__collapse-toggle\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*margin:\s*0;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__collapse-toggle:hover\s*\{[^}]*background:\s*transparent;[^}]*color:\s*var\(--mb-color-action-primary-hover\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__collapse-toggle:focus-visible\s*\{[^}]*background:\s*transparent;[^}]*outline:\s*2px\s+solid\s+var\(--mb-color-focus-ring\);[^}]*box-shadow:\s*none;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__control-menu-content\s*\{[^}]*min-width:\s*13rem;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__control-menu-content\s+::deep\s+\.mb-navigation-rail__control-option:not\(\[aria-disabled=""true""\]\)\s*\{[^}]*cursor:\s*pointer;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__control-option:not\(\[aria-disabled=""true""\]\):hover\s*\{[^}]*background:\s*var\(--mb-color-surface-hover\);[^}]*color:\s*var\(--mb-color-text-primary\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__control-option:focus\s*\{[^}]*background:\s*transparent;[^}]*outline:\s*2px\s+solid\s+var\(--mb-color-focus-ring\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__control-option--selected:focus\s*\{[^}]*background:\s*var\(--mb-color-action-primary-soft\);[^}]*color:\s*var\(--mb-color-action-primary\);[^}]*font-weight:\s*var\(--mb-font-weight-label-xs\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__divider::before\s*\{[^}]*inset-inline-start:\s*var\(--mb-spacing-2\);[^}]*width:\s*max\(\s*var\(--mb-navigation-rail-divider-width\),\s*calc\(100%\s*-\s*\(2\s*\*\s*var\(--mb-spacing-2\)\)\)\s*\);"));
                 Assert.That(style, Does.Contain("@media (prefers-reduced-motion: reduce)"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail--collapsed\s+\.mb-navigation-rail__label\s*\{[^}]*display:\s*none;"));
+                        @"(?s)\.mb-navigation-rail--collapsed\s+\.mb-navigation-rail__label\s*\{[^}]*visibility:\s*hidden;"));
                 Assert.That(style, Does.Not.Contain("width: 52px;"));
             }
         }

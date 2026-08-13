@@ -14,7 +14,9 @@
 <nav @attributes="this.AdditionalAttributes"
      class="@(this.GetCssClass())"
      aria-label="@(this.AriaLabel)"
-     data-collapsed="@(this.Collapsed ? "true" : "false")">
+     data-collapsed="@(this.Collapsed ? "true" : "false")"
+     @onmouseenter="this.HandleMouseEnterAsync"
+     @onmouseleave="this.HandleMouseLeaveAsync">
     <ul id="@(this.itemsId)" class="mb-navigation-rail__items">
         @foreach (var item in this.Items)
         {
@@ -46,23 +48,61 @@
         }
     </ul>
 
-    @if (this.ShouldRenderCollapseToggle())
+    @if (this.ShouldRenderSidebarControl())
     {
-        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
-                  Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
-                  Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-                  Class="mb-navigation-rail__collapse-toggle"
-                  AriaLabel="@(this.GetToggleAriaLabel())"
-                  title="@(this.GetToggleAriaLabel())"
-                  aria-expanded="@(this.Collapsed ? "false" : "true")"
-                  aria-controls="@(this.itemsId)"
-                  OnClick="this.ToggleCollapsedAsync">
-            <LucideIcon Name="@(this.Collapsed ? "panel-left-open" : "panel-left-close")"
-                        Size="16"
-                        StrokeWidth="1.75"
-                        role="presentation"
-                        aria-hidden="true"
-                        focusable="false" />
-        </BbButton>
+        <div class="mb-navigation-rail__sidebar-control">
+            <BbContextMenu>
+                <BbContextMenuTrigger Class="mb-navigation-rail__context-trigger">
+                    <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                              Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                              Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                              Class="mb-navigation-rail__collapse-toggle"
+                              AriaLabel="@(this.GetSidebarControlLabel())"
+                              title="@(this.GetSidebarControlLabel())"
+                              aria-keyshortcuts="Shift+F10"
+                              OnClick="this.ToggleCollapsedAsync">
+                        <LucideIcon Name="@(this.Collapsed ? "panel-left-open" : "panel-left-close")"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </BbButton>
+                </BbContextMenuTrigger>
+
+                <BbContextMenuContent Class="mb-navigation-rail__control-menu">
+                    <div class="mb-navigation-rail__control-menu-content">
+                        <BbContextMenuLabel>Sidebar control</BbContextMenuLabel>
+                        <BbContextMenuSeparator />
+
+                        @foreach (var mode in SidebarControlModes)
+                        {
+                            @if (mode == SidebarControlMode.ExpandOnHover)
+                            {
+                                <BbContextMenuSeparator />
+                            }
+
+                            <BbContextMenuItem Class="@(this.GetSidebarControlItemCssClass(mode))"
+                                               Disabled="@(!this.CanRequestSidebarControlMode(mode))"
+                                               OnClick="() => this.RequestSidebarControlModeAsync(mode)">
+                                <Icon>
+                                    <span class="mb-navigation-rail__control-selection" aria-hidden="true">
+                                        @(this.IsSidebarControlModeSelected(mode) ? "\u2022" : string.Empty)
+                                    </span>
+                                </Icon>
+                                <ChildContent>
+                                    <span>@(GetSidebarControlModeLabel(mode))</span>
+
+                                    @if (this.IsSidebarControlModeSelected(mode))
+                                    {
+                                        <span class="sr-only">Current selection</span>
+                                    }
+                                </ChildContent>
+                            </BbContextMenuItem>
+                        }
+                    </div>
+                </BbContextMenuContent>
+            </BbContextMenu>
+        </div>
     }
 </nav>
