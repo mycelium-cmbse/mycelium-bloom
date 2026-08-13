@@ -226,7 +226,7 @@
 }
 
 .mb-navigation-rail--collapsed .mb-navigation-rail__label {
-    visibility: hidden;
+    display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

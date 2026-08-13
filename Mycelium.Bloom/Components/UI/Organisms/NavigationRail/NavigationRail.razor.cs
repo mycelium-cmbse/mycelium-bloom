@@ -9,87 +9,88 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 {
+    using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.NavigationRail;
 
     /// <summary>
-    /// Presents data-driven application destinations in a compact navigation rail.
+    /// Presents data-driven application destinations from reactive navigation state.
     /// </summary>
-    public sealed partial class NavigationRail : BloomComponentBase
+    public sealed partial class NavigationRail : BloomReactiveComponentBase<INavigationRailViewModel>
     {
         /// <summary>
-        /// Gets the available sidebar-control modes in display order.
+        /// Gets the available presentation modes in display order.
         /// </summary>
-        private static readonly SidebarControlMode[] SidebarControlModes =
+        private static readonly NavigationRailPresentationMode[] PresentationModes =
         [
-            SidebarControlMode.Expanded,
-            SidebarControlMode.Collapsed,
-            SidebarControlMode.ExpandOnHover
+            NavigationRailPresentationMode.Expanded,
+            NavigationRailPresentationMode.Collapsed,
+            NavigationRailPresentationMode.ExpandOnHover
         ];
 
         /// <summary>
-        /// The stable identifier of the destination list.
+        /// The read-only destination projection currently observed by this component.
         /// </summary>
-        private readonly string itemsId = CreateGeneratedId("mb-navigation-rail-items");
+        private ReadOnlyObservableCollection<NavigationRailItem> observedNavigationItems;
 
         /// <summary>
-        /// Tracks whether the current expansion request originated from hovering a collapsed rail.
+        /// A value indicating whether component disposal has begun.
         /// </summary>
-        private bool hoverExpansionActive;
+        private bool isDisposed;
 
         /// <summary>
-        /// Gets or sets the available navigation destinations.
+        /// Gets the ViewModel required while rendering an assigned rail.
         /// </summary>
-        [Parameter]
-        public IReadOnlyList<NavigationRailItem> Items { get; set; } = [];
-
-        /// <summary>
-        /// Gets or sets the selected destination identifier.
-        /// </summary>
-        [Parameter]
-        public string SelectedItemId { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the callback invoked when a destination is requested.
-        /// </summary>
-        [Parameter]
-        public EventCallback<string> SelectedItemIdChanged { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the rail uses its icon-first presentation.
-        /// </summary>
-        [Parameter]
-        public bool Collapsed { get; set; }
-
-        /// <summary>
-        /// Gets or sets the callback invoked when the opposite collapsed state is requested.
-        /// </summary>
-        [Parameter]
-        public EventCallback<bool> CollapsedChanged { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether hovering a collapsed rail temporarily requests expansion.
-        /// </summary>
-        /// <remarks>
-        /// The caller remains responsible for applying <see cref="CollapsedChanged" /> requests to the rail and its containing layout.
-        /// </remarks>
-        [Parameter]
-        public bool ExpandOnHover { get; set; }
-
-        /// <summary>
-        /// Gets or sets the callback invoked when a different hover-expansion preference is requested.
-        /// </summary>
-        [Parameter]
-        public EventCallback<bool> ExpandOnHoverChanged { get; set; }
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when rail interaction is attempted without an assigned ViewModel.
+        /// </exception>
+        private INavigationRailViewModel RequiredViewModel =>
+            this.ViewModel
+            ?? throw new InvalidOperationException(
+                $"{nameof(NavigationRail)} requires an {nameof(INavigationRailViewModel)}.");
 
         /// <summary>
         /// Gets or sets the accessible label of the navigation region.
         /// </summary>
         [Parameter]
         public string AriaLabel { get; set; } = "Workspace navigation";
+
+        /// <inheritdoc />
+        protected override void OnParametersSet()
+        {
+            base.OnParametersSet();
+            this.ObserveNavigationItems(this.ViewModel?.NavigationItems);
+        }
+
+        /// <summary>
+        /// Detaches component-owned collection observation without disposing the caller-owned ViewModel.
+        /// </summary>
+        /// <param name="disposing">
+        /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
+        /// </param>
+        protected override void Dispose(bool disposing)
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+
+            if (disposing)
+            {
+                this.ObserveNavigationItems(null);
+            }
+
+            base.Dispose(disposing);
+        }
 
         /// <summary>
         /// Gets the final CSS class list applied to the rail.
@@ -99,7 +100,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         {
             return this.BuildRootCssClass(
                 "mb-navigation-rail",
-                CssClassBuilder.When("mb-navigation-rail--collapsed", this.Collapsed));
+                CssClassBuilder.When("mb-navigation-rail--collapsed", this.RequiredViewModel.IsCollapsed));
         }
 
         /// <summary>
@@ -131,21 +132,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// <returns>The destination label when collapsed; otherwise, null.</returns>
         private string GetItemTitle(NavigationRailItem item)
         {
-            return this.Collapsed ? item.Label : null;
+            return this.RequiredViewModel.IsCollapsed ? item.Label : null;
         }
 
         /// <summary>
-        /// Gets the label of a sidebar-control mode.
+        /// Gets the label of a presentation mode.
         /// </summary>
         /// <param name="mode">The mode.</param>
         /// <returns>The user-facing mode label.</returns>
-        private static string GetSidebarControlModeLabel(SidebarControlMode mode)
+        private static string GetPresentationModeLabel(NavigationRailPresentationMode mode)
         {
             return mode switch
             {
-                SidebarControlMode.Expanded => "Expanded",
-                SidebarControlMode.Collapsed => "Collapsed",
-                SidebarControlMode.ExpandOnHover => "Expand on hover",
+                NavigationRailPresentationMode.Expanded => "Expanded",
+                NavigationRailPresentationMode.Collapsed => "Collapsed",
+                NavigationRailPresentationMode.ExpandOnHover => "Expand on hover",
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
         }
@@ -156,19 +157,22 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// <returns>The primary toggle action and context-menu hint.</returns>
         private string GetSidebarControlLabel()
         {
-            var action = this.Collapsed ? "Expand" : "Collapse";
+            var action = this.RequiredViewModel.IsCollapsed ? "Expand" : "Collapse";
 
             return $"{action} workspace navigation; right-click for sidebar controls";
         }
 
         /// <summary>
-        /// Determines whether a destination owns the controlled selected state.
+        /// Determines whether a destination owns the selected state.
         /// </summary>
         /// <param name="item">The destination.</param>
         /// <returns>True when the destination is selected.</returns>
         private bool IsSelected(NavigationRailItem item)
         {
-            return string.Equals(item.Id, this.SelectedItemId, StringComparison.Ordinal);
+            return string.Equals(
+                item.Id,
+                this.RequiredViewModel.SelectedItemId,
+                StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -176,176 +180,68 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// </summary>
         /// <param name="mode">The mode.</param>
         /// <returns>The option CSS class list.</returns>
-        private string GetSidebarControlItemCssClass(SidebarControlMode mode)
+        private string GetSidebarControlItemCssClass(NavigationRailPresentationMode mode)
         {
             return CssClassBuilder.Build(
                 "mb-navigation-rail__control-option",
                 CssClassBuilder.When(
                     "mb-navigation-rail__control-option--selected",
-                    this.IsSidebarControlModeSelected(mode)));
+                    this.IsPresentationModeSelected(mode)));
         }
 
         /// <summary>
-        /// Requests selection of a destination without mutating controlled state.
-        /// </summary>
-        /// <param name="item">The requested destination.</param>
-        /// <returns>A task representing the callback.</returns>
-        private Task SelectItemAsync(NavigationRailItem item)
-        {
-            return this.SelectedItemIdChanged.InvokeAsync(item.Id);
-        }
-
-        /// <summary>
-        /// Determines whether the caller supplied the callback required by a sidebar-control mode.
-        /// </summary>
-        /// <param name="mode">The mode.</param>
-        /// <returns>True when the mode can be requested.</returns>
-        private bool CanRequestSidebarControlMode(SidebarControlMode mode)
-        {
-            if (!this.CollapsedChanged.HasDelegate)
-            {
-                return false;
-            }
-
-            return mode == SidebarControlMode.ExpandOnHover
-                ? this.ExpandOnHover || this.ExpandOnHoverChanged.HasDelegate
-                : !this.ExpandOnHover || this.ExpandOnHoverChanged.HasDelegate;
-        }
-
-        /// <summary>
-        /// Determines whether a sidebar-control mode represents the caller-owned state.
+        /// Determines whether a presentation mode represents the reactive state.
         /// </summary>
         /// <param name="mode">The mode.</param>
         /// <returns>True when the mode is selected.</returns>
-        private bool IsSidebarControlModeSelected(SidebarControlMode mode)
+        private bool IsPresentationModeSelected(NavigationRailPresentationMode mode)
         {
-            return mode == this.GetSidebarControlMode();
+            return mode == this.RequiredViewModel.PresentationMode;
         }
 
         /// <summary>
-        /// Gets the sidebar-control mode represented by the caller-owned parameters.
+        /// Replaces the component-owned collection subscription when its ViewModel changes.
         /// </summary>
-        /// <returns>The current mode.</returns>
-        private SidebarControlMode GetSidebarControlMode()
+        /// <param name="navigationItems">The destination projection to observe, or <see langword="null" />.</param>
+        private void ObserveNavigationItems(ReadOnlyObservableCollection<NavigationRailItem> navigationItems)
         {
-            if (this.ExpandOnHover)
-            {
-                return SidebarControlMode.ExpandOnHover;
-            }
-
-            return this.Collapsed
-                ? SidebarControlMode.Collapsed
-                : SidebarControlMode.Expanded;
-        }
-
-        /// <summary>
-        /// Determines whether the caller supplied a controlled collapse callback.
-        /// </summary>
-        /// <returns>True when the sidebar control can request a state change.</returns>
-        private bool ShouldRenderSidebarControl()
-        {
-            return this.CollapsedChanged.HasDelegate;
-        }
-
-        /// <summary>
-        /// Requests the opposite fixed collapse state without opening the options menu.
-        /// </summary>
-        /// <returns>A task representing the controlled callbacks.</returns>
-        private async Task ToggleCollapsedAsync()
-        {
-            var collapsed = !this.Collapsed;
-
-            this.hoverExpansionActive = false;
-
-            if (this.ExpandOnHover && this.ExpandOnHoverChanged.HasDelegate)
-            {
-                await this.ExpandOnHoverChanged.InvokeAsync(false);
-            }
-
-            await this.CollapsedChanged.InvokeAsync(collapsed);
-        }
-
-        /// <summary>
-        /// Requests a sidebar-control mode without mutating controlled state.
-        /// </summary>
-        /// <param name="mode">The requested mode.</param>
-        /// <returns>A task representing the callbacks.</returns>
-        private async Task RequestSidebarControlModeAsync(SidebarControlMode mode)
-        {
-            if (!this.CanRequestSidebarControlMode(mode))
+            if (ReferenceEquals(this.observedNavigationItems, navigationItems))
             {
                 return;
             }
 
-            this.hoverExpansionActive = false;
-
-            var expandOnHover = mode == SidebarControlMode.ExpandOnHover;
-            var collapsed = mode != SidebarControlMode.Expanded;
-
-            if (this.ExpandOnHover != expandOnHover)
+            if (this.observedNavigationItems is INotifyCollectionChanged previousItems)
             {
-                await this.ExpandOnHoverChanged.InvokeAsync(expandOnHover);
+                previousItems.CollectionChanged -= this.HandleNavigationItemsChanged;
             }
 
-            if (this.Collapsed != collapsed)
+            this.observedNavigationItems = navigationItems;
+
+            if (this.observedNavigationItems is INotifyCollectionChanged currentItems)
             {
-                await this.CollapsedChanged.InvokeAsync(collapsed);
+                currentItems.CollectionChanged += this.HandleNavigationItemsChanged;
             }
         }
 
         /// <summary>
-        /// Requests temporary expansion when the pointer enters an opted-in collapsed rail.
+        /// Queues a render when the stable destination projection changes.
         /// </summary>
-        /// <returns>A task representing the callback.</returns>
-        private Task HandleMouseEnterAsync()
+        /// <param name="sender">The observed destination projection.</param>
+        /// <param name="args">The collection change.</param>
+        private void HandleNavigationItemsChanged(object sender, NotifyCollectionChangedEventArgs args)
         {
-            if (!this.ExpandOnHover || this.hoverExpansionActive || !this.Collapsed || !this.CollapsedChanged.HasDelegate)
+            if (this.isDisposed)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            this.hoverExpansionActive = true;
-
-            return this.CollapsedChanged.InvokeAsync(false);
-        }
-
-        /// <summary>
-        /// Restores the collapsed state when a temporary hover expansion ends.
-        /// </summary>
-        /// <returns>A task representing the callback.</returns>
-        private Task HandleMouseLeaveAsync()
-        {
-            if (!this.hoverExpansionActive)
+            _ = this.InvokeAsync(() =>
             {
-                return Task.CompletedTask;
-            }
-
-            this.hoverExpansionActive = false;
-
-            return this.ExpandOnHover && this.CollapsedChanged.HasDelegate
-                ? this.CollapsedChanged.InvokeAsync(true)
-                : Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Identifies the mutually exclusive sidebar presentation preferences.
-        /// </summary>
-        private enum SidebarControlMode
-        {
-            /// <summary>
-            /// The rail remains expanded.
-            /// </summary>
-            Expanded,
-
-            /// <summary>
-            /// The rail remains collapsed.
-            /// </summary>
-            Collapsed,
-
-            /// <summary>
-            /// The rail rests collapsed and expands temporarily on hover.
-            /// </summary>
-            ExpandOnHover
+                if (!this.isDisposed)
+                {
+                    this.StateHasChanged();
+                }
+            });
         }
     }
 }
