@@ -15,23 +15,23 @@ namespace Mycelium.Bloom.Model
     public sealed class NavigationRailItem
     {
         /// <summary>
-        /// Gets or sets the stable destination identifier.
+        /// Gets the stable destination identifier, which must be unique within one rail.
         /// </summary>
-        public string Id { get; set; } = string.Empty;
+        public string Id { get; init; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the destination label and accessible name.
+        /// Gets the destination label and accessible name.
         /// </summary>
-        public string Label { get; set; } = string.Empty;
+        public string Label { get; init; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the Lucide icon name used for the destination.
+        /// Gets the Lucide icon name used for the destination.
         /// </summary>
-        public string IconName { get; set; } = string.Empty;
+        public string IconName { get; init; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets a value indicating whether this destination starts a visually separated section.
+        /// Gets a value indicating whether this destination starts a visually separated section.
         /// </summary>
-        public bool StartsNewSection { get; set; }
+        public bool StartsNewSection { get; init; }
     }
 }
