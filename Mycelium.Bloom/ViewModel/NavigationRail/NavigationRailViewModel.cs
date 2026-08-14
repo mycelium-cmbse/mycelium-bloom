@@ -10,14 +10,18 @@
 namespace Mycelium.Bloom.ViewModel.NavigationRail
 {
     using System.Collections.ObjectModel;
+    using System.Diagnostics.CodeAnalysis;
 
     using DynamicData;
     using DynamicData.Binding;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
 
     using ReactiveUI;
+
+    using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
     /// Owns reactive destination, selection, and presentation state for one navigation rail.
@@ -32,7 +36,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// <summary>
         /// The function that derives destinations from navigation-local context.
         /// </summary>
-        private readonly Func<NavigationRailContext, IReadOnlyList<NavigationRailItem>> navigationItemSelector;
+        private readonly Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> navigationItemSelector;
 
         /// <summary>
         /// The read-only destination projection bound from <see cref="navigationItemSource" />.
@@ -50,14 +54,11 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         private readonly IDisposable contextSubscription;
 
         /// <summary>
-        /// The selected destination identifier.
+        /// The selected destination from the current inventory.
         /// </summary>
-        private string selectedItemId = string.Empty;
-
-        /// <summary>
-        /// A value indicating whether hover mode is temporarily expanded.
-        /// </summary>
-        private bool hoverExpansionActive;
+        [AllowNull]
+        [MaybeNull]
+        private NavigationRailItem selectedItem;
 
         /// <summary>
         /// A value indicating whether final disposal has occurred.
@@ -67,13 +68,13 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// <summary>
         /// Initializes a new instance of the <see cref="NavigationRailViewModel" /> class.
         /// </summary>
-        /// <param name="contextChanges">The observable navigation-local context.</param>
-        /// <param name="navigationItemSelector">Derives the complete destination inventory for a context.</param>
+        /// <param name="contextAwareService">The shared reactive application context.</param>
+        /// <param name="navigationItemSelector">Derives the complete destination inventory from contextual values.</param>
         public NavigationRailViewModel(
-            IObservable<NavigationRailContext> contextChanges,
-            Func<NavigationRailContext, IReadOnlyList<NavigationRailItem>> navigationItemSelector)
+            IContextAwareService contextAwareService,
+            Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> navigationItemSelector)
         {
-            ArgumentNullException.ThrowIfNull(contextChanges);
+            ArgumentNullException.ThrowIfNull(contextAwareService);
             ArgumentNullException.ThrowIfNull(navigationItemSelector);
 
             this.navigationItemSelector = navigationItemSelector;
@@ -83,112 +84,69 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
                     new BindingOptions(0, true, true)));
             this.navigationItems = boundNavigationItems;
             this.contextSubscription = System.ObservableExtensions.Subscribe(
-                contextChanges,
-                this.ApplyContext);
+                contextAwareService.WhenAnyValue(
+                    context => context.LifecycleState,
+                    context => context.SelectedElement),
+                context => this.ApplyContext(context.Item1, context.Item2));
         }
 
         /// <inheritdoc />
         public ReadOnlyObservableCollection<NavigationRailItem> NavigationItems => this.navigationItems;
 
         /// <inheritdoc />
-        public string SelectedItemId
+        [AllowNull]
+        [MaybeNull]
+        public NavigationRailItem SelectedItem
         {
-            get => this.selectedItemId;
-            private set => this.RaiseAndSetIfChanged(ref this.selectedItemId, value);
+            get => this.selectedItem;
+            set
+            {
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                if (value is null)
+                {
+                    this.RaiseAndSetIfChanged(ref this.selectedItem, null);
+                    return;
+                }
+
+                var canonicalItem = this.NavigationItems.FirstOrDefault(item => string.Equals(
+                    item.Id,
+                    value.Id,
+                    StringComparison.Ordinal));
+
+                if (canonicalItem is null)
+                {
+                    throw new ArgumentException(
+                        $"Navigation item '{value.Id}' is not available in the current inventory.",
+                        nameof(value));
+                }
+
+                this.RaiseAndSetIfChanged(ref this.selectedItem, canonicalItem);
+            }
         }
 
         /// <inheritdoc />
         public NavigationRailPresentationMode PresentationMode
         {
             get;
-            private set => this.RaiseAndSetIfChanged(ref field, value);
+            set
+            {
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                if (!Enum.IsDefined(value))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value, null);
+                }
+
+                this.RaiseAndSetIfChanged(ref field, value);
+            }
         } = NavigationRailPresentationMode.Collapsed;
-
-        /// <inheritdoc />
-        public bool IsCollapsed => this.PresentationMode switch
-        {
-            NavigationRailPresentationMode.Expanded => false,
-            NavigationRailPresentationMode.Collapsed => true,
-            NavigationRailPresentationMode.ExpandOnHover => !this.hoverExpansionActive,
-            _ => throw CreateInvalidPresentationModeException(this.PresentationMode)
-        };
-
-        /// <inheritdoc />
-        public void SelectItem(string itemId)
-        {
-            if (this.isDisposed || string.IsNullOrWhiteSpace(itemId))
-            {
-                return;
-            }
-
-            if (this.NavigationItems.Any(item => string.Equals(item.Id, itemId, StringComparison.Ordinal)))
-            {
-                this.SelectedItemId = itemId;
-            }
-        }
-
-        /// <inheritdoc />
-        public void TogglePresentation()
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            this.SetPresentationMode(
-                this.IsCollapsed
-                    ? NavigationRailPresentationMode.Expanded
-                    : NavigationRailPresentationMode.Collapsed);
-        }
-
-        /// <inheritdoc />
-        public void SetPresentationMode(NavigationRailPresentationMode mode)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (!Enum.IsDefined(mode))
-            {
-                throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
-            }
-
-            var wasCollapsed = this.IsCollapsed;
-            this.hoverExpansionActive = false;
-            this.PresentationMode = mode;
-
-            if (wasCollapsed != this.IsCollapsed)
-            {
-                this.RaisePropertyChanged(nameof(this.IsCollapsed));
-            }
-        }
-
-        /// <inheritdoc />
-        public void HandlePointerEntered()
-        {
-            if (this.isDisposed
-                || this.PresentationMode != NavigationRailPresentationMode.ExpandOnHover
-                || this.hoverExpansionActive)
-            {
-                return;
-            }
-
-            this.hoverExpansionActive = true;
-            this.RaisePropertyChanged(nameof(this.IsCollapsed));
-        }
-
-        /// <inheritdoc />
-        public void HandlePointerExited()
-        {
-            if (this.isDisposed || !this.hoverExpansionActive)
-            {
-                return;
-            }
-
-            this.hoverExpansionActive = false;
-            this.RaisePropertyChanged(nameof(this.IsCollapsed));
-        }
 
         /// <inheritdoc />
         public void Dispose()
@@ -204,40 +162,32 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
             this.navigationItemSource.Dispose();
         }
 
-        private static ArgumentOutOfRangeException CreateInvalidPresentationModeException(
-            NavigationRailPresentationMode presentationMode)
-        {
-            return new ArgumentOutOfRangeException(nameof(presentationMode), presentationMode, null);
-        }
-
         /// <summary>
         /// Derives and publishes one coherent destination and selection snapshot from contextual state.
         /// </summary>
-        /// <param name="context">The updated navigation-local context.</param>
-        private void ApplyContext(NavigationRailContext context)
+        /// <param name="lifecycleState">The current project lifecycle state.</param>
+        /// <param name="selectedElement">The currently selected model element, or <see langword="null" />.</param>
+        private void ApplyContext(
+            ProjectLifecycleState lifecycleState,
+            [AllowNull] IElement selectedElement)
         {
             if (this.isDisposed)
             {
                 return;
             }
 
-            ArgumentNullException.ThrowIfNull(context);
-
-            var selectedItems = this.navigationItemSelector(context);
+            var selectedItems = this.navigationItemSelector(lifecycleState, selectedElement);
             ArgumentNullException.ThrowIfNull(selectedItems);
 
             var nextItems = selectedItems.ToArray();
-            var nextSelectedItemId = GetReconciledSelectedItemId(nextItems, this.SelectedItemId);
-            var selectionChanged = !string.Equals(
-                this.SelectedItemId,
-                nextSelectedItemId,
-                StringComparison.Ordinal);
+            var nextSelectedItem = GetReconciledSelectedItem(nextItems, this.SelectedItem);
+            var selectionChanged = !ReferenceEquals(this.SelectedItem, nextSelectedItem);
 
             if (selectionChanged)
             {
-                this.RaisePropertyChanging(nameof(this.SelectedItemId));
-                // Assign directly so selection notifications bracket the collection update as one coherent snapshot.
-                this.selectedItemId = nextSelectedItemId;
+                this.RaisePropertyChanging(nameof(this.SelectedItem));
+                // Direct assignment is intentional so selection notifications bracket inventory replacement as one coherent snapshot.
+                this.selectedItem = nextSelectedItem;
             }
 
             this.navigationItemSource.Edit(items =>
@@ -248,7 +198,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
 
             if (selectionChanged)
             {
-                this.RaisePropertyChanged(nameof(this.SelectedItemId));
+                this.RaisePropertyChanged(nameof(this.SelectedItem));
             }
         }
 
@@ -256,26 +206,32 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// Reconciles selection against one materialized destination snapshot.
         /// </summary>
         /// <param name="items">The complete next destination snapshot.</param>
-        /// <param name="currentSelectedItemId">The currently selected destination identifier.</param>
-        /// <returns>The selected identifier valid for the next snapshot.</returns>
-        private static string GetReconciledSelectedItemId(
+        /// <param name="currentSelectedItem">The currently selected destination.</param>
+        /// <returns>The canonical selected item for the next snapshot, or <see langword="null" />.</returns>
+        [return: MaybeNull]
+        private static NavigationRailItem GetReconciledSelectedItem(
             NavigationRailItem[] items,
-            string currentSelectedItemId)
+            [AllowNull] NavigationRailItem currentSelectedItem)
         {
             if (items.Length == 0)
             {
-                return string.Empty;
+                return null;
             }
 
-            if (items.Any(item => string.Equals(
-                    item.Id,
-                    currentSelectedItemId,
-                    StringComparison.Ordinal)))
+            if (currentSelectedItem is not null)
             {
-                return currentSelectedItemId;
+                var canonicalItem = items.FirstOrDefault(item => string.Equals(
+                    item.Id,
+                    currentSelectedItem.Id,
+                    StringComparison.Ordinal));
+
+                if (canonicalItem is not null)
+                {
+                    return canonicalItem;
+                }
             }
 
-            return items[0].Id;
+            return items[0];
         }
     }
 }

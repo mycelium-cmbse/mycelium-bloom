@@ -9,8 +9,6 @@
 
 namespace Mycelium.Bloom.Core.Selection
 {
-    using System.Diagnostics.CodeAnalysis;
-
     using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -23,8 +21,6 @@ namespace Mycelium.Bloom.Core.Selection
         /// <summary>
         /// Gets or sets the currently selected SysML element, or <see langword="null" /> when no element is selected.
         /// </summary>
-        [AllowNull]
-        [MaybeNull]
         IElement SelectedElement { get; set; }
     }
 }

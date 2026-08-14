@@ -24,8 +24,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using Moq;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
-    using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(
                 () =>
                 {
-                    using var viewModel = new ProjectBrowserViewModel(null, new ElementSelectionService());
+                    using var viewModel = new ProjectBrowserViewModel(null, new ContextAwareService());
                 },
                 Throws.TypeOf<ArgumentNullException>()
                     .With.Property("ParamName").EqualTo("modelLoaderService"));
@@ -104,7 +104,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var model = LoadQuantitiesModel();
             var modelLoaderService = CreateModelLoader(model);
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -130,7 +130,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
 
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
 
             using (Assert.EnterMultipleScope())
             {
@@ -151,7 +151,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var model = CreateMinimalModel();
             var modelLoaderService = CreateModelLoader(model);
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
@@ -182,10 +182,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var modelLoaderService = CreateModelLoader(model);
             using var firstViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ElementSelectionService());
+                new ContextAwareService());
             using var secondViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ElementSelectionService());
+                new ContextAwareService());
 
             await firstViewModel.InitializeAsync(CancellationToken.None);
             await secondViewModel.InitializeAsync(CancellationToken.None);
@@ -220,7 +220,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())
                 .Throws(new InvalidOperationException("Model load failed"));
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
             var observedErrors = new List<string>();
             var observedLoadingStates = new List<bool>();
 
@@ -254,7 +254,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyInitializeAsyncReturnsEarlyWhenAlreadyLoaded()
         {
             var modelLoaderService = CreateModelLoader(CreateMinimalModel());
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
 
             var firstResult = await viewModel.InitializeAsync(CancellationToken.None);
             var secondResult = await viewModel.InitializeAsync(CancellationToken.None);
@@ -291,7 +291,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
                     return CreateMinimalModel();
                 });
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ElementSelectionService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
 
             var firstInitialization = viewModel.InitializeAsync(CancellationToken.None);
 
@@ -317,7 +317,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifySelectNodePublishesSourceElement()
         {
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
@@ -342,7 +342,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                new ElementSelectionService());
+                new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var leafNode = rootNode.Children[0];
@@ -365,7 +365,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>().Object,
-                new ElementSelectionService());
+                new ContextAwareService());
 
             using (Assert.EnterMultipleScope())
             {
@@ -380,7 +380,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifyExternalSelectionUpdatesVisualProjection()
         {
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
@@ -403,7 +403,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifyExternalClearSelectionClearsVisualProjection()
         {
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
@@ -426,8 +426,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifyDisposedViewModelDoesNotObserveExternalSelection()
         {
-            var selectionService = new ElementSelectionService();
-            using var viewModel = new ProjectBrowserViewModel(
+            var selectionService = new ContextAwareService();
+            var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
@@ -452,7 +452,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyTwoViewModelsObserveSameSelectionService()
         {
             var model = CreateMinimalModel();
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             var modelLoaderService = CreateModelLoader(model);
             using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
             using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
@@ -479,7 +479,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyInitializeAsyncPreservesExternalSelectionAbsentFromTree()
         {
             var externalElement = new Namespace { ElementId = "external" };
-            var selectionService = new ElementSelectionService
+            var selectionService = new ContextAwareService
             {
                 SelectedElement = externalElement
             };
@@ -507,7 +507,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyInitializeAsyncProjectsExistingExternalSelection()
         {
             var model = CreateMinimalModel();
-            var selectionService = new ElementSelectionService
+            var selectionService = new ContextAwareService
             {
                 SelectedElement = model
             };
@@ -533,7 +533,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var model = new Namespace { ElementId = "shared-id" };
             var distinctElement = new Namespace { ElementId = "shared-id" };
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -555,7 +555,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                new ElementSelectionService());
+                new ContextAwareService());
             var exposedRoots = viewModel.RootNodes;
 
             await viewModel.InitializeAsync(CancellationToken.None);
@@ -580,7 +580,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                new ElementSelectionService());
+                new ContextAwareService());
             var exposedRoots = viewModel.RootNodes;
             var collectionChanges = new List<NotifyCollectionChangedEventArgs>();
             var rootPropertyChanges = new List<string>();
@@ -618,7 +618,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifySelectNodeDoesNotDuplicateSelectionProjection()
         {
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
@@ -666,7 +666,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 });
             using var viewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ElementSelectionService());
+                new ContextAwareService());
             var observedLoadingStates = new List<bool>();
             var observedLoadedStates = new List<bool>();
 
@@ -729,12 +729,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
                     return CreateMinimalModel();
                 });
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
             var initialization = viewModel.InitializeAsync(cancellation.Token);
 
             Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
-            cancellation.Cancel();
+            await cancellation.CancelAsync();
 
             var initialized = await initialization;
             releaseLoad.Set();
@@ -777,8 +777,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
                     return CreateMinimalModel();
                 });
-            var selectionService = new ElementSelectionService();
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            var selectionService = new ContextAwareService();
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
             var observedState = new List<(bool IsLoading, bool IsLoaded, string ErrorMessage)>();
             using var stateSubscription = System.ObservableExtensions.Subscribe(
                 viewModel.WhenAnyValue(
@@ -816,8 +816,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifyDisposeIsIdempotentAndPreservesSharedSelection()
         {
-            var selectionService = new ElementSelectionService();
-            using var viewModel = new ProjectBrowserViewModel(
+            var selectionService = new ContextAwareService();
+            var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
@@ -835,8 +835,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifyMethodsDoNotMutateStateAfterDisposal()
         {
-            var selectionService = new ElementSelectionService();
-            using var viewModel = new ProjectBrowserViewModel(
+            var selectionService = new ContextAwareService();
+            var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);

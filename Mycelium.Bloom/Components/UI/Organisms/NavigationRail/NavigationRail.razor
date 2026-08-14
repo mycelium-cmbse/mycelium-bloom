@@ -17,13 +17,15 @@
     <nav @attributes="this.AdditionalAttributes"
          class="@(this.GetCssClass())"
          aria-label="@(this.AriaLabel)"
-         data-collapsed="@(viewModel.IsCollapsed ? "true" : "false")"
-         @onmouseenter="viewModel.HandlePointerEntered"
-         @onmouseleave="viewModel.HandlePointerExited">
+         data-collapsed="@(this.IsCollapsed ? "true" : "false")"
+         @onmouseenter="this.HandlePointerEntered"
+         @onmouseleave="this.HandlePointerExited">
         <ul class="mb-navigation-rail__items">
-            @foreach (var item in viewModel.NavigationItems)
+            @for (var itemIndex = 0; itemIndex < viewModel.NavigationItems.Count; itemIndex++)
             {
-                @if (item.StartsNewSection)
+                var item = viewModel.NavigationItems[itemIndex];
+
+                @if (this.StartsNewGroup(itemIndex))
                 {
                     <li @key="(item.Id, true)"
                         class="mb-navigation-rail__divider"
@@ -38,7 +40,7 @@
                               AriaLabel="@(item.Label)"
                               title="@(this.GetItemTitle(item))"
                               aria-current="@(this.GetAriaCurrent(item))"
-                              OnClick="() => viewModel.SelectItem(item.Id)">
+                              OnClick="() => this.SelectItem(item)">
                         <LucideIcon Name="@(item.IconName)"
                                     Size="16"
                                     StrokeWidth="1.75"
@@ -62,8 +64,8 @@
                               AriaLabel="@(this.GetSidebarControlLabel())"
                               title="@(this.GetSidebarControlLabel())"
                               aria-keyshortcuts="Shift+F10"
-                              OnClick="viewModel.TogglePresentation">
-                        <LucideIcon Name="@(viewModel.IsCollapsed ? "panel-left-open" : "panel-left-close")"
+                              OnClick="this.TogglePresentation">
+                        <LucideIcon Name="@(this.IsCollapsed ? "panel-left-open" : "panel-left-close")"
                                     Size="16"
                                     StrokeWidth="1.75"
                                     role="presentation"
@@ -85,7 +87,7 @@
                             }
 
                             <BbContextMenuItem Class="@(this.GetSidebarControlItemCssClass(mode))"
-                                               OnClick="() => viewModel.SetPresentationMode(mode)">
+                                               OnClick="() => this.SetPresentationMode(mode)">
                                 <Icon>
                                     <span class="mb-navigation-rail__control-selection" aria-hidden="true">
                                         @(this.IsPresentationModeSelected(mode) ? "\u2022" : string.Empty)

@@ -29,16 +29,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// Gets the available presentation modes in display order.
         /// </summary>
         private static readonly NavigationRailPresentationMode[] PresentationModes =
-        [
-            NavigationRailPresentationMode.Expanded,
-            NavigationRailPresentationMode.Collapsed,
-            NavigationRailPresentationMode.ExpandOnHover
-        ];
+            Enum.GetValues<NavigationRailPresentationMode>();
 
         /// <summary>
         /// The read-only destination projection currently observed by this component.
         /// </summary>
         private ReadOnlyObservableCollection<NavigationRailItem> observedNavigationItems;
+
+        /// <summary>
+        /// A value indicating whether the pointer is currently over this component instance.
+        /// </summary>
+        private bool isPointerOver;
 
         /// <summary>
         /// A value indicating whether component disposal has begun.
@@ -55,6 +56,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             this.ViewModel
             ?? throw new InvalidOperationException(
                 $"{nameof(NavigationRail)} requires an {nameof(INavigationRailViewModel)}.");
+
+        /// <summary>
+        /// Gets a value indicating whether this component currently uses its icon-first presentation.
+        /// </summary>
+        private bool IsCollapsed => this.RequiredViewModel.PresentationMode switch
+        {
+            NavigationRailPresentationMode.Expanded => false,
+            NavigationRailPresentationMode.Collapsed => true,
+            NavigationRailPresentationMode.ExpandOnHover => !this.isPointerOver,
+            _ => throw CreateInvalidPresentationModeException(this.RequiredViewModel.PresentationMode)
+        };
 
         /// <summary>
         /// Gets or sets the accessible label of the navigation region.
@@ -100,7 +112,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         {
             return this.BuildRootCssClass(
                 "mb-navigation-rail",
-                CssClassBuilder.When("mb-navigation-rail--collapsed", this.RequiredViewModel.IsCollapsed));
+                CssClassBuilder.When("mb-navigation-rail--collapsed", this.IsCollapsed));
         }
 
         /// <summary>
@@ -132,7 +144,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// <returns>The destination label when collapsed; otherwise, null.</returns>
         private string GetItemTitle(NavigationRailItem item)
         {
-            return this.RequiredViewModel.IsCollapsed ? item.Label : null;
+            return this.IsCollapsed ? item.Label : null;
         }
 
         /// <summary>
@@ -157,7 +169,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// <returns>The primary toggle action and context-menu hint.</returns>
         private string GetSidebarControlLabel()
         {
-            var action = this.RequiredViewModel.IsCollapsed ? "Expand" : "Collapse";
+            var action = this.IsCollapsed ? "Expand" : "Collapse";
 
             return $"{action} workspace navigation; right-click for sidebar controls";
         }
@@ -171,8 +183,68 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         {
             return string.Equals(
                 item.Id,
-                this.RequiredViewModel.SelectedItemId,
+                this.RequiredViewModel.SelectedItem?.Id,
                 StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Determines whether a divider belongs immediately before an item.
+        /// </summary>
+        /// <param name="itemIndex">The item index in selector-defined order.</param>
+        /// <returns>True when the item's group differs from the preceding item's group.</returns>
+        private bool StartsNewGroup(int itemIndex)
+        {
+            var items = this.RequiredViewModel.NavigationItems;
+
+            return itemIndex > 0
+                && !string.Equals(
+                    items[itemIndex - 1].GroupKey,
+                    items[itemIndex].GroupKey,
+                    StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Assigns the selected destination through the ViewModel contract.
+        /// </summary>
+        /// <param name="item">The destination selected by the user.</param>
+        private void SelectItem(NavigationRailItem item)
+        {
+            this.RequiredViewModel.SelectedItem = item;
+        }
+
+        /// <summary>
+        /// Switches the persistent presentation between expanded and collapsed.
+        /// </summary>
+        private void TogglePresentation()
+        {
+            this.RequiredViewModel.PresentationMode = this.IsCollapsed
+                ? NavigationRailPresentationMode.Expanded
+                : NavigationRailPresentationMode.Collapsed;
+        }
+
+        /// <summary>
+        /// Assigns the persistent presentation mode through the ViewModel contract.
+        /// </summary>
+        /// <param name="mode">The presentation mode selected by the user.</param>
+        private void SetPresentationMode(NavigationRailPresentationMode mode)
+        {
+            this.RequiredViewModel.PresentationMode = mode;
+        }
+
+        /// <summary>
+        /// Applies this component instance's transient pointer-enter state.
+        /// </summary>
+        private void HandlePointerEntered()
+        {
+            this.isPointerOver = true;
+        }
+
+        /// <summary>
+        /// Applies this component instance's transient pointer-leave state.
+        /// </summary>
+        private void HandlePointerExited()
+        {
+            this.isPointerOver = false;
         }
 
         /// <summary>
@@ -197,6 +269,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private bool IsPresentationModeSelected(NavigationRailPresentationMode mode)
         {
             return mode == this.RequiredViewModel.PresentationMode;
+        }
+
+        private static ArgumentOutOfRangeException CreateInvalidPresentationModeException(
+            NavigationRailPresentationMode presentationMode)
+        {
+            return new ArgumentOutOfRangeException(nameof(presentationMode), presentationMode, null);
         }
 
         /// <summary>

@@ -21,6 +21,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.Components.UI.Organisms.DetailsPanel;
     using Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell;
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -87,7 +88,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public void VerifyProjectBrowserSelectionUpdatesHome()
         {
-            var selectionService = new ElementSelectionService();
+            var selectionService = new ContextAwareService();
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
@@ -164,7 +165,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             IProjectBrowserViewModel projectBrowserViewModel,
             IElementSelectionService selectionService = null)
         {
-            selectionService ??= new ElementSelectionService();
+            selectionService ??= new ContextAwareService();
 
             this.Services.AddSingleton(selectionService);
             this.Services.AddSingleton(projectBrowserViewModel);

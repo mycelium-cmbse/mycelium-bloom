@@ -12,6 +12,7 @@ namespace Mycelium.Bloom
     using BlazorBlueprint.Components;
 
     using Mycelium.Bloom.Components;
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -54,7 +55,11 @@ namespace Mycelium.Bloom
 
             // Add application services.
             builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
-            builder.Services.AddScoped<IElementSelectionService, ElementSelectionService>();
+            builder.Services.AddScoped<ContextAwareService>();
+            builder.Services.AddScoped<IContextAwareService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+            builder.Services.AddScoped<IElementSelectionService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
             builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
 
             var app = builder.Build();

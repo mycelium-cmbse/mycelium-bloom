@@ -14,8 +14,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
     using System.Collections.ObjectModel;
     using System.IO;
     using System.Linq;
-    using System.Reactive.Linq;
-    using System.Reactive.Subjects;
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
@@ -27,6 +25,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
     using Moq;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
@@ -40,46 +39,76 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
     {
         private static readonly NavigationRailItem[] Items =
         [
-            new NavigationRailItem { Id = "overview", Label = "Overview", IconName = "layout-dashboard" },
-            new NavigationRailItem
-            {
-                Id = "traceability",
-                Label = "Traceability",
-                IconName = "waypoints",
-                StartsNewSection = true
-            },
-            new NavigationRailItem { Id = "compare", Label = "Compare", IconName = "git-compare-arrows" },
-            new NavigationRailItem
-            {
-                Id = "review",
-                Label = "Review",
-                IconName = "messages-square",
-                StartsNewSection = true
-            }
-        ];
-
-        private static readonly NavigationRailItem[] ReplacementItems =
-        [
-            new NavigationRailItem { Id = "activity", Label = "Activity", IconName = "history" },
-            new NavigationRailItem
-            {
-                Id = "settings",
-                Label = "Settings",
-                IconName = "settings",
-                StartsNewSection = true
-            }
-        ];
-
-        private static readonly NavigationRailItem[] ReorderedItems =
-        [
-            new NavigationRailItem { Id = "review", Label = "Review queue", IconName = "messages-square" },
-            new NavigationRailItem { Id = "activity", Label = "Activity", IconName = "history" },
             new NavigationRailItem
             {
                 Id = "overview",
                 Label = "Overview",
                 IconName = "layout-dashboard",
-                StartsNewSection = true
+                GroupKey = "model"
+            },
+            new NavigationRailItem
+            {
+                Id = "traceability",
+                Label = "Traceability",
+                IconName = "waypoints",
+                GroupKey = "analysis"
+            },
+            new NavigationRailItem
+            {
+                Id = "compare",
+                Label = "Compare",
+                IconName = "git-compare-arrows",
+                GroupKey = "analysis"
+            },
+            new NavigationRailItem
+            {
+                Id = "review",
+                Label = "Review",
+                IconName = "messages-square",
+                GroupKey = "collaboration"
+            }
+        ];
+
+        private static readonly NavigationRailItem[] ReplacementItems =
+        [
+            new NavigationRailItem
+            {
+                Id = "activity",
+                Label = "Activity",
+                IconName = "history",
+                GroupKey = "activity"
+            },
+            new NavigationRailItem
+            {
+                Id = "settings",
+                Label = "Settings",
+                IconName = "settings",
+                GroupKey = "settings"
+            }
+        ];
+
+        private static readonly NavigationRailItem[] ReorderedItems =
+        [
+            new NavigationRailItem
+            {
+                Id = "review",
+                Label = "Review queue",
+                IconName = "messages-square",
+                GroupKey = "collaboration"
+            },
+            new NavigationRailItem
+            {
+                Id = "activity",
+                Label = "Activity",
+                IconName = "history",
+                GroupKey = "activity"
+            },
+            new NavigationRailItem
+            {
+                Id = "overview",
+                Label = "Overview",
+                IconName = "layout-dashboard",
+                GroupKey = "model"
             }
         ];
 
@@ -100,6 +129,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         private static readonly string[] ExpectedReviewOnlyLabels = ["Review"];
 
         private static readonly string[] ExpectedSettingsOnlyLabels = ["Settings"];
+
+        private static readonly string[] ExpectedPresentationModeLabels =
+            ["Expanded", "Collapsed", "Expand on hover"];
 
         public NavigationRailTestFixture()
         {
@@ -160,6 +192,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(dividers, Has.Count.EqualTo(2));
+                Assert.That(component.Find(".mb-navigation-rail__items > li:first-child").ClassList,
+                    Does.Contain("mb-navigation-rail__item"));
                 Assert.That(dividers.All(divider => divider.GetAttribute("aria-hidden") == "true"), Is.True);
                 Assert.That(dividers.All(divider => divider.GetAttribute("role") is null), Is.True);
                 Assert.That(dividers.All(divider => divider.GetAttribute("aria-orientation") is null), Is.True);
@@ -179,7 +213,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(viewModel.SelectedItemId, Is.EqualTo("review"));
+                    Assert.That(viewModel.SelectedItem, Is.SameAs(Items[3]));
                     Assert.That(component.Find("button[aria-label='Overview']").GetAttribute("aria-current"), Is.Null);
                     Assert.That(component.Find("button[aria-label='Review']").GetAttribute("aria-current"),
                         Is.EqualTo("page"));
@@ -191,48 +225,40 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         public async Task VerifyInteractionsDelegateToViewModelContract()
         {
             var viewModel = CreateViewModelMock();
-            viewModel.Setup(x => x.SelectItem("review"));
-            viewModel.Setup(x => x.TogglePresentation());
-            viewModel.Setup(x => x.HandlePointerEntered());
-            viewModel.Setup(x => x.HandlePointerExited());
-            viewModel.Setup(x => x.SetPresentationMode(NavigationRailPresentationMode.Expanded));
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel.Object));
 
             await component.Find("button[aria-label='Review']").ClickAsync();
-            await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
-            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
-            await component.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
             await OpenSidebarControlMenuAsync(component);
-            var options = await component.WaitForElementsAsync("[role='menuitem']", 3);
+            var options = await component.WaitForElementsAsync(
+                "[role='menuitem']",
+                ExpectedPresentationModeLabels.Length);
             await options.Single(option => option.TextContent.Trim() == "Expanded").ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
-                viewModel.Verify(x => x.SelectItem("review"), Times.Once);
-                viewModel.Verify(x => x.TogglePresentation(), Times.Once);
-                viewModel.Verify(x => x.HandlePointerEntered(), Times.Once);
-                viewModel.Verify(x => x.HandlePointerExited(), Times.Once);
-                viewModel.Verify(
-                    x => x.SetPresentationMode(NavigationRailPresentationMode.Expanded),
+                viewModel.VerifySet(x => x.SelectedItem = It.Is<NavigationRailItem>(item => item.Id == "review"),
                     Times.Once);
+                viewModel.VerifySet(x => x.PresentationMode = NavigationRailPresentationMode.Expanded, Times.Once);
             }
         }
 
         [Test]
         public void VerifyContextChangesRerenderAndReconcileSelection()
         {
-            using var contexts = new BehaviorSubject<NavigationRailContext>(CreateContext(
-                ProjectLifecycleState.Preparation));
+            var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
-                contexts,
-                context => SelectItemsByLifecycleState(context, Items, ReplacementItems));
-            viewModel.SelectItem("review");
-            viewModel.SetPresentationMode(NavigationRailPresentationMode.Expanded);
+                contextService,
+                (lifecycleState, _) => SelectItemsByLifecycleState(
+                    lifecycleState,
+                    Items,
+                    ReplacementItems));
+            viewModel.SelectedItem = Items[3];
+            viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
 
-            contexts.OnNext(CreateContext(ProjectLifecycleState.Open));
+            contextService.LifecycleState = ProjectLifecycleState.Open;
 
             component.WaitForAssertion(() =>
             {
@@ -244,7 +270,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     Assert.That(component.FindAll(".mb-navigation-rail__divider"), Has.Count.EqualTo(1));
                     Assert.That(component.Find("button[aria-label='Activity']").GetAttribute("aria-current"),
                         Is.EqualTo("page"));
-                    Assert.That(viewModel.SelectedItemId, Is.EqualTo("activity"));
+                    Assert.That(viewModel.SelectedItem, Is.SameAs(ReplacementItems[0]));
                 }
             });
         }
@@ -260,7 +286,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             await OpenSidebarControlMenuAsync(component);
 
             var menu = await component.WaitForElementAsync("[role='menu']");
-            var options = await component.WaitForElementsAsync("[role='menuitem']", 3);
+            var options = await component.WaitForElementsAsync(
+                "[role='menuitem']",
+                ExpectedPresentationModeLabels.Length);
             var selectedOption = options.Single(option => option.TextContent.Contains("Expand on hover"));
 
             using (Assert.EnterMultipleScope())
@@ -269,9 +297,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     Is.EqualTo("Expand workspace navigation; right-click for sidebar controls"));
                 Assert.That(trigger.GetAttribute("aria-keyshortcuts"), Is.EqualTo("Shift+F10"));
                 Assert.That(menu.TextContent, Does.Contain("Sidebar control"));
-                Assert.That(options.Any(option => option.TextContent.Contains("Expanded")), Is.True);
-                Assert.That(options.Any(option => option.TextContent.Contains("Collapsed")), Is.True);
-                Assert.That(options.Any(option => option.TextContent.Contains("Expand on hover")), Is.True);
+                Assert.That(options.Select(option => option.TextContent
+                        .Replace("\u2022", string.Empty, StringComparison.Ordinal)
+                        .Replace("Current selection", string.Empty, StringComparison.Ordinal)
+                        .Trim()),
+                    Is.EqualTo(ExpectedPresentationModeLabels));
                 Assert.That(component.FindAll("[role='separator']"), Has.Count.EqualTo(2));
                 Assert.That(options.All(option => option.GetAttribute("aria-disabled") != "true"), Is.True);
                 Assert.That(selectedOption.ClassList,
@@ -382,19 +412,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         [Test]
         public void VerifyDynamicReorderingPreservesStableDestinationIdentity()
         {
-            using var contexts = new BehaviorSubject<NavigationRailContext>(CreateContext(
-                ProjectLifecycleState.Preparation));
+            var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
-                contexts,
-                context => SelectItemsByLifecycleState(context, Items, ReorderedItems));
-            viewModel.SetPresentationMode(NavigationRailPresentationMode.Expanded);
+                contextService,
+                (lifecycleState, _) => SelectItemsByLifecycleState(
+                    lifecycleState,
+                    Items,
+                    ReorderedItems));
+            viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
             var originalOverviewButton = component.FindComponents<BbButton>()
                 .Single(button => button.Instance.AriaLabel == "Overview")
                 .Instance;
 
-            contexts.OnNext(CreateContext(ProjectLifecycleState.Review));
+            contextService.LifecycleState = ProjectLifecycleState.Review;
 
             component.WaitForAssertion(() =>
             {
@@ -407,7 +439,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     Assert.That(component.FindAll(".mb-navigation-rail__link")
                         .Select(link => link.GetAttribute("aria-label")), Is.EqualTo(ExpectedReorderedLabels));
                     Assert.That(updatedOverviewButton, Is.SameAs(originalOverviewButton));
-                    Assert.That(viewModel.SelectedItemId, Is.EqualTo("overview"));
+                    Assert.That(viewModel.SelectedItem, Is.SameAs(ReorderedItems[2]));
                 }
             });
         }
@@ -415,23 +447,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         [Test]
         public void VerifyReplacingViewModelDetachesOldRenderingSubscription()
         {
-            using var firstContexts = new BehaviorSubject<NavigationRailContext>(CreateContext(
-                ProjectLifecycleState.Preparation));
-            using var secondContexts = new BehaviorSubject<NavigationRailContext>(CreateContext(
-                ProjectLifecycleState.Preparation));
+            var firstContextService = new ContextAwareService();
+            var secondContextService = new ContextAwareService();
             using var firstViewModel = new NavigationRailViewModel(
-                firstContexts,
-                context => SelectItemsByLifecycleState(context, OverviewOnly, ActivityOnly));
+                firstContextService,
+                (lifecycleState, _) => SelectItemsByLifecycleState(
+                    lifecycleState,
+                    OverviewOnly,
+                    ActivityOnly));
             using var secondViewModel = new NavigationRailViewModel(
-                secondContexts,
-                context => SelectItemsByLifecycleState(context, ReviewOnly, SettingsOnly));
+                secondContextService,
+                (lifecycleState, _) => SelectItemsByLifecycleState(
+                    lifecycleState,
+                    ReviewOnly,
+                    SettingsOnly));
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, firstViewModel));
 
             component.Render(parameters => parameters.Add(rail => rail.ViewModel, secondViewModel));
             var renderCountAfterReplacement = component.RenderCount;
 
-            firstContexts.OnNext(CreateContext(ProjectLifecycleState.Open));
+            firstContextService.LifecycleState = ProjectLifecycleState.Open;
 
             using (Assert.EnterMultipleScope())
             {
@@ -440,7 +476,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     .Select(link => link.GetAttribute("aria-label")), Is.EqualTo(ExpectedReviewOnlyLabels));
             }
 
-            secondContexts.OnNext(CreateContext(ProjectLifecycleState.Open));
+            secondContextService.LifecycleState = ProjectLifecycleState.Open;
 
             component.WaitForAssertion(() =>
                 Assert.That(component.FindAll(".mb-navigation-rail__link")
@@ -448,50 +484,52 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         [Test]
-        public async Task VerifyIndependentInstancesDoNotShareState()
+        public async Task VerifyComponentsSharingViewModelDoNotShareHoverState()
         {
-            using var firstViewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
-            using var secondViewModel = CreateViewModel(NavigationRailPresentationMode.Collapsed);
+            using var viewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
             using var first = this.Render<NavigationRailComponent>(parameters => parameters
-                .Add(rail => rail.ViewModel, firstViewModel));
+                .Add(rail => rail.ViewModel, viewModel));
             using var second = this.Render<NavigationRailComponent>(parameters => parameters
-                .Add(rail => rail.ViewModel, secondViewModel));
+                .Add(rail => rail.ViewModel, viewModel));
 
             await first.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
-            await first.Find("button[aria-label='Compare']").ClickAsync();
 
             await first.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(firstViewModel.NavigationItems, Is.Not.SameAs(secondViewModel.NavigationItems));
-                    Assert.That(firstViewModel.SelectedItemId, Is.EqualTo("compare"));
-                    Assert.That(secondViewModel.SelectedItemId, Is.EqualTo("overview"));
                     Assert.That(first.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
                     Assert.That(second.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
                 }
             });
+
+            await first.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
+
+            await first.WaitForAssertionAsync(() =>
+                Assert.That(first.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true")));
         }
 
         [Test]
         public void VerifyComponentDisposalDoesNotDisposeSuppliedViewModel()
         {
-            using var contexts = new BehaviorSubject<NavigationRailContext>(CreateContext(
-                ProjectLifecycleState.Preparation));
+            var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
-                contexts,
-                context => SelectItemsByLifecycleState(context, Items, ReplacementItems));
+                contextService,
+                (lifecycleState, _) => SelectItemsByLifecycleState(
+                    lifecycleState,
+                    Items,
+                    ReplacementItems));
             var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
 
             component.Dispose();
 
-            Assert.DoesNotThrow(() => contexts.OnNext(CreateContext(ProjectLifecycleState.Open)));
+            Assert.DoesNotThrow(() => contextService.LifecycleState = ProjectLifecycleState.Open);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.NavigationItems, Is.EqualTo(ReplacementItems));
-                Assert.That(viewModel.SelectedItemId, Is.EqualTo("activity"));
+                Assert.That(viewModel.SelectedItem, Is.SameAs(ReplacementItems[0]));
             }
         }
 
@@ -640,9 +678,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 new ObservableCollection<NavigationRailItem>(Items));
             var viewModel = new Mock<INavigationRailViewModel>(MockBehavior.Strict);
             viewModel.SetupGet(x => x.NavigationItems).Returns(navigationItems);
-            viewModel.SetupGet(x => x.SelectedItemId).Returns("overview");
-            viewModel.SetupGet(x => x.PresentationMode).Returns(NavigationRailPresentationMode.Collapsed);
-            viewModel.SetupGet(x => x.IsCollapsed).Returns(true);
+            viewModel.SetupProperty(x => x.SelectedItem, Items[0]);
+            viewModel.SetupProperty(x => x.PresentationMode, NavigationRailPresentationMode.Collapsed);
             viewModel.Setup(x => x.Dispose());
 
             return viewModel;
@@ -653,31 +690,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             string selectedItemId = "overview")
         {
             var viewModel = new NavigationRailViewModel(
-                Observable.Return(CreateContext(ProjectLifecycleState.Preparation)),
-                _ => Items);
-            viewModel.SelectItem(selectedItemId);
-            viewModel.SetPresentationMode(mode);
+                new ContextAwareService(),
+                (_, _) => Items);
+            viewModel.SelectedItem = Items.Single(item => item.Id == selectedItemId);
+            viewModel.PresentationMode = mode;
 
             return viewModel;
         }
 
-        private static NavigationRailContext CreateContext(ProjectLifecycleState lifecycleState)
-        {
-            return new NavigationRailContext { LifecycleState = lifecycleState };
-        }
-
         private static IReadOnlyList<NavigationRailItem> SelectItemsByLifecycleState(
-            NavigationRailContext context,
+            ProjectLifecycleState lifecycleState,
             IReadOnlyList<NavigationRailItem> preparationItems,
             IReadOnlyList<NavigationRailItem> nonPreparationItems)
         {
-            return context.LifecycleState switch
+            return lifecycleState switch
             {
                 ProjectLifecycleState.Preparation => preparationItems,
                 ProjectLifecycleState.Open => nonPreparationItems,
                 ProjectLifecycleState.Review => nonPreparationItems,
                 ProjectLifecycleState.Archived => nonPreparationItems,
-                _ => throw new ArgumentOutOfRangeException(nameof(context), context.LifecycleState, null)
+                _ => throw new ArgumentOutOfRangeException(nameof(lifecycleState), lifecycleState, null)
             };
         }
 

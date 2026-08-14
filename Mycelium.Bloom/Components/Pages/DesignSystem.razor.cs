@@ -11,11 +11,10 @@ namespace Mycelium.Bloom.Components.Pages
 {
     using System.ComponentModel;
     using System.Globalization;
-    using System.Reactive.Subjects;
-
     using Microsoft.AspNetCore.Components;
     using Microsoft.JSInterop;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -33,7 +32,7 @@ namespace Mycelium.Bloom.Components.Pages
         /// <summary>
         /// Publishes context changes for the page-owned navigation-rail preview.
         /// </summary>
-        private BehaviorSubject<NavigationRailContext> navigationRailPreviewContext;
+        private ContextAwareService navigationRailPreviewContext;
 
         /// <summary>
         /// References the page-scoped theme module after interactive rendering begins.
@@ -111,12 +110,12 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private IReadOnlyList<NavigationRailItem> NavigationRailPreviewItems { get; } =
         [
-            new() { Id = "overview", Label = "Overview", IconName = "layout-dashboard" },
-            new() { Id = "structure", Label = "Structure", IconName = "boxes" },
-            new() { Id = "views", Label = "Views", IconName = "panels-top-left", StartsNewSection = true },
-            new() { Id = "relationships", Label = "Relationships", IconName = "git-compare-arrows" },
-            new() { Id = "activity", Label = "Activity", IconName = "history", StartsNewSection = true },
-            new() { Id = "settings", Label = "Settings", IconName = "settings" }
+            new() { Id = "overview", Label = "Overview", IconName = "layout-dashboard", GroupKey = "model" },
+            new() { Id = "structure", Label = "Structure", IconName = "boxes", GroupKey = "model" },
+            new() { Id = "views", Label = "Views", IconName = "panels-top-left", GroupKey = "analysis" },
+            new() { Id = "relationships", Label = "Relationships", IconName = "git-compare-arrows", GroupKey = "analysis" },
+            new() { Id = "activity", Label = "Activity", IconName = "history", GroupKey = "workspace" },
+            new() { Id = "settings", Label = "Settings", IconName = "settings", GroupKey = "workspace" }
         ];
 
         /// <summary>
@@ -379,19 +378,18 @@ namespace Mycelium.Bloom.Components.Pages
         /// <inheritdoc />
         protected override void OnInitialized()
         {
-            this.navigationRailPreviewContext = new BehaviorSubject<NavigationRailContext>(
-                new NavigationRailContext
-                {
-                    LifecycleState = ProjectLifecycleState.Open,
-                    SelectedElement = null
-                });
+            this.navigationRailPreviewContext = new ContextAwareService
+            {
+                LifecycleState = ProjectLifecycleState.Open,
+                SelectedElement = null
+            };
 
             this.NavigationRailPreviewViewModel = new NavigationRailViewModel(
                 this.navigationRailPreviewContext,
-                _ => this.NavigationRailPreviewItems);
+                (_, _) => this.NavigationRailPreviewItems);
 
-            this.NavigationRailPreviewViewModel.SelectItem("structure");
-            this.NavigationRailPreviewViewModel.SetPresentationMode(NavigationRailPresentationMode.ExpandOnHover);
+            this.NavigationRailPreviewViewModel.SelectedItem = this.NavigationRailPreviewItems.Single(item => item.Id == "structure");
+            this.NavigationRailPreviewViewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
             this.NavigationRailPreviewViewModel.PropertyChanged += this.HandleNavigationRailPreviewStateChanged;
 
             base.OnInitialized();
@@ -958,8 +956,6 @@ namespace Mycelium.Bloom.Components.Pages
                 this.NavigationRailPreviewViewModel.PropertyChanged -= this.HandleNavigationRailPreviewStateChanged;
                 this.NavigationRailPreviewViewModel.Dispose();
             }
-
-            this.navigationRailPreviewContext?.Dispose();
 
             var module = this.themeModule;
             this.themeModule = null;

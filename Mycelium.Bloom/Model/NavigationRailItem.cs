@@ -30,8 +30,8 @@ namespace Mycelium.Bloom.Model
         public string IconName { get; init; } = string.Empty;
 
         /// <summary>
-        /// Gets a value indicating whether this destination starts a visually separated section.
+        /// Gets the key of the visual group containing this destination.
         /// </summary>
-        public bool StartsNewSection { get; init; }
+        public string GroupKey { get; init; } = string.Empty;
     }
 }
