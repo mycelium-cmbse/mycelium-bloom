@@ -11,7 +11,6 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
 {
     using System.Collections.ObjectModel;
     using System.ComponentModel;
-    using System.Diagnostics.CodeAnalysis;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -29,8 +28,6 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// <summary>
         /// Gets or sets the selected destination, or <see langword="null" /> when selection is cleared.
         /// </summary>
-        [AllowNull]
-        [MaybeNull]
         NavigationRailItem SelectedItem { get; set; }
 
         /// <summary>

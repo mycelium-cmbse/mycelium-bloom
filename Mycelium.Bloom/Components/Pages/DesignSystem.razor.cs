@@ -19,6 +19,8 @@ namespace Mycelium.Bloom.Components.Pages
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
 
+    using SysML2.NET.Core.POCO.Root.Elements;
+
     /// <summary>
     /// Provides a development-only composition surface for the reusable Bloom component library.
     /// </summary>
@@ -386,7 +388,7 @@ namespace Mycelium.Bloom.Components.Pages
 
             this.NavigationRailPreviewViewModel = new NavigationRailViewModel(
                 this.navigationRailPreviewContext,
-                (_, _) => this.NavigationRailPreviewItems);
+                new FixedNavigationRailItemProvider(this.NavigationRailPreviewItems));
 
             this.NavigationRailPreviewViewModel.SelectedItem = this.NavigationRailPreviewItems.Single(item => item.Id == "structure");
             this.NavigationRailPreviewViewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
@@ -978,6 +980,36 @@ namespace Mycelium.Bloom.Components.Pages
             }
 
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Supplies the fixed representative destination inventory owned by this preview.
+        /// </summary>
+        private sealed class FixedNavigationRailItemProvider : INavigationRailItemProvider
+        {
+            /// <summary>
+            /// The destinations returned for every preview context.
+            /// </summary>
+            private readonly IReadOnlyList<NavigationRailItem> navigationItems;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="FixedNavigationRailItemProvider" /> class.
+            /// </summary>
+            /// <param name="navigationItems">The preview destinations in display order.</param>
+            public FixedNavigationRailItemProvider(IReadOnlyList<NavigationRailItem> navigationItems)
+            {
+                ArgumentNullException.ThrowIfNull(navigationItems);
+
+                this.navigationItems = navigationItems;
+            }
+
+            /// <inheritdoc />
+            public IReadOnlyList<NavigationRailItem> GetNavigationItems(
+                ProjectLifecycleState lifecycleState,
+                IElement selectedElement)
+            {
+                return this.navigationItems;
+            }
         }
     }
 }

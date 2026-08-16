@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
 
     using Microsoft.Extensions.DependencyInjection;
 
@@ -248,7 +249,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
         {
             var service = new ContextAwareService();
 
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            var exception = Assert.Throws<InvalidEnumArgumentException>(() =>
                 service.LifecycleState = (ProjectLifecycleState)999);
 
             using (Assert.EnterMultipleScope())

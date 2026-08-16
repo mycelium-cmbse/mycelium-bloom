@@ -31,6 +31,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
 
+    using SysML2.NET.Core.POCO.Root.Elements;
+
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
 
     [TestFixture]
@@ -249,10 +251,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                (lifecycleState, _) => SelectItemsByLifecycleState(
-                    lifecycleState,
-                    Items,
-                    ReplacementItems));
+                new TestNavigationRailItemProvider(
+                    (lifecycleState, _) => SelectItemsByLifecycleState(
+                        lifecycleState,
+                        Items,
+                        ReplacementItems)));
             viewModel.SelectedItem = Items[3];
             viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
@@ -415,10 +418,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                (lifecycleState, _) => SelectItemsByLifecycleState(
-                    lifecycleState,
-                    Items,
-                    ReorderedItems));
+                new TestNavigationRailItemProvider(
+                    (lifecycleState, _) => SelectItemsByLifecycleState(
+                        lifecycleState,
+                        Items,
+                        ReorderedItems)));
             viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
@@ -451,16 +455,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var secondContextService = new ContextAwareService();
             using var firstViewModel = new NavigationRailViewModel(
                 firstContextService,
-                (lifecycleState, _) => SelectItemsByLifecycleState(
-                    lifecycleState,
-                    OverviewOnly,
-                    ActivityOnly));
+                new TestNavigationRailItemProvider(
+                    (lifecycleState, _) => SelectItemsByLifecycleState(
+                        lifecycleState,
+                        OverviewOnly,
+                        ActivityOnly)));
             using var secondViewModel = new NavigationRailViewModel(
                 secondContextService,
-                (lifecycleState, _) => SelectItemsByLifecycleState(
-                    lifecycleState,
-                    ReviewOnly,
-                    SettingsOnly));
+                new TestNavigationRailItemProvider(
+                    (lifecycleState, _) => SelectItemsByLifecycleState(
+                        lifecycleState,
+                        ReviewOnly,
+                        SettingsOnly)));
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, firstViewModel));
 
@@ -515,10 +521,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                (lifecycleState, _) => SelectItemsByLifecycleState(
-                    lifecycleState,
-                    Items,
-                    ReplacementItems));
+                new TestNavigationRailItemProvider(
+                    (lifecycleState, _) => SelectItemsByLifecycleState(
+                        lifecycleState,
+                        Items,
+                        ReplacementItems)));
             var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
 
@@ -691,7 +698,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         {
             var viewModel = new NavigationRailViewModel(
                 new ContextAwareService(),
-                (_, _) => Items);
+                new TestNavigationRailItemProvider((_, _) => Items));
             viewModel.SelectedItem = Items.Single(item => item.Id == selectedItemId);
             viewModel.PresentationMode = mode;
 
@@ -718,6 +725,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         {
             return component.Find(".mb-navigation-rail__context-trigger")
                 .TriggerEventAsync("oncontextmenu", new MouseEventArgs { Button = 2 });
+        }
+
+        private sealed class TestNavigationRailItemProvider : INavigationRailItemProvider
+        {
+            private readonly Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector;
+
+            public TestNavigationRailItemProvider(
+                Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector)
+            {
+                ArgumentNullException.ThrowIfNull(selector);
+
+                this.selector = selector;
+            }
+
+            IReadOnlyList<NavigationRailItem> INavigationRailItemProvider.GetNavigationItems(
+                ProjectLifecycleState lifecycleState,
+                IElement selectedElement)
+            {
+                return this.selector(lifecycleState, selectedElement);
+            }
         }
     }
 }

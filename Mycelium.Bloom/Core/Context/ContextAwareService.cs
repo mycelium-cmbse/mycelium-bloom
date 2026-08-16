@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Core.Context
 {
+    using System.ComponentModel;
+
     using Mycelium.Bloom.Model.Enum;
 
     using ReactiveUI;
@@ -45,7 +47,7 @@ namespace Mycelium.Bloom.Core.Context
             {
                 if (!Enum.IsDefined(value))
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, null);
+                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(ProjectLifecycleState));
                 }
 
                 this.RaiseAndSetIfChanged(ref field, value);

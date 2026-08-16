@@ -271,6 +271,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             return mode == this.RequiredViewModel.PresentationMode;
         }
 
+        /// <summary>
+        /// Creates the exception used when a presentation mode is unsupported.
+        /// </summary>
+        /// <param name="presentationMode">The unsupported presentation mode.</param>
+        /// <returns>The exception describing the unsupported presentation mode.</returns>
         private static ArgumentOutOfRangeException CreateInvalidPresentationModeException(
             NavigationRailPresentationMode presentationMode)
         {

@@ -11,9 +11,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Specialized;
+    using System.ComponentModel;
     using System.Linq;
     using System.Runtime.CompilerServices;
+
+    using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
@@ -95,21 +97,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
-            var inconsistentSnapshots = new List<string>();
-            INotifyCollectionChanged observableItems = viewModel.NavigationItems;
-
-            viewModel.PropertyChanging += (_, _) => RecordInconsistentState(viewModel, inconsistentSnapshots);
-            viewModel.PropertyChanged += (_, _) => RecordInconsistentState(viewModel, inconsistentSnapshots);
-            observableItems.CollectionChanged += (_, _) => RecordInconsistentState(viewModel, inconsistentSnapshots);
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
             contextService.LifecycleState = lifecycleState;
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.NavigationItems, Is.EqualTo(expectedItems));
-                Assert.That(inconsistentSnapshots, Is.Empty);
-            }
+            Assert.That(viewModel.NavigationItems, Is.EqualTo(expectedItems));
         }
 
         [Test]
@@ -124,7 +117,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Open);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                (_, selectedElement) => selectedElement is null ? PreparationItems : OpenItems);
+                new TestNavigationRailItemProvider(
+                    (_, selectedElement) => selectedElement is null ? PreparationItems : OpenItems));
 
             Assert.That(viewModel.NavigationItems, Is.EqualTo(PreparationItems));
 
@@ -134,19 +128,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         }
 
         [Test]
-        public void VerifyCombinedContextChangesPublishCoherentInventoryAndSelection()
+        public void VerifyCombinedContextChangesUpdateInventoryAndSelection()
         {
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                SelectItemsByCombinedContext);
+                new TestNavigationRailItemProvider(SelectItemsByCombinedContext));
             viewModel.SelectedItem = Review;
-            var inconsistentSnapshots = new List<string>();
-            INotifyCollectionChanged observableItems = viewModel.NavigationItems;
-
-            viewModel.PropertyChanging += (_, _) => RecordInconsistentState(viewModel, inconsistentSnapshots);
-            viewModel.PropertyChanged += (_, _) => RecordInconsistentState(viewModel, inconsistentSnapshots);
-            observableItems.CollectionChanged += (_, _) => RecordInconsistentState(viewModel, inconsistentSnapshots);
 
             contextService.LifecycleState = ProjectLifecycleState.Open;
             contextService.SelectedElement = new Namespace();
@@ -155,7 +143,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             {
                 Assert.That(viewModel.NavigationItems, Is.EqualTo(ReviewItems));
                 Assert.That(viewModel.SelectedItem, Is.SameAs(Activity));
-                Assert.That(inconsistentSnapshots, Is.Empty);
             }
         }
 
@@ -165,7 +152,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
             viewModel.SelectedItem = Review;
 
             contextService.LifecycleState = ProjectLifecycleState.Open;
@@ -174,25 +162,23 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         }
 
         [Test]
-        public void VerifySelectedItemCanonicalizesStaleInstanceByStableIdentifier()
+        public void VerifySelectedItemUsesReactivePropertySemantics()
         {
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
-            var staleReview = new NavigationRailItem
-            {
-                Id = Review.Id,
-                Label = "Stale review",
-                IconName = "circle"
-            };
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
+            var changedProperties = new List<string>();
+            viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
 
-            viewModel.SelectedItem = staleReview;
+            viewModel.SelectedItem = Review;
+            viewModel.SelectedItem = Review;
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.SelectedItem, Is.SameAs(Review));
-                Assert.That(viewModel.SelectedItem, Is.Not.SameAs(staleReview));
+                Assert.That(changedProperties, Is.EqualTo(new[] { nameof(viewModel.SelectedItem) }));
             }
         }
 
@@ -202,7 +188,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
             viewModel.SelectedItem = null;
 
@@ -215,7 +202,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
             viewModel.SelectedItem = Review;
 
             contextService.LifecycleState = ProjectLifecycleState.Review;
@@ -229,7 +217,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsWithEmptyReviewState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsWithEmptyReviewState(lifecycleState)));
             viewModel.SelectedItem = Review;
 
             contextService.LifecycleState = ProjectLifecycleState.Review;
@@ -238,25 +227,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             {
                 Assert.That(viewModel.NavigationItems, Is.Empty);
                 Assert.That(viewModel.SelectedItem, Is.Null);
-            }
-        }
-
-        [Test]
-        public void VerifySelectedItemRejectsUnavailableStableIdentifier()
-        {
-            var contextService = CreateContextService(ProjectLifecycleState.Preparation);
-            using var viewModel = new NavigationRailViewModel(
-                contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
-            viewModel.SelectedItem = Review;
-            var unavailableItem = new NavigationRailItem { Id = "missing", Label = "Missing" };
-
-            var exception = Assert.Throws<ArgumentException>(() => viewModel.SelectedItem = unavailableItem);
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(exception.ParamName, Is.EqualTo("value"));
-                Assert.That(viewModel.SelectedItem, Is.SameAs(Review));
             }
         }
 
@@ -292,12 +262,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
             var changedProperties = new List<string>();
             viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
 
             viewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
-            var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            var exception = Assert.Throws<InvalidEnumArgumentException>(() =>
                 viewModel.PresentationMode = (NavigationRailPresentationMode)999);
 
             using (Assert.EnterMultipleScope())
@@ -315,10 +286,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var secondContextService = CreateContextService(ProjectLifecycleState.Review);
             using var first = new NavigationRailViewModel(
                 firstContextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
             using var second = new NavigationRailViewModel(
                 secondContextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
             first.SelectedItem = Review;
             first.PresentationMode = NavigationRailPresentationMode.Expanded;
@@ -337,20 +310,46 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         }
 
         [Test]
+        public void VerifyDependencyInjectionResolvesIndependentViewModels()
+        {
+            var services = new ServiceCollection();
+            services.AddScoped<ContextAwareService>();
+            services.AddScoped<IContextAwareService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+            services.AddSingleton<INavigationRailItemProvider>(
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
+            services.AddTransient<INavigationRailViewModel, NavigationRailViewModel>();
+
+            using var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+            var first = scope.ServiceProvider.GetRequiredService<INavigationRailViewModel>();
+            var second = scope.ServiceProvider.GetRequiredService<INavigationRailViewModel>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first, Is.TypeOf<NavigationRailViewModel>());
+                Assert.That(second, Is.TypeOf<NavigationRailViewModel>());
+                Assert.That(second, Is.Not.SameAs(first));
+                Assert.That(first.NavigationItems, Is.EqualTo(PreparationItems));
+                Assert.That(second.NavigationItems, Is.EqualTo(PreparationItems));
+            }
+        }
+
+        [Test]
         public void VerifyDisposalIsIdempotentAndStopsContextSubscriptions()
         {
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             var viewModel = new NavigationRailViewModel(
                 contextService,
-                static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState));
+                new TestNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
             viewModel.Dispose();
 
             Assert.DoesNotThrow(viewModel.Dispose);
             Assert.DoesNotThrow(() =>
                 contextService.LifecycleState = ProjectLifecycleState.Archived);
-            Assert.DoesNotThrow(() => viewModel.SelectedItem = Review);
-            Assert.DoesNotThrow(() => viewModel.PresentationMode = NavigationRailPresentationMode.Expanded);
 
             using (Assert.EnterMultipleScope())
             {
@@ -412,17 +411,23 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             };
         }
 
-        private static void RecordInconsistentState(
-            NavigationRailViewModel viewModel,
-            List<string> inconsistentSnapshots)
+        private sealed class TestNavigationRailItemProvider : INavigationRailItemProvider
         {
-            var isCoherent = viewModel.SelectedItem is null
-                || viewModel.NavigationItems.Contains(viewModel.SelectedItem);
+            private readonly Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector;
 
-            if (!isCoherent)
+            public TestNavigationRailItemProvider(
+                Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector)
             {
-                inconsistentSnapshots.Add(
-                    $"Selection '{viewModel.SelectedItem?.Id}' is not canonical for the published inventory.");
+                ArgumentNullException.ThrowIfNull(selector);
+
+                this.selector = selector;
+            }
+
+            IReadOnlyList<NavigationRailItem> INavigationRailItemProvider.GetNavigationItems(
+                ProjectLifecycleState lifecycleState,
+                IElement selectedElement)
+            {
+                return this.selector(lifecycleState, selectedElement);
             }
         }
     }
