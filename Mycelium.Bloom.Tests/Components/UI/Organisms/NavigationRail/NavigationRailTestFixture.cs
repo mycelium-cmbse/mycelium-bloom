@@ -251,7 +251,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                new TestNavigationRailItemProvider(
+                CreateNavigationRailItemProvider(
                     (lifecycleState, _) => SelectItemsByLifecycleState(
                         lifecycleState,
                         Items,
@@ -418,7 +418,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                new TestNavigationRailItemProvider(
+                CreateNavigationRailItemProvider(
                     (lifecycleState, _) => SelectItemsByLifecycleState(
                         lifecycleState,
                         Items,
@@ -455,14 +455,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var secondContextService = new ContextAwareService();
             using var firstViewModel = new NavigationRailViewModel(
                 firstContextService,
-                new TestNavigationRailItemProvider(
+                CreateNavigationRailItemProvider(
                     (lifecycleState, _) => SelectItemsByLifecycleState(
                         lifecycleState,
                         OverviewOnly,
                         ActivityOnly)));
             using var secondViewModel = new NavigationRailViewModel(
                 secondContextService,
-                new TestNavigationRailItemProvider(
+                CreateNavigationRailItemProvider(
                     (lifecycleState, _) => SelectItemsByLifecycleState(
                         lifecycleState,
                         ReviewOnly,
@@ -521,7 +521,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var contextService = new ContextAwareService();
             using var viewModel = new NavigationRailViewModel(
                 contextService,
-                new TestNavigationRailItemProvider(
+                CreateNavigationRailItemProvider(
                     (lifecycleState, _) => SelectItemsByLifecycleState(
                         lifecycleState,
                         Items,
@@ -698,7 +698,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         {
             var viewModel = new NavigationRailViewModel(
                 new ContextAwareService(),
-                new TestNavigationRailItemProvider((_, _) => Items));
+                CreateNavigationRailItemProvider((_, _) => Items));
             viewModel.SelectedItem = Items.Single(item => item.Id == selectedItemId);
             viewModel.PresentationMode = mode;
 
@@ -727,24 +727,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 .TriggerEventAsync("oncontextmenu", new MouseEventArgs { Button = 2 });
         }
 
-        private sealed class TestNavigationRailItemProvider : INavigationRailItemProvider
+        private static INavigationRailItemProvider CreateNavigationRailItemProvider(
+            Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector)
         {
-            private readonly Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector;
+            ArgumentNullException.ThrowIfNull(selector);
 
-            public TestNavigationRailItemProvider(
-                Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector)
-            {
-                ArgumentNullException.ThrowIfNull(selector);
+            var provider = new Mock<INavigationRailItemProvider>(MockBehavior.Strict);
+            provider.Setup(x => x.GetNavigationItems(
+                    It.IsAny<ProjectLifecycleState>(),
+                    It.IsAny<IElement>()))
+                .Returns(selector);
 
-                this.selector = selector;
-            }
-
-            IReadOnlyList<NavigationRailItem> INavigationRailItemProvider.GetNavigationItems(
-                ProjectLifecycleState lifecycleState,
-                IElement selectedElement)
-            {
-                return this.selector(lifecycleState, selectedElement);
-            }
+            return provider.Object;
         }
     }
 }

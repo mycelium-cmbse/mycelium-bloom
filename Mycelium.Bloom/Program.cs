@@ -15,6 +15,7 @@ namespace Mycelium.Bloom
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using OpenTelemetry.Resources;
@@ -53,14 +54,7 @@ namespace Mycelium.Bloom
                 .AddInteractiveServerComponents();
             builder.Services.AddBlazorBlueprintComponents();
 
-            // Add application services.
-            builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
-            builder.Services.AddScoped<ContextAwareService>();
-            builder.Services.AddScoped<IContextAwareService>(
-                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
-            builder.Services.AddScoped<IElementSelectionService>(
-                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
-            builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+            ConfigureApplicationServices(builder.Services);
 
             var app = builder.Build();
 
@@ -82,6 +76,25 @@ namespace Mycelium.Bloom
                 .AddInteractiveServerRenderMode();
 
             app.Run();
+        }
+
+        /// <summary>
+        /// Registers the application services used by Mycelium Bloom.
+        /// </summary>
+        /// <param name="services">The service collection to configure.</param>
+        public static void ConfigureApplicationServices(IServiceCollection services)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+
+            services.AddScoped<IModelLoaderService, ModelLoaderService>();
+            services.AddScoped<ContextAwareService>();
+            services.AddScoped<IContextAwareService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+            services.AddScoped<IElementSelectionService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+            services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+            services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
+            services.AddTransient<INavigationRailViewModel, NavigationRailViewModel>();
         }
     }
 }
