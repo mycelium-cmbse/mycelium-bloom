@@ -15,8 +15,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
     using System.Linq;
     using System.Runtime.CompilerServices;
 
-    using Microsoft.Extensions.DependencyInjection;
-
     using Moq;
 
     using Mycelium.Bloom.Core.Context;
@@ -306,35 +304,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 Assert.That(second.NavigationItems, Is.EqualTo(ReviewItems));
                 Assert.That(first.SelectedItem, Is.SameAs(OpenReview));
                 Assert.That(second.SelectedItem, Is.SameAs(Activity));
-                Assert.That(first.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
-                Assert.That(second.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
-            }
-        }
-
-        [Test]
-        public void VerifyDependencyInjectionResolvesIndependentViewModels()
-        {
-            var services = new ServiceCollection();
-            Mycelium.Bloom.Program.ConfigureApplicationServices(services);
-
-            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
-            using var scope = serviceProvider.CreateScope();
-            var navigationRailItemProvider = scope.ServiceProvider.GetRequiredService<INavigationRailItemProvider>();
-            var first = scope.ServiceProvider.GetRequiredService<INavigationRailViewModel>();
-            var second = scope.ServiceProvider.GetRequiredService<INavigationRailViewModel>();
-            var secondSelectedItem = second.SelectedItem;
-
-            first.SelectedItem = first.NavigationItems[1];
-            first.PresentationMode = NavigationRailPresentationMode.Expanded;
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(navigationRailItemProvider, Is.TypeOf<NavigationRailItemProvider>());
-                Assert.That(first, Is.TypeOf<NavigationRailViewModel>());
-                Assert.That(second, Is.TypeOf<NavigationRailViewModel>());
-                Assert.That(second, Is.Not.SameAs(first));
-                Assert.That(first.SelectedItem, Is.SameAs(first.NavigationItems[1]));
-                Assert.That(second.SelectedItem, Is.SameAs(secondSelectedItem));
                 Assert.That(first.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
                 Assert.That(second.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
             }

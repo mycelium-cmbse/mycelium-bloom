@@ -21,8 +21,14 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
     /// </summary>
     public sealed class NavigationRailItemProvider : INavigationRailItemProvider
     {
+        /// <summary>
+        /// The group key shared by the top-level workspace destinations.
+        /// </summary>
         private const string WorkspaceGroupKey = "workspace";
 
+        /// <summary>
+        /// The cached read-only workspace destination inventory.
+        /// </summary>
         private static readonly ReadOnlyCollection<NavigationRailItem> NavigationItems =
             Array.AsReadOnly<NavigationRailItem>(
             [
