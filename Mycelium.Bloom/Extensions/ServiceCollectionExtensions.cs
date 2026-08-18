@@ -16,6 +16,7 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     /// <summary>
     /// Provides dependency-injection registration extensions for Mycelium Bloom application services.
@@ -43,6 +44,7 @@ namespace Mycelium.Bloom.Extensions
             services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
             services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
             services.AddTransient<INavigationRailViewModel, NavigationRailViewModel>();
+            services.AddTransient<IWorkspaceEditorViewModel, WorkspaceEditorViewModel>();
 
             return services;
         }

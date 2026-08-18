@@ -17,6 +17,7 @@ namespace Mycelium.Bloom.Tests.Extensions
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     [TestFixture]
     public sealed class ServiceCollectionExtensionsTestFixture
@@ -59,6 +60,25 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(secondProvider, Is.SameAs(firstProvider));
                 Assert.That(firstViewModel, Is.TypeOf<NavigationRailViewModel>());
                 Assert.That(secondViewModel, Is.TypeOf<NavigationRailViewModel>());
+                Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+            }
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersWorkspaceEditorViewModelAsTransient()
+        {
+            var services = new ServiceCollection();
+            services.AddApplicationServices();
+
+            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            using var scope = serviceProvider.CreateScope();
+            var firstViewModel = scope.ServiceProvider.GetRequiredService<IWorkspaceEditorViewModel>();
+            var secondViewModel = scope.ServiceProvider.GetRequiredService<IWorkspaceEditorViewModel>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
+                Assert.That(secondViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
                 Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
             }
         }
