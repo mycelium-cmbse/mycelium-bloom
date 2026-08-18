@@ -9,13 +9,17 @@
 
 namespace Mycelium.Bloom.Components.Pages
 {
+    using System.ComponentModel;
     using System.Globalization;
-
     using Microsoft.AspNetCore.Components;
     using Microsoft.JSInterop;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.NavigationRail;
+
+    using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
     /// Provides a development-only composition surface for the reusable Bloom component library.
@@ -26,6 +30,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// Identifies this page instance as the current owner of the document theme preview.
         /// </summary>
         private readonly string themeOwnerId = $"mb-design-system-theme-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// Publishes context changes for the page-owned navigation-rail preview.
+        /// </summary>
+        private ContextAwareService navigationRailPreviewContext;
 
         /// <summary>
         /// References the page-scoped theme module after interactive rendering begins.
@@ -96,6 +105,19 @@ namespace Mycelium.Bloom.Components.Pages
             new() { Id = "lunar", Name = "Lunar Habitat", Description = "Concept development", Initial = "L" },
             new() { Id = "payload", Name = "Payload Study", Description = "Read-only archive", Initial = "P", Disabled = true },
             new() { Id = "deep-space", Name = "Deep-space exploration architecture workspace", Description = "Long-name truncation example", Initial = "D" }
+        ];
+
+        /// <summary>
+        /// Gets the representative destinations used only by the navigation-rail preview.
+        /// </summary>
+        private IReadOnlyList<NavigationRailItem> NavigationRailPreviewItems { get; } =
+        [
+            new() { Id = "overview", Label = "Overview", IconName = "layout-dashboard", GroupKey = "model" },
+            new() { Id = "structure", Label = "Structure", IconName = "boxes", GroupKey = "model" },
+            new() { Id = "views", Label = "Views", IconName = "panels-top-left", GroupKey = "analysis" },
+            new() { Id = "relationships", Label = "Relationships", IconName = "git-compare-arrows", GroupKey = "analysis" },
+            new() { Id = "activity", Label = "Activity", IconName = "history", GroupKey = "workspace" },
+            new() { Id = "settings", Label = "Settings", IconName = "settings", GroupKey = "workspace" }
         ];
 
         /// <summary>
@@ -349,6 +371,31 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets a value indicating whether the workspace example shows its right panel.
         /// </summary>
         private bool WorkspaceRightPanelVisible { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the page-owned ViewModel used by the navigation-rail preview.
+        /// </summary>
+        private NavigationRailViewModel NavigationRailPreviewViewModel { get; set; }
+
+        /// <inheritdoc />
+        protected override void OnInitialized()
+        {
+            this.navigationRailPreviewContext = new ContextAwareService
+            {
+                LifecycleState = ProjectLifecycleState.Open,
+                SelectedElement = null
+            };
+
+            this.NavigationRailPreviewViewModel = new NavigationRailViewModel(
+                this.navigationRailPreviewContext,
+                new FixedNavigationRailItemProvider(this.NavigationRailPreviewItems));
+
+            this.NavigationRailPreviewViewModel.SelectedItem = this.NavigationRailPreviewItems.Single(item => item.Id == "structure");
+            this.NavigationRailPreviewViewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
+            this.NavigationRailPreviewViewModel.PropertyChanged += this.HandleNavigationRailPreviewStateChanged;
+
+            base.OnInitialized();
+        }
 
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -696,6 +743,16 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
+        /// Refreshes the preview result when navigation state changes.
+        /// </summary>
+        /// <param name="sender">The navigation ViewModel.</param>
+        /// <param name="args">The changed property.</param>
+        private void HandleNavigationRailPreviewStateChanged(object sender, PropertyChangedEventArgs args)
+        {
+            _ = this.InvokeAsync(this.StateHasChanged);
+        }
+
+        /// <summary>
         /// Updates the selected tab.
         /// </summary>
         /// <param name="value">The selected tab value.</param>
@@ -896,6 +953,12 @@ namespace Mycelium.Bloom.Components.Pages
         /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
+            if (this.NavigationRailPreviewViewModel is not null)
+            {
+                this.NavigationRailPreviewViewModel.PropertyChanged -= this.HandleNavigationRailPreviewStateChanged;
+                this.NavigationRailPreviewViewModel.Dispose();
+            }
+
             var module = this.themeModule;
             this.themeModule = null;
 
@@ -917,6 +980,36 @@ namespace Mycelium.Bloom.Components.Pages
             }
 
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Supplies the fixed representative destination inventory owned by this preview.
+        /// </summary>
+        private sealed class FixedNavigationRailItemProvider : INavigationRailItemProvider
+        {
+            /// <summary>
+            /// The destinations returned for every preview context.
+            /// </summary>
+            private readonly IReadOnlyList<NavigationRailItem> navigationItems;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="FixedNavigationRailItemProvider" /> class.
+            /// </summary>
+            /// <param name="navigationItems">The preview destinations in display order.</param>
+            public FixedNavigationRailItemProvider(IReadOnlyList<NavigationRailItem> navigationItems)
+            {
+                ArgumentNullException.ThrowIfNull(navigationItems);
+
+                this.navigationItems = navigationItems;
+            }
+
+            /// <inheritdoc />
+            public IReadOnlyList<NavigationRailItem> GetNavigationItems(
+                ProjectLifecycleState lifecycleState,
+                IElement selectedElement)
+            {
+                return this.navigationItems;
+            }
         }
     }
 }

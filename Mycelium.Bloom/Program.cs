@@ -12,9 +12,7 @@ namespace Mycelium.Bloom
     using BlazorBlueprint.Components;
 
     using Mycelium.Bloom.Components;
-    using Mycelium.Bloom.Core.ModelLoading;
-    using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.Extensions;
 
     using OpenTelemetry.Resources;
 
@@ -52,10 +50,7 @@ namespace Mycelium.Bloom
                 .AddInteractiveServerComponents();
             builder.Services.AddBlazorBlueprintComponents();
 
-            // Add application services.
-            builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
-            builder.Services.AddScoped<IElementSelectionService, ElementSelectionService>();
-            builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+            builder.Services.AddApplicationServices();
 
             var app = builder.Build();
 
