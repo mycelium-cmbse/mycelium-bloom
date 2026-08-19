@@ -12,11 +12,14 @@ namespace Mycelium.Bloom.Tests.Extensions
     using System;
 
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     [TestFixture]
     public sealed class ServiceCollectionExtensionsTestFixture
@@ -60,6 +63,32 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(firstViewModel, Is.TypeOf<NavigationRailViewModel>());
                 Assert.That(secondViewModel, Is.TypeOf<NavigationRailViewModel>());
                 Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+            }
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersWorkspaceEditorViewModelAsTransient()
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<IOptions<WorkspaceEditorOptions>>(
+                Options.Create(new WorkspaceEditorOptions
+                {
+                    MaximumGroupCount = 3
+                }));
+            services.AddApplicationServices();
+
+            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            using var scope = serviceProvider.CreateScope();
+            var firstViewModel = scope.ServiceProvider.GetRequiredService<IWorkspaceEditorViewModel>();
+            var secondViewModel = scope.ServiceProvider.GetRequiredService<IWorkspaceEditorViewModel>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
+                Assert.That(secondViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
+                Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+                Assert.That(firstViewModel.MaximumGroupCount, Is.EqualTo(3));
+                Assert.That(secondViewModel.MaximumGroupCount, Is.EqualTo(3));
             }
         }
 

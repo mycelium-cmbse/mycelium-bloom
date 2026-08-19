@@ -340,7 +340,9 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(program, Does.Contain("using BlazorBlueprint.Components;"));
-                Assert.That(program, Does.Contain("AddBlazorBlueprintComponents();"));
+                Assert.That(
+                    program,
+                    Does.Match(@"AddBlazorBlueprintComponents\(\)\s*\.AddApplicationServices\(\);"));
                 Assert.That(program, Does.Not.Contain("AddBlazorBlueprintPrimitives();"));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.15.0\""));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Icons.Lucide\" Version=\"2.0.2\""));

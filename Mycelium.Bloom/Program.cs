@@ -39,6 +39,8 @@ namespace Mycelium.Bloom
 
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
+
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))
                 .WithLogging();
@@ -48,9 +50,8 @@ namespace Mycelium.Bloom
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
-            builder.Services.AddBlazorBlueprintComponents();
-
-            builder.Services.AddApplicationServices();
+            builder.Services.AddBlazorBlueprintComponents()
+                .AddApplicationServices();
 
             var app = builder.Build();
 
