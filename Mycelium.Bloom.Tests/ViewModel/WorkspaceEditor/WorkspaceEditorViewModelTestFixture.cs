@@ -13,7 +13,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Collections.Specialized;
+    using System.Globalization;
     using System.Linq;
+
+    using Microsoft.Extensions.Configuration;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -21,10 +24,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
     [TestFixture]
     public sealed class WorkspaceEditorViewModelTestFixture
     {
+        private const int DefaultMaximumGroupCount = 3;
+
+        private const string MaximumGroupCountConfigurationKey = "WorkspaceEditor:MaximumGroupCount";
+
         [Test]
         public void VerifyConstructorCreatesInitialWorkspaceState()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var initialGroup = viewModel.Groups.Single();
 
             using (Assert.EnterMultipleScope())
@@ -41,9 +48,36 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         }
 
         [Test]
+        public void VerifyConstructorRejectsNullConfiguration()
+        {
+            IConfiguration configuration = null;
+
+            var exception = Assert.Throws<ArgumentNullException>(() => new WorkspaceEditorViewModel(configuration));
+
+            Assert.That(exception.ParamName, Is.EqualTo(nameof(configuration)));
+        }
+
+        [TestCase(0)]
+        [TestCase(-1)]
+        public void VerifyConstructorRejectsInvalidMaximumGroupCount(int maximumGroupCount)
+        {
+            var configuration = CreateConfiguration(maximumGroupCount);
+
+            var exception = Assert.Throws<InvalidOperationException>(() => new WorkspaceEditorViewModel(configuration));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception.Message, Does.Contain(MaximumGroupCountConfigurationKey));
+                Assert.That(
+                    exception.Message,
+                    Does.Contain(maximumGroupCount.ToString(CultureInfo.InvariantCulture)));
+            }
+        }
+
+        [Test]
         public void VerifyTryAddGroupAppendsEmptyGroupsAndFocusesNewestGroup()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var initialGroup = viewModel.Groups[0];
 
             var firstResult = viewModel.TryAddGroup(out var secondGroup);
@@ -65,7 +99,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTryAddGroupRejectsFourthGroupAtomically()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             AddGroup(viewModel);
             AddGroup(viewModel);
             var groups = viewModel.Groups;
@@ -92,9 +126,33 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         }
 
         [Test]
+        public void VerifyTryAddGroupUsesConfiguredMaximumGroupCount()
+        {
+            const int maximumGroupCount = 5;
+            var viewModel = CreateViewModel(maximumGroupCount);
+            var expectedGroups = new List<EditorGroupViewModel> { viewModel.Groups[0] };
+
+            for (var groupIndex = 1; groupIndex < maximumGroupCount; groupIndex++)
+            {
+                expectedGroups.Add(AddGroup(viewModel));
+            }
+
+            var result = viewModel.TryAddGroup(out var rejectedGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.MaximumGroupCount, Is.EqualTo(maximumGroupCount));
+                Assert.That(viewModel.Groups, Is.EqualTo(expectedGroups));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(expectedGroups[^1]));
+                Assert.That(result, Is.False);
+                Assert.That(rejectedGroup, Is.Null);
+            }
+        }
+
+        [Test]
         public void VerifyGroupsExposeStableOrderedCollectionNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var groups = viewModel.Groups;
             var initialGroup = groups[0];
             var notifications = new List<NotifyCollectionChangedEventArgs>();
@@ -128,7 +186,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         public void VerifyTryOpenTabSupportsUnlimitedOrderedTabs()
         {
             const int tabCount = 128;
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var expectedTabs = new List<EditorTabItem>();
 
@@ -149,7 +207,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTryOpenTabCreatesIndependentDuplicateViewInstances()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
 
             var firstTab = OpenTab(viewModel, group, "Duplicate", "shared-view");
@@ -191,7 +249,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTryOpenTabPreservesMetadataAndFocusesTargetGroup()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var targetGroup = AddGroup(viewModel);
             Assert.That(viewModel.FocusGroup(viewModel.Groups[0].Id), Is.True);
 
@@ -215,7 +273,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTryOpenTabRejectsNullTitleBeforeGroupLookup()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var groups = viewModel.Groups;
 
             var exception = Assert.Throws<ArgumentNullException>(() =>
@@ -232,7 +290,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTryOpenTabRejectsNullViewTypeKeyBeforeGroupLookup()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var groups = viewModel.Groups;
 
             var exception = Assert.Throws<ArgumentNullException>(() =>
@@ -250,7 +308,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [TestCase("   ")]
         public void VerifyTryOpenTabRejectsWhitespaceTitleBeforeGroupLookup(string title)
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
 
             var exception = Assert.Throws<ArgumentException>(() =>
                 viewModel.TryOpenTab(Guid.NewGuid(), title, "view-key", out _));
@@ -266,7 +324,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [TestCase("   ")]
         public void VerifyTryOpenTabRejectsWhitespaceViewTypeKeyBeforeGroupLookup(string viewTypeKey)
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
 
             var exception = Assert.Throws<ArgumentException>(() =>
                 viewModel.TryOpenTab(Guid.NewGuid(), "Title", viewTypeKey, out _));
@@ -281,7 +339,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTryOpenTabRejectsUnknownGroupWithoutMutationOrNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var groups = viewModel.Groups;
             var tabs = group.Tabs;
@@ -315,7 +373,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyTabsExposeStableOrderedCollectionNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var tabs = group.Tabs;
             var notifications = new List<NotifyCollectionChangedEventArgs>();
@@ -347,7 +405,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyGroupsMaintainIndependentActiveTabs()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, firstGroup, "First A", "first-a");
             var secondFirstTab = OpenTab(viewModel, firstGroup, "First B", "first-b");
@@ -369,7 +427,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyActivateTabFocusesOwningGroupAndSuppressesIdempotentNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var targetTab = OpenTab(viewModel, firstGroup, "First", "first-view");
             OpenTab(viewModel, firstGroup, "Second", "second-view");
@@ -397,7 +455,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyFocusGroupChangesOnlyFocusAndSuppressesIdempotentNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var firstActiveTab = OpenTab(viewModel, firstGroup, "First", "first-view");
             var secondGroup = AddGroup(viewModel);
@@ -428,7 +486,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyUnavailableIdentifiersAreRejectedWithoutMutationOrNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var retainedGroup = viewModel.Groups[0];
             var staleTab = OpenTab(viewModel, retainedGroup, "Stale", "stale-view");
             Assert.That(viewModel.CloseTab(retainedGroup.Id, staleTab.Id), Is.True);
@@ -501,7 +559,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyWrongGroupTabOwnershipIsRejectedWithoutMutationOrNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, firstGroup, "First", "first-view");
             var secondGroup = AddGroup(viewModel);
@@ -542,7 +600,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabSelectsRightNeighborWhenClosingActiveMiddleTab()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, group, "A", "a");
             var secondTab = OpenTab(viewModel, group, "B", "b");
@@ -563,7 +621,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabSelectsLeftNeighborWhenClosingActiveLastTab()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, group, "A", "a");
             var secondTab = OpenTab(viewModel, group, "B", "b");
@@ -582,7 +640,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabSelectsRightNeighborWhenClosingActiveFirstTab()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, group, "A", "a");
             var secondTab = OpenTab(viewModel, group, "B", "b");
@@ -602,7 +660,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabPreservesActiveTabAndWorkspaceFocusWhenClosingInactiveTab()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var inactiveTab = OpenTab(viewModel, firstGroup, "Inactive", "inactive-view");
             var activeTab = OpenTab(viewModel, firstGroup, "Active", "active-view");
@@ -628,7 +686,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabRetainsFinalEmptyFocusedGroup()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var groups = viewModel.Groups;
             var tab = OpenTab(viewModel, group, "Only", "only-view");
@@ -653,7 +711,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabRemovesRedundantGroupAfterMakingItCoherent()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var retainedGroup = viewModel.Groups[0];
             var removedGroup = AddGroup(viewModel);
             var removedTabs = removedGroup.Tabs;
@@ -688,7 +746,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabFocusesGroupAtRemovedIndexWhenAvailable()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var removedGroup = AddGroup(viewModel);
             var lastGroup = AddGroup(viewModel);
@@ -708,7 +766,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyCloseTabFocusesPreviousGroupWhenRemovedIndexHasNoSuccessor()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var firstGroup = viewModel.Groups[0];
             var middleGroup = AddGroup(viewModel);
             var removedGroup = AddGroup(viewModel);
@@ -728,7 +786,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyMoveTabTransfersSameInstanceAndUpdatesSourceAndDestinationState()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var sourceGroup = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, sourceGroup, "A", "a");
             var movedTab = OpenTab(viewModel, sourceGroup, "B", "b");
@@ -771,7 +829,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyMoveTabSelectsLeftNeighborWhenMovingActiveLastTab()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var sourceGroup = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, sourceGroup, "A", "a");
             var secondTab = OpenTab(viewModel, sourceGroup, "B", "b");
@@ -792,7 +850,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyMoveTabPreservesInactiveSourceTabSelection()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var sourceGroup = viewModel.Groups[0];
             var movedTab = OpenTab(viewModel, sourceGroup, "Move", "move-view");
             var activeTab = OpenTab(viewModel, sourceGroup, "Active", "active-view");
@@ -814,7 +872,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyMoveTabRemovesEmptySourceAfterMakingItCoherent()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var sourceGroup = viewModel.Groups[0];
             var sourceTabs = sourceGroup.Tabs;
             var movedTab = OpenTab(viewModel, sourceGroup, "Only", "only-view");
@@ -850,7 +908,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyMoveTabRejectsSameGroupWithoutMutationOrNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var group = viewModel.Groups[0];
             var firstTab = OpenTab(viewModel, group, "First", "first-view");
             var secondTab = OpenTab(viewModel, group, "Second", "second-view");
@@ -884,7 +942,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyMoveTabRejectsUnknownDestinationWithoutMutationOrNotifications()
         {
-            var viewModel = new WorkspaceEditorViewModel();
+            var viewModel = CreateViewModel();
             var sourceGroup = viewModel.Groups[0];
             var tab = OpenTab(viewModel, sourceGroup, "Only", "only-view");
             var tabs = sourceGroup.Tabs;
@@ -915,8 +973,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         [Test]
         public void VerifyWorkspaceEditorViewModelInstancesOwnIndependentState()
         {
-            var firstViewModel = new WorkspaceEditorViewModel();
-            var secondViewModel = new WorkspaceEditorViewModel();
+            var firstViewModel = CreateViewModel();
+            var secondViewModel = CreateViewModel();
             var firstInitialGroup = firstViewModel.Groups[0];
             var secondInitialGroup = secondViewModel.Groups[0];
             var firstTab = OpenTab(firstViewModel, firstInitialGroup, "First", "shared-view");
@@ -934,6 +992,22 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(firstViewModel.FocusedGroup, Is.SameAs(addedFirstGroup));
                 Assert.That(secondViewModel.FocusedGroup, Is.SameAs(secondInitialGroup));
             }
+        }
+
+        private static WorkspaceEditorViewModel CreateViewModel(
+            int maximumGroupCount = DefaultMaximumGroupCount)
+        {
+            return new WorkspaceEditorViewModel(CreateConfiguration(maximumGroupCount));
+        }
+
+        private static IConfiguration CreateConfiguration(int maximumGroupCount)
+        {
+            return new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    [MaximumGroupCountConfigurationKey] = maximumGroupCount.ToString(CultureInfo.InvariantCulture)
+                })
+                .Build();
         }
 
         private static EditorGroupViewModel AddGroup(WorkspaceEditorViewModel viewModel)

@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
     public interface IWorkspaceEditorViewModel : INotifyPropertyChanged
     {
         /// <summary>
-        /// Gets the maximum number of editor groups supported by the workspace.
+        /// Gets the application-configured maximum number of editor groups supported by the workspace.
         /// </summary>
         int MaximumGroupCount { get; }
 

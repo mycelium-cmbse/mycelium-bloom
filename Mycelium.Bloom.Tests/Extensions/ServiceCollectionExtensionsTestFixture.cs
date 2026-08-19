@@ -10,7 +10,9 @@
 namespace Mycelium.Bloom.Tests.Extensions
 {
     using System;
+    using System.Collections.Generic;
 
+    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Core.Context;
@@ -68,6 +70,13 @@ namespace Mycelium.Bloom.Tests.Extensions
         public void VerifyAddApplicationServicesRegistersWorkspaceEditorViewModelAsTransient()
         {
             var services = new ServiceCollection();
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    ["WorkspaceEditor:MaximumGroupCount"] = "3"
+                })
+                .Build();
+            services.AddSingleton<IConfiguration>(configuration);
             services.AddApplicationServices();
 
             using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -80,6 +89,8 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(firstViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
                 Assert.That(secondViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
                 Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+                Assert.That(firstViewModel.MaximumGroupCount, Is.EqualTo(3));
+                Assert.That(secondViewModel.MaximumGroupCount, Is.EqualTo(3));
             }
         }
 
