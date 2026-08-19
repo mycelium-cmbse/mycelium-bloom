@@ -13,11 +13,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Collections.Specialized;
-    using System.Globalization;
     using System.Linq;
 
-    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
@@ -25,8 +25,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
     public sealed class WorkspaceEditorViewModelTestFixture
     {
         private const int DefaultMaximumGroupCount = 3;
-
-        private const string MaximumGroupCountConfigurationKey = "WorkspaceEditor:MaximumGroupCount";
 
         [Test]
         public void VerifyConstructorCreatesInitialWorkspaceState()
@@ -48,30 +46,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         }
 
         [Test]
-        public void VerifyConstructorRejectsNullConfiguration()
+        public void VerifyConstructorRejectsNullOptions()
         {
-            IConfiguration configuration = null;
+            IOptions<WorkspaceEditorOptions> options = null;
 
-            var exception = Assert.Throws<ArgumentNullException>(() => new WorkspaceEditorViewModel(configuration));
+            var exception = Assert.Throws<ArgumentNullException>(() => new WorkspaceEditorViewModel(options));
 
-            Assert.That(exception.ParamName, Is.EqualTo(nameof(configuration)));
-        }
-
-        [TestCase(0)]
-        [TestCase(-1)]
-        public void VerifyConstructorRejectsInvalidMaximumGroupCount(int maximumGroupCount)
-        {
-            var configuration = CreateConfiguration(maximumGroupCount);
-
-            var exception = Assert.Throws<InvalidOperationException>(() => new WorkspaceEditorViewModel(configuration));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(exception.Message, Does.Contain(MaximumGroupCountConfigurationKey));
-                Assert.That(
-                    exception.Message,
-                    Does.Contain(maximumGroupCount.ToString(CultureInfo.InvariantCulture)));
-            }
+            Assert.That(exception.ParamName, Is.EqualTo(nameof(options)));
         }
 
         [Test]
@@ -997,17 +978,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         private static WorkspaceEditorViewModel CreateViewModel(
             int maximumGroupCount = DefaultMaximumGroupCount)
         {
-            return new WorkspaceEditorViewModel(CreateConfiguration(maximumGroupCount));
-        }
-
-        private static IConfiguration CreateConfiguration(int maximumGroupCount)
-        {
-            return new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string>
+            return new WorkspaceEditorViewModel(
+                Options.Create(new WorkspaceEditorOptions
                 {
-                    [MaximumGroupCountConfigurationKey] = maximumGroupCount.ToString(CultureInfo.InvariantCulture)
-                })
-                .Build();
+                    MaximumGroupCount = maximumGroupCount
+                }));
         }
 
         private static EditorGroupViewModel AddGroup(WorkspaceEditorViewModel viewModel)

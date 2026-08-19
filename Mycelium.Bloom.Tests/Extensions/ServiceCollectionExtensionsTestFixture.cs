@@ -10,11 +10,11 @@
 namespace Mycelium.Bloom.Tests.Extensions
 {
     using System;
-    using System.Collections.Generic;
 
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
@@ -70,13 +70,11 @@ namespace Mycelium.Bloom.Tests.Extensions
         public void VerifyAddApplicationServicesRegistersWorkspaceEditorViewModelAsTransient()
         {
             var services = new ServiceCollection();
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string>
+            services.AddSingleton<IOptions<WorkspaceEditorOptions>>(
+                Options.Create(new WorkspaceEditorOptions
                 {
-                    ["WorkspaceEditor:MaximumGroupCount"] = "3"
-                })
-                .Build();
-            services.AddSingleton<IConfiguration>(configuration);
+                    MaximumGroupCount = 3
+                }));
             services.AddApplicationServices();
 
             using var serviceProvider = services.BuildServiceProvider(validateScopes: true);

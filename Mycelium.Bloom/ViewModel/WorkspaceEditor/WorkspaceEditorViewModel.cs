@@ -11,8 +11,9 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
 {
     using System.Collections.ObjectModel;
 
-    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Model;
 
     using ReactiveUI;
@@ -22,11 +23,6 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
     /// </summary>
     public sealed class WorkspaceEditorViewModel : ReactiveObject, IWorkspaceEditorViewModel
     {
-        /// <summary>
-        /// The configuration key that supplies the maximum number of editor groups supported by one workspace.
-        /// </summary>
-        private const string MaximumGroupCountConfigurationKey = "WorkspaceEditor:MaximumGroupCount";
-
         /// <summary>
         /// The mutable editor-group collection owned exclusively by this ViewModel.
         /// </summary>
@@ -46,26 +42,15 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         /// Initializes a new instance of the <see cref="WorkspaceEditorViewModel" /> class using the configured
         /// editor-group limit and creates one empty, focused editor group.
         /// </summary>
-        /// <param name="configuration">Provides the application-configured editor-group limit.</param>
+        /// <param name="options">Provides the validated application-configured editor-group limit.</param>
         /// <exception cref="ArgumentNullException">
-        /// Thrown when <paramref name="configuration" /> is <see langword="null" />.
+        /// Thrown when <paramref name="options" /> is <see langword="null" />.
         /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the configured maximum editor-group count is less than one.
-        /// </exception>
-        public WorkspaceEditorViewModel(IConfiguration configuration)
+        public WorkspaceEditorViewModel(IOptions<WorkspaceEditorOptions> options)
         {
-            ArgumentNullException.ThrowIfNull(configuration);
+            ArgumentNullException.ThrowIfNull(options);
 
-            var maximumGroupCount = configuration.GetValue<int>(MaximumGroupCountConfigurationKey);
-
-            if (maximumGroupCount < 1)
-            {
-                throw new InvalidOperationException(
-                    $"Configuration value '{MaximumGroupCountConfigurationKey}' must be at least 1, but was {maximumGroupCount}.");
-            }
-
-            this.MaximumGroupCount = maximumGroupCount;
+            this.MaximumGroupCount = options.Value.MaximumGroupCount;
             this.readOnlyGroups = new ReadOnlyObservableCollection<EditorGroupViewModel>(this.groups);
 
             var initialGroup = new EditorGroupViewModel();
