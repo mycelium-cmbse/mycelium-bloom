@@ -12,7 +12,6 @@ namespace Mycelium.Bloom
     using BlazorBlueprint.Components;
 
     using Mycelium.Bloom.Components;
-    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Extensions;
 
     using OpenTelemetry.Resources;
@@ -40,12 +39,7 @@ namespace Mycelium.Bloom
 
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddOptions<WorkspaceEditorOptions>()
-                .Bind(builder.Configuration.GetSection(WorkspaceEditorOptions.SectionName))
-                .Validate(
-                    options => options.MaximumGroupCount >= 1,
-                    $"{WorkspaceEditorOptions.SectionName}:{nameof(WorkspaceEditorOptions.MaximumGroupCount)} must be at least 1.")
-                .ValidateOnStart();
+            builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
 
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))
