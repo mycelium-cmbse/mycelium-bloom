@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 {
     using System;
     using System.Linq;
+    using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives.Services;
@@ -21,6 +22,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+
+    using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
 
     /// <summary>
     /// Tests the Bloom developer component showcase.
@@ -36,6 +40,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "molecules",
             "organisms",
             "workspace"
+        ];
+
+        private static readonly double[] ExpectedCanonicalGroupWeights =
+        [
+            300d,
+            320d,
+            868d
         ];
 
         private static readonly string[] NamedControlNames =
@@ -80,6 +91,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             selectModule.SetupVoid("registerSelectCompatibility", invocation => true).SetVoidResult();
             selectModule.SetupVoid("disposeSelectCompatibility", invocation => true).SetVoidResult();
 
+            var editorWorkspaceModule = this.JSInterop.SetupModule(
+                "./Components/UI/Organisms/EditorWorkspace/EditorWorkspace.razor.js");
+            editorWorkspaceModule.SetupVoid("releasePointer", invocation => true).SetVoidResult();
+            editorWorkspaceModule.Setup<bool>("focusElementById", invocation => true).SetResult(true);
+            editorWorkspaceModule.Setup<bool>("registerKeydownGuards", invocation => true).SetResult(true);
+            editorWorkspaceModule.SetupVoid("unregisterKeydownGuards", invocation => true).SetVoidResult();
+
             this.themeModule = this.JSInterop.SetupModule("./Components/Pages/DesignSystem.razor.js");
             this.applyThemeHandler = this.themeModule.SetupVoid("applyTheme", invocation => true);
             this.releaseThemeHandler = this.themeModule.SetupVoid("releaseTheme", invocation => true);
@@ -118,7 +136,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(sectionOrder, Is.EqualTo(ExpectedSectionOrder));
                 Assert.That(component.FindAll("[data-component='avatar'] .mb-design-system__avatar-fallback"),
                     Has.Count.EqualTo(4));
-                Assert.That(component.FindAll("[role='tablist']"), Has.Count.EqualTo(2));
+                Assert.That(component.FindAll("[data-component='tabs'] [role='tablist']"), Has.Count.EqualTo(2));
                 Assert.That(component.FindAll("[data-component='select-input'] [role='combobox']"), Has.Count.EqualTo(5));
                 Assert.That(component.FindAll("[data-component='action-menu']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-component='split-button'] .mb-split-button"), Has.Count.EqualTo(4));
@@ -133,6 +151,78 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Find("[role='group'][aria-label='Preview color theme'] button[aria-pressed='true']")
                     .TextContent.Trim(), Is.EqualTo("Light"));
                 Assert.That(component.FindAll("main"), Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies the editor-workspace examples use independent real state, canonical proportions, and generic content.
+        /// </summary>
+        [Test]
+        public async Task VerifyEditorWorkspaceExamplesPreservePreviewBoundaries()
+        {
+            var component = this.Render<DesignSystem>();
+            var editorWorkspaces = component.FindComponents<EditorWorkspaceComponent>();
+            var canonicalWorkspace = editorWorkspaces.Single(workspace =>
+                workspace.Instance.AriaLabel == "Three-group editor workspace preview");
+            var compactWorkspace = editorWorkspaces.Single(workspace =>
+                workspace.Instance.AriaLabel == "Compact editor workspace preview");
+            var canonicalGroupIds = canonicalWorkspace.Instance.ViewModel.Groups
+                .Select(group => group.Id)
+                .ToArray();
+            var canonicalWeights = canonicalGroupIds
+                .Select(groupId => canonicalWorkspace.Instance.InitialGroupWeights[groupId])
+                .ToArray();
+            var duplicateViewTypeExists = canonicalWorkspace.Instance.ViewModel.Groups
+                .SelectMany(group => group.Tabs)
+                .GroupBy(tab => tab.ViewTypeKey, StringComparer.Ordinal)
+                .Any(group => group.Count() > 1);
+            var canonicalStage = component.Find("[data-testid='editor-workspace-canonical']");
+            var compactStage = component.Find("[data-testid='editor-workspace-compact']");
+            var requestedGroup = canonicalWorkspace.Instance.ViewModel.Groups[1];
+            var requestedGroupInitialTabCount = requestedGroup.Tabs.Count;
+            var canonicalTabCount = canonicalWorkspace.Instance.ViewModel.Groups.Sum(group => group.Tabs.Count);
+            var untouchedGroup = canonicalWorkspace.Instance.ViewModel.Groups[0];
+            var untouchedGroupInitialTabCount = untouchedGroup.Tabs.Count;
+            var compactTabCount = compactWorkspace.Instance.ViewModel.Groups.Sum(group => group.Tabs.Count);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editorWorkspaces, Has.Count.EqualTo(2));
+                Assert.That(canonicalWorkspace.Instance.ViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
+                Assert.That(compactWorkspace.Instance.ViewModel, Is.TypeOf<WorkspaceEditorViewModel>());
+                Assert.That(compactWorkspace.Instance.ViewModel,
+                    Is.Not.SameAs(canonicalWorkspace.Instance.ViewModel));
+                Assert.That(canonicalWorkspace.Instance.ViewModel.Groups, Has.Count.EqualTo(3));
+                Assert.That(compactWorkspace.Instance.ViewModel.Groups, Has.Count.EqualTo(3));
+                Assert.That(canonicalWorkspace.Instance.InitialGroupWeights.Keys,
+                    Is.EquivalentTo(canonicalGroupIds));
+                Assert.That(canonicalWeights, Is.EqualTo(ExpectedCanonicalGroupWeights));
+                Assert.That(duplicateViewTypeExists, Is.True);
+                Assert.That(canonicalWorkspace.Instance.AddTabRequested.HasDelegate, Is.True);
+                Assert.That(compactWorkspace.Instance.AddTabRequested.HasDelegate, Is.True);
+                Assert.That(canonicalStage.QuerySelectorAll("[data-preview-tab-id]"), Has.Count.EqualTo(3));
+                Assert.That(compactStage.QuerySelectorAll("[data-preview-tab-id]"), Has.Count.EqualTo(3));
+                Assert.That(compactStage.ClassList,
+                    Does.Contain("mb-design-system__editor-workspace-stage--compact"));
+            }
+
+            var requestedGroupElement = canonicalStage.QuerySelector(
+                $"[data-testid='editor-workspace-group'][data-group-id='{requestedGroup.Id}']");
+            var addTabButton = requestedGroupElement.QuerySelector(
+                "[data-testid='editor-workspace-add-tab']");
+
+            await addTabButton.ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(requestedGroup.Tabs, Has.Count.EqualTo(requestedGroupInitialTabCount + 1));
+                Assert.That(canonicalWorkspace.Instance.ViewModel.Groups.Sum(group => group.Tabs.Count),
+                    Is.EqualTo(canonicalTabCount + 1));
+                Assert.That(requestedGroup.ActiveTab.Title, Is.EqualTo("Untitled editor"));
+                Assert.That(requestedGroup.ActiveTab.ViewTypeKey, Is.EqualTo("generic-placeholder"));
+                Assert.That(untouchedGroup.Tabs, Has.Count.EqualTo(untouchedGroupInitialTabCount));
+                Assert.That(compactWorkspace.Instance.ViewModel.Groups.Sum(group => group.Tabs.Count),
+                    Is.EqualTo(compactTabCount));
             }
         }
 
@@ -231,11 +321,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .Single(button => button.TextContent.Trim() == "Dark")
                 .ClickAsync();
             await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
-            var menu = this.portalHost.WaitForElement("[role='menu']");
+            var menu = await this.portalHost.WaitForElementAsync("[role='menu']");
             var menuRendered = menu.GetAttribute("role") == "menu";
             await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
             await component.Find("#showcase-select-input").ClickAsync();
-            var listbox = this.portalHost.WaitForElement("[role='listbox']");
+            var listbox = await this.portalHost.WaitForElementAsync("[role='listbox']");
             var applyThemeInvocations = this.applyThemeHandler.Invocations["applyTheme"];
 
             using (Assert.EnterMultipleScope())
@@ -264,14 +354,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.Find("#showcase-text-area").InputAsync("Updated review note");
             await component.Find("#showcase-checkbox").ChangeAsync(false);
             await component.Find("#showcase-toggle").ClickAsync();
-            await component.FindAll("[role='tab']")
+            await component.Find("[data-component='tabs']").QuerySelectorAll("[role='tab']")
                 .Single(tab => tab.TextContent.Contains("Properties", StringComparison.Ordinal))
                 .ClickAsync();
 
             await component.Find("#showcase-select-input").ClickAsync();
-            await this.portalHost.WaitForElements("[role='option']")
-                .Single(option => option.TextContent.Trim() == "Open")
-                .ClickAsync();
+            var options = await this.portalHost.WaitForElementsAsync("[role='option']");
+            await options.Single(option => option.TextContent.Trim() == "Open").ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -292,18 +381,18 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         public async System.Threading.Tasks.Task VerifyDirectTabsPreserveConsumerContracts()
         {
             var component = this.Render<DesignSystem>();
-            var tabLists = component.FindAll("[role='tablist']");
-            var horizontalTabs = component.Find("[data-testid='tabs-horizontal']");
-            var verticalTabs = component.Find("[data-testid='tabs-vertical']");
+            var tabsExample = component.Find("[data-component='tabs']");
+            var horizontalTabs = tabsExample.QuerySelector("[data-testid='tabs-horizontal']");
 
             await horizontalTabs.QuerySelectorAll("[role='tab']")
                 .Single(tab => tab.TextContent.Trim() == "Properties")
                 .ClickAsync();
 
-            tabLists = component.FindAll("[role='tablist']");
+            tabsExample = component.Find("[data-component='tabs']");
+            var tabLists = tabsExample.QuerySelectorAll("[role='tablist']");
             var horizontalTabElements = tabLists[0].QuerySelectorAll("[role='tab']");
             var verticalTabElements = tabLists[1].QuerySelectorAll("[role='tab']");
-            var renderedTabs = component.FindAll("[role='tab']");
+            var renderedTabs = tabsExample.QuerySelectorAll("[role='tab']");
 
             using (Assert.EnterMultipleScope())
             {
@@ -313,7 +402,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(tabLists[1].GetAttribute("aria-orientation"), Is.EqualTo("vertical"));
                 Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "Properties")
                     .GetAttribute("aria-selected"), Is.EqualTo("true"));
-                Assert.That(component.FindAll("[role='tabpanel']")
+                Assert.That(tabsExample.QuerySelectorAll("[role='tabpanel']")
                     .Any(panel => panel.TextContent.Contains("Properties panel", StringComparison.Ordinal)), Is.True);
                 Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Summary")
                     .GetAttribute("aria-selected"), Is.EqualTo("true"));
@@ -331,15 +420,17 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     tab.GetAttribute("aria-selected") is "true" or "false"), Is.True);
             }
 
-            verticalTabs = component.Find("[data-testid='tabs-vertical']");
+            var verticalTabs = component.Find("[data-component='tabs'] [data-testid='tabs-vertical']");
 
             await verticalTabs.QuerySelectorAll("[role='tab']")
                 .Single(tab => tab.TextContent.Trim() == "Verification")
                 .ClickAsync();
 
-            horizontalTabElements = component.FindAll("[role='tablist']")[0].QuerySelectorAll("[role='tab']");
+            tabsExample = component.Find("[data-component='tabs']");
+            horizontalTabElements = tabsExample.QuerySelectorAll("[role='tablist']")[0]
+                .QuerySelectorAll("[role='tab']");
 
-            var tabs = component.FindAll("[role='tab']");
+            var tabs = tabsExample.QuerySelectorAll("[role='tab']");
             var tabIds = tabs.Select(tab => tab.Id).ToArray();
             var panelIds = tabs.Select(tab => tab.GetAttribute("aria-controls")).ToArray();
 
@@ -349,7 +440,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.Find("#vertical-tabs-result").TextContent, Does.Contain("verification"));
                 Assert.That(horizontalTabElements.Single(tab => tab.TextContent.Trim() == "Properties")
                     .GetAttribute("aria-selected"), Is.EqualTo("true"));
-                Assert.That(component.FindAll("[role='tabpanel']")
+                Assert.That(tabsExample.QuerySelectorAll("[role='tabpanel']")
                     .Any(panel => panel.TextContent.Contains("Verification panel", StringComparison.Ordinal)), Is.True);
                 Assert.That(tabIds.All(id => !string.IsNullOrWhiteSpace(id)), Is.True);
                 Assert.That(tabIds.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(tabIds.Length));
@@ -357,17 +448,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(panelIds.Distinct(StringComparer.Ordinal).Count(), Is.EqualTo(panelIds.Length));
             }
 
-            await component.FindAll("button")
+            await tabsExample.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Select overview externally")
                 .ClickAsync();
-            await component.FindAll("button")
+            tabsExample = component.Find("[data-component='tabs']");
+            await tabsExample.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Select summary externally")
                 .ClickAsync();
 
-            tabLists = component.FindAll("[role='tablist']");
+            tabsExample = component.Find("[data-component='tabs']");
+            tabLists = tabsExample.QuerySelectorAll("[role='tablist']");
             horizontalTabElements = tabLists[0].QuerySelectorAll("[role='tab']");
             verticalTabElements = tabLists[1].QuerySelectorAll("[role='tab']");
-            renderedTabs = component.FindAll("[role='tab']");
+            renderedTabs = tabsExample.QuerySelectorAll("[role='tab']");
 
             using (Assert.EnterMultipleScope())
             {
@@ -379,9 +472,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     .GetAttribute("aria-selected"), Is.EqualTo("true"));
                 Assert.That(verticalTabElements.Single(tab => tab.TextContent.Trim() == "Verification")
                     .GetAttribute("aria-selected"), Is.EqualTo("false"));
-                Assert.That(component.FindAll("[role='tabpanel']")
+                Assert.That(tabsExample.QuerySelectorAll("[role='tabpanel']")
                     .Any(panel => panel.TextContent.Contains("Overview panel", StringComparison.Ordinal)), Is.True);
-                Assert.That(component.FindAll("[role='tabpanel']")
+                Assert.That(tabsExample.QuerySelectorAll("[role='tabpanel']")
                     .Any(panel => panel.TextContent.Contains("Summary panel", StringComparison.Ordinal)), Is.True);
                 Assert.That(renderedTabs.All(tab => tab.Attributes.Count(attribute =>
                     string.Equals(attribute.Name, "aria-selected", StringComparison.OrdinalIgnoreCase)) == 1), Is.True);
@@ -553,9 +646,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             }
 
             await component.Find("#showcase-select-secondary").ClickAsync();
-            await this.portalHost.WaitForElements("[role='option']")
-                .Single(option => option.TextContent.Trim() == "In review")
-                .ClickAsync();
+            var options = await this.portalHost.WaitForElementsAsync("[role='option']");
+            await options.Single(option => option.TextContent.Trim() == "In review").ClickAsync();
 
             Assert.That(component.Find("#select-input-result").TextContent, Does.Contain("review / review"));
 
@@ -584,9 +676,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Search: interfaces"));
 
             await appHeaderExample.QuerySelector("button[aria-label^='Select header showcase project']").ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']")
-                .Single(item => item.TextContent.Contains("Lunar Habitat", StringComparison.Ordinal))
-                .ClickAsync();
+            var projectMenuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']");
+            await projectMenuItems.Single(item =>
+                item.TextContent.Contains("Lunar Habitat", StringComparison.Ordinal)).ClickAsync();
 
             Assert.That(component.Find("#app-header-result").TextContent, Does.Contain("Selected Lunar Habitat"));
 
@@ -638,15 +730,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var component = this.Render<DesignSystem>();
 
             await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']")
-                .Single(item => item.TextContent.Contains("Open details", StringComparison.Ordinal))
-                .ClickAsync();
+            var menuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']");
+            await menuItems.Single(item =>
+                item.TextContent.Contains("Open details", StringComparison.Ordinal)).ClickAsync();
 
             Assert.That(component.Find("#action-menu-result").TextContent,
                 Does.Contain("Latest action: Open details. Selection count: 1"));
 
             await component.Find("#open-compact-modal").ClickAsync();
-            var dialog = this.portalHost.WaitForElement("[role='dialog']");
+            var dialog = await this.portalHost.WaitForElementAsync("[role='dialog']");
 
             Assert.That(dialog.ClassList, Does.Contain("max-w-[22.5rem]"));
 
@@ -656,7 +748,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             Assert.That(component.Find("#modal-result").TextContent, Does.Contain("Closed modal"));
 
             await component.Find("#open-wide-modal").ClickAsync();
-            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            dialog = await this.portalHost.WaitForElementAsync("[role='dialog']");
 
             Assert.That(dialog.ClassList, Does.Contain("max-w-[52.5rem]"));
 
@@ -665,7 +757,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .ClickAsync();
 
             await component.Find("#open-default-confirm").ClickAsync();
-            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            dialog = await this.portalHost.WaitForElementAsync("[role='dialog']");
             await dialog.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Cancel action")
                 .ClickAsync();
@@ -673,7 +765,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Cancelled default action"));
 
             await component.Find("#open-warning-confirm").ClickAsync();
-            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            dialog = await this.portalHost.WaitForElementAsync("[role='dialog']");
             await dialog.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Confirm action")
                 .ClickAsync();
@@ -681,7 +773,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Confirmed warning action"));
 
             await component.Find("#open-danger-confirm").ClickAsync();
-            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            dialog = await this.portalHost.WaitForElementAsync("[role='dialog']");
             await dialog.QuerySelectorAll("button")
                 .Single(button => button.TextContent.Trim() == "Cancel action")
                 .ClickAsync();
@@ -689,7 +781,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             Assert.That(component.Find("#confirm-result").TextContent, Does.Contain("Cancelled danger action"));
 
             await component.Find("#open-loading-confirm").ClickAsync();
-            dialog = this.portalHost.WaitForElement("[role='dialog']");
+            dialog = await this.portalHost.WaitForElementAsync("[role='dialog']");
             var loadingActions = dialog.QuerySelectorAll("button");
 
             using (Assert.EnterMultipleScope())

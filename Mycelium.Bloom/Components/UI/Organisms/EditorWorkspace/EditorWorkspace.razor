@@ -1,0 +1,188 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="EditorWorkspace.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Icons.Lucide.Components
+@using Mycelium.Bloom.ViewModel.WorkspaceEditor
+@inherits BloomComponentBase
+
+<section @attributes="this.AdditionalAttributes"
+         id="@(this.workspaceId)"
+         class="@(this.GetCssClass())"
+         role="region"
+         aria-label="@(this.AriaLabel)"
+         data-testid="editor-workspace">
+    @if (this.ViewModel is { } viewModel)
+    {
+        @if (viewModel.Groups.Count > 1)
+        {
+            <div class="mb-editor-workspace__compact-switcher"
+                 role="group"
+                 aria-label="@(this.CompactGroupSwitcherAriaLabel)"
+                 data-testid="editor-workspace-compact-switcher">
+                @for (var groupIndex = 0; groupIndex < viewModel.Groups.Count; groupIndex++)
+                {
+                    var switcherGroup = viewModel.Groups[groupIndex];
+
+                    <button type="button"
+                            class="@(this.GetCompactButtonCssClass(switcherGroup))"
+                            aria-label="@(this.GetCompactGroupAccessibleLabel(switcherGroup, groupIndex))"
+                            aria-pressed="@(this.IsCompactGroupPresented(switcherGroup) ? "true" : "false")"
+                            aria-controls="@(this.GetGroupElementId(switcherGroup.Id))"
+                            @onclick="() => this.SelectCompactGroup(switcherGroup)">
+                        @(this.GetCompactGroupLabel(switcherGroup, groupIndex))
+                    </button>
+                }
+            </div>
+        }
+
+        <div class="mb-editor-workspace__groups">
+            @for (var groupIndex = 0; groupIndex < viewModel.Groups.Count; groupIndex++)
+            {
+                var group = viewModel.Groups[groupIndex];
+                var currentGroupIndex = groupIndex;
+
+                <section @key="group.Id"
+                         id="@(this.GetGroupElementId(group.Id))"
+                         class="@(this.GetGroupCssClass(group))"
+                         style="@(this.GetGroupStyle(group))"
+                         role="region"
+                         aria-label="@(this.GetGroupAccessibleLabel(currentGroupIndex))"
+                         tabindex="-1"
+                         data-group-id="@(group.Id)"
+                         data-compact-active="@(this.IsCompactGroupPresented(group) ? "true" : "false")"
+                         data-testid="editor-workspace-group"
+                         @onpointerdown="() => this.FocusGroup(group)"
+                         @onfocusin="() => this.FocusGroup(group)">
+                    <div class="mb-editor-workspace__tab-bar">
+                        <div class="mb-editor-workspace__tablist"
+                             role="tablist"
+                             aria-label="@(this.GetTabListAccessibleLabel(currentGroupIndex))"
+                             data-testid="editor-workspace-tablist">
+                            @foreach (var tab in group.Tabs)
+                            {
+                                var isActive = ReferenceEquals(group.ActiveTab, tab);
+
+                                <div @key="tab.Id"
+                                     class="@(GetTabItemCssClass(isActive))"
+                                     data-tab-id="@(tab.Id)">
+                                    <button id="@(this.GetTabElementId(group.Id, tab.Id))"
+                                            type="button"
+                                            class="mb-editor-workspace__tab"
+                                            role="tab"
+                                            aria-selected="@(isActive ? "true" : "false")"
+                                            aria-controls="@(this.GetPanelElementId(group.Id, tab.Id))"
+                                            tabindex="@(isActive ? 0 : -1)"
+                                            data-group-id="@(group.Id)"
+                                            data-tab-id="@(tab.Id)"
+                                            data-testid="editor-workspace-tab"
+                                            @onclick="() => this.ActivateTab(group, tab, false)"
+                                            @onkeydown="args => this.HandleTabKeyDown(group, tab, args)">
+                                        <span class="mb-editor-workspace__tab-label" title="@(tab.Title)">
+                                            @(tab.Title)
+                                        </span>
+                                    </button>
+
+                                    <button type="button"
+                                            class="mb-editor-workspace__tab-close"
+                                            aria-label="@($"Close {tab.Title}")"
+                                            title="@($"Close {tab.Title}")"
+                                            data-group-id="@(group.Id)"
+                                            data-tab-id="@(tab.Id)"
+                                            data-testid="editor-workspace-tab-close"
+                                            @onclick="() => this.CloseTab(group, tab)"
+                                            @onclick:stopPropagation>
+                                        <LucideIcon Name="x"
+                                                    Size="14"
+                                                    StrokeWidth="1"
+                                                    role="presentation"
+                                                    aria-hidden="true"
+                                                    focusable="false" />
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        @if (this.AddTabRequested.HasDelegate)
+                        {
+                            <button id="@(this.GetAddTabElementId(group.Id))"
+                                    type="button"
+                                    class="mb-editor-workspace__add-tab"
+                                    aria-label="@($"Add tab to {this.GetGroupAccessibleLabel(currentGroupIndex)}")"
+                                    title="Add tab"
+                                    data-group-id="@(group.Id)"
+                                    data-testid="editor-workspace-add-tab"
+                                    @onclick="() => this.RequestAddTabAsync(group)">
+                                <LucideIcon Name="plus"
+                                            Size="14"
+                                            StrokeWidth="1.16667"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </button>
+                        }
+
+                        <span class="mb-editor-workspace__tab-bar-fill" aria-hidden="true"></span>
+                    </div>
+
+                    <div class="mb-editor-workspace__content">
+                        @if (group.ActiveTab is { } activeTab)
+                        {
+                            <div id="@(this.GetPanelElementId(group.Id, activeTab.Id))"
+                                 class="mb-editor-workspace__tabpanel"
+                                 role="tabpanel"
+                                 aria-labelledby="@(this.GetTabElementId(group.Id, activeTab.Id))"
+                                 tabindex="0"
+                                 data-group-id="@(group.Id)"
+                                 data-tab-id="@(activeTab.Id)"
+                                 data-testid="editor-workspace-tabpanel">
+                                @(this.EditorContent?.Invoke(activeTab))
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-editor-workspace__empty-group" role="status">
+                                Empty editor group
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                @if (currentGroupIndex < viewModel.Groups.Count - 1)
+                {
+                    var nextGroup = viewModel.Groups[currentGroupIndex + 1];
+
+                    <div id="@(this.GetSplitterElementId(group.Id, nextGroup.Id))"
+                         class="mb-editor-workspace__splitter"
+                         style="@(this.GetSplitterStyle(currentGroupIndex))"
+                         role="separator"
+                         aria-label="@($"Resize {this.GetGroupAccessibleLabel(currentGroupIndex)} and {this.GetGroupAccessibleLabel(currentGroupIndex + 1)}")"
+                         aria-orientation="vertical"
+                         aria-controls="@(this.GetGroupElementId(group.Id)) @(this.GetGroupElementId(nextGroup.Id))"
+                         aria-valuemin="@(this.GetAdjacentMinimumPercentage(group, nextGroup))"
+                         aria-valuemax="@(this.GetAdjacentMaximumPercentage(group, nextGroup))"
+                         aria-valuenow="@(this.GetAdjacentLeftPercentage(group, nextGroup))"
+                         tabindex="0"
+                         data-left-group-id="@(group.Id)"
+                         data-right-group-id="@(nextGroup.Id)"
+                         data-left-group-element-id="@(this.GetGroupElementId(group.Id))"
+                         data-right-group-element-id="@(this.GetGroupElementId(nextGroup.Id))"
+                         data-testid="editor-workspace-splitter"
+                         @onkeydown="args => this.HandleSplitterKeyDown(group, nextGroup, args)"
+                         @onpointerdown="args => this.BeginSplitterResizeAsync(group, nextGroup, args)"
+                         @onpointermove="this.HandleSplitterPointerMoved"
+                         @onpointerup="this.EndSplitterResizeAsync"
+                         @onpointercancel="this.EndSplitterResizeAsync"
+                         @onlostpointercapture="this.HandlePointerCaptureLost">
+                        <span class="mb-editor-workspace__splitter-line" aria-hidden="true"></span>
+                    </div>
+                }
+            }
+        </div>
+    }
+</section>

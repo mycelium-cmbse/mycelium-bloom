@@ -9,11 +9,18 @@
 
 namespace Mycelium.Bloom.Model
 {
+    using ReactiveUI;
+
     /// <summary>
     /// Represents one independently identified tab instance in an editor group.
     /// </summary>
-    public sealed class EditorTabItem
+    public sealed class EditorTabItem : ReactiveObject
     {
+        /// <summary>
+        /// The title presented for the tab.
+        /// </summary>
+        private string title;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="EditorTabItem" /> class.
         /// </summary>
@@ -31,7 +38,7 @@ namespace Mycelium.Bloom.Model
             ValidateMetadata(title, viewTypeKey);
 
             this.Id = Guid.NewGuid();
-            this.Title = title;
+            this.title = title;
             this.ViewTypeKey = viewTypeKey;
         }
 
@@ -41,9 +48,23 @@ namespace Mycelium.Bloom.Model
         public Guid Id { get; }
 
         /// <summary>
-        /// Gets the title presented for the tab.
+        /// Gets or sets the title presented for the tab.
         /// </summary>
-        public string Title { get; }
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when the assigned value is <see langword="null" />.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when the assigned value is empty or consists only of whitespace.
+        /// </exception>
+        public string Title
+        {
+            get => this.title;
+            set
+            {
+                ValidateTitle(value);
+                this.RaiseAndSetIfChanged(ref this.title, value);
+            }
+        }
 
         /// <summary>
         /// Gets the rendering-neutral key identifying the kind of view.
@@ -51,7 +72,7 @@ namespace Mycelium.Bloom.Model
         public string ViewTypeKey { get; }
 
         /// <summary>
-        /// Validates the immutable metadata required to create a tab instance.
+        /// Validates the metadata required to create a tab instance.
         /// </summary>
         /// <param name="title">The title presented for the tab.</param>
         /// <param name="viewTypeKey">The rendering-neutral key identifying the kind of view.</param>
@@ -67,14 +88,31 @@ namespace Mycelium.Bloom.Model
             ArgumentNullException.ThrowIfNull(title);
             ArgumentNullException.ThrowIfNull(viewTypeKey);
 
-            if (string.IsNullOrWhiteSpace(title))
-            {
-                throw new ArgumentException("The tab title cannot be empty or whitespace.", nameof(title));
-            }
+            ValidateTitle(title);
 
             if (string.IsNullOrWhiteSpace(viewTypeKey))
             {
                 throw new ArgumentException("The view type key cannot be empty or whitespace.", nameof(viewTypeKey));
+            }
+        }
+
+        /// <summary>
+        /// Validates a tab title before it becomes durable tab state.
+        /// </summary>
+        /// <param name="title">The title presented for the tab.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="title" /> is <see langword="null" />.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="title" /> is empty or consists only of whitespace.
+        /// </exception>
+        private static void ValidateTitle(string title)
+        {
+            ArgumentNullException.ThrowIfNull(title);
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                throw new ArgumentException("The tab title cannot be empty or whitespace.", nameof(title));
             }
         }
     }
