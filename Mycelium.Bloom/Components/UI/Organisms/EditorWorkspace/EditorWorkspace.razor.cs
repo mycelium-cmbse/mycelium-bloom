@@ -38,6 +38,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         private const double MinimumAdjacentShare = 0.10d;
 
         /// <summary>
+        /// The JavaScript export used to release splitter pointer capture.
+        /// </summary>
+        private const string ReleasePointerFunction = "releasePointer";
+
+        /// <summary>
         /// The generated identity used to scope DOM relationships and JavaScript registrations.
         /// </summary>
         private readonly string workspaceId = CreateGeneratedId("mb-editor-workspace");
@@ -218,7 +223,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 {
                     // The circuit ended before the queued focus could be restored.
                 }
-                catch (ObjectDisposedException) when (this.isDisposed)
+                catch (ObjectDisposedException)
                 {
                     // Component teardown won the race with the queued focus request.
                 }
@@ -274,7 +279,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             {
                 await TryInvokeJavaScriptCleanupAsync(
                     currentModule,
-                    "releasePointer",
+                    ReleasePointerFunction,
                     resizeState.SeparatorId,
                     resizeState.PointerId);
             }
@@ -430,7 +435,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="isActive">Whether the tab is active.</param>
         /// <returns>The tab-item CSS classes.</returns>
-        private string GetTabItemCssClass(bool isActive)
+        private static string GetTabItemCssClass(bool isActive)
         {
             return CssClassBuilder.Build(
                 "mb-editor-workspace__tab-item",
@@ -772,7 +777,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 
             await TryInvokeJavaScriptCleanupAsync(
                 currentModule,
-                "releasePointer",
+                ReleasePointerFunction,
                 resizeState.SeparatorId,
                 resizeState.PointerId);
         }
@@ -821,7 +826,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 {
                     await TryInvokeJavaScriptCleanupAsync(
                         currentModule,
-                        "releasePointer",
+                        ReleasePointerFunction,
                         separatorId,
                         args.PointerId);
 
@@ -835,7 +840,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 {
                     await TryInvokeJavaScriptCleanupAsync(
                         currentModule,
-                        "releasePointer",
+                        ReleasePointerFunction,
                         separatorId,
                         args.PointerId);
 
@@ -905,7 +910,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             {
                 await TryInvokeJavaScriptCleanupAsync(
                     currentModule,
-                    "releasePointer",
+                    ReleasePointerFunction,
                     resizeState.SeparatorId,
                     resizeState.PointerId);
             }
@@ -1151,19 +1156,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 return;
             }
 
-            foreach (var group in this.observedViewModel.Groups)
+            foreach (var groupId in this.observedViewModel.Groups.Select(group => group.Id))
             {
                 var weight = 1d;
 
                 if (this.InitialGroupWeights is not null
-                    && this.InitialGroupWeights.TryGetValue(group.Id, out var configuredWeight)
+                    && this.InitialGroupWeights.TryGetValue(groupId, out var configuredWeight)
                     && double.IsFinite(configuredWeight)
                     && configuredWeight > 0d)
                 {
                     weight = configuredWeight;
                 }
 
-                this.groupWeights[group.Id] = weight;
+                this.groupWeights[groupId] = weight;
             }
 
             this.NormalizeWeights();

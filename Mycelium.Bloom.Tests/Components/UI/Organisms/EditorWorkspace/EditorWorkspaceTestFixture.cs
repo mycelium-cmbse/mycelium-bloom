@@ -58,6 +58,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
 
         private const string TabPanelSelector = "[data-testid='editor-workspace-tabpanel']";
 
+        private static readonly string[] ExpectedDuplicateCompactSwitcherTitles =
+        [
+            "Shared",
+            "Shared"
+        ];
+
+        private static readonly string[] ExpectedDuplicateCompactSwitcherAriaLabels =
+        [
+            "Editor group 1: Shared",
+            "Editor group 2: Shared"
+        ];
+
         public EditorWorkspaceTestFixture()
         {
             this.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -134,10 +146,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 }
             }
 
-            Assert.That(tabs.Select(tab => tab.Id), Is.Unique);
-            Assert.That(panels.Select(panel => panel.Id), Is.Unique);
-            Assert.That(component.FindAll("[data-testid='editor-workspace-tab-move']"), Is.Empty);
-            Assert.That(component.FindAll("[data-drag-target]"), Is.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(tabs.Select(tab => tab.Id), Is.Unique);
+                Assert.That(panels.Select(panel => panel.Id), Is.Unique);
+                Assert.That(component.FindAll("[data-testid='editor-workspace-tab-move']"), Is.Empty);
+                Assert.That(component.FindAll("[data-drag-target]"), Is.Empty);
+            });
         }
 
         [Test]
@@ -727,9 +742,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(buttons.Select(button => button.TextContent.Trim()),
-                    Is.EqualTo(new[] { "Shared", "Shared" }));
+                    Is.EqualTo(ExpectedDuplicateCompactSwitcherTitles));
                 Assert.That(buttons.Select(button => button.GetAttribute("aria-label")),
-                    Is.EqualTo(new[] { "Editor group 1: Shared", "Editor group 2: Shared" }));
+                    Is.EqualTo(ExpectedDuplicateCompactSwitcherAriaLabels));
                 Assert.That(buttons.Select(button => button.GetAttribute("aria-label")), Is.Unique);
             }
         }
@@ -1060,8 +1075,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
 
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(releaseHandler.Invocations, Has.Count.EqualTo(1));
-                Assert.That(component.FindAll(GroupSelector), Has.Count.EqualTo(4));
+                Assert.Multiple(() =>
+                {
+                    Assert.That(releaseHandler.Invocations, Has.Count.EqualTo(1));
+                    Assert.That(component.FindAll(GroupSelector), Has.Count.EqualTo(4));
+                });
             });
             var weightsAfterAddition = GetRenderedWeights(component);
             await component.FindAll(SplitterSelector)[0].PointerMoveAsync(new PointerEventArgs
@@ -1222,7 +1240,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                     Assert.That(valueEnd, Is.GreaterThan(valueStart));
 
                     return double.Parse(
-                        style.Substring(valueStart, valueEnd - valueStart),
+                        style.AsSpan(valueStart, valueEnd - valueStart),
                         NumberStyles.Float,
                         CultureInfo.InvariantCulture);
                 });

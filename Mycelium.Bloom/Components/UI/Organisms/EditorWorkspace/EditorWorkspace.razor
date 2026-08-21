@@ -69,7 +69,7 @@
                                 var isActive = ReferenceEquals(group.ActiveTab, tab);
 
                                 <div @key="tab.Id"
-                                     class="@(this.GetTabItemCssClass(isActive))"
+                                     class="@(GetTabItemCssClass(isActive))"
                                      data-tab-id="@(tab.Id)">
                                     <button id="@(this.GetTabElementId(group.Id, tab.Id))"
                                             type="button"

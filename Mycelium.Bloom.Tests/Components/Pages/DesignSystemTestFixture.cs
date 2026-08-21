@@ -42,6 +42,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             "workspace"
         ];
 
+        private static readonly double[] ExpectedCanonicalGroupWeights =
+        [
+            300d,
+            320d,
+            868d
+        ];
+
         private static readonly string[] NamedControlNames =
         [
             "Add model element",
@@ -189,7 +196,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(compactWorkspace.Instance.ViewModel.Groups, Has.Count.EqualTo(3));
                 Assert.That(canonicalWorkspace.Instance.InitialGroupWeights.Keys,
                     Is.EquivalentTo(canonicalGroupIds));
-                Assert.That(canonicalWeights, Is.EqualTo(new[] { 300d, 320d, 868d }));
+                Assert.That(canonicalWeights, Is.EqualTo(ExpectedCanonicalGroupWeights));
                 Assert.That(duplicateViewTypeExists, Is.True);
                 Assert.That(canonicalWorkspace.Instance.AddTabRequested.HasDelegate, Is.True);
                 Assert.That(compactWorkspace.Instance.AddTabRequested.HasDelegate, Is.True);
