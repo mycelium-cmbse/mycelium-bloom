@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using Bunit;
@@ -1096,6 +1097,110 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(weightsAfterStaleMove, Is.EqualTo(weightsAfterAddition));
                 Assert.That(weightsAfterStaleMove.Values.Sum(), Is.EqualTo(1d).Within(1e-9));
             }
+        }
+
+        [Test]
+        public async Task VerifyGroupChangesMutatePresentationOnlyOnRenderDispatcher()
+        {
+            var module = this.JSInterop.SetupModule(JavaScriptModulePath);
+            var captureHandler = module.Setup<double[]>("capturePointer", invocation => true);
+            var releaseHandler = module.SetupVoid("releasePointer", invocation => true);
+            captureHandler.SetResult([300d, 320d, 620d]);
+            releaseHandler.SetVoidResult();
+            var state = CreateViewModel();
+            AddGroup(state);
+
+            using var component = this.RenderWorkspace(state);
+            await component.Find(SplitterSelector).PointerDownAsync(new PointerEventArgs
+            {
+                Button = 0,
+                ClientX = 480d,
+                PointerId = 47
+            });
+            var renderCount = component.RenderCount;
+            using var dispatcherEntered = new ManualResetEventSlim();
+            using var releaseDispatcher = new ManualResetEventSlim();
+            var dispatcherBlock = Task.Run(() => this.Renderer.Dispatcher.InvokeAsync(() =>
+            {
+                dispatcherEntered.Set();
+                releaseDispatcher.Wait();
+            }));
+
+            try
+            {
+                Assert.That(dispatcherEntered.Wait(TimeSpan.FromSeconds(5)), Is.True);
+                await Task.Run(() => AddGroup(state)).WaitAsync(TimeSpan.FromSeconds(5));
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(state.Groups, Has.Count.EqualTo(3));
+                    Assert.That(component.RenderCount, Is.EqualTo(renderCount));
+                    Assert.That(component.FindAll(GroupSelector), Has.Count.EqualTo(2));
+                    Assert.That(releaseHandler.Invocations, Is.Empty);
+                }
+            }
+            finally
+            {
+                releaseDispatcher.Set();
+            }
+
+            await dispatcherBlock;
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.FindAll(GroupSelector), Has.Count.EqualTo(3));
+                    Assert.That(releaseHandler.Invocations, Has.Count.EqualTo(1));
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifyDisposalAwaitsNotificationTriggeredPointerReleaseBeforeJavaScriptCleanup()
+        {
+            var module = this.JSInterop.SetupModule(JavaScriptModulePath);
+            var registerHandler = module.Setup<bool>("registerKeydownGuards", invocation => true);
+            var unregisterHandler = module.SetupVoid("unregisterKeydownGuards", invocation => true);
+            var captureHandler = module.Setup<double[]>("capturePointer", invocation => true);
+            var releaseHandler = module.SetupVoid("releasePointer", invocation => true);
+            registerHandler.SetResult(true);
+            unregisterHandler.SetVoidResult();
+            captureHandler.SetResult([300d, 320d, 620d]);
+            var state = CreateViewModel();
+            AddGroup(state);
+
+            var component = this.RenderWorkspace(state);
+            await component.Find(SplitterSelector).PointerDownAsync(new PointerEventArgs
+            {
+                Button = 0,
+                ClientX = 480d,
+                PointerId = 53
+            });
+
+            Task disposal = null;
+
+            try
+            {
+                await Task.Run(() => AddGroup(state));
+                await component.WaitForAssertionAsync(() =>
+                    Assert.That(releaseHandler.Invocations, Has.Count.EqualTo(1)));
+
+                disposal = component.Instance.DisposeAsync().AsTask();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(disposal.IsCompleted, Is.False);
+                    Assert.That(unregisterHandler.Invocations, Is.Empty);
+                }
+            }
+            finally
+            {
+                releaseHandler.SetVoidResult();
+            }
+
+            await disposal;
+
+            Assert.That(unregisterHandler.Invocations, Has.Count.EqualTo(1));
         }
 
         [Test]

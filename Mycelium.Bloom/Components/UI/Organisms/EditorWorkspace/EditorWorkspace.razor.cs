@@ -63,6 +63,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         private readonly HashSet<EditorTabItem> observedTabs = [];
 
         /// <summary>
+        /// Coordinates ownership of notification tasks with component disposal.
+        /// </summary>
+        private readonly object notificationTaskSync = new();
+
+        /// <summary>
         /// The ViewModel graph currently observed by this component.
         /// </summary>
         private IWorkspaceEditorViewModel observedViewModel;
@@ -106,6 +111,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// The in-flight initialization observed by disposal before it releases JavaScript resources.
         /// </summary>
         private Task javaScriptInitializationTask;
+
+        /// <summary>
+        /// The dispatcher work owned for synchronous observed-event callbacks.
+        /// </summary>
+        private Task ownedNotificationTasks = Task.CompletedTask;
 
         /// <summary>
         /// A value indicating whether component disposal has begun.
@@ -236,16 +246,40 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <returns>A value task representing asynchronous cleanup.</returns>
         public async ValueTask DisposeAsync()
         {
-            if (this.isDisposed)
+            Task notificationTasks;
+
+            lock (this.notificationTaskSync)
             {
-                return;
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                this.isDisposed = true;
+                notificationTasks = this.ownedNotificationTasks;
             }
 
-            this.isDisposed = true;
             var resizeState = this.splitterResizeState;
             this.splitterResizeState = null;
             this.ObserveViewModel(null);
 
+            try
+            {
+                await notificationTasks;
+            }
+            finally
+            {
+                await this.DisposeJavaScriptResourcesAsync(resizeState);
+            }
+        }
+
+        /// <summary>
+        /// Releases JavaScript initialization, pointer capture, keyboard guards, and the collocated module.
+        /// </summary>
+        /// <param name="resizeState">The pointer capture still owned when disposal began.</param>
+        /// <returns>A task representing JavaScript resource cleanup.</returns>
+        private async Task DisposeJavaScriptResourcesAsync(SplitterResizeState resizeState)
+        {
             if (this.javaScriptInitializationTask is { } initializationTask)
             {
                 try
@@ -1280,7 +1314,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             {
                 this.pendingFocusElementId = this.GetTabElementId(group.Id, activeTab.Id);
             }
-            else if (group is not null && ReferenceEquals(this.ViewModel.FocusedGroup, group))
+            else if (group is not null && ReferenceEquals(this.observedViewModel?.FocusedGroup, group))
             {
                 this.pendingFocusElementId = this.AddTabRequested.HasDelegate
                     ? this.GetAddTabElementId(group.Id)
@@ -1295,20 +1329,44 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="args">The collection change.</param>
         private void HandleGroupsChanged(object sender, NotifyCollectionChangedEventArgs args)
         {
-            this.groupGraphVersion++;
-            this.pendingSplitterCapture = null;
-            _ = this.ReleaseActivePointerCaptureAsync();
-            this.ReconcileGroupSubscriptions();
-            this.ReconcileGroupWeights();
+            this.QueueObservedNotification(() => this.ApplyGroupsChangedAsync(sender));
+        }
 
-            if (this.compactGroupId is null
-                || this.observedViewModel.Groups.All(group => group.Id != this.compactGroupId))
+        /// <summary>
+        /// Reconciles one current group-membership notification on the renderer dispatcher.
+        /// </summary>
+        /// <param name="sender">The collection that raised the notification.</param>
+        /// <returns>A task representing pointer-release completion.</returns>
+        private async Task ApplyGroupsChangedAsync(object sender)
+        {
+            if (this.observedViewModel is null
+                || !ReferenceEquals(sender, this.observedViewModel.Groups))
             {
-                this.compactGroupId = this.observedViewModel.FocusedGroup?.Id
-                    ?? this.observedViewModel.Groups.FirstOrDefault()?.Id;
+                return;
             }
 
-            this.QueueRender();
+            this.groupGraphVersion++;
+            this.pendingSplitterCapture = null;
+            var pointerReleaseTask = this.ReleaseActivePointerCaptureAsync();
+
+            try
+            {
+                this.ReconcileGroupSubscriptions();
+                this.ReconcileGroupWeights();
+
+                if (this.compactGroupId is null
+                    || this.observedViewModel.Groups.All(group => group.Id != this.compactGroupId))
+                {
+                    this.compactGroupId = this.observedViewModel.FocusedGroup?.Id
+                        ?? this.observedViewModel.Groups.FirstOrDefault()?.Id;
+                }
+
+                this.StateHasChanged();
+            }
+            finally
+            {
+                await pointerReleaseTask;
+            }
         }
 
         /// <summary>
@@ -1318,13 +1376,31 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="args">The property change.</param>
         private void HandleViewModelPropertyChanged(object sender, PropertyChangedEventArgs args)
         {
+            this.QueueObservedNotification(() => this.ApplyViewModelPropertyChangedAsync(sender, args));
+        }
+
+        /// <summary>
+        /// Applies one current workspace notification on the renderer dispatcher.
+        /// </summary>
+        /// <param name="sender">The ViewModel that raised the notification.</param>
+        /// <param name="args">The property change.</param>
+        /// <returns>A completed task.</returns>
+        private Task ApplyViewModelPropertyChangedAsync(object sender, PropertyChangedEventArgs args)
+        {
+            if (!ReferenceEquals(sender, this.observedViewModel))
+            {
+                return Task.CompletedTask;
+            }
+
             if (string.IsNullOrEmpty(args.PropertyName)
                 || args.PropertyName == nameof(IWorkspaceEditorViewModel.FocusedGroup))
             {
                 this.compactGroupId = this.observedViewModel.FocusedGroup?.Id ?? this.compactGroupId;
             }
 
-            this.QueueRender();
+            this.StateHasChanged();
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -1334,7 +1410,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="args">The property change.</param>
         private void HandleGroupPropertyChanged(object sender, PropertyChangedEventArgs args)
         {
-            this.QueueRender();
+            this.QueueObservedNotification(() => this.ApplyGroupPropertyChangedAsync(sender));
+        }
+
+        /// <summary>
+        /// Applies one current group notification on the renderer dispatcher.
+        /// </summary>
+        /// <param name="sender">The group that raised the notification.</param>
+        /// <returns>A completed task.</returns>
+        private Task ApplyGroupPropertyChangedAsync(object sender)
+        {
+            if (sender is not EditorGroupViewModel group || !this.observedGroups.Contains(group))
+            {
+                return Task.CompletedTask;
+            }
+
+            this.StateHasChanged();
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -1344,8 +1437,25 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="args">The collection change.</param>
         private void HandleTabsChanged(object sender, NotifyCollectionChangedEventArgs args)
         {
+            this.QueueObservedNotification(() => this.ApplyTabsChangedAsync(sender));
+        }
+
+        /// <summary>
+        /// Reconciles one current tab-membership notification on the renderer dispatcher.
+        /// </summary>
+        /// <param name="sender">The collection that raised the notification.</param>
+        /// <returns>A completed task.</returns>
+        private Task ApplyTabsChangedAsync(object sender)
+        {
+            if (!this.observedGroups.Any(group => ReferenceEquals(group.Tabs, sender)))
+            {
+                return Task.CompletedTask;
+            }
+
             this.ReconcileTabSubscriptions();
-            this.QueueRender();
+            this.StateHasChanged();
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -1355,26 +1465,85 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="args">The property change.</param>
         private void HandleTabPropertyChanged(object sender, PropertyChangedEventArgs args)
         {
-            this.QueueRender();
+            this.QueueObservedNotification(() => this.ApplyTabPropertyChangedAsync(sender));
         }
 
         /// <summary>
-        /// Queues one safe render from an observed external notification.
+        /// Applies one current tab notification on the renderer dispatcher.
         /// </summary>
-        private void QueueRender()
+        /// <param name="sender">The tab that raised the notification.</param>
+        /// <returns>A completed task.</returns>
+        private Task ApplyTabPropertyChangedAsync(object sender)
         {
-            if (this.isDisposed)
+            if (sender is not EditorTabItem tab || !this.observedTabs.Contains(tab))
             {
-                return;
+                return Task.CompletedTask;
             }
 
-            _ = this.InvokeAsync(() =>
+            this.StateHasChanged();
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Owns dispatcher work requested by one synchronous observed-event callback.
+        /// </summary>
+        /// <param name="notification">The current-graph work to perform on the renderer dispatcher.</param>
+        private void QueueObservedNotification(Func<Task> notification)
+        {
+            var dispatchStart = new TaskCompletionSource();
+
+            lock (this.notificationTaskSync)
             {
-                if (!this.isDisposed)
+                if (this.isDisposed)
                 {
-                    this.StateHasChanged();
+                    return;
                 }
-            });
+
+                var notificationTask = this.DispatchObservedNotificationAsync(dispatchStart.Task, notification);
+                this.ownedNotificationTasks = this.ownedNotificationTasks.IsCompletedSuccessfully
+                    ? notificationTask
+                    : Task.WhenAll(this.ownedNotificationTasks, notificationTask);
+            }
+
+            dispatchStart.SetResult();
+        }
+
+        /// <summary>
+        /// Marshals one owned notification to the renderer after task ownership is recorded.
+        /// </summary>
+        /// <param name="dispatchStart">The signal released after task coordination leaves its lock.</param>
+        /// <param name="notification">The current-graph work to perform.</param>
+        /// <returns>A task representing the dispatched work.</returns>
+        private async Task DispatchObservedNotificationAsync(Task dispatchStart, Func<Task> notification)
+        {
+            await dispatchStart;
+
+            try
+            {
+                await this.InvokeAsync(async () =>
+                {
+                    if (!this.isDisposed)
+                    {
+                        await notification();
+                    }
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+                // The renderer ended before already-owned notification work could run.
+            }
+            catch (Exception exception)
+            {
+                try
+                {
+                    await this.DispatchExceptionAsync(exception);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The renderer ended before the observed failure could be dispatched.
+                }
+            }
         }
 
         /// <summary>
