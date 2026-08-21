@@ -15,6 +15,13 @@ import {
     disposeSelectCompatibility,
     registerSelectCompatibility
 } from "../../Components/UI/Atoms/SelectInput/SelectInput.razor.js";
+import {
+    capturePointer,
+    focusElementById,
+    registerKeydownGuards,
+    releasePointer,
+    unregisterKeydownGuards
+} from "../../Components/UI/Organisms/EditorWorkspace/EditorWorkspace.razor.js";
 
 let dom;
 let animationFrameQueue;
@@ -23,6 +30,7 @@ let nextAnimationFrameId;
 const searchRegistrationIds = new Set();
 const selectRegistrationIds = new Set();
 const themeOwnerIds = new Set();
+const workspaceGuardIds = new Set();
 
 beforeEach(() => {
     dom = new JSDOM("<!doctype html><html><body></body></html>", {
@@ -58,9 +66,14 @@ afterEach(() => {
         releaseTheme(ownerId);
     }
 
+    for (const workspaceId of workspaceGuardIds) {
+        unregisterKeydownGuards(workspaceId);
+    }
+
     searchRegistrationIds.clear();
     selectRegistrationIds.clear();
     themeOwnerIds.clear();
+    workspaceGuardIds.clear();
     dom.window.close();
 
     delete globalThis.window;
@@ -342,6 +355,140 @@ test("select compatibility preserves trigger and listbox tab order", () => {
     assert.equal(dispatchKey(document, "Enter").defaultPrevented, false);
 });
 
+test("editor workspace pointer capture returns the measured adjacent pair and releases ownership", () => {
+    document.body.innerHTML = `
+        <section id="left-group"></section>
+        <div id="splitter"
+             data-left-group-element-id="left-group"
+             data-right-group-element-id="right-group"></div>
+        <section id="right-group"></section>
+    `;
+    const leftGroup = document.getElementById("left-group");
+    const rightGroup = document.getElementById("right-group");
+    const splitter = document.getElementById("splitter");
+    const capturedPointerIds = [];
+    const releasedPointerIds = [];
+
+    leftGroup.getBoundingClientRect = () => ({ width: 300 });
+    rightGroup.getBoundingClientRect = () => ({ width: 320 });
+    splitter.setPointerCapture = pointerId => capturedPointerIds.push(pointerId);
+    splitter.hasPointerCapture = pointerId => capturedPointerIds.includes(pointerId);
+    splitter.releasePointerCapture = pointerId => releasedPointerIds.push(pointerId);
+
+    const measurement = capturePointer("splitter", 17);
+    releasePointer("splitter", 17);
+
+    assert.deepEqual(measurement, [300, 320, 620]);
+    assert.deepEqual(capturedPointerIds, [17]);
+    assert.deepEqual(releasedPointerIds, [17]);
+});
+
+test("editor workspace pointer helpers ignore unavailable or unusable elements", () => {
+    document.body.innerHTML = `
+        <section id="left-group"></section>
+        <div id="splitter"
+             data-left-group-element-id="left-group"
+             data-right-group-element-id="right-group"></div>
+        <section id="right-group"></section>
+    `;
+    const leftGroup = document.getElementById("left-group");
+    const rightGroup = document.getElementById("right-group");
+    const splitter = document.getElementById("splitter");
+    let captureCount = 0;
+    let releaseCount = 0;
+
+    leftGroup.getBoundingClientRect = () => ({ width: 0 });
+    rightGroup.getBoundingClientRect = () => ({ width: 0 });
+    splitter.setPointerCapture = () => captureCount++;
+    splitter.hasPointerCapture = () => false;
+    splitter.releasePointerCapture = () => releaseCount++;
+
+    assert.equal(capturePointer("missing-splitter", 1), null);
+    assert.equal(capturePointer("splitter", 1), null);
+    releasePointer("missing-splitter", 1);
+    releasePointer("splitter", 1);
+    assert.equal(captureCount, 0);
+    assert.equal(releaseCount, 0);
+});
+
+test("editor workspace pointer capture tolerates a pointer released during the server round trip", () => {
+    document.body.innerHTML = `
+        <section id="left-group"></section>
+        <div id="splitter"
+             data-left-group-element-id="left-group"
+             data-right-group-element-id="right-group"></div>
+        <section id="right-group"></section>
+    `;
+    const leftGroup = document.getElementById("left-group");
+    const rightGroup = document.getElementById("right-group");
+    const splitter = document.getElementById("splitter");
+
+    leftGroup.getBoundingClientRect = () => ({ width: 300 });
+    rightGroup.getBoundingClientRect = () => ({ width: 320 });
+    splitter.setPointerCapture = () => {
+        throw new DOMException("The pointer is no longer active.", "NotFoundError");
+    };
+
+    assert.equal(capturePointer("splitter", 17), null);
+});
+
+test("editor workspace focus targets only the requested live element", () => {
+    document.body.innerHTML = '<button id="workspace-tab">Tab</button>';
+    const tab = document.getElementById("workspace-tab");
+    const nativeFocus = tab.focus.bind(tab);
+    let focusOptions;
+
+    tab.focus = options => {
+        focusOptions = options;
+        nativeFocus();
+    };
+
+    assert.equal(focusElementById("missing-tab"), false);
+    assert.equal(focusElementById("workspace-tab"), true);
+    assert.equal(document.activeElement, tab);
+    assert.deepEqual(focusOptions, { preventScroll: true });
+});
+
+test("editor workspace key guards stay root-scoped and detach cleanly", () => {
+    document.body.innerHTML = `
+        <section id="workspace">
+            <button id="tab" role="tab">Tab</button>
+            <div id="splitter" role="separator" tabindex="0"></div>
+            <input id="input">
+        </section>
+        <button id="external-tab" role="tab">External tab</button>
+    `;
+    const workspace = document.getElementById("workspace");
+    const tab = document.getElementById("tab");
+    const splitter = document.getElementById("splitter");
+    const input = document.getElementById("input");
+    const externalTab = document.getElementById("external-tab");
+    const nativeDocumentAddEventListener = document.addEventListener.bind(document);
+    let documentListenerCount = 0;
+
+    document.addEventListener = (...args) => {
+        documentListenerCount++;
+        nativeDocumentAddEventListener(...args);
+    };
+
+    registerWorkspaceGuards("workspace");
+
+    assert.equal(dispatchKey(tab, "ArrowRight").defaultPrevented, true);
+    assert.equal(dispatchKey(tab, "Home").defaultPrevented, true);
+    assert.equal(dispatchKey(tab, "Delete").defaultPrevented, false);
+    assert.equal(dispatchKey(splitter, "ArrowLeft").defaultPrevented, true);
+    assert.equal(dispatchKey(input, "ArrowRight").defaultPrevented, false);
+    assert.equal(dispatchKey(externalTab, "ArrowRight").defaultPrevented, false);
+    assert.equal(documentListenerCount, 0);
+
+    unregisterWorkspaceGuards("workspace");
+
+    assert.equal(dispatchKey(tab, "ArrowRight").defaultPrevented, false);
+    assert.equal(dispatchKey(splitter, "ArrowLeft").defaultPrevented, false);
+
+    assert.equal(registerKeydownGuards("missing-workspace"), false);
+});
+
 function applyOwnedTheme(ownerId, themeName) {
     themeOwnerIds.add(ownerId);
     applyTheme(ownerId, themeName);
@@ -370,6 +517,16 @@ function registerSelect(registrationId, triggerId) {
 function disposeSelect(registrationId) {
     disposeSelectCompatibility(registrationId);
     selectRegistrationIds.delete(registrationId);
+}
+
+function registerWorkspaceGuards(workspaceId) {
+    workspaceGuardIds.add(workspaceId);
+    return registerKeydownGuards(workspaceId);
+}
+
+function unregisterWorkspaceGuards(workspaceId) {
+    unregisterKeydownGuards(workspaceId);
+    workspaceGuardIds.delete(workspaceId);
 }
 
 function createKeyEvent(key, options = {}) {

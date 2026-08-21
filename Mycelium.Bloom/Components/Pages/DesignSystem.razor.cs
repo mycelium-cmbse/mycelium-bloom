@@ -12,12 +12,15 @@ namespace Mycelium.Bloom.Components.Pages
     using System.ComponentModel;
     using System.Globalization;
     using Microsoft.AspNetCore.Components;
+    using Microsoft.Extensions.Options;
     using Microsoft.JSInterop;
 
+    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -373,6 +376,21 @@ namespace Mycelium.Bloom.Components.Pages
         private bool WorkspaceRightPanelVisible { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets the real workspace state used by the canonical editor-workspace preview.
+        /// </summary>
+        private WorkspaceEditorViewModel EditorWorkspacePreviewViewModel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Figma-derived initial proportions used by the canonical editor-workspace preview.
+        /// </summary>
+        private IReadOnlyDictionary<Guid, double> EditorWorkspacePreviewWeights { get; set; }
+
+        /// <summary>
+        /// Gets or sets the independent real workspace state used by the compact editor-workspace preview.
+        /// </summary>
+        private WorkspaceEditorViewModel CompactEditorWorkspacePreviewViewModel { get; set; }
+
+        /// <summary>
         /// Gets or sets the page-owned ViewModel used by the navigation-rail preview.
         /// </summary>
         private NavigationRailViewModel NavigationRailPreviewViewModel { get; set; }
@@ -380,6 +398,15 @@ namespace Mycelium.Bloom.Components.Pages
         /// <inheritdoc />
         protected override void OnInitialized()
         {
+            this.EditorWorkspacePreviewViewModel = CreateEditorWorkspacePreviewViewModel();
+            this.EditorWorkspacePreviewWeights = new Dictionary<Guid, double>
+            {
+                [this.EditorWorkspacePreviewViewModel.Groups[0].Id] = 300d,
+                [this.EditorWorkspacePreviewViewModel.Groups[1].Id] = 320d,
+                [this.EditorWorkspacePreviewViewModel.Groups[2].Id] = 868d
+            };
+            this.CompactEditorWorkspacePreviewViewModel = CreateEditorWorkspacePreviewViewModel();
+
             this.navigationRailPreviewContext = new ContextAwareService
             {
                 LifecycleState = ProjectLifecycleState.Open,
@@ -395,6 +422,64 @@ namespace Mycelium.Bloom.Components.Pages
             this.NavigationRailPreviewViewModel.PropertyChanged += this.HandleNavigationRailPreviewStateChanged;
 
             base.OnInitialized();
+        }
+
+        /// <summary>
+        /// Creates deterministic, rendering-neutral editor state for an isolated Design System preview.
+        /// </summary>
+        /// <returns>A real workspace ViewModel containing three groups and representative tabs.</returns>
+        private static WorkspaceEditorViewModel CreateEditorWorkspacePreviewViewModel()
+        {
+            var viewModel = new WorkspaceEditorViewModel(
+                Options.Create(new WorkspaceEditorOptions
+                {
+                    MaximumGroupCount = 3
+                }));
+            var firstGroup = viewModel.Groups[0];
+
+            _ = viewModel.TryOpenTab(firstGroup.Id, "Editor A", "generic-document", out var firstTab);
+            _ = viewModel.TryOpenTab(firstGroup.Id, "Editor B", "generic-preview", out _);
+            _ = viewModel.ActivateTab(firstGroup.Id, firstTab.Id);
+
+            _ = viewModel.TryAddGroup(out var secondGroup);
+            _ = viewModel.TryOpenTab(secondGroup.Id, "Editor C", "generic-document", out _);
+
+            _ = viewModel.TryAddGroup(out var thirdGroup);
+            _ = viewModel.TryOpenTab(thirdGroup.Id, "Editor D", "generic-surface", out var fourthTab);
+            _ = viewModel.TryOpenTab(thirdGroup.Id, "Editor E", "generic-surface", out _);
+            _ = viewModel.ActivateTab(thirdGroup.Id, fourthTab.Id);
+
+            return viewModel;
+        }
+
+        /// <summary>
+        /// Opens generic preview content in the requested canonical editor group.
+        /// </summary>
+        /// <param name="groupId">The target editor-group identity.</param>
+        private void HandleEditorWorkspaceAddTabRequested(Guid groupId)
+        {
+            OpenEditorWorkspacePreviewTab(this.EditorWorkspacePreviewViewModel, groupId);
+        }
+
+        /// <summary>
+        /// Opens generic preview content in the requested compact editor group.
+        /// </summary>
+        /// <param name="groupId">The target editor-group identity.</param>
+        private void HandleCompactEditorWorkspaceAddTabRequested(Guid groupId)
+        {
+            OpenEditorWorkspacePreviewTab(this.CompactEditorWorkspacePreviewViewModel, groupId);
+        }
+
+        /// <summary>
+        /// Supplies rendering-neutral placeholder metadata at the Design System composition boundary.
+        /// </summary>
+        /// <param name="viewModel">The preview workspace that owns the requested group.</param>
+        /// <param name="groupId">The target editor-group identity.</param>
+        private static void OpenEditorWorkspacePreviewTab(
+            WorkspaceEditorViewModel viewModel,
+            Guid groupId)
+        {
+            _ = viewModel.TryOpenTab(groupId, "Untitled editor", "generic-placeholder", out _);
         }
 
         /// <inheritdoc />

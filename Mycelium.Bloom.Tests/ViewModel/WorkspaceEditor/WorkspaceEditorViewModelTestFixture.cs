@@ -206,16 +206,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         }
 
         [Test]
-        public void VerifyEditorTabItemExposesImmutableIdentityAndMetadata()
+        public void VerifyEditorTabItemExposesMutableTitleAndImmutableIdentityAndViewTypeKey()
         {
-            var propertyNames = new[]
+            var immutablePropertyNames = new[]
             {
                 nameof(EditorTabItem.Id),
-                nameof(EditorTabItem.Title),
                 nameof(EditorTabItem.ViewTypeKey)
             };
 
-            foreach (var propertyName in propertyNames)
+            foreach (var propertyName in immutablePropertyNames)
             {
                 var property = typeof(EditorTabItem).GetProperty(propertyName);
 
@@ -224,6 +223,120 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                     Assert.That(property, Is.Not.Null);
                     Assert.That(property.SetMethod, Is.Null);
                 }
+            }
+
+            var titleProperty = typeof(EditorTabItem).GetProperty(nameof(EditorTabItem.Title));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(titleProperty, Is.Not.Null);
+                Assert.That(titleProperty.SetMethod, Is.Not.Null);
+                Assert.That(titleProperty.SetMethod.IsPublic, Is.True);
+            }
+        }
+
+        [Test]
+        public void VerifyEditorTabItemTitleRaisesNotificationWithoutChangingWorkspaceState()
+        {
+            var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var tab = OpenTab(viewModel, group, "Diagram - Engine", "diagram");
+            var focusedGroup = AddGroup(viewModel);
+            var groups = viewModel.Groups;
+            var tabs = group.Tabs;
+            var tabId = tab.Id;
+            var viewTypeKey = tab.ViewTypeKey;
+            var tabPropertyNotifications = new List<string>();
+            var groupPropertyNotifications = new List<string>();
+            var workspacePropertyNotifications = new List<string>();
+            var collectionNotificationCount = 0;
+            INotifyCollectionChanged observableGroups = groups;
+            INotifyCollectionChanged observableTabs = tabs;
+            observableGroups.CollectionChanged += (_, _) => collectionNotificationCount++;
+            observableTabs.CollectionChanged += (_, _) => collectionNotificationCount++;
+            tab.PropertyChanged += (_, args) => tabPropertyNotifications.Add(args.PropertyName);
+            group.PropertyChanged += (_, args) => groupPropertyNotifications.Add(args.PropertyName);
+            viewModel.PropertyChanged += (_, args) => workspacePropertyNotifications.Add(args.PropertyName);
+
+            tab.Title = "  Diagram - Propulsion System  ";
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(tab.Title, Is.EqualTo("  Diagram - Propulsion System  "));
+                Assert.That(tab.Id, Is.EqualTo(tabId));
+                Assert.That(tab.ViewTypeKey, Is.EqualTo(viewTypeKey));
+                Assert.That(viewModel.Groups, Is.SameAs(groups));
+                Assert.That(group.Tabs, Is.SameAs(tabs));
+                Assert.That(group.Tabs.Single(), Is.SameAs(tab));
+                Assert.That(group.ActiveTab, Is.SameAs(tab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(focusedGroup));
+                Assert.That(tabPropertyNotifications, Is.EqualTo(new[] { nameof(EditorTabItem.Title) }));
+                Assert.That(groupPropertyNotifications, Is.Empty);
+                Assert.That(workspacePropertyNotifications, Is.Empty);
+                Assert.That(collectionNotificationCount, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void VerifyEditorTabItemTitleRejectsNullWithoutMutation()
+        {
+            var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var tab = OpenTab(viewModel, group, "Diagram - Engine", "diagram");
+            var notifications = new List<string>();
+            tab.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+            var exception = Assert.Throws<ArgumentNullException>(() => tab.Title = null);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception.ParamName, Is.EqualTo("title"));
+                Assert.That(tab.Title, Is.EqualTo("Diagram - Engine"));
+                Assert.That(group.Tabs.Single(), Is.SameAs(tab));
+                Assert.That(group.ActiveTab, Is.SameAs(tab));
+                Assert.That(notifications, Is.Empty);
+            }
+        }
+
+        [TestCase("")]
+        [TestCase("   ")]
+        public void VerifyEditorTabItemTitleRejectsWhitespaceWithoutMutation(string title)
+        {
+            var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var tab = OpenTab(viewModel, group, "Diagram - Engine", "diagram");
+            var notifications = new List<string>();
+            tab.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+            var exception = Assert.Throws<ArgumentException>(() => tab.Title = title);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception.ParamName, Is.EqualTo("title"));
+                Assert.That(tab.Title, Is.EqualTo("Diagram - Engine"));
+                Assert.That(group.Tabs.Single(), Is.SameAs(tab));
+                Assert.That(group.ActiveTab, Is.SameAs(tab));
+                Assert.That(notifications, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void VerifyEditorTabItemTitleSuppressesSameValueNotification()
+        {
+            var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var tab = OpenTab(viewModel, group, "Diagram - Engine", "diagram");
+            var notifications = new List<string>();
+            tab.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
+
+            tab.Title = "Diagram - Engine";
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(tab.Title, Is.EqualTo("Diagram - Engine"));
+                Assert.That(group.Tabs.Single(), Is.SameAs(tab));
+                Assert.That(group.ActiveTab, Is.SameAs(tab));
+                Assert.That(notifications, Is.Empty);
             }
         }
 
@@ -268,14 +381,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
             }
         }
 
-        [Test]
-        public void VerifyTryOpenTabRejectsNullViewTypeKeyBeforeGroupLookup()
+        [TestCase("Title")]
+        [TestCase("   ")]
+        public void VerifyTryOpenTabRejectsNullViewTypeKeyBeforeGroupLookup(string title)
         {
             var viewModel = CreateViewModel();
             var groups = viewModel.Groups;
 
             var exception = Assert.Throws<ArgumentNullException>(() =>
-                viewModel.TryOpenTab(Guid.NewGuid(), "Title", null, out _));
+                viewModel.TryOpenTab(Guid.NewGuid(), title, null, out _));
 
             using (Assert.EnterMultipleScope())
             {
