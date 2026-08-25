@@ -47,6 +47,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private bool isDisposed;
 
         /// <summary>
+        /// The effective collapse state most recently reported to the owning composition.
+        /// </summary>
+        private bool? reportedCollapsedState;
+
+        /// <summary>
         /// Gets the ViewModel required while rendering an assigned rail.
         /// </summary>
         /// <exception cref="InvalidOperationException">
@@ -74,11 +79,40 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         [Parameter]
         public string AriaLabel { get; set; } = "Workspace navigation";
 
+        /// <summary>
+        /// Gets or sets the callback invoked when fixed or transient presentation changes the rail's effective width.
+        /// </summary>
+        [Parameter]
+        public EventCallback<bool> EffectiveCollapsedChanged { get; set; }
+
         /// <inheritdoc />
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
             this.ObserveNavigationItems(this.ViewModel?.NavigationItems);
+        }
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            if (this.isDisposed
+                || this.ViewModel is null
+                || !this.EffectiveCollapsedChanged.HasDelegate)
+            {
+                return;
+            }
+
+            var isCollapsed = this.IsCollapsed;
+
+            if (this.reportedCollapsedState == isCollapsed)
+            {
+                return;
+            }
+
+            this.reportedCollapsedState = isCollapsed;
+            await this.EffectiveCollapsedChanged.InvokeAsync(isCollapsed);
         }
 
         /// <summary>

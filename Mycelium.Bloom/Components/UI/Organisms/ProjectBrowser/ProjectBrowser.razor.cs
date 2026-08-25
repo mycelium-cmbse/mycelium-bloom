@@ -23,7 +23,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public sealed partial class ProjectBrowser : BloomReactiveInjectableComponentBase<IProjectBrowserViewModel>
+    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
         /// Cancels component-owned initialization when the component is disposed.
@@ -36,10 +36,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private bool isDisposed;
 
         /// <summary>
-        /// Gets the injected ViewModel required by this component.
+        /// Gets the caller-supplied ViewModel required by this component.
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// Thrown when the Project Browser ViewModel has not been provided through dependency injection.
+        /// Thrown when the Project Browser ViewModel has not been supplied.
         /// </exception>
         private IProjectBrowserViewModel RequiredViewModel =>
             this.ViewModel
@@ -78,7 +78,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Initializes the project browser view model owned by this component.
+        /// Initializes the configured project browser ViewModel.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
         protected override async Task OnInitializedAsync()
@@ -108,7 +108,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Cancels initialization, releases reactive subscriptions and disposes the injected ViewModel.
+        /// Cancels initialization and releases component-owned reactive subscriptions.
         /// </summary>
         /// <param name="disposing">
         /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
@@ -141,14 +141,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 }
                 finally
                 {
-                    try
-                    {
-                        this.ViewModel?.Dispose();
-                    }
-                    finally
-                    {
-                        this.initializationCancellation?.Dispose();
-                    }
+                    this.initializationCancellation?.Dispose();
                 }
             }
         }

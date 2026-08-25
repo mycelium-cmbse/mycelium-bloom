@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
     using System;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
 
     using Bunit;
 
@@ -81,12 +82,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
         /// Verifies compact pane controls expose one active region without removing the other region content.
         /// </summary>
         [Test]
-        public void VerifyNarrowPaneControlsRemainIndependent()
+        public async Task VerifyNarrowPaneControlsRemainIndependent()
         {
             var component = this.Render<WorkspaceShellComponent>(parameters => parameters
                 .Add(shell => shell.LeftPanel, "<span>Navigation</span>")
                 .Add(shell => shell.MainContent, "<span>Canvas</span>")
-                .Add(shell => shell.RightPanel, "<span>Details</span>"));
+                .Add(shell => shell.RightPanel, "<span>Details</span>")
+                .Add(shell => shell.CompactLeftPanelLabel, "Navigation")
+                .Add(shell => shell.CompactMainContentLabel, "Editors")
+                .Add(shell => shell.CompactRightPanelLabel, "Auxiliary"));
             var paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
 
             foreach (var paneButton in paneButtons)
@@ -100,7 +104,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 }
             }
 
-            paneButtons.Single(button => button.TextContent.Trim() == "Navigation").Click();
+            await paneButtons.Single(button => button.TextContent.Trim() == "Navigation").ClickAsync();
             paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
 
             using (Assert.EnterMultipleScope())
@@ -111,18 +115,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                     .GetAttribute("data-narrow-active"), Is.EqualTo("true"));
             }
 
-            paneButtons.Single(button => button.TextContent.Trim() == "Canvas").Click();
+            await paneButtons.Single(button => button.TextContent.Trim() == "Editors").ClickAsync();
             paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
 
-            Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Canvas")
+            Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Editors")
                 .GetAttribute("aria-pressed"), Is.EqualTo("true"));
 
-            paneButtons.Single(button => button.TextContent.Trim() == "Details").Click();
+            await paneButtons.Single(button => button.TextContent.Trim() == "Auxiliary").ClickAsync();
             paneButtons = component.FindAll(".mb-workspace-shell__pane-button");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Details")
+                Assert.That(paneButtons.Single(button => button.TextContent.Trim() == "Auxiliary")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
                 Assert.That(component.Find(".mb-workspace-shell__right-panel")
                     .GetAttribute("data-narrow-active"), Is.EqualTo("true"));

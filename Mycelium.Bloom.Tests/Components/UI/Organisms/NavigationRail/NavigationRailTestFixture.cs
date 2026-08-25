@@ -135,6 +135,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         private static readonly string[] ExpectedPresentationModeLabels =
             ["Expanded", "Collapsed", "Expand on hover"];
 
+        private static readonly bool[] ExpectedEffectiveCollapsedStates = [true, false, true, false];
+
         public NavigationRailTestFixture()
         {
             BlueprintTestSetup.Configure(this);
@@ -393,6 +395,52 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         [Test]
+        public async Task VerifyEffectiveCollapsedChangesAreReportedToOwningComposition()
+        {
+            using var viewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
+            var reportedStates = new List<bool>();
+            using var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.ViewModel, viewModel)
+                .Add(rail => rail.EffectiveCollapsedChanged, reportedStates.Add));
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(reportedStates, Has.Count.EqualTo(1));
+                    Assert.That(reportedStates[^1], Is.True);
+                }
+            });
+
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(reportedStates, Has.Count.EqualTo(2));
+                    Assert.That(reportedStates[^1], Is.False);
+                }
+            });
+
+            await component.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(reportedStates, Has.Count.EqualTo(3));
+                    Assert.That(reportedStates[^1], Is.True);
+                }
+            });
+
+            viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(reportedStates, Is.EqualTo(ExpectedEffectiveCollapsedStates)));
+        }
+
+        [Test]
         public void VerifyCollapsedPresentationRetainsIconFirstAccessibility()
         {
             using var viewModel = CreateViewModel();
@@ -625,6 +673,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     style,
                     Does.Match(
                         @"(?s)\.mb-navigation-rail__control-menu-content\s*\{[^}]*min-width:\s*13rem;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__sidebar-control\s+::deep\s+\.mb-navigation-rail__control-menu\s*\{[^}]*translate:\s*0\s+calc\(\s*-100%\s*-\s*var\(--mb-navigation-rail-collapse-size\)\s*-\s*var\(--mb-spacing-1\)\s*\);"));
                 Assert.That(
                     style,
                     Does.Match(

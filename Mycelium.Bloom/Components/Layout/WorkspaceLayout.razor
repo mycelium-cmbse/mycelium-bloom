@@ -1,0 +1,34 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="WorkspaceLayout.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Primitives.Services
+
+@inherits LayoutComponentBase
+
+<div class="mb-workspace-layout">
+    @(this.Body)
+</div>
+
+<BbPortalHost />
+
+<div id="blazor-error-ui"
+     data-nosnippet
+     class="mb-workspace-layout__error">
+    An unhandled error has occurred.
+
+    <a href=".">
+        Reload
+    </a>
+
+    <button type="button"
+            class="dismiss"
+            aria-label="Dismiss error notification">
+        🗙
+    </button>
+</div>
