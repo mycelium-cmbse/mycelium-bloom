@@ -190,6 +190,12 @@
     }
 }
 
+@supports (interpolate-size: allow-keywords) {
+    .mb-workspace-shell__left-panel {
+        interpolate-size: allow-keywords;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mb-workspace-shell__left-panel {
         transition: none;

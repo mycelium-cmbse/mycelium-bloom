@@ -42,9 +42,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private bool isPointerOver;
 
         /// <summary>
+        /// A value indicating whether the trigger-anchored sidebar control menu is open.
+        /// </summary>
+        private bool isSidebarControlMenuOpen;
+
+        /// <summary>
         /// A value indicating whether component disposal has begun.
         /// </summary>
         private bool isDisposed;
+
+        /// <summary>
+        /// The effective collapse state most recently reported to the owning composition.
+        /// </summary>
+        private bool? reportedCollapsedState;
 
         /// <summary>
         /// Gets the ViewModel required while rendering an assigned rail.
@@ -74,11 +84,40 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         [Parameter]
         public string AriaLabel { get; set; } = "Workspace navigation";
 
+        /// <summary>
+        /// Gets or sets the callback invoked when fixed or transient presentation changes the rail's effective width.
+        /// </summary>
+        [Parameter]
+        public EventCallback<bool> EffectiveCollapsedChanged { get; set; }
+
         /// <inheritdoc />
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
             this.ObserveNavigationItems(this.ViewModel?.NavigationItems);
+        }
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            if (this.isDisposed
+                || this.ViewModel is null
+                || !this.EffectiveCollapsedChanged.HasDelegate)
+            {
+                return;
+            }
+
+            var isCollapsed = this.IsCollapsed;
+
+            if (this.reportedCollapsedState == isCollapsed)
+            {
+                return;
+            }
+
+            this.reportedCollapsedState = isCollapsed;
+            await this.EffectiveCollapsedChanged.InvokeAsync(isCollapsed);
         }
 
         /// <summary>
@@ -220,6 +259,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             this.RequiredViewModel.PresentationMode = this.IsCollapsed
                 ? NavigationRailPresentationMode.Expanded
                 : NavigationRailPresentationMode.Collapsed;
+        }
+
+        /// <summary>
+        /// Applies the primary sidebar-control action without opening its secondary menu.
+        /// </summary>
+        private void HandleSidebarControlPrimaryClick()
+        {
+            this.TogglePresentation();
+            this.isSidebarControlMenuOpen = false;
+        }
+
+        /// <summary>
+        /// Opens the trigger-anchored sidebar control menu for a context-menu request.
+        /// </summary>
+        private void HandleSidebarControlMenuRequested()
+        {
+            this.isSidebarControlMenuOpen = true;
+        }
+
+        /// <summary>
+        /// Reconciles menu dismissal and keyboard-open requests from Blueprint.
+        /// </summary>
+        /// <param name="isOpen">Whether the sidebar control menu should be open.</param>
+        private void HandleSidebarControlMenuOpenChanged(bool isOpen)
+        {
+            this.isSidebarControlMenuOpen = isOpen;
         }
 
         /// <summary>

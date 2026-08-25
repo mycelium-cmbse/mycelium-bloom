@@ -32,7 +32,7 @@
                         aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Left))"
                         aria-controls="@(this.leftPanelId)"
                         @onclick="() => this.SelectNarrowPane(NarrowPane.Left)">
-                    Navigation
+                    @(this.CompactLeftPanelLabel)
                 </button>
             }
 
@@ -41,7 +41,7 @@
                     aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Main))"
                     aria-controls="@(this.mainContentId)"
                     @onclick="() => this.SelectNarrowPane(NarrowPane.Main)">
-                Canvas
+                @(this.CompactMainContentLabel)
             </button>
 
             @if (this.ShouldRenderRightPanel())
@@ -51,7 +51,7 @@
                         aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Right))"
                         aria-controls="@(this.rightPanelId)"
                         @onclick="() => this.SelectNarrowPane(NarrowPane.Right)">
-                    Details
+                    @(this.CompactRightPanelLabel)
                 </button>
             }
         </div>

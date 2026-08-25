@@ -102,6 +102,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         public string StatusBarAriaLabel { get; set; } = "Workspace status";
 
         /// <summary>
+        /// Gets or sets the visible compact-switcher label for the left panel.
+        /// </summary>
+        [Parameter]
+        public string CompactLeftPanelLabel { get; set; } = "Navigation";
+
+        /// <summary>
+        /// Gets or sets the visible compact-switcher label for the primary content.
+        /// </summary>
+        [Parameter]
+        public string CompactMainContentLabel { get; set; } = "Canvas";
+
+        /// <summary>
+        /// Gets or sets the visible compact-switcher label for the right panel.
+        /// </summary>
+        [Parameter]
+        public string CompactRightPanelLabel { get; set; } = "Details";
+
+        /// <summary>
         /// Gets or sets a value indicating whether the shell uses its full-application presentation.
         /// </summary>
         /// <remarks>
