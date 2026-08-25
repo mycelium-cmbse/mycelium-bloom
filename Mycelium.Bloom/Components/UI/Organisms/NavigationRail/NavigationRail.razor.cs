@@ -42,6 +42,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private bool isPointerOver;
 
         /// <summary>
+        /// A value indicating whether the trigger-anchored sidebar control menu is open.
+        /// </summary>
+        private bool isSidebarControlMenuOpen;
+
+        /// <summary>
         /// A value indicating whether component disposal has begun.
         /// </summary>
         private bool isDisposed;
@@ -254,6 +259,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             this.RequiredViewModel.PresentationMode = this.IsCollapsed
                 ? NavigationRailPresentationMode.Expanded
                 : NavigationRailPresentationMode.Collapsed;
+        }
+
+        /// <summary>
+        /// Applies the primary sidebar-control action without opening its secondary menu.
+        /// </summary>
+        private void HandleSidebarControlPrimaryClick()
+        {
+            this.TogglePresentation();
+            this.isSidebarControlMenuOpen = false;
+        }
+
+        /// <summary>
+        /// Opens the trigger-anchored sidebar control menu for a context-menu request.
+        /// </summary>
+        private void HandleSidebarControlMenuRequested()
+        {
+            this.isSidebarControlMenuOpen = true;
+        }
+
+        /// <summary>
+        /// Reconciles menu dismissal and keyboard-open requests from Blueprint.
+        /// </summary>
+        /// <param name="isOpen">Whether the sidebar control menu should be open.</param>
+        private void HandleSidebarControlMenuOpenChanged(bool isOpen)
+        {
+            this.isSidebarControlMenuOpen = isOpen;
         }
 
         /// <summary>

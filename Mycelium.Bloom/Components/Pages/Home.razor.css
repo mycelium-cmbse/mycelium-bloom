@@ -8,6 +8,10 @@
     color: var(--mb-color-component-text);
 }
 
+.mb-main-workspace ::deep .mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body {
+    --mb-workspace-left-panel-width: fit-content;
+}
+
 .mb-main-workspace__heading {
     position: absolute;
     width: 1px;

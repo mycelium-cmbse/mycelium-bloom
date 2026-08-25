@@ -18,6 +18,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Icons.Lucide.Components;
+    using BlazorBlueprint.Primitives;
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
@@ -137,9 +139,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
         private static readonly bool[] ExpectedEffectiveCollapsedStates = [true, false, true, false];
 
+        private readonly IRenderedComponent<BbPortalHost> portalHost;
+
         public NavigationRailTestFixture()
         {
-            BlueprintTestSetup.Configure(this);
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
         }
 
         [TearDown]
@@ -234,7 +238,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             await component.Find("button[aria-label='Review']").ClickAsync();
             await OpenSidebarControlMenuAsync(component);
-            var options = await component.WaitForElementsAsync(
+            var options = await this.portalHost.WaitForElementsAsync(
                 "[role='menuitem']",
                 ExpectedPresentationModeLabels.Length);
             await options.Single(option => option.TextContent.Trim() == "Expanded").ClickAsync();
@@ -290,30 +294,40 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             await OpenSidebarControlMenuAsync(component);
 
-            var menu = await component.WaitForElementAsync("[role='menu']");
-            var options = await component.WaitForElementsAsync(
+            var menu = await this.portalHost.WaitForElementAsync("[role='menu']");
+            var options = await this.portalHost.WaitForElementsAsync(
                 "[role='menuitem']",
                 ExpectedPresentationModeLabels.Length);
             var selectedOption = options.Single(option => option.TextContent.Contains("Expand on hover"));
+            var dropdownTrigger = component.FindComponent<BbDropdownMenuTrigger>();
+            var dropdownContent = component.FindComponent<BbDropdownMenuContent>();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(trigger.GetAttribute("aria-label"),
                     Is.EqualTo("Expand workspace navigation; right-click for sidebar controls"));
                 Assert.That(trigger.GetAttribute("aria-keyshortcuts"), Is.EqualTo("Shift+F10"));
+                Assert.That(trigger.GetAttribute("aria-haspopup"), Is.EqualTo("menu"));
+                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
                 Assert.That(menu.TextContent, Does.Contain("Sidebar control"));
                 Assert.That(options.Select(option => option.TextContent
                         .Replace("\u2022", string.Empty, StringComparison.Ordinal)
                         .Replace("Current selection", string.Empty, StringComparison.Ordinal)
                         .Trim()),
                     Is.EqualTo(ExpectedPresentationModeLabels));
-                Assert.That(component.FindAll("[role='separator']"), Has.Count.EqualTo(2));
+                Assert.That(this.portalHost.FindAll("[role='separator']"), Has.Count.EqualTo(2));
                 Assert.That(options.All(option => option.GetAttribute("aria-disabled") != "true"), Is.True);
                 Assert.That(selectedOption.ClassList,
                     Does.Contain("mb-navigation-rail__control-option--selected"));
                 Assert.That(selectedOption.TextContent, Does.Contain("Current selection"));
-                Assert.That(component.FindComponents<BbContextMenu>(), Has.Count.EqualTo(1));
-                Assert.That(component.FindComponents<BbContextMenuContent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindComponents<BbDropdownMenu>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindComponents<BbDropdownMenuContent>(), Has.Count.EqualTo(1));
+                Assert.That(dropdownTrigger.Instance.AsChild, Is.False);
+                Assert.That(dropdownTrigger.Instance.CustomClickHandling, Is.True);
+                Assert.That(dropdownContent.Instance.Side, Is.EqualTo(PopoverSide.Right));
+                Assert.That(dropdownContent.Instance.Align, Is.EqualTo(PopoverAlign.End));
+                Assert.That(dropdownContent.Instance.Offset, Is.EqualTo(4));
+                Assert.That(dropdownContent.Instance.Strategy, Is.EqualTo(PositioningStrategy.Fixed));
             }
 
             await options.Single(option => option.TextContent.Trim() == "Expanded").ClickAsync();
@@ -324,6 +338,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 {
                     Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
                     Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+                    Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
                 }
             });
         }
@@ -334,11 +349,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             using var viewModel = CreateViewModel(NavigationRailPresentationMode.Expanded);
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
-            var sidebarControlIcon = component.FindComponent<BbContextMenuTrigger>()
+            var sidebarControlIcon = component.FindComponent<BbDropdownMenuTrigger>()
                 .FindComponent<LucideIcon>();
 
             Assert.That(sidebarControlIcon.Instance.Name, Is.EqualTo("panel-left-close"));
 
+            await OpenSidebarControlMenuAsync(component);
+            await this.portalHost.WaitForElementAsync("[role='menu']");
             await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
@@ -347,11 +364,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 {
                     Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
                     Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
-                    Assert.That(component.FindAll("[role='menu']"), Is.Empty);
+                    Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
                 }
             });
 
-            sidebarControlIcon = component.FindComponent<BbContextMenuTrigger>()
+            sidebarControlIcon = component.FindComponent<BbDropdownMenuTrigger>()
                 .FindComponent<LucideIcon>();
 
             Assert.That(sidebarControlIcon.Instance.Name, Is.EqualTo("panel-left-open"));
@@ -675,8 +692,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                         @"(?s)\.mb-navigation-rail__control-menu-content\s*\{[^}]*min-width:\s*13rem;"));
                 Assert.That(
                     style,
-                    Does.Match(
-                        @"(?s)\.mb-navigation-rail__sidebar-control\s+::deep\s+\.mb-navigation-rail__control-menu\s*\{[^}]*translate:\s*0\s+calc\(\s*-100%\s*-\s*var\(--mb-navigation-rail-collapse-size\)\s*-\s*var\(--mb-spacing-1\)\s*\);"));
+                    Does.Not.Match(
+                        @"(?s)\.mb-navigation-rail__sidebar-control\s+::deep\s+\.mb-navigation-rail__control-menu\s*\{[^}]*translate:"));
                 Assert.That(
                     style,
                     Does.Match(

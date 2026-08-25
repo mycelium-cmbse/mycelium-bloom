@@ -201,19 +201,6 @@
     min-width: 13rem;
 }
 
-/*
-   The sidebar control is bottom-anchored. Present its fixed context menu above
-   the context point so it remains inside the viewport without weakening the
-   workspace's overflow containment.
-*/
-.mb-navigation-rail__sidebar-control ::deep .mb-navigation-rail__control-menu {
-    translate: 0 calc(
-        -100%
-        - var(--mb-navigation-rail-collapse-size)
-        - var(--mb-spacing-1)
-    );
-}
-
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option:not([aria-disabled="true"]) {
     cursor: pointer;
 }

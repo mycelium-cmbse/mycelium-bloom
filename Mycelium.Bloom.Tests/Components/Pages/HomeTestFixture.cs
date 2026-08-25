@@ -89,6 +89,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var detailsPanel = component.FindComponent<DetailsPanelComponent>();
             var shellRoot = component.Find("section.mb-workspace-shell");
             var shellBody = component.Find(".mb-workspace-shell__body");
+            var navigationRoot = component.Find("nav.mb-navigation-rail");
             var renderedWeights = composition.Editor.Groups
                 .Select(group => editorWorkspace.Instance.InitialGroupWeights[group.Id])
                 .ToArray();
@@ -101,6 +102,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(shellRoot.GetAttribute("style"),
                     Does.Contain("--mb-workspace-right-panel-width: 380px;"));
                 Assert.That(navigation.Instance.ViewModel, Is.SameAs(composition.Navigation));
+                Assert.That(navigationRoot.GetAttribute("style"), Is.Null);
                 Assert.That(editorWorkspace.Instance.ViewModel, Is.SameAs(composition.Editor));
                 Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
                 Assert.That(detailsPanel.Instance.ViewModel, Is.SameAs(composition.Context));
@@ -309,6 +311,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(style, Does.Contain("min-width: 0;"));
                 Assert.That(style, Does.Contain("min-height: 0;"));
                 Assert.That(style, Does.Contain("overflow: hidden;"));
+                Assert.That(style, Does.Contain(
+                    ".mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body"));
+                Assert.That(style, Does.Contain("--mb-workspace-left-panel-width: fit-content;"));
                 Assert.That(style, Does.Contain("var(--mb-color-workspace-background)"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
                 Assert.That(style, Does.Not.Contain("border-radius"));
