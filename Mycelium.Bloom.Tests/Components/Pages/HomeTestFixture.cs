@@ -175,8 +175,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(composition.Editor.Groups[0].ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                 Assert.That(composition.Editor.Groups.Skip(1)
                     .All(group => group.ActiveTab.ViewTypeKey == "placeholder"), Is.True);
-                Assert.That(editorWorkspace.Instance.InitialGroupWeights.Count,
-                    Is.EqualTo(expectsFigmaWeights ? 3 : 0));
+                Assert.That(editorWorkspace.Instance.InitialGroupWeights,
+                    Has.Count.EqualTo(expectsFigmaWeights ? 3 : 0));
             }
         }
 

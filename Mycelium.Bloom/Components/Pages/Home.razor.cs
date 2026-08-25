@@ -89,10 +89,8 @@ namespace Mycelium.Bloom.Components.Pages
                 NavigationRailPresentationMode.Expanded => false,
                 NavigationRailPresentationMode.Collapsed => true,
                 NavigationRailPresentationMode.ExpandOnHover => true,
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(this.NavigationViewModel.PresentationMode),
-                    this.NavigationViewModel.PresentationMode,
-                    null)
+                _ => throw CreateInvalidPresentationModeException(
+                    this.NavigationViewModel.PresentationMode)
             };
 
             this.InitializePlaceholderWorkspace();
@@ -193,6 +191,17 @@ namespace Mycelium.Bloom.Components.Pages
         private static bool IsProjectBrowserTab(EditorTabItem tab)
         {
             return string.Equals(tab.ViewTypeKey, ProjectBrowserViewTypeKey, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Creates the exception raised when a navigation ViewModel exposes an unsupported presentation mode.
+        /// </summary>
+        /// <param name="presentationMode">The unsupported presentation mode.</param>
+        /// <returns>The exception describing the unsupported value.</returns>
+        private static ArgumentOutOfRangeException CreateInvalidPresentationModeException(
+            NavigationRailPresentationMode presentationMode)
+        {
+            return new ArgumentOutOfRangeException(nameof(presentationMode), presentationMode, null);
         }
     }
 }
