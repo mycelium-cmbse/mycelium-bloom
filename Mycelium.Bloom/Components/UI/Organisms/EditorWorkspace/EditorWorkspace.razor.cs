@@ -457,7 +457,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="group">The rendered group.</param>
         /// <param name="renderState">The coherent snapshot used by the current render.</param>
         /// <returns>The group CSS classes.</returns>
-        private string GetGroupCssClass(
+        private static string GetGroupCssClass(
             WorkspaceEditorGroupRenderState group,
             WorkspaceEditorRenderState renderState)
         {
@@ -611,7 +611,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <returns>The compact label.</returns>
         private string GetCompactGroupLabel(WorkspaceEditorGroupRenderState group, int groupIndex)
         {
-            return this.GetActiveTab(group)?.Title ?? this.GetGroupAccessibleLabel(groupIndex);
+            return GetActiveTab(group)?.Title ?? this.GetGroupAccessibleLabel(groupIndex);
         }
 
         /// <summary>
@@ -624,7 +624,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         {
             var groupLabel = this.GetGroupAccessibleLabel(groupIndex);
 
-            return this.GetActiveTab(group) is { } activeTab
+            return GetActiveTab(group) is { } activeTab
                 ? $"{groupLabel}: {activeTab.Title}"
                 : groupLabel;
         }
@@ -634,7 +634,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The rendered group snapshot.</param>
         /// <returns>The active tab snapshot, or null when the group is empty.</returns>
-        private WorkspaceEditorTabRenderState GetActiveTab(WorkspaceEditorGroupRenderState group)
+        private static WorkspaceEditorTabRenderState GetActiveTab(WorkspaceEditorGroupRenderState group)
         {
             if (group.ActiveTabId is not { } activeTabId)
             {
@@ -761,7 +761,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 
             if (this.ViewModel.CloseTab(group.Id, tab.Id))
             {
-                this.QueueFocusForGroup(this.GetFocusedGroup(this.ViewModel.RenderState));
+                this.QueueFocusForGroup(GetFocusedGroup(this.ViewModel.RenderState));
             }
         }
 
@@ -819,7 +819,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="renderState">The workspace rendering snapshot.</param>
         /// <returns>The focused group snapshot, or the first group when focus is unavailable.</returns>
-        private WorkspaceEditorGroupRenderState GetFocusedGroup(WorkspaceEditorRenderState renderState)
+        private static WorkspaceEditorGroupRenderState GetFocusedGroup(WorkspaceEditorRenderState renderState)
         {
             if (renderState?.FocusedGroupId is { } focusedGroupId)
             {
@@ -904,7 +904,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             WorkspaceEditorGroupRenderState rightGroup,
             PointerEventArgs args)
         {
-            var attachedViewModel = this.attachedViewModel;
+            var capturedViewModel = this.attachedViewModel;
             var currentModule = this.module;
             var capturedGraphVersion = this.groupGraphVersion;
 
@@ -945,7 +945,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 
                 if (this.isDisposed
                     || capturedGraphVersion != this.groupGraphVersion
-                    || !ReferenceEquals(this.attachedViewModel, attachedViewModel)
+                    || !ReferenceEquals(this.attachedViewModel, capturedViewModel)
                     || !this.AreCurrentAdjacentGroups(leftGroup.Id, rightGroup.Id))
                 {
                     await TryInvokeJavaScriptCleanupAsync(
@@ -1138,7 +1138,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 
             var renderState = viewModel.RenderState;
             this.InitializeGroupWeights(renderState);
-            this.compactGroupId = this.GetFocusedGroup(renderState)?.Id;
+            this.compactGroupId = GetFocusedGroup(renderState)?.Id;
             this.presentedRenderState = renderState;
         }
 
@@ -1179,8 +1179,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             {
                 this.compactGroupId = focusedGroupId;
             }
-            else if (this.compactGroupId is not { } compactGroupId
-                     || !currentGroupIds.Contains(compactGroupId))
+            else if (this.compactGroupId is not { } presentedCompactGroupId
+                     || !currentGroupIds.Contains(presentedCompactGroupId))
             {
                 this.compactGroupId = renderState.Groups.Length > 0
                     ? renderState.Groups[0].Id
@@ -1327,7 +1327,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 return;
             }
 
-            if (this.GetActiveTab(group) is { } activeTab)
+            if (GetActiveTab(group) is { } activeTab)
             {
                 this.pendingFocusElementId = this.GetTabElementId(group.Id, activeTab.Id);
             }

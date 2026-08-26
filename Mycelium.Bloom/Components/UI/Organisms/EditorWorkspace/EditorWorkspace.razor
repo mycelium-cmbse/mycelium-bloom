@@ -49,7 +49,7 @@
 
                 <section @key="group.Id"
                          id="@(this.GetGroupElementId(group.Id))"
-                         class="@(this.GetGroupCssClass(group, renderState))"
+                         class="@(GetGroupCssClass(group, renderState))"
                          style="@(this.GetGroupStyle(group))"
                          role="region"
                          aria-label="@(this.GetGroupAccessibleLabel(currentGroupIndex))"
@@ -131,7 +131,7 @@
                     </div>
 
                     <div class="mb-editor-workspace__content">
-                        @if (this.GetActiveTab(group) is { } activeTab)
+                        @if (GetActiveTab(group) is { } activeTab)
                         {
                             <div id="@(this.GetPanelElementId(group.Id, activeTab.Id))"
                                  class="mb-editor-workspace__tabpanel"

@@ -26,6 +26,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
     {
         private const int DefaultMaximumGroupCount = 3;
 
+        private static readonly string[] ExpectedInitialTabTitles = ["First", "Second"];
+
         [Test]
         public void VerifyConstructorCreatesInitialWorkspaceState()
         {
@@ -1128,7 +1130,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(snapshot.Groups[0].Tabs.Select(tab => tab.Id),
                     Is.EqualTo(new[] { firstTab.Id, secondTab.Id }));
                 Assert.That(snapshot.Groups[0].Tabs.Select(tab => tab.Title),
-                    Is.EqualTo(new[] { "First", "Second" }));
+                    Is.EqualTo(ExpectedInitialTabTitles));
                 Assert.That(snapshot.Groups[0].Tabs[0].Item, Is.SameAs(firstTab));
                 Assert.That(snapshot.Groups[0].Tabs[1].Item, Is.SameAs(secondTab));
                 Assert.That(snapshot.Groups[1].ActiveTabId, Is.EqualTo(thirdTab.Id));
@@ -1168,14 +1170,19 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
             var tab = OpenTab(viewModel, secondGroup, "Editor", "editor-view");
             var revisionAfterTab = viewModel.RenderState.Revision;
 
-            Assert.That(viewModel.FocusGroup(secondGroup.Id), Is.True);
-            Assert.That(viewModel.ActivateTab(secondGroup.Id, tab.Id), Is.True);
-            Assert.That(viewModel.TryAddGroup(out var rejectedGroup), Is.False);
-            Assert.That(viewModel.CloseTab(firstGroup.Id, Guid.NewGuid()), Is.False);
-            Assert.That(viewModel.MoveTab(secondGroup.Id, tab.Id, secondGroup.Id), Is.False);
+            var focusResult = viewModel.FocusGroup(secondGroup.Id);
+            var activateResult = viewModel.ActivateTab(secondGroup.Id, tab.Id);
+            var addGroupResult = viewModel.TryAddGroup(out var rejectedGroup);
+            var closeResult = viewModel.CloseTab(firstGroup.Id, Guid.NewGuid());
+            var moveResult = viewModel.MoveTab(secondGroup.Id, tab.Id, secondGroup.Id);
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(focusResult, Is.True);
+                Assert.That(activateResult, Is.True);
+                Assert.That(addGroupResult, Is.False);
+                Assert.That(closeResult, Is.False);
+                Assert.That(moveResult, Is.False);
                 Assert.That(revisionAfterGroup, Is.EqualTo(initialRevision + 1));
                 Assert.That(revisionAfterTab, Is.EqualTo(revisionAfterGroup + 1));
                 Assert.That(viewModel.RenderState.Revision, Is.EqualTo(revisionAfterTab));
