@@ -1240,10 +1240,13 @@
                                     AriaLabel="Navigation rail preview" />
                 </div>
 
+                <DesignSystemNavigationRailPreview ViewModel="this.NavigationRailPreviewViewModel"
+                                                   Context="previewViewModel">
                 <p id="navigation-rail-preview-result" class="mb-design-system__result">
-                    Selected: @this.NavigationRailPreviewViewModel.SelectedItem?.Label.
-                    Presentation: @this.NavigationRailPreviewViewModel.PresentationMode.
+                    Selected: @previewViewModel.SelectedItem?.Label.
+                    Presentation: @previewViewModel.PresentationMode.
                 </p>
+                </DesignSystemNavigationRailPreview>
             </article>
 
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="app-header">

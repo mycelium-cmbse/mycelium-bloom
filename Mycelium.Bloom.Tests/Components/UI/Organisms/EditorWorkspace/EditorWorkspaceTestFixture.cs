@@ -121,7 +121,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(tabs.All(tab => tab.GetAttribute("role") == "tab"), Is.True);
                 Assert.That(panels, Has.Count.EqualTo(2));
                 Assert.That(panels.All(panel => panel.GetAttribute("role") == "tabpanel"), Is.True);
-                Assert.That(renderedItems, Is.EqualTo(new[] { firstActiveTab, secondActiveTab }));
+                Assert.That(renderedItems.Any(item => ReferenceEquals(item, firstActiveTab)), Is.True);
+                Assert.That(renderedItems.Any(item => ReferenceEquals(item, secondActiveTab)), Is.True);
+                Assert.That(
+                    renderedItems.All(item =>
+                        ReferenceEquals(item, firstActiveTab) || ReferenceEquals(item, secondActiveTab)),
+                    Is.True);
                 Assert.That(renderedItems.Any(item => ReferenceEquals(item, inactiveTab)), Is.False);
                 Assert.That(component.FindAll($"[data-rendered-tab-id='{inactiveTab.Id}']"), Is.Empty);
             }
@@ -154,6 +159,42 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(component.FindAll("[data-testid='editor-workspace-tab-move']"), Is.Empty);
                 Assert.That(component.FindAll("[data-drag-target]"), Is.Empty);
             });
+        }
+
+        [Test]
+        public void VerifyRenderingUsesOnlyCapturedRootSnapshotDurableState()
+        {
+            using var liveGraph = CreateViewModel();
+            var liveTab = OpenTab(liveGraph, liveGraph.Groups[0], "Live graph title", "live-view");
+            using var snapshotOwner = CreateViewModel();
+            var snapshotGroup = snapshotOwner.Groups[0];
+            var snapshotTab = OpenTab(snapshotOwner, snapshotGroup, "Captured snapshot title", "snapshot-view");
+            var viewModel = new Mock<IWorkspaceEditorViewModel>();
+            viewModel.SetupGet(model => model.Groups).Returns(liveGraph.Groups);
+            viewModel.SetupGet(model => model.FocusedGroup).Returns(liveGraph.FocusedGroup);
+            viewModel.SetupGet(model => model.RenderState).Returns(snapshotOwner.RenderState);
+            var renderedItems = new List<EditorTabItem>();
+
+            using var component = this.RenderWorkspace(
+                viewModel.Object,
+                tab => builder =>
+                {
+                    renderedItems.Add(tab);
+                    builder.AddContent(0, tab.Title);
+                });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(GroupSelector), Has.Count.EqualTo(1));
+                Assert.That(component.Find(GroupSelector).GetAttribute("data-group-id"),
+                    Is.EqualTo(snapshotGroup.Id.ToString()));
+                Assert.That(component.Find(TabSelector).GetAttribute("data-tab-id"),
+                    Is.EqualTo(snapshotTab.Id.ToString()));
+                Assert.That(component.Find(TabSelector).TextContent, Does.Contain("Captured snapshot title"));
+                Assert.That(component.Markup, Does.Not.Contain("Live graph title"));
+                Assert.That(component.Markup, Does.Not.Contain(liveTab.Id.ToString()));
+                Assert.That(renderedItems, Is.All.SameAs(snapshotTab));
+            }
         }
 
         [Test]
@@ -1281,12 +1322,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
             var viewModel = new Mock<IWorkspaceEditorViewModel>();
             viewModel.SetupGet(x => x.Groups).Returns(state.Groups);
             viewModel.SetupGet(x => x.FocusedGroup).Returns(() => state.FocusedGroup);
+            viewModel.SetupGet(x => x.RenderState).Returns(() => state.RenderState);
             viewModel.Setup(x => x.ActivateTab(It.IsAny<Guid>(), It.IsAny<Guid>()))
                 .Returns((Guid groupId, Guid tabId) => state.ActivateTab(groupId, tabId));
             viewModel.Setup(x => x.FocusGroup(It.IsAny<Guid>()))
                 .Returns((Guid groupId) => state.FocusGroup(groupId));
             viewModel.Setup(x => x.CloseTab(It.IsAny<Guid>(), It.IsAny<Guid>()))
                 .Returns((Guid groupId, Guid tabId) => state.CloseTab(groupId, tabId));
+            state.PropertyChanged += (_, args) =>
+                viewModel.Raise(x => x.PropertyChanged += null, args);
 
             return viewModel;
         }

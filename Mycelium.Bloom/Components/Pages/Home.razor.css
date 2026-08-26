@@ -12,6 +12,13 @@
     --mb-workspace-left-panel-width: fit-content;
 }
 
+.mb-main-workspace__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--mb-workspace-left-panel-collapsed-width) - (2 * var(--mb-spacing-2)));
+}
+
 .mb-main-workspace__heading {
     position: absolute;
     width: 1px;

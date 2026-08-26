@@ -9,9 +9,6 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 {
-    using System.Collections.ObjectModel;
-    using System.Collections.Specialized;
-
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.Common;
@@ -30,11 +27,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// </summary>
         private static readonly NavigationRailPresentationMode[] PresentationModes =
             Enum.GetValues<NavigationRailPresentationMode>();
-
-        /// <summary>
-        /// The read-only destination projection currently observed by this component.
-        /// </summary>
-        private ReadOnlyObservableCollection<NavigationRailItem> observedNavigationItems;
 
         /// <summary>
         /// A value indicating whether the pointer is currently over this component instance.
@@ -91,13 +83,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         public EventCallback<bool> EffectiveCollapsedChanged { get; set; }
 
         /// <inheritdoc />
-        protected override void OnParametersSet()
-        {
-            base.OnParametersSet();
-            this.ObserveNavigationItems(this.ViewModel?.NavigationItems);
-        }
-
-        /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
@@ -121,7 +106,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         }
 
         /// <summary>
-        /// Detaches component-owned collection observation without disposing the caller-owned ViewModel.
+        /// Releases component-owned reactive observation without disposing the caller-owned ViewModel.
         /// </summary>
         /// <param name="disposing">
         /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
@@ -134,11 +119,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             }
 
             this.isDisposed = true;
-
-            if (disposing)
-            {
-                this.ObserveNavigationItems(null);
-            }
 
             base.Dispose(disposing);
         }
@@ -347,49 +327,5 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             return new ArgumentOutOfRangeException(nameof(presentationMode), presentationMode, null);
         }
 
-        /// <summary>
-        /// Replaces the component-owned collection subscription when its ViewModel changes.
-        /// </summary>
-        /// <param name="navigationItems">The destination projection to observe, or <see langword="null" />.</param>
-        private void ObserveNavigationItems(ReadOnlyObservableCollection<NavigationRailItem> navigationItems)
-        {
-            if (ReferenceEquals(this.observedNavigationItems, navigationItems))
-            {
-                return;
-            }
-
-            if (this.observedNavigationItems is INotifyCollectionChanged previousItems)
-            {
-                previousItems.CollectionChanged -= this.HandleNavigationItemsChanged;
-            }
-
-            this.observedNavigationItems = navigationItems;
-
-            if (this.observedNavigationItems is INotifyCollectionChanged currentItems)
-            {
-                currentItems.CollectionChanged += this.HandleNavigationItemsChanged;
-            }
-        }
-
-        /// <summary>
-        /// Queues a render when the stable destination projection changes.
-        /// </summary>
-        /// <param name="sender">The observed destination projection.</param>
-        /// <param name="args">The collection change.</param>
-        private void HandleNavigationItemsChanged(object sender, NotifyCollectionChangedEventArgs args)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            _ = this.InvokeAsync(() =>
-            {
-                if (!this.isDisposed)
-                {
-                    this.StateHasChanged();
-                }
-            });
-        }
     }
 }

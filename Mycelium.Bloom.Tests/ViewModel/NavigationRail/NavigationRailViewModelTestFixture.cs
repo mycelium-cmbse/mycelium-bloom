@@ -155,10 +155,25 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 CreateNavigationRailItemProvider(
                     static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
             viewModel.SelectedItem = Review;
+            NavigationRailItem[] publishedItems = null;
+            NavigationRailItem publishedSelection = null;
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.NavigationItems))
+                {
+                    publishedItems = viewModel.NavigationItems.ToArray();
+                    publishedSelection = viewModel.SelectedItem;
+                }
+            };
 
             contextService.LifecycleState = ProjectLifecycleState.Open;
 
-            Assert.That(viewModel.SelectedItem, Is.SameAs(OpenReview));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.SelectedItem, Is.SameAs(OpenReview));
+                Assert.That(publishedItems, Is.EqualTo(OpenItems));
+                Assert.That(publishedSelection, Is.SameAs(OpenReview));
+            }
         }
 
         [Test]

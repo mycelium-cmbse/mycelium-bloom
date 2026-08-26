@@ -420,10 +420,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies the stable root collection's native notification rerenders the real component.
+        /// Verifies roots rerender only through the ViewModel's coherent top-level publication.
         /// </summary>
         [Test]
-        public void VerifyRootNodesCollectionChangedRerendersComponent()
+        public void VerifyRootNodesTopLevelPublicationRerendersComponent()
         {
             var firstNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
             var secondNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second");
@@ -431,6 +431,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { firstNode };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -440,10 +441,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.RenderProjectBrowser();
             Assert.That(component.Find(".mb-project-browser-node__title").TextContent, Is.EqualTo("First"));
+            var initialRenderCount = component.RenderCount;
 
             mutableRoots.Clear();
             mutableRoots.Add(secondNode);
             mutableRoots.Add(thirdNode);
+
+            Assert.That(component.RenderCount, Is.EqualTo(initialRenderCount));
+
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
 
             component.WaitForAssertion(() =>
             {
@@ -591,47 +599,60 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies a normal rerender does not duplicate the root collection subscription.
+        /// Verifies ViewModel replacement detaches the old top-level root publisher.
         /// </summary>
         [Test]
-        public void VerifyRerenderDoesNotDuplicateRootNodesSubscription()
+        public void VerifyViewModelReplacementDetachesOldRootPublication()
         {
-            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
-            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
-            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
-            viewModel.SetupGet(x => x.IsLoading).Returns(false);
-            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
-            viewModel.Setup(x => x.Dispose());
-            this.RegisterViewModel(viewModel.Object);
+            var firstRootsSource = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First")
+            };
+            var secondRootsSource = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second")
+            };
+            var firstViewModel = CreateLoadedViewModel(firstRootsSource);
+            var secondViewModel = CreateLoadedViewModel(secondRootsSource);
+            this.RegisterViewModel(firstViewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            component.Render(ParameterView.Empty);
-            var renderCount = component.RenderCount;
+            component.Render(parameters => parameters
+                .Add(browser => browser.ViewModel, secondViewModel.Object));
+            var replacementRenderCount = component.RenderCount;
 
-            mutableRoots.Clear();
+            firstRootsSource.Clear();
+            firstViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
+
+            Assert.That(component.RenderCount, Is.EqualTo(replacementRenderCount));
+
+            secondRootsSource.Clear();
+            secondViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
 
             component.WaitForAssertion(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(component.RenderCount, Is.EqualTo(renderCount + 1));
+                    Assert.That(component.RenderCount, Is.GreaterThan(replacementRenderCount));
                     Assert.That(component.Markup, Does.Contain("No model elements available."));
                 }
             });
         }
 
         /// <summary>
-        /// Verifies root collection changes cannot rerender the component after reactive deactivation.
+        /// Verifies top-level root publication cannot rerender the component after reactive deactivation.
         /// </summary>
         [Test]
-        public async Task VerifyDisposedComponentIgnoresRootNodesCollectionChanges()
+        public async Task VerifyDisposedComponentIgnoresRootNodesPublication()
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -644,8 +665,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await this.DisposeComponentsAsync();
             var renderCountAfterDisposal = component.RenderCount;
 
-            await this.Renderer.Dispatcher.InvokeAsync(() =>
-                mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First")));
+            mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First"));
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
 
             using (Assert.EnterMultipleScope())
             {
@@ -703,6 +726,25 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             component.Instance.Dispose();
 
             viewModel.Verify(x => x.Dispose(), Times.Never);
+        }
+
+        /// <summary>
+        /// Creates a loaded reactive contract over a caller-owned mutable root source.
+        /// </summary>
+        /// <param name="rootSource">The roots exposed through the stable read-only projection.</param>
+        /// <returns>The configured ViewModel mock.</returns>
+        private static Mock<IProjectBrowserViewModel> CreateLoadedViewModel(
+            ObservableCollection<ProjectBrowserNodeViewModel> rootSource)
+        {
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes)
+                .Returns(new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(rootSource));
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+
+            return viewModel;
         }
 
         /// <summary>

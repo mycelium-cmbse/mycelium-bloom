@@ -9,8 +9,6 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 {
-    using System.Collections.Specialized;
-    using System.ComponentModel;
     using System.Globalization;
 
     using Microsoft.AspNetCore.Components;
@@ -18,14 +16,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
     using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.Common;
-    using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+    using Common;
+    using Model;
+    using ViewModel.WorkspaceEditor;
 
     /// <summary>
     /// Renders independently tabbed, resizable editor groups over caller-owned workspace state.
     /// </summary>
-    public sealed partial class EditorWorkspace : BloomComponentBase, IAsyncDisposable
+    public sealed partial class EditorWorkspace : BloomReactiveComponentBase<IWorkspaceEditorViewModel>, IAsyncDisposable
     {
         /// <summary>
         /// The keyboard resize increment expressed as a share of the adjacent pair.
@@ -45,7 +43,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <summary>
         /// The generated identity used to scope DOM relationships and JavaScript registrations.
         /// </summary>
-        private readonly string workspaceId = CreateGeneratedId("mb-editor-workspace");
+        private readonly string workspaceId = $"mb-editor-workspace-{Guid.NewGuid():N}";
 
         /// <summary>
         /// The component-local normalized weight for every rendered group.
@@ -53,24 +51,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         private readonly Dictionary<Guid, double> groupWeights = [];
 
         /// <summary>
-        /// The group instances whose nested notifications are currently observed.
+        /// The caller-owned ViewModel currently attached for presentation state.
         /// </summary>
-        private readonly HashSet<EditorGroupViewModel> observedGroups = [];
+        private IWorkspaceEditorViewModel attachedViewModel;
 
         /// <summary>
-        /// The tab instances whose metadata notifications are currently observed.
+        /// The immutable rendering snapshot most recently reconciled on the renderer.
         /// </summary>
-        private readonly HashSet<EditorTabItem> observedTabs = [];
-
-        /// <summary>
-        /// Coordinates ownership of notification tasks with component disposal.
-        /// </summary>
-        private readonly object notificationTaskSync = new();
-
-        /// <summary>
-        /// The ViewModel graph currently observed by this component.
-        /// </summary>
-        private IWorkspaceEditorViewModel observedViewModel;
+        private WorkspaceEditorRenderState presentedRenderState;
 
         /// <summary>
         /// The JavaScript module used for pointer capture and deterministic DOM focus.
@@ -81,6 +69,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// The active pointer-resize baseline, if a splitter owns pointer capture.
         /// </summary>
         private SplitterResizeState splitterResizeState;
+
+        /// <summary>
+        /// Pointer capture detached by a topology change and awaiting browser cleanup.
+        /// </summary>
+        private SplitterResizeState pendingPointerReleaseState;
 
         /// <summary>
         /// The identity of an asynchronous pointer-capture request that has not completed yet.
@@ -113,9 +106,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         private Task javaScriptInitializationTask;
 
         /// <summary>
-        /// The dispatcher work owned for synchronous observed-event callbacks.
+        /// The in-flight pointer cleanup observed by final component disposal.
         /// </summary>
-        private Task ownedNotificationTasks = Task.CompletedTask;
+        private Task pointerReleaseTask = Task.CompletedTask;
 
         /// <summary>
         /// A value indicating whether component disposal has begun.
@@ -123,17 +116,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         private bool isDisposed;
 
         /// <summary>
+        /// Gets the single renderer-reconciled snapshot used throughout the current render.
+        /// </summary>
+        private WorkspaceEditorRenderState PresentedRenderState => this.presentedRenderState;
+
+        /// <summary>
         /// Gets or sets the JavaScript runtime used by the collocated interaction module.
         /// </summary>
         [Inject]
         private IJSRuntime JsRuntime { get; set; }
-
-        /// <summary>
-        /// Gets or sets the caller-owned workspace state.
-        /// </summary>
-        [Parameter]
-        [EditorRequired]
-        public IWorkspaceEditorViewModel ViewModel { get; set; }
 
         /// <summary>
         /// Gets or sets the template used to render the exact active tab instance in each group.
@@ -178,11 +169,22 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         {
             await base.OnParametersSetAsync();
 
-            if (!ReferenceEquals(this.observedViewModel, this.ViewModel))
+            if (!ReferenceEquals(this.attachedViewModel, this.ViewModel))
             {
-                await this.ReleaseActivePointerCaptureAsync();
-                this.ObserveViewModel(this.ViewModel);
+                await this.ReleaseAllPointerCaptureAsync();
+                this.AttachViewModel(this.ViewModel);
             }
+        }
+
+        /// <inheritdoc />
+        protected override bool ShouldRender()
+        {
+            if (!this.isDisposed && this.attachedViewModel is not null)
+            {
+                this.ReconcileRenderState(this.attachedViewModel.RenderState);
+            }
+
+            return base.ShouldRender();
         }
 
         /// <inheritdoc />
@@ -194,6 +196,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             {
                 return;
             }
+
+            await this.ReleasePendingPointerCaptureAsync();
 
             if (this.module is null || !this.keydownGuardRegistered)
             {
@@ -246,26 +250,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <returns>A value task representing asynchronous cleanup.</returns>
         public async ValueTask DisposeAsync()
         {
-            Task notificationTasks;
-
-            lock (this.notificationTaskSync)
+            if (this.isDisposed)
             {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                this.isDisposed = true;
-                notificationTasks = this.ownedNotificationTasks;
+                return;
             }
 
-            var resizeState = this.splitterResizeState;
+            this.isDisposed = true;
+            Dispose(true);
+
+            var resizeState = this.splitterResizeState ?? this.pendingPointerReleaseState;
             this.splitterResizeState = null;
-            this.ObserveViewModel(null);
+            this.pendingPointerReleaseState = null;
+            this.attachedViewModel = null;
+            this.presentedRenderState = null;
 
             try
             {
-                await notificationTasks;
+                await this.pointerReleaseTask;
             }
             finally
             {
@@ -454,14 +455,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// Gets the CSS classes applied to one editor group.
         /// </summary>
         /// <param name="group">The rendered group.</param>
+        /// <param name="renderState">The coherent snapshot used by the current render.</param>
         /// <returns>The group CSS classes.</returns>
-        private string GetGroupCssClass(EditorGroupViewModel group)
+        private string GetGroupCssClass(
+            WorkspaceEditorGroupRenderState group,
+            WorkspaceEditorRenderState renderState)
         {
             return CssClassBuilder.Build(
                 "mb-editor-workspace__group",
                 CssClassBuilder.When(
                     "mb-editor-workspace__group--focused",
-                    ReferenceEquals(this.ViewModel?.FocusedGroup, group)));
+                    renderState.FocusedGroupId == group.Id));
         }
 
         /// <summary>
@@ -481,7 +485,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The represented group.</param>
         /// <returns>The compact-button CSS classes.</returns>
-        private string GetCompactButtonCssClass(EditorGroupViewModel group)
+        private string GetCompactButtonCssClass(WorkspaceEditorGroupRenderState group)
         {
             return CssClassBuilder.Build(
                 "mb-editor-workspace__compact-button",
@@ -495,7 +499,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The rendered group.</param>
         /// <returns>The inline custom-property declaration.</returns>
-        private string GetGroupStyle(EditorGroupViewModel group)
+        private string GetGroupStyle(WorkspaceEditorGroupRenderState group)
         {
             return $"--mb-editor-group-weight: {this.GetGroupWeight(group.Id).ToString("0.############", CultureInfo.InvariantCulture)};";
         }
@@ -504,14 +508,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// Gets the cumulative boundary declaration for a splitter.
         /// </summary>
         /// <param name="leftGroupIndex">The index of the group preceding the splitter.</param>
+        /// <param name="renderState">The coherent snapshot used by the current render.</param>
         /// <returns>The inline custom-property declaration.</returns>
-        private string GetSplitterStyle(int leftGroupIndex)
+        private string GetSplitterStyle(int leftGroupIndex, WorkspaceEditorRenderState renderState)
         {
             var position = 0d;
 
             for (var index = 0; index <= leftGroupIndex; index++)
             {
-                position += this.GetGroupWeight(this.ViewModel.Groups[index].Id);
+                position += this.GetGroupWeight(renderState.Groups[index].Id);
             }
 
             return $"--mb-editor-splitter-position: {(position * 100d).ToString("0.######", CultureInfo.InvariantCulture)}%;";
@@ -524,8 +529,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="rightGroup">The group following the splitter.</param>
         /// <returns>The rounded percentage exposed through separator ARIA.</returns>
         private int GetAdjacentLeftPercentage(
-            EditorGroupViewModel leftGroup,
-            EditorGroupViewModel rightGroup)
+            WorkspaceEditorGroupRenderState leftGroup,
+            WorkspaceEditorGroupRenderState rightGroup)
         {
             return (int)Math.Round(
                 this.GetAdjacentLeftShare(leftGroup, rightGroup) * 100d,
@@ -539,8 +544,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="rightGroup">The group following the splitter.</param>
         /// <returns>The rounded minimum percentage exposed through separator ARIA.</returns>
         private int GetAdjacentMinimumPercentage(
-            EditorGroupViewModel leftGroup,
-            EditorGroupViewModel rightGroup)
+            WorkspaceEditorGroupRenderState leftGroup,
+            WorkspaceEditorGroupRenderState rightGroup)
         {
             return Math.Min(
                 (int)(MinimumAdjacentShare * 100d),
@@ -554,8 +559,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="rightGroup">The group following the splitter.</param>
         /// <returns>The rounded maximum percentage exposed through separator ARIA.</returns>
         private int GetAdjacentMaximumPercentage(
-            EditorGroupViewModel leftGroup,
-            EditorGroupViewModel rightGroup)
+            WorkspaceEditorGroupRenderState leftGroup,
+            WorkspaceEditorGroupRenderState rightGroup)
         {
             return Math.Max(
                 (int)((1d - MinimumAdjacentShare) * 100d),
@@ -569,8 +574,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="rightGroup">The group following the splitter.</param>
         /// <returns>The left group's adjacent-pair share.</returns>
         private double GetAdjacentLeftShare(
-            EditorGroupViewModel leftGroup,
-            EditorGroupViewModel rightGroup)
+            WorkspaceEditorGroupRenderState leftGroup,
+            WorkspaceEditorGroupRenderState rightGroup)
         {
             var leftWeight = this.GetGroupWeight(leftGroup.Id);
             var pairWeight = leftWeight + this.GetGroupWeight(rightGroup.Id);
@@ -604,9 +609,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="group">The represented group.</param>
         /// <param name="groupIndex">The zero-based group index.</param>
         /// <returns>The compact label.</returns>
-        private string GetCompactGroupLabel(EditorGroupViewModel group, int groupIndex)
+        private string GetCompactGroupLabel(WorkspaceEditorGroupRenderState group, int groupIndex)
         {
-            return group.ActiveTab?.Title ?? this.GetGroupAccessibleLabel(groupIndex);
+            return this.GetActiveTab(group)?.Title ?? this.GetGroupAccessibleLabel(groupIndex);
         }
 
         /// <summary>
@@ -615,13 +620,28 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="group">The represented group.</param>
         /// <param name="groupIndex">The zero-based group index.</param>
         /// <returns>The numbered group label with its active tab title when available.</returns>
-        private string GetCompactGroupAccessibleLabel(EditorGroupViewModel group, int groupIndex)
+        private string GetCompactGroupAccessibleLabel(WorkspaceEditorGroupRenderState group, int groupIndex)
         {
             var groupLabel = this.GetGroupAccessibleLabel(groupIndex);
 
-            return group.ActiveTab is { } activeTab
+            return this.GetActiveTab(group) is { } activeTab
                 ? $"{groupLabel}: {activeTab.Title}"
                 : groupLabel;
+        }
+
+        /// <summary>
+        /// Gets the active tab captured by one immutable group snapshot.
+        /// </summary>
+        /// <param name="group">The rendered group snapshot.</param>
+        /// <returns>The active tab snapshot, or null when the group is empty.</returns>
+        private WorkspaceEditorTabRenderState GetActiveTab(WorkspaceEditorGroupRenderState group)
+        {
+            if (group.ActiveTabId is not { } activeTabId)
+            {
+                return null;
+            }
+
+            return group.Tabs.FirstOrDefault(tab => tab.Id == activeTabId);
         }
 
         /// <summary>
@@ -682,7 +702,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The candidate group.</param>
         /// <returns>True when the group is selected for compact presentation.</returns>
-        private bool IsCompactGroupPresented(EditorGroupViewModel group)
+        private bool IsCompactGroupPresented(WorkspaceEditorGroupRenderState group)
         {
             return this.compactGroupId == group.Id;
         }
@@ -691,7 +711,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// Selects and logically focuses a group through the compact presentation control.
         /// </summary>
         /// <param name="group">The selected group.</param>
-        private void SelectCompactGroup(EditorGroupViewModel group)
+        private void SelectCompactGroup(WorkspaceEditorGroupRenderState group)
         {
             this.compactGroupId = group.Id;
 
@@ -705,9 +725,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// Gives a rendered group logical workspace focus.
         /// </summary>
         /// <param name="group">The group receiving focus.</param>
-        private void FocusGroup(EditorGroupViewModel group)
+        private void FocusGroup(WorkspaceEditorGroupRenderState group)
         {
-            if (!ReferenceEquals(this.ViewModel.FocusedGroup, group))
+            if (this.ViewModel.RenderState.FocusedGroupId != group.Id)
             {
                 _ = this.ViewModel.FocusGroup(group.Id);
             }
@@ -720,8 +740,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="tab">The selected tab.</param>
         /// <param name="restoreDomFocus">Whether the semantic tab should receive post-render focus.</param>
         private void ActivateTab(
-            EditorGroupViewModel group,
-            EditorTabItem tab,
+            WorkspaceEditorGroupRenderState group,
+            WorkspaceEditorTabRenderState tab,
             bool restoreDomFocus)
         {
             if (this.ViewModel.ActivateTab(group.Id, tab.Id) && restoreDomFocus)
@@ -735,13 +755,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The owning group.</param>
         /// <param name="tab">The tab to close.</param>
-        private void CloseTab(EditorGroupViewModel group, EditorTabItem tab)
+        private void CloseTab(WorkspaceEditorGroupRenderState group, WorkspaceEditorTabRenderState tab)
         {
             _ = this.ViewModel.FocusGroup(group.Id);
 
             if (this.ViewModel.CloseTab(group.Id, tab.Id))
             {
-                this.QueueFocusForGroup(this.ViewModel.FocusedGroup);
+                this.QueueFocusForGroup(this.GetFocusedGroup(this.ViewModel.RenderState));
             }
         }
 
@@ -750,7 +770,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The group requesting the tab.</param>
         /// <returns>A task representing the caller-owned tab request.</returns>
-        private async Task RequestAddTabAsync(EditorGroupViewModel group)
+        private async Task RequestAddTabAsync(WorkspaceEditorGroupRenderState group)
         {
             if (!this.AddTabRequested.HasDelegate)
             {
@@ -768,23 +788,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="tab">The currently focused tab.</param>
         /// <param name="args">The keyboard event.</param>
         private void HandleTabKeyDown(
-            EditorGroupViewModel group,
-            EditorTabItem tab,
+            WorkspaceEditorGroupRenderState group,
+            WorkspaceEditorTabRenderState tab,
             KeyboardEventArgs args)
         {
             var currentIndex = group.Tabs.IndexOf(tab);
 
-            if (currentIndex < 0 || group.Tabs.Count == 0)
+            if (currentIndex < 0 || group.Tabs.Length == 0)
             {
                 return;
             }
 
             var targetIndex = args.Key switch
             {
-                "ArrowLeft" => (currentIndex - 1 + group.Tabs.Count) % group.Tabs.Count,
-                "ArrowRight" => (currentIndex + 1) % group.Tabs.Count,
+                "ArrowLeft" => (currentIndex - 1 + group.Tabs.Length) % group.Tabs.Length,
+                "ArrowRight" => (currentIndex + 1) % group.Tabs.Length,
                 "Home" => 0,
-                "End" => group.Tabs.Count - 1,
+                "End" => group.Tabs.Length - 1,
                 _ => -1
             };
 
@@ -795,13 +815,37 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         }
 
         /// <summary>
-        /// Releases an active splitter capture before presentation attaches to a different ViewModel graph.
+        /// Gets the focused group captured by a coherent workspace snapshot.
+        /// </summary>
+        /// <param name="renderState">The workspace rendering snapshot.</param>
+        /// <returns>The focused group snapshot, or the first group when focus is unavailable.</returns>
+        private WorkspaceEditorGroupRenderState GetFocusedGroup(WorkspaceEditorRenderState renderState)
+        {
+            if (renderState?.FocusedGroupId is { } focusedGroupId)
+            {
+                var focusedGroup = renderState.Groups.FirstOrDefault(group => group.Id == focusedGroupId);
+
+                if (focusedGroup is not null)
+                {
+                    return focusedGroup;
+                }
+            }
+
+            return renderState?.Groups.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Releases every splitter capture before presentation attaches to a different ViewModel graph.
         /// </summary>
         /// <returns>A task representing pointer release.</returns>
-        private async Task ReleaseActivePointerCaptureAsync()
+        private async Task ReleaseAllPointerCaptureAsync()
         {
-            var resizeState = this.splitterResizeState;
+            await this.pointerReleaseTask;
+
+            var resizeState = this.splitterResizeState ?? this.pendingPointerReleaseState;
             this.splitterResizeState = null;
+            this.pendingPointerReleaseState = null;
+            this.pendingSplitterCapture = null;
             var currentModule = this.module;
 
             if (resizeState is null || currentModule is null)
@@ -817,6 +861,38 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         }
 
         /// <summary>
+        /// Releases pointer capture invalidated by a snapshot topology change after the current render completes.
+        /// </summary>
+        /// <returns>A task representing pointer release.</returns>
+        private async Task ReleasePendingPointerCaptureAsync()
+        {
+            if (this.pendingPointerReleaseState is not { } resizeState || this.module is not { } currentModule)
+            {
+                return;
+            }
+
+            this.pendingPointerReleaseState = null;
+            var cleanupTask = TryInvokeJavaScriptCleanupAsync(
+                currentModule,
+                ReleasePointerFunction,
+                resizeState.SeparatorId,
+                resizeState.PointerId).AsTask();
+            this.pointerReleaseTask = cleanupTask;
+
+            try
+            {
+                await cleanupTask;
+            }
+            finally
+            {
+                if (ReferenceEquals(this.pointerReleaseTask, cleanupTask))
+                {
+                    this.pointerReleaseTask = Task.CompletedTask;
+                }
+            }
+        }
+
+        /// <summary>
         /// Begins one splitter resize using measured adjacent-group geometry and pointer capture.
         /// </summary>
         /// <param name="leftGroup">The group preceding the splitter.</param>
@@ -824,11 +900,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="args">The pointer-down event.</param>
         /// <returns>A task representing pointer capture.</returns>
         private async Task BeginSplitterResizeAsync(
-            EditorGroupViewModel leftGroup,
-            EditorGroupViewModel rightGroup,
+            WorkspaceEditorGroupRenderState leftGroup,
+            WorkspaceEditorGroupRenderState rightGroup,
             PointerEventArgs args)
         {
-            var attachedViewModel = this.observedViewModel;
+            var attachedViewModel = this.attachedViewModel;
             var currentModule = this.module;
             var capturedGraphVersion = this.groupGraphVersion;
 
@@ -869,7 +945,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 
                 if (this.isDisposed
                     || capturedGraphVersion != this.groupGraphVersion
-                    || !ReferenceEquals(this.observedViewModel, attachedViewModel)
+                    || !ReferenceEquals(this.attachedViewModel, attachedViewModel)
                     || !this.AreCurrentAdjacentGroups(leftGroup.Id, rightGroup.Id))
                 {
                     await TryInvokeJavaScriptCleanupAsync(
@@ -969,8 +1045,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="rightGroup">The group following the separator.</param>
         /// <param name="args">The keyboard event.</param>
         private void HandleSplitterKeyDown(
-            EditorGroupViewModel leftGroup,
-            EditorGroupViewModel rightGroup,
+            WorkspaceEditorGroupRenderState leftGroup,
+            WorkspaceEditorGroupRenderState rightGroup,
             KeyboardEventArgs args)
         {
             var direction = args.Key switch
@@ -1020,15 +1096,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <returns>True when the groups remain adjacent in their original order.</returns>
         private bool AreCurrentAdjacentGroups(Guid leftGroupId, Guid rightGroupId)
         {
-            if (this.observedViewModel is null)
+            if (this.attachedViewModel is null)
             {
                 return false;
             }
 
-            for (var groupIndex = 0; groupIndex < this.observedViewModel.Groups.Count - 1; groupIndex++)
+            var groups = this.attachedViewModel.RenderState.Groups;
+
+            for (var groupIndex = 0; groupIndex < groups.Length - 1; groupIndex++)
             {
-                if (this.observedViewModel.Groups[groupIndex].Id == leftGroupId
-                    && this.observedViewModel.Groups[groupIndex + 1].Id == rightGroupId)
+                if (groups[groupIndex].Id == leftGroupId
+                    && groups[groupIndex + 1].Id == rightGroupId)
                 {
                     return true;
                 }
@@ -1038,159 +1116,93 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         }
 
         /// <summary>
-        /// Replaces the observed ViewModel graph and initializes its presentation state once.
+        /// Attaches presentation state to a caller-owned ViewModel without assuming disposal ownership.
         /// </summary>
-        /// <param name="viewModel">The new caller-owned ViewModel, or null.</param>
-        private void ObserveViewModel(IWorkspaceEditorViewModel viewModel)
+        /// <param name="viewModel">The caller-owned ViewModel, or null.</param>
+        private void AttachViewModel(IWorkspaceEditorViewModel viewModel)
         {
-            if (this.observedViewModel is not null)
-            {
-                this.observedViewModel.PropertyChanged -= this.HandleViewModelPropertyChanged;
-
-                if (this.observedViewModel.Groups is INotifyCollectionChanged previousGroups)
-                {
-                    previousGroups.CollectionChanged -= this.HandleGroupsChanged;
-                }
-            }
-
-            foreach (var group in this.observedGroups.ToArray())
-            {
-                this.UnobserveGroup(group);
-            }
-
-            this.ReconcileTabSubscriptions();
-
-            this.observedViewModel = viewModel;
+            this.attachedViewModel = viewModel;
+            this.presentedRenderState = null;
             this.groupGraphVersion++;
             this.groupWeights.Clear();
             this.splitterResizeState = null;
+            this.pendingPointerReleaseState = null;
             this.pendingSplitterCapture = null;
             this.compactGroupId = null;
             this.pendingFocusElementId = null;
 
-            if (this.observedViewModel is null)
+            if (viewModel is null)
             {
                 return;
             }
 
-            this.observedViewModel.PropertyChanged += this.HandleViewModelPropertyChanged;
-
-            if (this.observedViewModel.Groups is INotifyCollectionChanged currentGroups)
-            {
-                currentGroups.CollectionChanged += this.HandleGroupsChanged;
-            }
-
-            this.ReconcileGroupSubscriptions();
-            this.InitializeGroupWeights();
-            this.compactGroupId = this.observedViewModel.FocusedGroup?.Id
-                ?? this.observedViewModel.Groups.FirstOrDefault()?.Id;
+            var renderState = viewModel.RenderState;
+            this.InitializeGroupWeights(renderState);
+            this.compactGroupId = this.GetFocusedGroup(renderState)?.Id;
+            this.presentedRenderState = renderState;
         }
 
         /// <summary>
-        /// Attaches and detaches nested group observations to match current membership.
+        /// Reconciles transient presentation mechanics with one newly published immutable workspace snapshot.
         /// </summary>
-        private void ReconcileGroupSubscriptions()
+        /// <param name="renderState">The coherent state published by the attached ViewModel.</param>
+        private void ReconcileRenderState(WorkspaceEditorRenderState renderState)
         {
-            var currentGroups = this.observedViewModel?.Groups.ToHashSet() ?? [];
-
-            foreach (var removedGroup in this.observedGroups.Except(currentGroups).ToArray())
+            if (renderState is null || this.presentedRenderState?.Revision == renderState.Revision)
             {
-                this.UnobserveGroup(removedGroup);
+                return;
             }
 
-            foreach (var addedGroup in currentGroups.Except(this.observedGroups))
+            var previousGroupIds = this.presentedRenderState?.Groups
+                .Select(group => group.Id)
+                .ToArray() ?? [];
+            var currentGroupIds = renderState.Groups
+                .Select(group => group.Id)
+                .ToArray();
+
+            if (!previousGroupIds.SequenceEqual(currentGroupIds))
             {
-                this.ObserveGroup(addedGroup);
+                this.groupGraphVersion++;
+                this.pendingSplitterCapture = null;
+
+                if (this.splitterResizeState is not null)
+                {
+                    this.pendingPointerReleaseState = this.splitterResizeState;
+                    this.splitterResizeState = null;
+                }
+
+                this.ReconcileGroupWeights(renderState);
             }
 
-            this.ReconcileTabSubscriptions();
-        }
-
-        /// <summary>
-        /// Observes active-tab and tab-membership changes for one group.
-        /// </summary>
-        /// <param name="group">The group to observe.</param>
-        private void ObserveGroup(EditorGroupViewModel group)
-        {
-            group.PropertyChanged += this.HandleGroupPropertyChanged;
-
-            if (group.Tabs is INotifyCollectionChanged tabs)
+            if (renderState.FocusedGroupId is { } focusedGroupId
+                && currentGroupIds.Contains(focusedGroupId))
             {
-                tabs.CollectionChanged += this.HandleTabsChanged;
+                this.compactGroupId = focusedGroupId;
+            }
+            else if (this.compactGroupId is not { } compactGroupId
+                     || !currentGroupIds.Contains(compactGroupId))
+            {
+                this.compactGroupId = renderState.Groups.Length > 0
+                    ? renderState.Groups[0].Id
+                    : null;
             }
 
-            this.observedGroups.Add(group);
-        }
-
-        /// <summary>
-        /// Detaches observations created for one group.
-        /// </summary>
-        /// <param name="group">The group to stop observing.</param>
-        private void UnobserveGroup(EditorGroupViewModel group)
-        {
-            group.PropertyChanged -= this.HandleGroupPropertyChanged;
-
-            if (group.Tabs is INotifyCollectionChanged tabs)
-            {
-                tabs.CollectionChanged -= this.HandleTabsChanged;
-            }
-
-            this.observedGroups.Remove(group);
-        }
-
-        /// <summary>
-        /// Attaches and detaches tab metadata observations to match the tabs in all currently observed groups.
-        /// </summary>
-        private void ReconcileTabSubscriptions()
-        {
-            var currentTabs = this.observedGroups
-                .SelectMany(group => group.Tabs)
-                .ToHashSet();
-
-            foreach (var removedTab in this.observedTabs.Except(currentTabs).ToArray())
-            {
-                this.UnobserveTab(removedTab);
-            }
-
-            foreach (var addedTab in currentTabs.Except(this.observedTabs))
-            {
-                this.ObserveTab(addedTab);
-            }
-        }
-
-        /// <summary>
-        /// Observes mutable metadata for one rendered tab instance.
-        /// </summary>
-        /// <param name="tab">The tab to observe.</param>
-        private void ObserveTab(EditorTabItem tab)
-        {
-            tab.PropertyChanged += this.HandleTabPropertyChanged;
-            this.observedTabs.Add(tab);
-        }
-
-        /// <summary>
-        /// Detaches the metadata observation owned for one tab instance.
-        /// </summary>
-        /// <param name="tab">The tab to stop observing.</param>
-        private void UnobserveTab(EditorTabItem tab)
-        {
-            tab.PropertyChanged -= this.HandleTabPropertyChanged;
-            this.observedTabs.Remove(tab);
+            this.presentedRenderState = renderState;
         }
 
         /// <summary>
         /// Initializes normalized weights from the initial-only caller input or neutral defaults.
         /// </summary>
-        private void InitializeGroupWeights()
+        private void InitializeGroupWeights(WorkspaceEditorRenderState renderState)
         {
             this.groupWeights.Clear();
 
-            if (this.observedViewModel?.Groups.Count is not > 0)
+            if (renderState.Groups.Length == 0)
             {
                 return;
             }
 
-            foreach (var groupId in this.observedViewModel.Groups.Select(group => group.Id))
+            foreach (var groupId in renderState.Groups.Select(group => group.Id))
             {
                 var weight = 1d;
 
@@ -1211,22 +1223,22 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <summary>
         /// Reconciles local weights after groups are added or removed without resetting retained ratios.
         /// </summary>
-        private void ReconcileGroupWeights()
+        private void ReconcileGroupWeights(WorkspaceEditorRenderState renderState)
         {
-            if (this.observedViewModel?.Groups.Count is not > 0)
+            if (renderState.Groups.Length == 0)
             {
                 this.groupWeights.Clear();
                 return;
             }
 
-            var currentIds = this.observedViewModel.Groups.Select(group => group.Id).ToHashSet();
+            var currentIds = renderState.Groups.Select(group => group.Id).ToHashSet();
 
             foreach (var removedId in this.groupWeights.Keys.Where(id => !currentIds.Contains(id)).ToArray())
             {
                 this.groupWeights.Remove(removedId);
             }
 
-            var newGroups = this.observedViewModel.Groups
+            var newGroups = renderState.Groups
                 .Where(group => !this.groupWeights.ContainsKey(group.Id))
                 .ToArray();
 
@@ -1236,7 +1248,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 return;
             }
 
-            var totalGroupCount = this.observedViewModel.Groups.Count;
+            var totalGroupCount = renderState.Groups.Length;
             var retainedGroupCount = totalGroupCount - newGroups.Length;
 
             if (retainedGroupCount > 0)
@@ -1308,241 +1320,22 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// Queues focus for the active tab or the focused empty group's surviving control.
         /// </summary>
         /// <param name="group">The group whose surviving control should receive focus.</param>
-        private void QueueFocusForGroup(EditorGroupViewModel group)
+        private void QueueFocusForGroup(WorkspaceEditorGroupRenderState group)
         {
-            if (group?.ActiveTab is { } activeTab)
-            {
-                this.pendingFocusElementId = this.GetTabElementId(group.Id, activeTab.Id);
-            }
-            else if (group is not null && ReferenceEquals(this.observedViewModel?.FocusedGroup, group))
-            {
-                this.pendingFocusElementId = this.AddTabRequested.HasDelegate
-                    ? this.GetAddTabElementId(group.Id)
-                    : this.GetGroupElementId(group.Id);
-            }
-        }
-
-        /// <summary>
-        /// Reconciles group presentation when membership changes.
-        /// </summary>
-        /// <param name="sender">The observed group collection.</param>
-        /// <param name="args">The collection change.</param>
-        private void HandleGroupsChanged(object sender, NotifyCollectionChangedEventArgs args)
-        {
-            this.QueueObservedNotification(() => this.ApplyGroupsChangedAsync(sender));
-        }
-
-        /// <summary>
-        /// Reconciles one current group-membership notification on the renderer dispatcher.
-        /// </summary>
-        /// <param name="sender">The collection that raised the notification.</param>
-        /// <returns>A task representing pointer-release completion.</returns>
-        private async Task ApplyGroupsChangedAsync(object sender)
-        {
-            if (this.observedViewModel is null
-                || !ReferenceEquals(sender, this.observedViewModel.Groups))
+            if (group is null)
             {
                 return;
             }
 
-            this.groupGraphVersion++;
-            this.pendingSplitterCapture = null;
-            var pointerReleaseTask = this.ReleaseActivePointerCaptureAsync();
-
-            try
+            if (this.GetActiveTab(group) is { } activeTab)
             {
-                this.ReconcileGroupSubscriptions();
-                this.ReconcileGroupWeights();
-
-                if (this.compactGroupId is null
-                    || this.observedViewModel.Groups.All(group => group.Id != this.compactGroupId))
-                {
-                    this.compactGroupId = this.observedViewModel.FocusedGroup?.Id
-                        ?? this.observedViewModel.Groups.FirstOrDefault()?.Id;
-                }
-
-                this.StateHasChanged();
+                this.pendingFocusElementId = this.GetTabElementId(group.Id, activeTab.Id);
             }
-            finally
+            else if (this.attachedViewModel?.RenderState.FocusedGroupId == group.Id)
             {
-                await pointerReleaseTask;
-            }
-        }
-
-        /// <summary>
-        /// Refreshes logical-focus-dependent presentation after top-level state changes.
-        /// </summary>
-        /// <param name="sender">The observed ViewModel.</param>
-        /// <param name="args">The property change.</param>
-        private void HandleViewModelPropertyChanged(object sender, PropertyChangedEventArgs args)
-        {
-            this.QueueObservedNotification(() => this.ApplyViewModelPropertyChangedAsync(sender, args));
-        }
-
-        /// <summary>
-        /// Applies one current workspace notification on the renderer dispatcher.
-        /// </summary>
-        /// <param name="sender">The ViewModel that raised the notification.</param>
-        /// <param name="args">The property change.</param>
-        /// <returns>A completed task.</returns>
-        private Task ApplyViewModelPropertyChangedAsync(object sender, PropertyChangedEventArgs args)
-        {
-            if (!ReferenceEquals(sender, this.observedViewModel))
-            {
-                return Task.CompletedTask;
-            }
-
-            if (string.IsNullOrEmpty(args.PropertyName)
-                || args.PropertyName == nameof(IWorkspaceEditorViewModel.FocusedGroup))
-            {
-                this.compactGroupId = this.observedViewModel.FocusedGroup?.Id ?? this.compactGroupId;
-            }
-
-            this.StateHasChanged();
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Refreshes active-tab-dependent presentation after nested state changes.
-        /// </summary>
-        /// <param name="sender">The observed group.</param>
-        /// <param name="args">The property change.</param>
-        private void HandleGroupPropertyChanged(object sender, PropertyChangedEventArgs args)
-        {
-            this.QueueObservedNotification(() => this.ApplyGroupPropertyChangedAsync(sender));
-        }
-
-        /// <summary>
-        /// Applies one current group notification on the renderer dispatcher.
-        /// </summary>
-        /// <param name="sender">The group that raised the notification.</param>
-        /// <returns>A completed task.</returns>
-        private Task ApplyGroupPropertyChangedAsync(object sender)
-        {
-            if (sender is not EditorGroupViewModel group || !this.observedGroups.Contains(group))
-            {
-                return Task.CompletedTask;
-            }
-
-            this.StateHasChanged();
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Refreshes tab membership after nested collection changes.
-        /// </summary>
-        /// <param name="sender">The observed tab collection.</param>
-        /// <param name="args">The collection change.</param>
-        private void HandleTabsChanged(object sender, NotifyCollectionChangedEventArgs args)
-        {
-            this.QueueObservedNotification(() => this.ApplyTabsChangedAsync(sender));
-        }
-
-        /// <summary>
-        /// Reconciles one current tab-membership notification on the renderer dispatcher.
-        /// </summary>
-        /// <param name="sender">The collection that raised the notification.</param>
-        /// <returns>A completed task.</returns>
-        private Task ApplyTabsChangedAsync(object sender)
-        {
-            if (!this.observedGroups.Any(group => ReferenceEquals(group.Tabs, sender)))
-            {
-                return Task.CompletedTask;
-            }
-
-            this.ReconcileTabSubscriptions();
-            this.StateHasChanged();
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Refreshes tab presentation after metadata changes on a rendered tab instance.
-        /// </summary>
-        /// <param name="sender">The observed tab.</param>
-        /// <param name="args">The property change.</param>
-        private void HandleTabPropertyChanged(object sender, PropertyChangedEventArgs args)
-        {
-            this.QueueObservedNotification(() => this.ApplyTabPropertyChangedAsync(sender));
-        }
-
-        /// <summary>
-        /// Applies one current tab notification on the renderer dispatcher.
-        /// </summary>
-        /// <param name="sender">The tab that raised the notification.</param>
-        /// <returns>A completed task.</returns>
-        private Task ApplyTabPropertyChangedAsync(object sender)
-        {
-            if (sender is not EditorTabItem tab || !this.observedTabs.Contains(tab))
-            {
-                return Task.CompletedTask;
-            }
-
-            this.StateHasChanged();
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Owns dispatcher work requested by one synchronous observed-event callback.
-        /// </summary>
-        /// <param name="notification">The current-graph work to perform on the renderer dispatcher.</param>
-        private void QueueObservedNotification(Func<Task> notification)
-        {
-            var dispatchStart = new TaskCompletionSource();
-
-            lock (this.notificationTaskSync)
-            {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                var notificationTask = this.DispatchObservedNotificationAsync(dispatchStart.Task, notification);
-                this.ownedNotificationTasks = this.ownedNotificationTasks.IsCompletedSuccessfully
-                    ? notificationTask
-                    : Task.WhenAll(this.ownedNotificationTasks, notificationTask);
-            }
-
-            dispatchStart.SetResult();
-        }
-
-        /// <summary>
-        /// Marshals one owned notification to the renderer after task ownership is recorded.
-        /// </summary>
-        /// <param name="dispatchStart">The signal released after task coordination leaves its lock.</param>
-        /// <param name="notification">The current-graph work to perform.</param>
-        /// <returns>A task representing the dispatched work.</returns>
-        private async Task DispatchObservedNotificationAsync(Task dispatchStart, Func<Task> notification)
-        {
-            await dispatchStart;
-
-            try
-            {
-                await this.InvokeAsync(async () =>
-                {
-                    if (!this.isDisposed)
-                    {
-                        await notification();
-                    }
-                });
-            }
-            catch (ObjectDisposedException)
-            {
-                // The renderer ended before already-owned notification work could run.
-            }
-            catch (Exception exception)
-            {
-                try
-                {
-                    await this.DispatchExceptionAsync(exception);
-                }
-                catch (ObjectDisposedException)
-                {
-                    // The renderer ended before the observed failure could be dispatched.
-                }
+                this.pendingFocusElementId = this.AddTabRequested.HasDelegate
+                    ? this.GetAddTabElementId(group.Id)
+                    : this.GetGroupElementId(group.Id);
             }
         }
 

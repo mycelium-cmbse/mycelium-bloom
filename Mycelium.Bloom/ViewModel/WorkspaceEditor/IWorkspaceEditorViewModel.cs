@@ -25,6 +25,11 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         int MaximumGroupCount { get; }
 
         /// <summary>
+        /// Gets the coherent immutable state consumed by editor rendering.
+        /// </summary>
+        WorkspaceEditorRenderState RenderState { get; }
+
+        /// <summary>
         /// Gets the ordered, read-only collection of editor groups.
         /// </summary>
         ReadOnlyObservableCollection<EditorGroupViewModel> Groups { get; }

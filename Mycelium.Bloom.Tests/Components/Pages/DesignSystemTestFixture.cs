@@ -10,7 +10,9 @@
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
     using System;
+    using System.ComponentModel;
     using System.Linq;
+    using System.Reflection;
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
@@ -20,8 +22,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
     using Microsoft.AspNetCore.Components;
 
+    using Moq;
+
     using Mycelium.Bloom.Components.Pages;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
@@ -223,6 +229,77 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(untouchedGroup.Tabs, Has.Count.EqualTo(untouchedGroupInitialTabCount));
                 Assert.That(compactWorkspace.Instance.ViewModel.Groups.Sum(group => group.Tabs.Count),
                     Is.EqualTo(compactTabCount));
+            }
+        }
+
+        [Test]
+        public async Task VerifyNavigationPreviewBoundaryObservesAndDetachesWithoutOwningViewModel()
+        {
+            var firstItem = new NavigationRailItem
+            {
+                Label = "First"
+            };
+            var secondItem = new NavigationRailItem
+            {
+                Label = "Second"
+            };
+            var selectedItem = firstItem;
+            var viewModel = new Mock<INavigationRailViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(model => model.SelectedItem).Returns(() => selectedItem);
+            RenderFragment<INavigationRailViewModel> content = model => builder =>
+            {
+                builder.OpenElement(0, "span");
+                builder.AddAttribute(1, "data-testid", "preview-selection");
+                builder.AddContent(2, model.SelectedItem?.Label);
+                builder.CloseElement();
+            };
+            var component = this.Render<DesignSystemNavigationRailPreview>(parameters => parameters
+                .Add(preview => preview.ViewModel, viewModel.Object)
+                .Add(preview => preview.ChildContent, content));
+
+            selectedItem = secondItem;
+            viewModel.Raise(
+                model => model.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(INavigationRailViewModel.SelectedItem)));
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(component.Find("[data-testid='preview-selection']").TextContent,
+                    Is.EqualTo("Second")));
+            component.Dispose();
+            var renderCountAfterDisposal = component.RenderCount;
+            selectedItem = firstItem;
+            viewModel.Raise(
+                model => model.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(INavigationRailViewModel.SelectedItem)));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
+                viewModel.Verify(model => model.Dispose(), Times.Never);
+            }
+        }
+
+        [Test]
+        public async Task VerifyPageDisposesItsOwnedEditorPreviewViewModels()
+        {
+            var component = this.Render<DesignSystem>();
+            var editorViewModel = (WorkspaceEditorViewModel)typeof(DesignSystem)
+                .GetProperty(
+                    "EditorWorkspacePreviewViewModel",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(component.Instance);
+            var compactEditorViewModel = (WorkspaceEditorViewModel)typeof(DesignSystem)
+                .GetProperty(
+                    "CompactEditorWorkspacePreviewViewModel",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(component.Instance);
+
+            await component.Instance.DisposeAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editorViewModel.TryAddGroup(out _), Is.False);
+                Assert.That(compactEditorViewModel.TryAddGroup(out _), Is.False);
             }
         }
 

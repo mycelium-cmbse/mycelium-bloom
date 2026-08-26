@@ -9,7 +9,7 @@
 
 @using BlazorBlueprint.Icons.Lucide.Components
 @using Mycelium.Bloom.ViewModel.WorkspaceEditor
-@inherits BloomComponentBase
+@inherits BloomReactiveComponentBase<IWorkspaceEditorViewModel>
 
 <section @attributes="this.AdditionalAttributes"
          id="@(this.workspaceId)"
@@ -17,17 +17,17 @@
          role="region"
          aria-label="@(this.AriaLabel)"
          data-testid="editor-workspace">
-    @if (this.ViewModel is { } viewModel)
+    @if (this.PresentedRenderState is { } renderState)
     {
-        @if (viewModel.Groups.Count > 1)
+        @if (renderState.Groups.Length > 1)
         {
             <div class="mb-editor-workspace__compact-switcher"
                  role="group"
                  aria-label="@(this.CompactGroupSwitcherAriaLabel)"
                  data-testid="editor-workspace-compact-switcher">
-                @for (var groupIndex = 0; groupIndex < viewModel.Groups.Count; groupIndex++)
+                @for (var groupIndex = 0; groupIndex < renderState.Groups.Length; groupIndex++)
                 {
-                    var switcherGroup = viewModel.Groups[groupIndex];
+                    var switcherGroup = renderState.Groups[groupIndex];
 
                     <button type="button"
                             class="@(this.GetCompactButtonCssClass(switcherGroup))"
@@ -42,14 +42,14 @@
         }
 
         <div class="mb-editor-workspace__groups">
-            @for (var groupIndex = 0; groupIndex < viewModel.Groups.Count; groupIndex++)
+            @for (var groupIndex = 0; groupIndex < renderState.Groups.Length; groupIndex++)
             {
-                var group = viewModel.Groups[groupIndex];
+                var group = renderState.Groups[groupIndex];
                 var currentGroupIndex = groupIndex;
 
                 <section @key="group.Id"
                          id="@(this.GetGroupElementId(group.Id))"
-                         class="@(this.GetGroupCssClass(group))"
+                         class="@(this.GetGroupCssClass(group, renderState))"
                          style="@(this.GetGroupStyle(group))"
                          role="region"
                          aria-label="@(this.GetGroupAccessibleLabel(currentGroupIndex))"
@@ -66,7 +66,7 @@
                              data-testid="editor-workspace-tablist">
                             @foreach (var tab in group.Tabs)
                             {
-                                var isActive = ReferenceEquals(group.ActiveTab, tab);
+                                var isActive = group.ActiveTabId == tab.Id;
 
                                 <div @key="tab.Id"
                                      class="@(GetTabItemCssClass(isActive))"
@@ -131,7 +131,7 @@
                     </div>
 
                     <div class="mb-editor-workspace__content">
-                        @if (group.ActiveTab is { } activeTab)
+                        @if (this.GetActiveTab(group) is { } activeTab)
                         {
                             <div id="@(this.GetPanelElementId(group.Id, activeTab.Id))"
                                  class="mb-editor-workspace__tabpanel"
@@ -141,7 +141,7 @@
                                  data-group-id="@(group.Id)"
                                  data-tab-id="@(activeTab.Id)"
                                  data-testid="editor-workspace-tabpanel">
-                                @(this.EditorContent?.Invoke(activeTab))
+                                @(this.EditorContent?.Invoke(activeTab.Item))
                             </div>
                         }
                         else
@@ -153,13 +153,13 @@
                     </div>
                 </section>
 
-                @if (currentGroupIndex < viewModel.Groups.Count - 1)
+                @if (currentGroupIndex < renderState.Groups.Length - 1)
                 {
-                    var nextGroup = viewModel.Groups[currentGroupIndex + 1];
+                    var nextGroup = renderState.Groups[currentGroupIndex + 1];
 
                     <div id="@(this.GetSplitterElementId(group.Id, nextGroup.Id))"
                          class="mb-editor-workspace__splitter"
-                         style="@(this.GetSplitterStyle(currentGroupIndex))"
+                         style="@(this.GetSplitterStyle(currentGroupIndex, renderState))"
                          role="separator"
                          aria-label="@($"Resize {this.GetGroupAccessibleLabel(currentGroupIndex)} and {this.GetGroupAccessibleLabel(currentGroupIndex + 1)}")"
                          aria-orientation="vertical"

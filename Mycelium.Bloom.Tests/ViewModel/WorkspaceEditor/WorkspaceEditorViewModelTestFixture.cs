@@ -272,7 +272,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(viewModel.FocusedGroup, Is.SameAs(focusedGroup));
                 Assert.That(tabPropertyNotifications, Is.EqualTo(new[] { nameof(EditorTabItem.Title) }));
                 Assert.That(groupPropertyNotifications, Is.Empty);
-                Assert.That(workspacePropertyNotifications, Is.Empty);
+                Assert.That(
+                    workspacePropertyNotifications,
+                    Is.EqualTo(new[] { nameof(viewModel.RenderState) }));
                 Assert.That(collectionNotificationCount, Is.Zero);
             }
         }
@@ -542,7 +544,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(firstGroup.ActiveTab, Is.SameAs(targetTab));
                 Assert.That(viewModel.FocusedGroup, Is.SameAs(firstGroup));
                 Assert.That(groupPropertyNotifications, Is.EqualTo(new[] { nameof(firstGroup.ActiveTab) }));
-                Assert.That(workspacePropertyNotifications, Is.EqualTo(new[] { nameof(viewModel.FocusedGroup) }));
+                Assert.That(
+                    workspacePropertyNotifications,
+                    Is.EqualTo(new[]
+                    {
+                        nameof(viewModel.FocusedGroup),
+                        nameof(viewModel.RenderState)
+                    }));
                 Assert.That(secondGroup.ActiveTab, Is.Null);
             }
         }
@@ -572,7 +580,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(viewModel.FocusedGroup, Is.SameAs(firstGroup));
                 Assert.That(firstGroup.ActiveTab, Is.SameAs(firstActiveTab));
                 Assert.That(secondGroup.ActiveTab, Is.SameAs(secondActiveTab));
-                Assert.That(workspacePropertyNotifications, Is.EqualTo(new[] { nameof(viewModel.FocusedGroup) }));
+                Assert.That(
+                    workspacePropertyNotifications,
+                    Is.EqualTo(new[]
+                    {
+                        nameof(viewModel.FocusedGroup),
+                        nameof(viewModel.RenderState)
+                    }));
                 Assert.That(firstGroupPropertyNotifications, Is.Empty);
                 Assert.That(secondGroupPropertyNotifications, Is.Empty);
             }
@@ -774,7 +788,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(firstGroup.ActiveTab, Is.SameAs(activeTab));
                 Assert.That(viewModel.FocusedGroup, Is.SameAs(focusedGroup));
                 Assert.That(firstGroupPropertyNotifications, Is.Empty);
-                Assert.That(workspacePropertyNotifications, Is.Empty);
+                Assert.That(
+                    workspacePropertyNotifications,
+                    Is.EqualTo(new[] { nameof(viewModel.RenderState) }));
             }
         }
 
@@ -1086,6 +1102,113 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(secondInitialGroup.Tabs, Is.Empty);
                 Assert.That(firstViewModel.FocusedGroup, Is.SameAs(addedFirstGroup));
                 Assert.That(secondViewModel.FocusedGroup, Is.SameAs(secondInitialGroup));
+            }
+        }
+
+        [Test]
+        public void VerifyRenderStateCapturesCoherentImmutableOrderedSnapshot()
+        {
+            using var viewModel = CreateViewModel();
+            var firstGroup = viewModel.Groups[0];
+            var firstTab = OpenTab(viewModel, firstGroup, "First", "shared-view");
+            var secondTab = OpenTab(viewModel, firstGroup, "Second", "shared-view");
+            Assert.That(viewModel.ActivateTab(firstGroup.Id, firstTab.Id), Is.True);
+            var secondGroup = AddGroup(viewModel);
+            var thirdTab = OpenTab(viewModel, secondGroup, "Third", "shared-view");
+            Assert.That(viewModel.FocusGroup(firstGroup.Id), Is.True);
+            var snapshot = viewModel.RenderState;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(snapshot.Revision, Is.GreaterThan(0));
+                Assert.That(snapshot.FocusedGroupId, Is.EqualTo(firstGroup.Id));
+                Assert.That(snapshot.Groups.Select(group => group.Id),
+                    Is.EqualTo(new[] { firstGroup.Id, secondGroup.Id }));
+                Assert.That(snapshot.Groups[0].ActiveTabId, Is.EqualTo(firstTab.Id));
+                Assert.That(snapshot.Groups[0].Tabs.Select(tab => tab.Id),
+                    Is.EqualTo(new[] { firstTab.Id, secondTab.Id }));
+                Assert.That(snapshot.Groups[0].Tabs.Select(tab => tab.Title),
+                    Is.EqualTo(new[] { "First", "Second" }));
+                Assert.That(snapshot.Groups[0].Tabs[0].Item, Is.SameAs(firstTab));
+                Assert.That(snapshot.Groups[0].Tabs[1].Item, Is.SameAs(secondTab));
+                Assert.That(snapshot.Groups[1].ActiveTabId, Is.EqualTo(thirdTab.Id));
+                Assert.That(snapshot.Groups[1].Tabs.Single().Item, Is.SameAs(thirdTab));
+            }
+
+            secondTab.Title = "Captured later";
+            var updatedSnapshot = viewModel.RenderState;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(updatedSnapshot, Is.Not.SameAs(snapshot));
+                Assert.That(updatedSnapshot.Revision, Is.EqualTo(snapshot.Revision + 1));
+                Assert.That(snapshot.Groups[0].Tabs[1].Title, Is.EqualTo("Second"));
+                Assert.That(updatedSnapshot.Groups[0].Tabs[1].Title, Is.EqualTo("Captured later"));
+                Assert.That(updatedSnapshot.Groups[0].Tabs[1].Item, Is.SameAs(secondTab));
+            }
+        }
+
+        [Test]
+        public void VerifyRenderStatePublishesOncePerCompoundMutationAndSuppressesNoOps()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 2);
+            var revisions = new List<long>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    revisions.Add(viewModel.RenderState.Revision);
+                }
+            };
+
+            var firstGroup = viewModel.Groups[0];
+            var initialRevision = viewModel.RenderState.Revision;
+            var secondGroup = AddGroup(viewModel);
+            var revisionAfterGroup = viewModel.RenderState.Revision;
+            var tab = OpenTab(viewModel, secondGroup, "Editor", "editor-view");
+            var revisionAfterTab = viewModel.RenderState.Revision;
+
+            Assert.That(viewModel.FocusGroup(secondGroup.Id), Is.True);
+            Assert.That(viewModel.ActivateTab(secondGroup.Id, tab.Id), Is.True);
+            Assert.That(viewModel.TryAddGroup(out var rejectedGroup), Is.False);
+            Assert.That(viewModel.CloseTab(firstGroup.Id, Guid.NewGuid()), Is.False);
+            Assert.That(viewModel.MoveTab(secondGroup.Id, tab.Id, secondGroup.Id), Is.False);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(revisionAfterGroup, Is.EqualTo(initialRevision + 1));
+                Assert.That(revisionAfterTab, Is.EqualTo(revisionAfterGroup + 1));
+                Assert.That(viewModel.RenderState.Revision, Is.EqualTo(revisionAfterTab));
+                Assert.That(revisions, Is.EqualTo(new[] { revisionAfterGroup, revisionAfterTab }));
+                Assert.That(rejectedGroup, Is.Null);
+            }
+        }
+
+        [Test]
+        public void VerifyRemovedChildrenAndDisposalStopRenderPublication()
+        {
+            var viewModel = CreateViewModel();
+            var retainedGroup = viewModel.Groups[0];
+            _ = OpenTab(viewModel, retainedGroup, "Retained", "retained-view");
+            var removedGroup = AddGroup(viewModel);
+            var removedTab = OpenTab(viewModel, removedGroup, "Removed", "removed-view");
+
+            Assert.That(viewModel.CloseTab(removedGroup.Id, removedTab.Id), Is.True);
+            var revisionAfterRemoval = viewModel.RenderState.Revision;
+
+            removedTab.Title = "Detached";
+            Assert.That(viewModel.RenderState.Revision, Is.EqualTo(revisionAfterRemoval));
+
+            viewModel.Dispose();
+            var retainedTab = retainedGroup.Tabs.Single();
+            retainedTab.Title = "After disposal";
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.RenderState.Revision, Is.EqualTo(revisionAfterRemoval));
+                Assert.That(viewModel.TryAddGroup(out var disposedGroup), Is.False);
+                Assert.That(disposedGroup, Is.Null);
+                Assert.DoesNotThrow(viewModel.Dispose);
             }
         }
 

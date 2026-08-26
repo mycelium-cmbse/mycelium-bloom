@@ -114,6 +114,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(component.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("main"), Is.Empty);
                 Assert.That(component.Find("h1").TextContent.Trim(), Is.EqualTo("Bloom workspace"));
+                Assert.That(component.Find(".mb-main-workspace__brand"), Is.Not.Null);
                 Assert.That(component.Find("header.mb-app-header").GetAttribute("style"),
                     Does.Contain("height: 48px"));
                 Assert.That(shellBody.Children.Select(element => element.LocalName),
@@ -314,6 +315,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(style, Does.Contain(
                     ".mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body"));
                 Assert.That(style, Does.Contain("--mb-workspace-left-panel-width: fit-content;"));
+                Assert.That(style, Does.Contain(
+                    "width: calc(var(--mb-workspace-left-panel-collapsed-width) - (2 * var(--mb-spacing-2)));"));
+                Assert.That(style, Does.Contain("justify-content: center;"));
                 Assert.That(style, Does.Contain("var(--mb-color-workspace-background)"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
                 Assert.That(style, Does.Not.Contain("border-radius"));

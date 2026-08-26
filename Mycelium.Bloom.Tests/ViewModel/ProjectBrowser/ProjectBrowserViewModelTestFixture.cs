@@ -573,7 +573,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies SourceList publication uses the stable collection's native notification contract.
+        /// Verifies SourceList publication retains its native contract and raises top-level root invalidation.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncPublishesRootCollectionChanges()
@@ -608,7 +608,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(
                     exposedRoots[0].Children.Select(node => node.DisplayName),
                     Is.EqualTo(ExpectedRootChildDisplayNames));
-                Assert.That(rootPropertyChanges, Does.Not.Contain(nameof(ProjectBrowserViewModel.RootNodes)));
+                Assert.That(
+                    rootPropertyChanges.Count(propertyName =>
+                        propertyName == nameof(ProjectBrowserViewModel.RootNodes)),
+                    Is.EqualTo(1));
             }
         }
 
@@ -856,6 +859,38 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(rootNode.IsExpanded, Is.EqualTo(wasExpanded));
                 Assert.That(selectionService.SelectedElement, Is.SameAs(selectedElement));
                 Assert.That(viewModel.SelectedNode, Is.SameAs(rootNode));
+            }
+        }
+
+        [Test]
+        public async Task VerifyRootPublicationNotifiesOnlyAfterSelectionProjectionIsCoherent()
+        {
+            var model = CreateMinimalModel();
+            var selectionService = new ContextAwareService
+            {
+                SelectedElement = model
+            };
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            var coherentPublicationObserved = false;
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RootNodes))
+                {
+                    coherentPublicationObserved = viewModel.RootNodes.Count == 1
+                                                  && ReferenceEquals(
+                                                      viewModel.SelectedNode,
+                                                      viewModel.RootNodes[0])
+                                                  && viewModel.RootNodes[0].IsSelected;
+                }
+            };
+
+            Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(coherentPublicationObserved, Is.True);
+                Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(model));
             }
         }
 

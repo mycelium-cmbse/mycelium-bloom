@@ -156,6 +156,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
                 items.AddRange(nextItems);
             });
             this.SelectedItem = nextSelectedItem;
+            this.RaisePropertyChanged(nameof(this.NavigationItems));
         }
 
         /// <summary>

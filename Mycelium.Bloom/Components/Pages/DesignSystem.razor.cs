@@ -9,7 +9,6 @@
 
 namespace Mycelium.Bloom.Components.Pages
 {
-    using System.ComponentModel;
     using System.Globalization;
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.Options;
@@ -419,7 +418,6 @@ namespace Mycelium.Bloom.Components.Pages
 
             this.NavigationRailPreviewViewModel.SelectedItem = this.NavigationRailPreviewItems.Single(item => item.Id == "structure");
             this.NavigationRailPreviewViewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
-            this.NavigationRailPreviewViewModel.PropertyChanged += this.HandleNavigationRailPreviewStateChanged;
 
             base.OnInitialized();
         }
@@ -828,16 +826,6 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Refreshes the preview result when navigation state changes.
-        /// </summary>
-        /// <param name="sender">The navigation ViewModel.</param>
-        /// <param name="args">The changed property.</param>
-        private void HandleNavigationRailPreviewStateChanged(object sender, PropertyChangedEventArgs args)
-        {
-            _ = this.InvokeAsync(this.StateHasChanged);
-        }
-
-        /// <summary>
         /// Updates the selected tab.
         /// </summary>
         /// <param name="value">The selected tab value.</param>
@@ -1040,9 +1028,11 @@ namespace Mycelium.Bloom.Components.Pages
         {
             if (this.NavigationRailPreviewViewModel is not null)
             {
-                this.NavigationRailPreviewViewModel.PropertyChanged -= this.HandleNavigationRailPreviewStateChanged;
                 this.NavigationRailPreviewViewModel.Dispose();
             }
+
+            this.EditorWorkspacePreviewViewModel?.Dispose();
+            this.CompactEditorWorkspacePreviewViewModel?.Dispose();
 
             var module = this.themeModule;
             this.themeModule = null;
