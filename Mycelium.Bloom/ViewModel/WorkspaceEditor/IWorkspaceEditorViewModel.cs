@@ -51,6 +51,19 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         bool TryAddGroup(out EditorGroupViewModel group);
 
         /// <summary>
+        /// Attempts to insert and focus a new empty editor group immediately after an existing group.
+        /// </summary>
+        /// <param name="groupId">The identity of the group on the left side of the new boundary.</param>
+        /// <param name="group">
+        /// The created group when the source group exists and the group limit permits creation; otherwise,
+        /// <see langword="null" />.
+        /// </param>
+        /// <returns>
+        /// <see langword="true" /> when a group was created; otherwise, <see langword="false" />.
+        /// </returns>
+        bool TrySplitGroup(Guid groupId, out EditorGroupViewModel group);
+
+        /// <summary>
         /// Attempts to create, append, activate, and focus a tab in an existing editor group.
         /// </summary>
         /// <param name="groupId">The identity of the group that will own the tab.</param>
@@ -115,5 +128,24 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         /// <see langword="false" />.
         /// </returns>
         bool MoveTab(Guid sourceGroupId, Guid tabId, Guid destinationGroupId);
+
+        /// <summary>
+        /// Attempts to move or reorder a tab at an identity-based position and focus a distinct destination.
+        /// </summary>
+        /// <param name="sourceGroupId">The identity of the group expected to own the tab.</param>
+        /// <param name="tabId">The identity of the tab to move.</param>
+        /// <param name="destinationGroupId">The identity of the group that will receive the tab.</param>
+        /// <param name="beforeTabId">
+        /// The destination-owned tab before which the moved tab will be inserted, or <see langword="null" /> to
+        /// append it.
+        /// </param>
+        /// <returns>
+        /// <see langword="true" /> when tab ownership or ordering changed; otherwise, <see langword="false" />.
+        /// </returns>
+        bool MoveTab(
+            Guid sourceGroupId,
+            Guid tabId,
+            Guid destinationGroupId,
+            Guid? beforeTabId);
     }
 }

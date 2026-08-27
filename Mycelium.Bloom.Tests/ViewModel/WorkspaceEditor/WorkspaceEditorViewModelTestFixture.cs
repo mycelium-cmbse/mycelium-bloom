@@ -133,6 +133,140 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         }
 
         [Test]
+        public void VerifyTrySplitGroupInsertsEmptyFocusedGroupImmediatelyAfterRequestedGroup()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 5);
+            var firstGroup = viewModel.Groups[0];
+            var secondGroup = AddGroup(viewModel);
+            var thirdGroup = AddGroup(viewModel);
+
+            var result = viewModel.TrySplitGroup(firstGroup.Id, out var splitGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups, Is.EqualTo(new[]
+                {
+                    firstGroup,
+                    splitGroup,
+                    secondGroup,
+                    thirdGroup
+                }));
+                Assert.That(splitGroup, Is.Not.Null);
+                Assert.That(splitGroup.Tabs, Is.Empty);
+                Assert.That(splitGroup.ActiveTab, Is.Null);
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(splitGroup));
+            }
+        }
+
+        [Test]
+        public void VerifyTrySplitGroupAppendsAfterFinalGroup()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 4);
+            var firstGroup = viewModel.Groups[0];
+            var finalGroup = AddGroup(viewModel);
+
+            var result = viewModel.TrySplitGroup(finalGroup.Id, out var splitGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups, Is.EqualTo(new[] { firstGroup, finalGroup, splitGroup }));
+                Assert.That(viewModel.Groups[^1], Is.SameAs(splitGroup));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(splitGroup));
+            }
+        }
+
+        [Test]
+        public void VerifyTrySplitGroupRejectsInvalidIdentifiersWithoutMutationOrNotifications()
+        {
+            using var viewModel = CreateViewModel();
+            var expectedGroups = viewModel.Groups.ToArray();
+            var expectedFocus = viewModel.FocusedGroup;
+            var expectedRenderState = viewModel.RenderState;
+            var collectionNotificationCount = 0;
+            var propertyNotificationCount = 0;
+            INotifyCollectionChanged observableGroups = viewModel.Groups;
+            observableGroups.CollectionChanged += (_, _) => collectionNotificationCount++;
+            viewModel.PropertyChanged += (_, _) => propertyNotificationCount++;
+
+            var emptyResult = viewModel.TrySplitGroup(Guid.Empty, out var emptyResultGroup);
+            var unknownResult = viewModel.TrySplitGroup(Guid.NewGuid(), out var unknownResultGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(emptyResult, Is.False);
+                Assert.That(unknownResult, Is.False);
+                Assert.That(emptyResultGroup, Is.Null);
+                Assert.That(unknownResultGroup, Is.Null);
+                Assert.That(viewModel.Groups, Is.EqualTo(expectedGroups));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(expectedFocus));
+                Assert.That(viewModel.RenderState, Is.SameAs(expectedRenderState));
+                Assert.That(collectionNotificationCount, Is.Zero);
+                Assert.That(propertyNotificationCount, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void VerifyTrySplitGroupEnforcesMaximumWithoutMutationOrNotifications()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 2);
+            var firstGroup = viewModel.Groups[0];
+            var secondGroup = AddGroup(viewModel);
+            var expectedRenderState = viewModel.RenderState;
+            var collectionNotificationCount = 0;
+            var propertyNotificationCount = 0;
+            INotifyCollectionChanged observableGroups = viewModel.Groups;
+            observableGroups.CollectionChanged += (_, _) => collectionNotificationCount++;
+            viewModel.PropertyChanged += (_, _) => propertyNotificationCount++;
+
+            var result = viewModel.TrySplitGroup(firstGroup.Id, out var rejectedGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.False);
+                Assert.That(rejectedGroup, Is.Null);
+                Assert.That(viewModel.Groups, Is.EqualTo(new[] { firstGroup, secondGroup }));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(secondGroup));
+                Assert.That(viewModel.RenderState, Is.SameAs(expectedRenderState));
+                Assert.That(collectionNotificationCount, Is.Zero);
+                Assert.That(propertyNotificationCount, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void VerifyTrySplitGroupPublishesOneCoherentRenderState()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 4);
+            var leftGroup = viewModel.Groups[0];
+            var rightGroup = AddGroup(viewModel);
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var result = viewModel.TrySplitGroup(leftGroup.Id, out var splitGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+                Assert.That(publishedStates[0].FocusedGroupId, Is.EqualTo(splitGroup.Id));
+                Assert.That(
+                    publishedStates[0].Groups.Select(group => group.Id),
+                    Is.EqualTo(new[] { leftGroup.Id, splitGroup.Id, rightGroup.Id }));
+                Assert.That(publishedStates[0].Groups[1].Tabs, Is.Empty);
+                Assert.That(publishedStates[0].Groups[1].ActiveTabId, Is.Null);
+            }
+        }
+
+        [Test]
         public void VerifyGroupsExposeStableOrderedCollectionNotifications()
         {
             var viewModel = CreateViewModel();
@@ -893,6 +1027,363 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
                 Assert.That(viewModel.FocusedGroup, Is.SameAs(middleGroup));
                 Assert.That(removedGroup.Tabs, Is.Empty);
                 Assert.That(removedGroup.ActiveTab, Is.Null);
+            }
+        }
+
+        [Test]
+        public void VerifyMoveTabReordersBeforeEarlierTabPreservingActiveTabFocusAndIdentity()
+        {
+            using var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var firstTab = OpenTab(viewModel, group, "A", "a");
+            var secondTab = OpenTab(viewModel, group, "B", "b");
+            var movedTab = OpenTab(viewModel, group, "C", "c");
+            var focusedGroup = AddGroup(viewModel);
+            var initialRevision = viewModel.RenderState.Revision;
+            var collectionNotifications = new List<NotifyCollectionChangedEventArgs>();
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            INotifyCollectionChanged observableTabs = group.Tabs;
+            observableTabs.CollectionChanged += (_, args) => collectionNotifications.Add(args);
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var result = viewModel.MoveTab(group.Id, movedTab.Id, group.Id, secondTab.Id);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(group.Tabs, Is.EqualTo(new[] { firstTab, movedTab, secondTab }));
+                Assert.That(group.Tabs[1], Is.SameAs(movedTab));
+                Assert.That(group.ActiveTab, Is.SameAs(movedTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(focusedGroup));
+                Assert.That(collectionNotifications, Has.Count.EqualTo(1));
+                Assert.That(collectionNotifications[0].Action, Is.EqualTo(NotifyCollectionChangedAction.Move));
+                Assert.That(collectionNotifications[0].OldStartingIndex, Is.EqualTo(2));
+                Assert.That(collectionNotifications[0].NewStartingIndex, Is.EqualTo(1));
+                Assert.That(collectionNotifications[0].NewItems[0], Is.SameAs(movedTab));
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+                Assert.That(
+                    publishedStates[0].Groups[0].Tabs.Select(tab => tab.Item),
+                    Is.EqualTo(new[] { firstTab, movedTab, secondTab }));
+            }
+        }
+
+        [Test]
+        public void VerifyMoveTabReordersBeforeLaterTabAndAppendsWithinSameGroup()
+        {
+            using var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var firstTab = OpenTab(viewModel, group, "A", "a");
+            var secondTab = OpenTab(viewModel, group, "B", "b");
+            var thirdTab = OpenTab(viewModel, group, "C", "c");
+            var activeTab = OpenTab(viewModel, group, "D", "d");
+
+            var moveBeforeResult = viewModel.MoveTab(group.Id, secondTab.Id, group.Id, activeTab.Id);
+            var orderAfterMoveBefore = group.Tabs.ToArray();
+            var appendResult = viewModel.MoveTab(group.Id, thirdTab.Id, group.Id, null);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(moveBeforeResult, Is.True);
+                Assert.That(appendResult, Is.True);
+                Assert.That(orderAfterMoveBefore, Is.EqualTo(new[]
+                {
+                    firstTab,
+                    thirdTab,
+                    secondTab,
+                    activeTab
+                }));
+                Assert.That(group.Tabs, Is.EqualTo(new[] { firstTab, secondTab, activeTab, thirdTab }));
+                Assert.That(group.Tabs[0], Is.SameAs(firstTab));
+                Assert.That(group.Tabs[1], Is.SameAs(secondTab));
+                Assert.That(group.Tabs[2], Is.SameAs(activeTab));
+                Assert.That(group.Tabs[3], Is.SameAs(thirdTab));
+                Assert.That(group.ActiveTab, Is.SameAs(activeTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(group));
+            }
+        }
+
+        [Test]
+        public void VerifyMoveTabSuppressesEquivalentSameGroupPositions()
+        {
+            using var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var firstTab = OpenTab(viewModel, group, "A", "a");
+            var secondTab = OpenTab(viewModel, group, "B", "b");
+            var finalTab = OpenTab(viewModel, group, "C", "c");
+            var expectedRenderState = viewModel.RenderState;
+            var collectionNotificationCount = 0;
+            var propertyNotificationCount = 0;
+            INotifyCollectionChanged observableTabs = group.Tabs;
+            observableTabs.CollectionChanged += (_, _) => collectionNotificationCount++;
+            group.PropertyChanged += (_, _) => propertyNotificationCount++;
+            viewModel.PropertyChanged += (_, _) => propertyNotificationCount++;
+
+            var alreadyBeforeResult = viewModel.MoveTab(group.Id, secondTab.Id, group.Id, finalTab.Id);
+            var alreadyFinalResult = viewModel.MoveTab(group.Id, finalTab.Id, group.Id, null);
+            var beforeSelfResult = viewModel.MoveTab(group.Id, firstTab.Id, group.Id, firstTab.Id);
+            var invalidSourceResult = viewModel.MoveTab(group.Id, Guid.NewGuid(), group.Id, null);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(alreadyBeforeResult, Is.False);
+                Assert.That(alreadyFinalResult, Is.False);
+                Assert.That(beforeSelfResult, Is.False);
+                Assert.That(invalidSourceResult, Is.False);
+                Assert.That(group.Tabs, Is.EqualTo(new[] { firstTab, secondTab, finalTab }));
+                Assert.That(group.ActiveTab, Is.SameAs(finalTab));
+                Assert.That(viewModel.RenderState, Is.SameAs(expectedRenderState));
+                Assert.That(collectionNotificationCount, Is.Zero);
+                Assert.That(propertyNotificationCount, Is.Zero);
+            }
+        }
+
+        [Test]
+        public void VerifyMoveTabRejectsInvalidDestinationAnchorsBeforeMutation()
+        {
+            using var viewModel = CreateViewModel();
+            var sourceGroup = viewModel.Groups[0];
+            var firstSourceTab = OpenTab(viewModel, sourceGroup, "Source A", "source-a");
+            var secondSourceTab = OpenTab(viewModel, sourceGroup, "Source B", "source-b");
+            var destinationGroup = AddGroup(viewModel);
+            var destinationTab = OpenTab(viewModel, destinationGroup, "Destination", "destination");
+            var expectedRenderState = viewModel.RenderState;
+            var collectionNotificationCount = 0;
+            var propertyNotificationCount = 0;
+            INotifyCollectionChanged observableSourceTabs = sourceGroup.Tabs;
+            INotifyCollectionChanged observableDestinationTabs = destinationGroup.Tabs;
+            observableSourceTabs.CollectionChanged += (_, _) => collectionNotificationCount++;
+            observableDestinationTabs.CollectionChanged += (_, _) => collectionNotificationCount++;
+            sourceGroup.PropertyChanged += (_, _) => propertyNotificationCount++;
+            destinationGroup.PropertyChanged += (_, _) => propertyNotificationCount++;
+            viewModel.PropertyChanged += (_, _) => propertyNotificationCount++;
+
+            var sameGroupWrongAnchorResult = viewModel.MoveTab(
+                sourceGroup.Id,
+                firstSourceTab.Id,
+                sourceGroup.Id,
+                destinationTab.Id);
+
+            var crossGroupWrongAnchorResult = viewModel.MoveTab(
+                sourceGroup.Id,
+                firstSourceTab.Id,
+                destinationGroup.Id,
+                secondSourceTab.Id);
+
+            var unknownAnchorResult = viewModel.MoveTab(
+                sourceGroup.Id,
+                firstSourceTab.Id,
+                destinationGroup.Id,
+                Guid.NewGuid());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(sameGroupWrongAnchorResult, Is.False);
+                Assert.That(crossGroupWrongAnchorResult, Is.False);
+                Assert.That(unknownAnchorResult, Is.False);
+                Assert.That(sourceGroup.Tabs, Is.EqualTo(new[] { firstSourceTab, secondSourceTab }));
+                Assert.That(destinationGroup.Tabs.Single(), Is.SameAs(destinationTab));
+                Assert.That(sourceGroup.ActiveTab, Is.SameAs(secondSourceTab));
+                Assert.That(destinationGroup.ActiveTab, Is.SameAs(destinationTab));
+                Assert.That(viewModel.RenderState, Is.SameAs(expectedRenderState));
+                Assert.That(collectionNotificationCount, Is.Zero);
+                Assert.That(propertyNotificationCount, Is.Zero);
+            }
+        }
+
+        [TestCase(0, TestName = "VerifyMoveTabCrossGroupBeforeFirstDestinationTab")]
+        [TestCase(1, TestName = "VerifyMoveTabCrossGroupBeforeMiddleDestinationTab")]
+        [TestCase(2, TestName = "VerifyMoveTabCrossGroupBeforeFinalDestinationTab")]
+        [TestCase(3, TestName = "VerifyMoveTabCrossGroupAppendsAfterFinalDestinationTab")]
+        public void VerifyMoveTabSupportsEveryCrossGroupInsertionPosition(int insertionIndex)
+        {
+            using var viewModel = CreateViewModel();
+            var sourceGroup = viewModel.Groups[0];
+            var movedTab = OpenTab(viewModel, sourceGroup, "Source", "source");
+            var destinationGroup = AddGroup(viewModel);
+            var destinationTabs = new[]
+            {
+                OpenTab(viewModel, destinationGroup, "A", "a"),
+                OpenTab(viewModel, destinationGroup, "B", "b"),
+                OpenTab(viewModel, destinationGroup, "C", "c")
+            };
+            Assert.That(viewModel.FocusGroup(sourceGroup.Id), Is.True);
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            Guid? beforeTabId = insertionIndex < destinationTabs.Length
+                ? destinationTabs[insertionIndex].Id
+                : null;
+            var expectedOrder = destinationTabs.ToList();
+            expectedOrder.Insert(insertionIndex, movedTab);
+
+            var result = viewModel.MoveTab(
+                sourceGroup.Id,
+                movedTab.Id,
+                destinationGroup.Id,
+                beforeTabId);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups.Single(), Is.SameAs(destinationGroup));
+                Assert.That(sourceGroup.Tabs, Is.Empty);
+                Assert.That(sourceGroup.ActiveTab, Is.Null);
+                Assert.That(destinationGroup.Tabs, Is.EqualTo(expectedOrder));
+                Assert.That(destinationGroup.Tabs[insertionIndex], Is.SameAs(movedTab));
+                Assert.That(destinationGroup.Tabs, Is.Unique);
+                Assert.That(destinationGroup.ActiveTab, Is.SameAs(movedTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(destinationGroup));
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+                Assert.That(
+                    publishedStates[0].Groups.Single().Tabs.Select(tab => tab.Item),
+                    Is.EqualTo(expectedOrder));
+            }
+        }
+
+        [TestCase(
+            0,
+            2,
+            1,
+            0,
+            2,
+            3,
+            TestName = "VerifyMoveTabSameGroupMovesFirstTabBeforeThirdTab")]
+        [TestCase(
+            3,
+            1,
+            0,
+            3,
+            1,
+            2,
+            TestName = "VerifyMoveTabSameGroupMovesFinalTabBeforeSecondTab")]
+        [TestCase(
+            1,
+            -1,
+            0,
+            2,
+            3,
+            1,
+            TestName = "VerifyMoveTabSameGroupMovesSecondTabToEnd")]
+        public void VerifyMoveTabSupportsEveryRequiredSameGroupInsertionPosition(
+            int movedTabIndex,
+            int beforeTabIndex,
+            int firstExpectedIndex,
+            int secondExpectedIndex,
+            int thirdExpectedIndex,
+            int fourthExpectedIndex)
+        {
+            using var viewModel = CreateViewModel();
+            var group = viewModel.Groups[0];
+            var tabs = new[]
+            {
+                OpenTab(viewModel, group, "A", "a"),
+                OpenTab(viewModel, group, "B", "b"),
+                OpenTab(viewModel, group, "C", "c"),
+                OpenTab(viewModel, group, "D", "d")
+            };
+            var expectedActiveTab = group.ActiveTab;
+            var focusedGroup = AddGroup(viewModel);
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+            Guid? beforeTabId = beforeTabIndex >= 0
+                ? tabs[beforeTabIndex].Id
+                : null;
+            var expectedOrder = new[]
+            {
+                tabs[firstExpectedIndex],
+                tabs[secondExpectedIndex],
+                tabs[thirdExpectedIndex],
+                tabs[fourthExpectedIndex]
+            };
+
+            var result = viewModel.MoveTab(
+                group.Id,
+                tabs[movedTabIndex].Id,
+                group.Id,
+                beforeTabId);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(group.Tabs, Is.EqualTo(expectedOrder));
+                Assert.That(group.Tabs, Is.Unique);
+                Assert.That(group.ActiveTab, Is.SameAs(expectedActiveTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(focusedGroup));
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+                Assert.That(
+                    publishedStates[0].Groups[0].Tabs.Select(tab => tab.Item),
+                    Is.EqualTo(expectedOrder));
+            }
+        }
+
+        [Test]
+        public void VerifyMoveTabInsertsBeforeDestinationTabAtMaximumGroupCountCoherently()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 2);
+            var sourceGroup = viewModel.Groups[0];
+            var retainedSourceTab = OpenTab(viewModel, sourceGroup, "Source A", "source-a");
+            var movedTab = OpenTab(viewModel, sourceGroup, "Source B", "source-b");
+            var destinationGroup = AddGroup(viewModel);
+            var firstDestinationTab = OpenTab(viewModel, destinationGroup, "Destination A", "destination-a");
+            var destinationAnchor = OpenTab(viewModel, destinationGroup, "Destination B", "destination-b");
+            Assert.That(viewModel.FocusGroup(sourceGroup.Id), Is.True);
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var result = viewModel.MoveTab(
+                sourceGroup.Id,
+                movedTab.Id,
+                destinationGroup.Id,
+                destinationAnchor.Id);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups, Has.Count.EqualTo(viewModel.MaximumGroupCount));
+                Assert.That(sourceGroup.Tabs.Single(), Is.SameAs(retainedSourceTab));
+                Assert.That(sourceGroup.ActiveTab, Is.SameAs(retainedSourceTab));
+                Assert.That(
+                    destinationGroup.Tabs,
+                    Is.EqualTo(new[] { firstDestinationTab, movedTab, destinationAnchor }));
+                Assert.That(destinationGroup.Tabs[1], Is.SameAs(movedTab));
+                Assert.That(destinationGroup.ActiveTab, Is.SameAs(movedTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(destinationGroup));
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+                Assert.That(publishedStates[0].FocusedGroupId, Is.EqualTo(destinationGroup.Id));
+                Assert.That(
+                    publishedStates[0].Groups[1].Tabs.Select(tab => tab.Item),
+                    Is.EqualTo(new[] { firstDestinationTab, movedTab, destinationAnchor }));
             }
         }
 

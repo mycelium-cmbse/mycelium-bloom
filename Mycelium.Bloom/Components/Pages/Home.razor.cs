@@ -28,6 +28,16 @@ namespace Mycelium.Bloom.Components.Pages
         private const int DefaultEditorGroupCount = 3;
 
         /// <summary>
+        /// The composition-owned action that creates generic empty editor content.
+        /// </summary>
+        private const string EmptyEditorActionId = "empty-editor";
+
+        /// <summary>
+        /// The composition-owned action that opens the retained Project Browser content.
+        /// </summary>
+        private const string ProjectBrowserActionId = "open-project-browser";
+
+        /// <summary>
         /// The composition-owned key used by the Project Browser editor.
         /// </summary>
         private const string ProjectBrowserViewTypeKey = "project-browser";
@@ -41,6 +51,15 @@ namespace Mycelium.Bloom.Components.Pages
         /// The Figma-derived relative weights for the default three-group composition.
         /// </summary>
         private static readonly double[] DefaultEditorGroupWeights = [300d, 320d, 868d];
+
+        /// <summary>
+        /// The composition-owned presentation metadata for editor kinds available in this workspace.
+        /// </summary>
+        private static readonly EditorTypePresentation[] EditorTypes =
+        [
+            new(EmptyEditorActionId, "Empty editor", PlaceholderViewTypeKey, SymbolIconName.Document),
+            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree)
+        ];
 
         /// <summary>
         /// The initial-only presentation weights supplied to the editor workspace.
@@ -113,7 +132,10 @@ namespace Mycelium.Bloom.Components.Pages
                 DefaultEditorGroupCount,
                 this.WorkspaceEditorViewModel.MaximumGroupCount);
 
-            this.OpenProjectBrowserTab(groups[0].Id);
+            if (this.OpenProjectBrowserTab(groups[0].Id))
+            {
+                this.nextPlaceholderTabNumber++;
+            }
 
             while (groups.Count < requestedGroupCount
                    && this.WorkspaceEditorViewModel.TryAddGroup(out var group))
@@ -132,12 +154,41 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Handles one per-group request by opening generic structural content in the exact owning group.
+        /// Creates the generic add-tab actions from the workspace's current coherent rendering state.
         /// </summary>
-        /// <param name="groupId">The group requesting a placeholder tab.</param>
-        private void HandleAddTabRequested(Guid groupId)
+        /// <returns>The actions available to every editor group.</returns>
+        private IReadOnlyList<ActionMenuItem> CreateAddTabActions()
         {
-            this.OpenPlaceholderTab(groupId);
+            return EditorTypes
+                .Select(editorType => new ActionMenuItem
+                {
+                    Id = editorType.ActionId,
+                    Label = editorType.Label,
+                    Symbol = editorType.Symbol,
+                    Disabled = editorType.ActionId == ProjectBrowserActionId
+                        && this.HasProjectBrowserTab()
+                })
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Handles one composition-owned add-tab action for the exact requesting group.
+        /// </summary>
+        /// <param name="groupId">The group requesting new editor content.</param>
+        /// <param name="item">The selected generic action metadata.</param>
+        private void HandleAddTabActionSelected(Guid groupId, ActionMenuItem item)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+
+            switch (item.Id)
+            {
+                case EmptyEditorActionId:
+                    this.OpenPlaceholderTab(groupId);
+                    break;
+                case ProjectBrowserActionId:
+                    _ = this.OpenProjectBrowserTab(groupId);
+                    break;
+            }
         }
 
         /// <summary>
@@ -150,19 +201,22 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Attempts to open the retained Project Browser content in the first workspace group.
+        /// Attempts to open the retained Project Browser content in one workspace group when it is not already open.
         /// </summary>
         /// <param name="groupId">The target editor group.</param>
-        private void OpenProjectBrowserTab(Guid groupId)
+        /// <returns><see langword="true" /> when the Project Browser tab was opened; otherwise, <see langword="false" />.</returns>
+        private bool OpenProjectBrowserTab(Guid groupId)
         {
-            if (this.WorkspaceEditorViewModel.TryOpenTab(
-                    groupId,
-                    "Project Browser",
-                    ProjectBrowserViewTypeKey,
-                    out _))
+            if (this.HasProjectBrowserTab())
             {
-                this.nextPlaceholderTabNumber++;
+                return false;
             }
+
+            return this.WorkspaceEditorViewModel.TryOpenTab(
+                groupId,
+                "Project Browser",
+                ProjectBrowserViewTypeKey,
+                out _);
         }
 
         /// <summary>
@@ -194,6 +248,54 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
+        /// Gets the composition-owned Lucide icon name for one immutable editor tab type.
+        /// </summary>
+        /// <param name="tab">The canonical editor tab.</param>
+        /// <returns>The icon name, or an empty string when the tab type has no composition metadata.</returns>
+        private static string GetEditorTabIconName(EditorTabItem tab)
+        {
+            ArgumentNullException.ThrowIfNull(tab);
+
+            var editorType = EditorTypes.FirstOrDefault(candidate => string.Equals(
+                candidate.ViewTypeKey,
+                tab.ViewTypeKey,
+                StringComparison.Ordinal));
+
+            return editorType?.Symbol.ToLucideName() ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Checks the current coherent workspace snapshot for the retained Project Browser tab.
+        /// </summary>
+        /// <returns><see langword="true" /> when the Project Browser exists anywhere in the workspace.</returns>
+        private bool HasProjectBrowserTab()
+        {
+            return this.WorkspaceEditorViewModel.RenderState.Groups
+                .SelectMany(group => group.Tabs)
+                .Any(tab => IsProjectBrowserTab(tab.Item));
+        }
+
+        /// <summary>
+        /// Creates the exact numbered accessible label for one group's add-tab trigger.
+        /// </summary>
+        /// <param name="groupId">The group represented by the trigger.</param>
+        /// <returns>The numbered trigger label.</returns>
+        private string GetAddTabAriaLabel(Guid groupId)
+        {
+            var groups = this.WorkspaceEditorViewModel.RenderState.Groups;
+
+            for (var index = 0; index < groups.Length; index++)
+            {
+                if (groups[index].Id == groupId)
+                {
+                    return $"Add tab to Editor group {index + 1}";
+                }
+            }
+
+            return "Add tab to editor group";
+        }
+
+        /// <summary>
         /// Creates the exception raised when a navigation ViewModel exposes an unsupported presentation mode.
         /// </summary>
         /// <param name="presentationMode">The unsupported presentation mode.</param>
@@ -203,5 +305,18 @@ namespace Mycelium.Bloom.Components.Pages
         {
             return new ArgumentOutOfRangeException(nameof(presentationMode), presentationMode, null);
         }
+
+        /// <summary>
+        /// Captures the semantic and visual metadata owned by the Home composition for one supported editor type.
+        /// </summary>
+        /// <param name="ActionId">The menu action identifier.</param>
+        /// <param name="Label">The editor label.</param>
+        /// <param name="ViewTypeKey">The opaque tab view-type key.</param>
+        /// <param name="Symbol">The shared menu and tab symbol.</param>
+        private sealed record EditorTypePresentation(
+            string ActionId,
+            string Label,
+            string ViewTypeKey,
+            SymbolIconName Symbol);
     }
 }

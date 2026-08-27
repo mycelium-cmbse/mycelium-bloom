@@ -55,7 +55,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "traceability",
                 Label = "Traceability",
                 IconName = "waypoints",
-                GroupKey = "analysis"
+                GroupKey = "analysis",
+                GroupLabel = "ANALYSIS"
             },
             new NavigationRailItem
             {
@@ -69,7 +70,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "review",
                 Label = "Review",
                 IconName = "messages-square",
-                GroupKey = "collaboration"
+                GroupKey = "collaboration",
+                GroupLabel = "COLLABORATION"
             }
         ];
 
@@ -125,6 +127,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         private static readonly NavigationRailItem[] SettingsOnly = [ReplacementItems[1]];
 
         private static readonly string[] ExpectedLabels = ["Overview", "Traceability", "Compare", "Review"];
+
+        private static readonly string[] ExpectedGroupHeadingLabels = ["ANALYSIS", "COLLABORATION"];
 
         private static readonly string[] ExpectedReplacementLabels = ["Activity", "Settings"];
 
@@ -205,6 +209,25 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(dividers.All(divider => divider.GetAttribute("aria-hidden") == "true"), Is.True);
                 Assert.That(dividers.All(divider => divider.GetAttribute("role") is null), Is.True);
                 Assert.That(dividers.All(divider => divider.GetAttribute("aria-orientation") is null), Is.True);
+                Assert.That(component.FindAll(".mb-navigation-rail__group-heading"), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void VerifyExpandedNavigationRendersOptionalNonInteractiveGroupHeadings()
+        {
+            using var viewModel = CreateViewModel(NavigationRailPresentationMode.Expanded);
+            using var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.ViewModel, viewModel));
+            var headings = component.FindAll(".mb-navigation-rail__group-heading-label");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(headings.Select(heading => heading.TextContent.Trim()), Is.EqualTo(ExpectedGroupHeadingLabels));
+                Assert.That(headings.All(heading => heading.GetAttribute("role") == "heading"), Is.True);
+                Assert.That(headings.All(heading => heading.GetAttribute("aria-level") == "2"), Is.True);
+                Assert.That(component.FindAll(".mb-navigation-rail__group-heading button"), Is.Empty);
+                Assert.That(component.FindAll(".mb-navigation-rail__divider"), Is.Empty);
             }
         }
 
@@ -473,6 +496,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(links.Select(link => link.GetAttribute("aria-label")), Is.EqualTo(ExpectedLabels));
                 Assert.That(links.Select(link => link.GetAttribute("title")), Is.EqualTo(ExpectedLabels));
                 Assert.That(component.FindAll(".mb-navigation-rail__label"), Has.Count.EqualTo(Items.Length));
+                Assert.That(component.FindAll(".mb-navigation-rail__group-heading"), Is.Empty);
                 Assert.That(component.FindAll("[role='tooltip']"), Is.Empty);
             }
         }
@@ -641,6 +665,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(style, Does.Contain("border-right: 1px solid var(--mb-color-border-subtle);"));
                 Assert.That(style, Does.Contain("background: var(--mb-color-action-primary-soft);"));
                 Assert.That(style, Does.Contain("overflow-y: auto;"));
+                Assert.That(style, Does.Contain("scrollbar-width: thin;"));
+                Assert.That(style, Does.Contain("scrollbar-color: var(--mb-navigation-rail-scrollbar-thumb) transparent;"));
+                Assert.That(style, Does.Contain("background-attachment: local, local, scroll, scroll;"));
+                Assert.That(style, Does.Contain("@supports (scrollbar-width: none)"));
+                Assert.That(style, Does.Contain("scrollbar-width: none;"));
+                Assert.That(style, Does.Contain("@media (forced-colors: active)"));
+                Assert.That(style, Does.Contain("scrollbar-color: ButtonText Canvas;"));
+                Assert.That(style, Does.Contain(".mb-navigation-rail__items::-webkit-scrollbar-button"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -714,6 +746,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     style,
                     Does.Match(
                         @"(?s)\.mb-navigation-rail__divider::before\s*\{[^}]*inset-inline-start:\s*var\(--mb-spacing-2\);[^}]*width:\s*max\(\s*var\(--mb-navigation-rail-divider-width\),\s*calc\(100%\s*-\s*\(2\s*\*\s*var\(--mb-spacing-2\)\)\)\s*\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__group-heading\s*\{[^}]*text-align:\s*start;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail__group-heading-label\s*\{[^}]*width:\s*100%;[^}]*padding:\s*var\(--mb-spacing-3\)\s+var\(--mb-spacing-2\)\s+var\(--mb-spacing-1\)\s+var\(--mb-spacing-3\);[^}]*letter-spacing:\s*0\.08em;[^}]*text-align:\s*start;[^}]*text-overflow:\s*ellipsis;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--collapsed\)\s+\.mb-navigation-rail__items\s*\{[^}]*align-items:\s*stretch;"));
                 Assert.That(style, Does.Contain("@media (prefers-reduced-motion: reduce)"));
                 Assert.That(
                     style,

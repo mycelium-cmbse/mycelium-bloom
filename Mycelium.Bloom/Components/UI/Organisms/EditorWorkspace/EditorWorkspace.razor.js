@@ -48,6 +48,25 @@ export function releasePointer(separatorId, pointerId) {
     }
 }
 
+export function measureAdjacentPairWidth(separatorId) {
+    const separator = document.getElementById(separatorId);
+
+    if (!separator) {
+        return 0;
+    }
+
+    const leftGroup = document.getElementById(separator.dataset.leftGroupElementId);
+    const rightGroup = document.getElementById(separator.dataset.rightGroupElementId);
+
+    if (!leftGroup || !rightGroup) {
+        return 0;
+    }
+
+    const pairWidth = leftGroup.getBoundingClientRect().width + rightGroup.getBoundingClientRect().width;
+
+    return Number.isFinite(pairWidth) && pairWidth > 0 ? pairWidth : 0;
+}
+
 export function focusElementById(elementId) {
     const element = document.getElementById(elementId);
 

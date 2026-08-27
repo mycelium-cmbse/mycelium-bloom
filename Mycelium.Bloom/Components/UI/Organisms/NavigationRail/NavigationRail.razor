@@ -28,9 +28,22 @@
 
                 @if (this.StartsNewGroup(itemIndex))
                 {
-                    <li @key="(item.Id, true)"
-                        class="mb-navigation-rail__divider"
-                        aria-hidden="true"></li>
+                    @if (!this.IsCollapsed && !string.IsNullOrWhiteSpace(item.GroupLabel))
+                    {
+                        <li @key="(item.Id, true)"
+                            class="mb-navigation-rail__group-heading"
+                            role="presentation">
+                            <span class="mb-navigation-rail__group-heading-label"
+                                  role="heading"
+                                  aria-level="2">@(item.GroupLabel)</span>
+                        </li>
+                    }
+                    else
+                    {
+                        <li @key="(item.Id, true)"
+                            class="mb-navigation-rail__divider"
+                            aria-hidden="true"></li>
+                    }
                 }
 
                 <li @key="(item.Id, false)" class="mb-navigation-rail__item">

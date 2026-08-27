@@ -13,6 +13,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+    using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -142,6 +144,64 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 viewModel.Verify(
                     x => x.InitializeAsync(It.IsAny<CancellationToken>()),
                     Times.Never);
+            }
+        }
+
+        /// <summary>
+        /// Verifies the tree retains its accessible semantics inside the independent scroll viewport.
+        /// </summary>
+        [Test]
+        public void VerifyTreeViewportPreservesAccessibleTreeAndIntrinsicWidthContract()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                "quantities/long",
+                "ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            var viewport = component.Find(".mb-project-browser__tree-viewport");
+            var tree = component.Find(".mb-project-browser__tree");
+            var repositoryRoot = TestRepository.GetRootPath();
+            var componentDirectory = Path.Combine(
+                repositoryRoot,
+                "Mycelium.Bloom",
+                "Components",
+                "UI",
+                "Organisms",
+                "ProjectBrowser");
+            var style = File.ReadAllText(Path.Combine(componentDirectory, "ProjectBrowser.razor.css"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewport.Children, Has.Count.EqualTo(1));
+                Assert.That(viewport.Children[0].ClassList, Does.Contain("mb-project-browser__tree"));
+                Assert.That(tree.GetAttribute("role"), Is.EqualTo("tree"));
+                Assert.That(tree.GetAttribute("aria-label"), Is.EqualTo("Project browser"));
+                Assert.That(component.Markup, Does.Contain("ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser__tree-viewport\s*\{[^}]*overflow:\s*auto;[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*var\(--mb-project-browser-scrollbar-thumb\)\s+transparent;"));
+                Assert.That(
+                    style,
+                    Does.Contain("background-attachment: local, local, local, local, scroll, scroll, scroll, scroll;"));
+                Assert.That(style, Does.Contain("@supports (scrollbar-width: none)"));
+                Assert.That(style, Does.Contain("scrollbar-width: none;"));
+                Assert.That(style, Does.Contain("@media (forced-colors: active)"));
+                Assert.That(style, Does.Contain("scrollbar-color: ButtonText Canvas;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser__tree\s*\{[^}]*flex:\s*0\s+0\s+auto;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;[^}]*background:\s*transparent;"));
+                Assert.That(style, Does.Contain(".mb-project-browser__tree-viewport::-webkit-scrollbar-button"));
             }
         }
 
@@ -666,9 +726,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var renderCountAfterDisposal = component.RenderCount;
 
             mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First"));
+#pragma warning disable S6966 // Moq cannot asynchronously raise a synchronous event after its handlers are detached.
             notifyingViewModel.Raise(
                 x => x.PropertyChanged += null,
                 new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
+#pragma warning restore S6966
 
             using (Assert.EnterMultipleScope())
             {

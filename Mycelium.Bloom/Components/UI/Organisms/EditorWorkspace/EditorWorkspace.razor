@@ -59,21 +59,34 @@
                          data-testid="editor-workspace-group"
                          @onpointerdown="() => this.FocusGroup(group)"
                          @onfocusin="() => this.FocusGroup(group)">
-                    <div class="mb-editor-workspace__tab-bar">
+                    <div class="mb-editor-workspace__tab-bar"
+                         @ondragleave="this.ClearPresentedTabDropTarget"
+                         @ondrop="this.EndTabDrag"
+                         @ondrop:preventDefault>
                         <div class="mb-editor-workspace__tablist"
                              role="tablist"
                              aria-label="@(this.GetTabListAccessibleLabel(currentGroupIndex))"
                              data-testid="editor-workspace-tablist">
-                            @foreach (var tab in group.Tabs)
+                            @for (var tabIndex = 0; tabIndex < group.Tabs.Length; tabIndex++)
                             {
+                                var tab = group.Tabs[tabIndex];
                                 var isActive = group.ActiveTabId == tab.Id;
+                                Guid? rightBeforeTabId = tabIndex < group.Tabs.Length - 1
+                                    ? group.Tabs[tabIndex + 1].Id
+                                    : null;
 
                                 <div @key="tab.Id"
-                                     class="@(GetTabItemCssClass(isActive))"
-                                     data-tab-id="@(tab.Id)">
+                                     class="@(this.GetTabItemCssClass(group, tab, isActive))"
+                                     data-tab-id="@(tab.Id)"
+                                     @ondragover:preventDefault
+                                     @ondragleave:stopPropagation
+                                     @ondrop="this.DropTab"
+                                     @ondrop:preventDefault
+                                     @ondrop:stopPropagation>
                                     <button id="@(this.GetTabElementId(group.Id, tab.Id))"
                                             type="button"
                                             class="mb-editor-workspace__tab"
+                                            draggable="true"
                                             role="tab"
                                             aria-selected="@(isActive ? "true" : "false")"
                                             aria-controls="@(this.GetPanelElementId(group.Id, tab.Id))"
@@ -82,7 +95,19 @@
                                             data-tab-id="@(tab.Id)"
                                             data-testid="editor-workspace-tab"
                                             @onclick="() => this.ActivateTab(group, tab, false)"
-                                            @onkeydown="args => this.HandleTabKeyDown(group, tab, args)">
+                                            @onkeydown="args => this.HandleTabKeyDown(group, tab, args)"
+                                            @ondragstart="() => this.BeginTabDrag(group, tab)"
+                                            @ondragend="this.EndTabDrag">
+                                        @if (this.TabLeadingContent is not null)
+                                        {
+                                            <span class="mb-editor-workspace__tab-leading-content"
+                                                  data-group-id="@(group.Id)"
+                                                  data-tab-id="@(tab.Id)"
+                                                  data-testid="editor-workspace-tab-leading-content">
+                                                @(this.TabLeadingContent(tab.Item))
+                                            </span>
+                                        }
+
                                         <span class="mb-editor-workspace__tab-label" title="@(tab.Title)">
                                             @(tab.Title)
                                         </span>
@@ -104,11 +129,80 @@
                                                     aria-hidden="true"
                                                     focusable="false" />
                                     </button>
+
+                                    <span class="@(GetTabDropMarkerCssClass(
+                                                      true,
+                                                      this.IsPresentedDropTarget(group.Id, tab.Id)))"
+                                          role="presentation"
+                                          aria-hidden="true"
+                                          data-group-id="@(group.Id)"
+                                          data-tab-id="@(tab.Id)"
+                                          data-testid="editor-workspace-tab-drop-marker"></span>
+
+                                    @if (rightBeforeTabId is null)
+                                    {
+                                        <span class="@(GetTabDropMarkerCssClass(
+                                                          false,
+                                                          this.IsPresentedDropTarget(group.Id, null)))"
+                                              role="presentation"
+                                              aria-hidden="true"
+                                              data-group-id="@(group.Id)"
+                                              data-tab-id="@(tab.Id)"
+                                              data-testid="editor-workspace-tab-drop-marker"></span>
+                                    }
+
+                                    <span class="@(this.GetTabDropHitZoneCssClass(true))"
+                                          role="presentation"
+                                          aria-hidden="true"
+                                          data-group-id="@(group.Id)"
+                                          data-tab-id="@(tab.Id)"
+                                          data-testid="editor-workspace-tab-drop-hit-zone"
+                                          @ondragenter="() => this.PresentTabDropTarget(group.Id, tab.Id)"
+                                          @ondragenter:stopPropagation
+                                          @ondragover:preventDefault
+                                          @ondragover:stopPropagation
+                                          @ondragleave:stopPropagation></span>
+
+                                    <span class="@(this.GetTabDropHitZoneCssClass(false))"
+                                          role="presentation"
+                                          aria-hidden="true"
+                                          data-group-id="@(group.Id)"
+                                          data-tab-id="@(tab.Id)"
+                                          data-testid="editor-workspace-tab-drop-hit-zone"
+                                          @ondragenter="() => this.PresentTabDropTarget(group.Id, rightBeforeTabId)"
+                                          @ondragenter:stopPropagation
+                                          @ondragover:preventDefault
+                                          @ondragover:stopPropagation
+                                          @ondragleave:stopPropagation></span>
                                 </div>
                             }
+
                         </div>
 
-                        @if (this.AddTabRequested.HasDelegate)
+                        <span class="@(this.GetGroupDropSurfaceCssClass(group))"
+                              role="presentation"
+                              aria-hidden="true"
+                              data-group-id="@(group.Id)"
+                              data-testid="editor-workspace-group-drop-surface"
+                              @ondragenter="() => this.PresentTabDropTarget(group.Id, null)"
+                              @ondragenter:stopPropagation
+                              @ondragover:preventDefault
+                              @ondragover:stopPropagation
+                              @ondragleave:stopPropagation
+                              @ondrop="this.DropTab"
+                              @ondrop:preventDefault
+                              @ondrop:stopPropagation></span>
+
+                        @if (this.AddTabControl is not null)
+                        {
+                            <div id="@(this.GetAddTabElementId(group.Id))"
+                                 class="mb-editor-workspace__add-tab-host"
+                                 data-group-id="@(group.Id)"
+                                 data-testid="editor-workspace-add-tab-host">
+                                @(this.AddTabControl(group.Id))
+                            </div>
+                        }
+                        else if (this.AddTabRequested.HasDelegate)
                         {
                             <button id="@(this.GetAddTabElementId(group.Id))"
                                     type="button"
@@ -173,7 +267,7 @@
                          data-left-group-element-id="@(this.GetGroupElementId(group.Id))"
                          data-right-group-element-id="@(this.GetGroupElementId(nextGroup.Id))"
                          data-testid="editor-workspace-splitter"
-                         @onkeydown="args => this.HandleSplitterKeyDown(group, nextGroup, args)"
+                         @onkeydown="args => this.HandleSplitterKeyDownAsync(group, nextGroup, args)"
                          @onpointerdown="args => this.BeginSplitterResizeAsync(group, nextGroup, args)"
                          @onpointermove="this.HandleSplitterPointerMoved"
                          @onpointerup="this.EndSplitterResizeAsync"
@@ -181,7 +275,50 @@
                          @onlostpointercapture="this.HandlePointerCaptureLost">
                         <span class="mb-editor-workspace__splitter-line" aria-hidden="true"></span>
                     </div>
+
+                    @if (this.CanSplitGroup(renderState))
+                    {
+                        <div class="mb-editor-workspace__split-add-host"
+                             style="@(this.GetSplitterStyle(currentGroupIndex, renderState))"
+                             data-left-group-id="@(group.Id)"
+                             data-testid="editor-workspace-split-add">
+                            <button type="button"
+                                    class="mb-editor-workspace__split-add"
+                                    aria-label="Split editor here"
+                                    title="Split editor here"
+                                    @onclick="() => this.SplitGroup(group)">
+                                <LucideIcon Name="plus"
+                                            Size="14"
+                                            StrokeWidth="1.16667"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
+                            </button>
+                        </div>
+                    }
                 }
+            }
+
+            @if (renderState.Groups.Length > 0 && this.CanSplitGroup(renderState))
+            {
+                var finalGroup = renderState.Groups[^1];
+
+                <div class="mb-editor-workspace__right-edge-split-add-host"
+                     data-left-group-id="@(finalGroup.Id)"
+                     data-testid="editor-workspace-right-edge-split-add">
+                    <button type="button"
+                            class="mb-editor-workspace__split-add"
+                            aria-label="Split editor here"
+                            title="Split editor here"
+                            @onclick="() => this.SplitGroup(finalGroup)">
+                        <LucideIcon Name="plus"
+                                    Size="14"
+                                    StrokeWidth="1.16667"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </button>
+                </div>
             }
         </div>
     }

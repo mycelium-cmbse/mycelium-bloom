@@ -72,10 +72,85 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         /// </exception>
         internal void AddTab(EditorTabItem tab)
         {
+            this.InsertTab(tab, null);
+        }
+
+        /// <summary>
+        /// Inserts a tab before an owned anchor, or appends it when no anchor is supplied, and makes it active.
+        /// </summary>
+        /// <param name="tab">The tab instance transferred to this group.</param>
+        /// <param name="beforeTab">The owned tab before which to insert, or <see langword="null" /> to append.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown when <paramref name="tab" /> is <see langword="null" />.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown when <paramref name="beforeTab" /> does not belong to this group.
+        /// </exception>
+        internal void InsertTab(EditorTabItem tab, EditorTabItem beforeTab)
+        {
             ArgumentNullException.ThrowIfNull(tab);
 
-            this.tabs.Add(tab);
+            var insertionIndex = this.tabs.Count;
+
+            if (beforeTab is not null)
+            {
+                insertionIndex = this.tabs.IndexOf(beforeTab);
+
+                if (insertionIndex < 0)
+                {
+                    throw new ArgumentException(
+                        "The insertion anchor must belong to this editor group.",
+                        nameof(beforeTab));
+                }
+            }
+
+            this.tabs.Insert(insertionIndex, tab);
             this.ActiveTab = tab;
+        }
+
+        /// <summary>
+        /// Attempts to move an owned tab before an owned anchor, or to the end when no anchor is supplied.
+        /// </summary>
+        /// <param name="tab">The canonical tab to reorder.</param>
+        /// <param name="beforeTab">The canonical anchor tab, or <see langword="null" /> to append.</param>
+        /// <returns>
+        /// <see langword="true" /> when the ordered tab collection changed; otherwise, <see langword="false" />.
+        /// </returns>
+        internal bool TryReorderTab(EditorTabItem tab, EditorTabItem beforeTab)
+        {
+            ArgumentNullException.ThrowIfNull(tab);
+
+            var sourceIndex = this.tabs.IndexOf(tab);
+
+            if (sourceIndex < 0)
+            {
+                return false;
+            }
+
+            var destinationIndex = this.tabs.Count - 1;
+
+            if (beforeTab is not null)
+            {
+                var anchorIndex = this.tabs.IndexOf(beforeTab);
+
+                if (anchorIndex < 0)
+                {
+                    return false;
+                }
+
+                destinationIndex = anchorIndex > sourceIndex
+                    ? anchorIndex - 1
+                    : anchorIndex;
+            }
+
+            if (sourceIndex == destinationIndex)
+            {
+                return false;
+            }
+
+            this.tabs.Move(sourceIndex, destinationIndex);
+
+            return true;
         }
 
         /// <summary>

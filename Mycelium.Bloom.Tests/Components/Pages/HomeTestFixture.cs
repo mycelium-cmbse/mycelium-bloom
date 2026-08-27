@@ -9,10 +9,15 @@
 
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
+    using System;
     using System.Collections.ObjectModel;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+
+    using AngleSharp.Dom;
+
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
@@ -38,6 +43,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
+    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
 
     /// <summary>
     /// Tests the <see cref="Home" /> workspace composition.
@@ -55,6 +61,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         /// The semantic element order expected inside the workspace body.
         /// </summary>
         private static readonly string[] ExpectedWorkspaceBodyElementNames = ["aside", "div", "aside"];
+
+        /// <summary>
+        /// The Blueprint portal host that owns portalled add-tab menu content.
+        /// </summary>
+        private IRenderedComponent<BbPortalHost> portalHost;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HomeTestFixture" /> class.
@@ -93,6 +104,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var renderedWeights = composition.Editor.Groups
                 .Select(group => editorWorkspace.Instance.InitialGroupWeights[group.Id])
                 .ToArray();
+            var addTabMenus = component.FindComponents<ActionMenuComponent>();
+            var renderedTabIcons = component.FindAll("[data-testid='workspace-editor-tab-icon']")
+                .ToDictionary(
+                    icon => Guid.Parse(icon.GetAttribute("data-tab-id")),
+                    icon => icon.GetAttribute("data-icon-name"));
 
             using (Assert.EnterMultipleScope())
             {
@@ -104,6 +120,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(navigation.Instance.ViewModel, Is.SameAs(composition.Navigation));
                 Assert.That(navigationRoot.GetAttribute("style"), Is.Null);
                 Assert.That(editorWorkspace.Instance.ViewModel, Is.SameAs(composition.Editor));
+                Assert.That(editorWorkspace.Instance.AddTabControl, Is.Not.Null);
+                Assert.That(editorWorkspace.Instance.AddTabRequested.HasDelegate, Is.False);
+                Assert.That(editorWorkspace.Instance.TabLeadingContent, Is.Not.Null);
                 Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
                 Assert.That(detailsPanel.Instance.ViewModel, Is.SameAs(composition.Context));
                 Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
@@ -132,6 +151,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(renderedWeights, Is.EqualTo(ExpectedDefaultGroupWeights));
                 Assert.That(component.FindAll("[data-testid='workspace-editor-placeholder']"),
                     Has.Count.EqualTo(2));
+                Assert.That(addTabMenus, Has.Count.EqualTo(3));
+                Assert.That(
+                    addTabMenus.All(menu => menu.Instance.Items.Select(item => item.Symbol)
+                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Document, SymbolIconName.Tree })),
+                    Is.True);
+                Assert.That(renderedTabIcons[composition.Editor.Groups[0].ActiveTab.Id], Is.EqualTo("list-tree"));
+                Assert.That(
+                    composition.Editor.Groups.Skip(1)
+                        .Select(group => renderedTabIcons[group.ActiveTab.Id]),
+                    Is.EqualTo(new[] { "file-text", "file-text" }));
             }
 
             Assert.That(
@@ -212,19 +241,34 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies a per-group add request opens generic content only in the exact selected group.
+        /// Verifies the add-tab menu opens generic content only in the exact selected group.
         /// </summary>
         [Test]
-        public async Task VerifyAddTabRequestTargetsExactOwningGroup()
+        public async Task VerifyEmptyEditorActionTargetsExactOwningGroup()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
             using var component = this.Render<Home>();
             var targetGroup = composition.Editor.Groups[1];
-            var addButton = component.FindAll("[data-testid='editor-workspace-add-tab']")
-                .Single(button => button.GetAttribute("data-group-id") == targetGroup.Id.ToString());
+            var addMenu = FindAddTabMenu(component, targetGroup.Id);
+            var addButton = addMenu.QuerySelector("button");
 
             await addButton.ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(addButton.GetAttribute("aria-label"), Is.EqualTo("Add tab to Editor group 2"));
+                Assert.That(addButton.GetAttribute("title"), Is.EqualTo("Add tab"));
+                Assert.That(composition.Editor.Groups[0].Tabs, Has.Count.EqualTo(1));
+                Assert.That(targetGroup.Tabs, Has.Count.EqualTo(1));
+                Assert.That(composition.Editor.Groups[2].Tabs, Has.Count.EqualTo(1));
+            }
+
+            var emptyEditorAction = FindPortalledMenuItem("Empty editor");
+
+            Assert.That(emptyEditorAction.QuerySelector("svg"), Is.Not.Null);
+
+            await emptyEditorAction.ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -236,8 +280,166 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(composition.Editor.FocusedGroup, Is.SameAs(targetGroup));
                     Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Editor 4"));
                     Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(component.Find(
+                            $"[data-testid='workspace-editor-tab-icon'][data-tab-id='{targetGroup.ActiveTab.Id}']")
+                        .GetAttribute("data-icon-name"), Is.EqualTo("file-text"));
                 }
             });
+        }
+
+        /// <summary>
+        /// Verifies the retained Project Browser cannot be opened more than once in the workspace.
+        /// </summary>
+        [Test]
+        public async Task VerifyProjectBrowserActionIsDisabledWhileBrowserExists()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var targetGroup = composition.Editor.Groups[1];
+
+            await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
+            var projectBrowserAction = FindPortalledMenuItem("Project Browser");
+
+            Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.EqualTo("true"));
+
+            await projectBrowserAction.ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
+                    .Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(1));
+                Assert.That(targetGroup.Tabs, Has.Count.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies Project Browser creation targets the requesting group and uses the retained ViewModel.
+        /// </summary>
+        [Test]
+        public async Task VerifyProjectBrowserActionTargetsExactGroupAndRetainedViewModel()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            var initialGroup = composition.Editor.Groups.Single();
+            Assert.That(
+                composition.Editor.TryOpenTab(initialGroup.Id, "Existing editor", "placeholder", out _),
+                Is.True);
+            Assert.That(composition.Editor.TryAddGroup(out var targetGroup), Is.True);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+
+            await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
+            var projectBrowserAction = FindPortalledMenuItem("Project Browser");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.Not.EqualTo("true"));
+                Assert.That(projectBrowserAction.QuerySelector("svg"), Is.Not.Null);
+            }
+
+            await projectBrowserAction.ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var browserTab = targetGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+                var renderedBrowser = component.FindComponent<ProjectBrowserComponent>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(initialGroup.Tabs, Has.Count.EqualTo(1));
+                    Assert.That(targetGroup.Tabs, Has.Count.EqualTo(1));
+                    Assert.That(targetGroup.ActiveTab, Is.SameAs(browserTab));
+                    Assert.That(composition.Editor.FocusedGroup, Is.SameAs(targetGroup));
+                    Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
+                    Assert.That(component.Find("[data-testid='workspace-project-browser']")
+                        .GetAttribute("data-tab-id"), Is.EqualTo(browserTab.Id.ToString()));
+                    Assert.That(component.Find(
+                            $"[data-testid='workspace-editor-tab-icon'][data-tab-id='{browserTab.Id}']")
+                        .GetAttribute("data-icon-name"), Is.EqualTo("list-tree"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies closing Project Browser re-enables its action without consuming placeholder numbering.
+        /// </summary>
+        [Test]
+        public async Task VerifyClosingProjectBrowserReenablesCreationWithoutConsumingPlaceholderNumber()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var projectBrowserTab = composition.Editor.Groups[0].Tabs.Single();
+            var closeButton = component.FindAll("[data-testid='editor-workspace-tab-close']")
+                .Single(button => button.GetAttribute("data-tab-id") == projectBrowserTab.Id.ToString());
+
+            await closeButton.ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
+                    .Any(tab => tab.ViewTypeKey == "project-browser"), Is.False));
+
+            var targetGroup = composition.Editor.Groups[0];
+            await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
+            var projectBrowserAction = FindPortalledMenuItem("Project Browser");
+
+            Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.Not.EqualTo("true"));
+
+            await projectBrowserAction.ClickAsync();
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(targetGroup.Tabs.Any(tab => tab.ViewTypeKey == "project-browser"), Is.True));
+
+            await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
+            await FindPortalledMenuItem("Empty editor").ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Editor 4"));
+                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
+                        .Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(1));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies moving Project Browser retains its exact tab and ViewModel without enabling duplication.
+        /// </summary>
+        [Test]
+        public async Task VerifyMovingProjectBrowserRetainsCompositionAndUniqueness()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var sourceGroup = composition.Editor.Groups[0];
+            var destinationGroup = composition.Editor.Groups[1];
+            var projectBrowserTab = sourceGroup.Tabs.Single();
+
+            Assert.That(
+                composition.Editor.MoveTab(sourceGroup.Id, projectBrowserTab.Id, destinationGroup.Id),
+                Is.True);
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var renderedBrowser = component.FindComponent<ProjectBrowserComponent>();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(composition.Editor.Groups, Does.Not.Contain(sourceGroup));
+                    Assert.That(destinationGroup.Tabs.Any(tab => ReferenceEquals(tab, projectBrowserTab)), Is.True);
+                    Assert.That(destinationGroup.ActiveTab, Is.SameAs(projectBrowserTab));
+                    Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
+                    Assert.That(component.Find("[data-testid='workspace-project-browser']")
+                        .GetAttribute("data-tab-id"), Is.EqualTo(projectBrowserTab.Id.ToString()));
+                }
+            });
+
+            await FindAddTabMenu(component, destinationGroup.Id).QuerySelector("button").ClickAsync();
+
+            Assert.That(FindPortalledMenuItem("Project Browser").GetAttribute("aria-disabled"),
+                Is.EqualTo("true"));
         }
 
         /// <summary>
@@ -325,6 +527,29 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
+        /// Finds the generic add-tab menu belonging to one exact editor group.
+        /// </summary>
+        /// <param name="component">The rendered Home composition.</param>
+        /// <param name="groupId">The represented editor group.</param>
+        /// <returns>The matching menu root.</returns>
+        private static IElement FindAddTabMenu(IRenderedComponent<Home> component, Guid groupId)
+        {
+            return component.FindAll("[data-testid='editor-workspace-add-tab-menu']")
+                .Single(menu => menu.GetAttribute("data-group-id") == groupId.ToString());
+        }
+
+        /// <summary>
+        /// Finds one action in the currently open portalled add-tab menu.
+        /// </summary>
+        /// <param name="label">The exact visible action label.</param>
+        /// <returns>The matching menu item.</returns>
+        private IElement FindPortalledMenuItem(string label)
+        {
+            return this.portalHost.WaitForElements("[role='menuitem']", 2)
+                .Single(item => string.Equals(item.TextContent.Trim(), label, StringComparison.Ordinal));
+        }
+
+        /// <summary>
         /// Registers one navigation and editor-state instance for the composition root to pass to its children.
         /// </summary>
         /// <param name="maximumGroupCount">The editor-group limit for the state instance.</param>
@@ -362,6 +587,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
             this.Services.AddSingleton(projectBrowserViewModel.Object);
+            this.portalHost = this.Render<BbPortalHost>();
 
             return (
                 editorViewModel,

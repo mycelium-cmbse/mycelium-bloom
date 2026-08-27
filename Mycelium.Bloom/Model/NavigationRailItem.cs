@@ -33,5 +33,10 @@ namespace Mycelium.Bloom.Model
         /// Gets the key of the visual group containing this destination.
         /// </summary>
         public string GroupKey { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Gets the optional non-interactive heading displayed when this item begins its visual group.
+        /// </summary>
+        public string GroupLabel { get; init; } = string.Empty;
     }
 }

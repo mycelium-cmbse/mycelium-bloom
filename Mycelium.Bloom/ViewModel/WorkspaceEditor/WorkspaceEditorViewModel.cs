@@ -160,6 +160,32 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         }
 
         /// <inheritdoc />
+        public bool TrySplitGroup(Guid groupId, out EditorGroupViewModel group)
+        {
+            EditorGroupViewModel createdGroup = null;
+
+            var split = this.ExecuteMutation(() =>
+            {
+                if (this.groups.Count >= this.MaximumGroupCount
+                    || !this.TryGetGroup(groupId, out var leftGroup))
+                {
+                    return false;
+                }
+
+                createdGroup = new EditorGroupViewModel();
+                var insertionIndex = this.groups.IndexOf(leftGroup) + 1;
+                this.groups.Insert(insertionIndex, createdGroup);
+                this.FocusedGroup = createdGroup;
+
+                return true;
+            });
+
+            group = createdGroup;
+
+            return split;
+        }
+
+        /// <inheritdoc />
         public bool TryOpenTab(
             Guid groupId,
             string title,
@@ -243,22 +269,49 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         /// <inheritdoc />
         public bool MoveTab(Guid sourceGroupId, Guid tabId, Guid destinationGroupId)
         {
+            if (sourceGroupId == destinationGroupId)
+            {
+                return false;
+            }
+
+            return this.MoveTab(sourceGroupId, tabId, destinationGroupId, null);
+        }
+
+        /// <inheritdoc />
+        public bool MoveTab(
+            Guid sourceGroupId,
+            Guid tabId,
+            Guid destinationGroupId,
+            Guid? beforeTabId)
+        {
             return this.ExecuteMutation(() =>
             {
-                if (sourceGroupId == destinationGroupId
-                    || !this.TryGetGroup(sourceGroupId, out var sourceGroup)
+                if (!this.TryGetGroup(sourceGroupId, out var sourceGroup)
                     || !this.TryGetGroup(destinationGroupId, out var destinationGroup)
                     || !sourceGroup.TryGetTab(tabId, out var tab))
                 {
                     return false;
                 }
 
-                if (!sourceGroup.TryRemoveTab(tabId, out _))
+                EditorTabItem destinationAnchor = null;
+
+                if (beforeTabId.HasValue
+                    && !destinationGroup.TryGetTab(beforeTabId.Value, out destinationAnchor))
                 {
                     return false;
                 }
 
-                destinationGroup.AddTab(tab);
+                if (ReferenceEquals(sourceGroup, destinationGroup))
+                {
+                    return sourceGroup.TryReorderTab(tab, destinationAnchor);
+                }
+
+                if (!sourceGroup.TryRemoveTab(tabId, out var movedTab))
+                {
+                    return false;
+                }
+
+                destinationGroup.InsertTab(movedTab, destinationAnchor);
                 this.FocusedGroup = destinationGroup;
 
                 if (sourceGroup.Tabs.Count == 0)

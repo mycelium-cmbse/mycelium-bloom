@@ -28,6 +28,7 @@ namespace Mycelium.Bloom.Tests.Model.Enum
             string[] expectedNames =
             [
                 "file-text",
+                "list-tree",
                 "eye",
                 "copy",
                 "user",

@@ -5,6 +5,22 @@
     --mb-navigation-rail-divider-height: 22px;
     --mb-navigation-rail-divider-width: var(--mb-spacing-6);
     --mb-navigation-rail-collapse-size: 32px;
+    --mb-navigation-rail-scrollbar-size: 6px;
+    --mb-navigation-rail-scrollbar-thumb: color-mix(
+        in srgb,
+        var(--mb-color-text-muted) 40%,
+        transparent
+    );
+    --mb-navigation-rail-scrollbar-thumb-hover: color-mix(
+        in srgb,
+        var(--mb-color-text-muted) 64%,
+        transparent
+    );
+    --mb-navigation-rail-scroll-shadow: color-mix(
+        in srgb,
+        var(--mb-color-text-muted) 28%,
+        transparent
+    );
 
     box-sizing: border-box;
     display: flex;
@@ -37,7 +53,85 @@
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--mb-navigation-rail-scrollbar-thumb) transparent;
+    background-color: var(--mb-color-background);
+    background-image:
+        linear-gradient(to bottom, var(--mb-color-background) 30%, transparent),
+        linear-gradient(to top, var(--mb-color-background) 30%, transparent),
+        radial-gradient(farthest-side at 50% 0, var(--mb-navigation-rail-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 50% 100%, var(--mb-navigation-rail-scroll-shadow), transparent);
+    background-position:
+        center top,
+        center bottom,
+        center top,
+        center bottom;
+    background-repeat: no-repeat;
+    background-size:
+        100% 12px,
+        100% 12px,
+        100% 10px,
+        100% 10px;
+    background-attachment: local, local, scroll, scroll;
     list-style: none;
+}
+
+.mb-navigation-rail__items::-webkit-scrollbar {
+    width: var(--mb-navigation-rail-scrollbar-size);
+    height: var(--mb-navigation-rail-scrollbar-size);
+}
+
+.mb-navigation-rail__items::-webkit-scrollbar-track,
+.mb-navigation-rail__items::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.mb-navigation-rail__items::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: var(--mb-radius-full);
+    background: var(--mb-navigation-rail-scrollbar-thumb);
+    background-clip: padding-box;
+}
+
+.mb-navigation-rail__items::-webkit-scrollbar-thumb:hover {
+    background: var(--mb-navigation-rail-scrollbar-thumb-hover);
+}
+
+.mb-navigation-rail__items::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+@supports (scrollbar-width: none) {
+    .mb-navigation-rail__items {
+        scrollbar-width: none;
+    }
+
+    .mb-navigation-rail__items::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .mb-navigation-rail__items {
+        scrollbar-width: auto;
+        scrollbar-color: ButtonText Canvas;
+    }
+
+    .mb-navigation-rail__items::-webkit-scrollbar {
+        display: block;
+    }
+
+    .mb-navigation-rail__items::-webkit-scrollbar-track,
+    .mb-navigation-rail__items::-webkit-scrollbar-corner {
+        background: Canvas;
+    }
+
+    .mb-navigation-rail__items::-webkit-scrollbar-thumb {
+        border-color: Canvas;
+        background: ButtonText;
+    }
 }
 
 .mb-navigation-rail__item {
@@ -163,6 +257,30 @@
     transform: translateY(-50%);
 }
 
+.mb-navigation-rail__group-heading {
+    align-self: stretch;
+    flex: none;
+    width: 100%;
+    text-align: start;
+}
+
+.mb-navigation-rail__group-heading-label {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: var(--mb-spacing-3) var(--mb-spacing-2) var(--mb-spacing-1) var(--mb-spacing-3);
+    overflow: hidden;
+    color: var(--mb-color-text-muted);
+    font-size: var(--mb-font-size-label-xs);
+    line-height: var(--mb-line-height-label-xs);
+    font-weight: var(--mb-font-weight-label-xs);
+    letter-spacing: 0.08em;
+    text-align: start;
+    text-transform: uppercase;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .mb-navigation-rail__sidebar-control {
     align-self: flex-start;
     display: flex;
@@ -227,6 +345,10 @@
 
 .mb-navigation-rail--collapsed .mb-navigation-rail__label {
     display: none;
+}
+
+.mb-navigation-rail:not(.mb-navigation-rail--collapsed) .mb-navigation-rail__items {
+    align-items: stretch;
 }
 
 @supports (interpolate-size: allow-keywords) {

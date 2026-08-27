@@ -9,6 +9,7 @@
 
 @page "/"
 @layout WorkspaceLayout
+@using BlazorBlueprint.Icons.Lucide.Components
 @using Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 @using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
@@ -48,9 +49,45 @@
 
         <MainContent>
             <EditorWorkspace ViewModel="this.WorkspaceEditorViewModel"
-                             AddTabRequested="this.HandleAddTabRequested"
                              InitialGroupWeights="this.initialGroupWeights"
                              AriaLabel="Workspace editors">
+                <TabLeadingContent Context="tab">
+                    @if (GetEditorTabIconName(tab) is { Length: > 0 } iconName)
+                    {
+                        <span data-testid="workspace-editor-tab-icon"
+                              data-tab-id="@(tab.Id)"
+                              data-icon-name="@(iconName)">
+                            <LucideIcon Name="@(iconName)"
+                                        Size="14"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </span>
+                    }
+                </TabLeadingContent>
+
+                <AddTabControl Context="groupId">
+                    <ActionMenu Class="mb-editor-workspace__add-tab-menu"
+                                Items="@(this.CreateAddTabActions())"
+                                TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
+                                TriggerTitle="Add tab"
+                                TriggerClass="mb-editor-workspace__add-tab"
+                                Alignment="ActionMenuAlignment.Start"
+                                ItemSelected="item => this.HandleAddTabActionSelected(groupId, item)"
+                                data-group-id="@(groupId)"
+                                data-testid="editor-workspace-add-tab-menu">
+                        <TriggerContent>
+                            <LucideIcon Name="plus"
+                                        Size="14"
+                                        StrokeWidth="1.16667"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </TriggerContent>
+                    </ActionMenu>
+                </AddTabControl>
+
                 <EditorContent Context="tab">
                     @if (IsProjectBrowserTab(tab))
                     {
