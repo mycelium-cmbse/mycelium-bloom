@@ -28,6 +28,29 @@
     color: var(--mb-color-text-primary);
 }
 
+.mb-project-browser__filters {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: var(--mb-spacing-2);
+    min-width: 0;
+    padding: var(--mb-spacing-3);
+    border-bottom: 1px solid var(--mb-color-border);
+    background: var(--mb-color-surface);
+}
+
+.mb-project-browser__filter-row {
+    display: flex;
+    align-items: center;
+    gap: var(--mb-spacing-2);
+    min-width: 0;
+}
+
+.mb-project-browser__kind-filter {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .mb-project-browser__tree-viewport {
     display: flex;
     flex: 1 1 auto;

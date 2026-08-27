@@ -9,9 +9,18 @@
 
 namespace Mycelium.Bloom.Tests.Common
 {
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+
+    using Moq;
+
+    using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
+    using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
     /// <summary>
@@ -65,6 +74,46 @@ namespace Mycelium.Bloom.Tests.Common
                     SysmlModelElementKind.Namespace,
                     new Namespace()),
                 children);
+        }
+
+        /// <summary>
+        /// Creates and loads the canonical tree used by recursive filter presentation scenarios.
+        /// </summary>
+        /// <returns>The loaded real Project Browser ViewModel.</returns>
+        internal static async Task<ProjectBrowserViewModel> CreateFilterTreeViewModelAsync()
+        {
+            var hiddenDescendant = CreateNamespaceElement("hidden", "Hidden descendant");
+            var matchingElement = CreateNamespaceElement("needle", "Needle", hiddenDescendant.Object);
+            var matchingBranch = CreateNamespaceElement("branch", "Branch", matchingElement.Object);
+            var sibling = CreateNamespaceElement("sibling", "Sibling");
+            var root = CreateNamespaceElement("root", "Root", matchingBranch.Object, sibling.Object);
+            var modelLoaderService = new Mock<IModelLoaderService>(MockBehavior.Strict);
+            modelLoaderService.Setup(x => x.LoadQuantitiesModel()).Returns(root.Object);
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+
+            await viewModel.InitializeAsync(CancellationToken.None);
+
+            return viewModel;
+        }
+
+        /// <summary>
+        /// Creates one SDK namespace element for a real Project Browser tree-building scenario.
+        /// </summary>
+        /// <param name="elementId">The source element identifier.</param>
+        /// <param name="displayName">The source element display name.</param>
+        /// <param name="children">The canonical owned elements.</param>
+        /// <returns>The configured SDK namespace mock.</returns>
+        private static Mock<INamespace> CreateNamespaceElement(
+            string elementId,
+            string displayName,
+            params IElement[] children)
+        {
+            var element = new Mock<INamespace>();
+            element.SetupGet(x => x.ElementId).Returns(elementId);
+            element.SetupGet(x => x.DeclaredName).Returns(displayName);
+            element.SetupGet(x => x.ownedElement).Returns(children.ToList());
+
+            return element;
         }
     }
 }

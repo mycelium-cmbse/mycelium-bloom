@@ -888,6 +888,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public async Task VerifyClosingInitializingProjectBrowserDoesNotAffectAnotherInstance()
         {
+            using var filterPresentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                new ContextAwareService());
+            var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
             var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             ObservableCollection<ProjectBrowserNodeViewModel> initializingMutableRoots = [];
             var initializingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
@@ -901,9 +905,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var initializationToken = CancellationToken.None;
 
             initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
+            initializingViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+            initializingViewModel.SetupProperty(viewModel => viewModel.ElementKindFilter, null);
+            initializingViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                .Returns(inactiveFilterPresentation);
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(false);
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
             initializingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+            initializingViewModel.Setup(viewModel => viewModel.ClearFilter());
             initializingViewModel
                 .Setup(viewModel => viewModel.InitializeAsync(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(token =>
@@ -916,10 +925,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .Setup(viewModel => viewModel.Dispose())
                 .Callback(() => initialization.TrySetResult(false));
             survivingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(survivingRoots);
+            survivingViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+            survivingViewModel.SetupProperty(viewModel => viewModel.ElementKindFilter, null);
+            survivingViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                .Returns(inactiveFilterPresentation);
             survivingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
             survivingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
             survivingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
             survivingViewModel.Setup(viewModel => viewModel.Dispose());
+            survivingViewModel.Setup(viewModel => viewModel.ClearFilter());
             var projectBrowserViewModels = new Queue<IProjectBrowserViewModel>(
                 [initializingViewModel.Object, survivingViewModel.Object]);
             var composition = this.RegisterWorkspaceServices(
@@ -1255,6 +1269,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 new NavigationRailItemProvider());
             var projectBrowserViewModels = new List<Mock<IProjectBrowserViewModel>>();
             var projectBrowserNodes = new List<ProjectBrowserNodeViewModel>();
+            using var filterPresentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                context);
+            var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
 
             this.Services.AddTransient<IProjectBrowserViewModel>(_ =>
             {
@@ -1274,10 +1292,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
                 var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
+                projectBrowserViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+                projectBrowserViewModel.SetupProperty(viewModel => viewModel.ElementKindFilter, null);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                    .Returns(inactiveFilterPresentation);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
                 projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
+                projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
                 projectBrowserViewModel
                     .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
                     .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);

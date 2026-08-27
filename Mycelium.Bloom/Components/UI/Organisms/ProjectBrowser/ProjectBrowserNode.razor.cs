@@ -41,6 +41,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public int Depth { get; set; }
 
         /// <summary>
+        /// Gets or sets the immutable presentation that identifies visible canonical nodes.
+        /// </summary>
+        [Parameter]
+        public ProjectBrowserFilterPresentation FilterPresentation { get; set; } =
+            ProjectBrowserFilterPresentation.Inactive;
+
+        /// <summary>
         /// Gets or sets the callback invoked after the node is selected.
         /// </summary>
         [Parameter]
@@ -160,19 +167,44 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the ARIA expanded value for the node.
+        /// Resolves the visible children and effective expansion used throughout this node render.
         /// </summary>
-        /// <returns>The ARIA expanded value for the node.</returns>
-        private string GetAriaExpanded()
+        /// <returns>
+        /// The visible canonical children, whether any are visible, and whether they should be rendered.
+        /// </returns>
+        private (
+            IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
+            bool HasVisibleChildren,
+            bool IsExpanded) GetNodePresentation()
         {
             var viewModel = this.RequiredViewModel;
+            var filterPresentation = this.FilterPresentation ?? ProjectBrowserFilterPresentation.Inactive;
+            var visibleChildren = filterPresentation.IsActive
+                ? viewModel.Children.Where(filterPresentation.IsVisible).ToArray()
+                : viewModel.Children;
+            var hasVisibleChildren = visibleChildren.Count > 0;
+            var isExpanded = hasVisibleChildren
+                             && (filterPresentation.IsActive || viewModel.IsExpanded);
 
-            if (!viewModel.HasChildren)
+            return (visibleChildren, hasVisibleChildren, isExpanded);
+        }
+
+        /// <summary>
+        /// Gets the ARIA expanded value for the node.
+        /// </summary>
+        /// <param name="nodePresentation">The effective presentation used by the current render.</param>
+        /// <returns>The ARIA expanded value for the node.</returns>
+        private static string GetAriaExpanded((
+            IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
+            bool HasVisibleChildren,
+            bool IsExpanded) nodePresentation)
+        {
+            if (!nodePresentation.HasVisibleChildren)
             {
                 return null;
             }
 
-            return viewModel.IsExpanded.ToString().ToLowerInvariant();
+            return nodePresentation.IsExpanded.ToString().ToLowerInvariant();
         }
 
         /// <summary>

@@ -10,6 +10,8 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
     using System.IO;
+    using System.Linq;
+    using System.Threading.Tasks;
 
     using Bunit;
 
@@ -231,5 +233,68 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 }
             });
         }
+
+        /// <summary>
+        /// Verifies an active presentation renders only the matching ancestor path as effectively expanded.
+        /// </summary>
+        [Test]
+        public async Task VerifyActiveFilterRendersOnlyVisibleAncestorPathAsExpanded()
+        {
+            using var presentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            var root = presentationOwner.RootNodes[0];
+            var branch = root.Children[0];
+            branch.IsExpanded = false;
+            presentationOwner.FilterText = "needle";
+
+            using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(projectBrowserNode => projectBrowserNode.ViewModel, root)
+                .Add(projectBrowserNode => projectBrowserNode.FilterPresentation,
+                    presentationOwner.FilterPresentation));
+            var titles = component.FindAll(".mb-project-browser-node__title")
+                .Select(title => title.TextContent)
+                .ToArray();
+            var treeItems = component.FindAll("[role='treeitem']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(titles, Is.EqualTo(new[] { "Root", "Branch", "Needle" }));
+                Assert.That(component.Markup, Does.Not.Contain("Sibling"));
+                Assert.That(component.Markup, Does.Not.Contain("Hidden descendant"));
+                Assert.That(component.FindAll("[role='group']"), Has.Count.EqualTo(2));
+                Assert.That(treeItems[0].GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(treeItems[1].GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(treeItems[2].GetAttribute("aria-expanded"), Is.Null);
+                Assert.That(branch.IsExpanded, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies a visible matching node whose real children are hidden is presented as a leaf.
+        /// </summary>
+        [Test]
+        public async Task VerifyActiveFilterPresentsNodeWithOnlyHiddenChildrenAsLeaf()
+        {
+            using var presentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            var matchingNode = presentationOwner.RootNodes[0].Children[0].Children[0];
+            matchingNode.IsExpanded = true;
+            presentationOwner.FilterText = "needle";
+
+            using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(projectBrowserNode => projectBrowserNode.ViewModel, matchingNode)
+                .Add(projectBrowserNode => projectBrowserNode.FilterPresentation,
+                    presentationOwner.FilterPresentation));
+            var treeItem = component.Find("[role='treeitem']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Markup, Does.Contain("Needle"));
+                Assert.That(component.Markup, Does.Not.Contain("Hidden descendant"));
+                Assert.That(component.FindAll(".mb-project-browser-node__toggle"), Is.Empty);
+                Assert.That(component.FindAll("[role='group']"), Is.Empty);
+                Assert.That(treeItem.GetAttribute("aria-expanded"), Is.Null);
+                Assert.That(matchingNode.IsExpanded, Is.True);
+            }
+        }
+
     }
 }

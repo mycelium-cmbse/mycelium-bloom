@@ -18,6 +18,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using System.Threading;
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Components;
+
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
@@ -25,6 +27,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -32,6 +35,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
+    using SearchInputComponent = Mycelium.Bloom.Components.UI.Atoms.SearchInput.SearchInput;
+    using SelectInputComponent = Mycelium.Bloom.Components.UI.Atoms.SelectInput.SelectInput;
 
     /// <summary>
     /// Tests the <see cref="ProjectBrowserComponent" /> component.
@@ -51,17 +56,40 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
 
         /// <summary>
+        /// The complete option-value order exposed by the element-kind filter.
+        /// </summary>
+        private static readonly string[] ExpectedElementKindOptionValues =
+        [
+            "all",
+            .. Enum.GetNames<SysmlModelElementKind>()
+        ];
+
+        /// <summary>
+        /// The immutable all-visible presentation used by ordinary strict interface scenarios.
+        /// </summary>
+        private static readonly ProjectBrowserFilterPresentation InactiveFilterPresentation =
+            CreateInactiveFilterPresentation();
+
+        /// <summary>
         /// The caller-owned ViewModel supplied to the component under test.
         /// </summary>
         private IProjectBrowserViewModel registeredViewModel;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="ProjectBrowserTestFixture" /> class.
+        /// </summary>
+        public ProjectBrowserTestFixture()
+        {
+            BlueprintTestSetup.Configure(this);
+        }
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
-        public void TearDown()
+        public Task TearDown()
         {
-            this.Dispose();
+            return this.DisposeAsync().AsTask();
         }
 
         /// <summary>
@@ -72,7 +100,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(false);
             viewModel.SetupGet(x => x.IsLoading).Returns(true);
@@ -100,7 +128,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(false);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -130,7 +158,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -161,16 +189,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 "quantities/long",
                 "ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling");
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
-            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
-            viewModel.SetupGet(x => x.IsLoading).Returns(false);
-            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
-            viewModel.Setup(x => x.Dispose());
+            var viewModel = CreateLoadedViewModel(mutableRoots);
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
+            var rootChildren = component.Find(".mb-project-browser").Children;
             var viewport = component.Find(".mb-project-browser__tree-viewport");
             var tree = component.Find(".mb-project-browser__tree");
             var repositoryRoot = TestRepository.GetRootPath();
@@ -185,6 +208,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(rootChildren, Has.Count.EqualTo(2));
+                Assert.That(rootChildren[0].ClassList, Does.Contain("mb-project-browser__filters"));
+                Assert.That(rootChildren[1].ClassList, Does.Contain("mb-project-browser__tree-viewport"));
                 Assert.That(viewport.Children, Has.Count.EqualTo(1));
                 Assert.That(viewport.Children[0].ClassList, Does.Contain("mb-project-browser__tree"));
                 Assert.That(tree.GetAttribute("role"), Is.EqualTo("tree"));
@@ -210,6 +236,157 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies loaded browsers render the accessible filter controls before the independently scrolling tree.
+        /// </summary>
+        [Test]
+        public void VerifyRenderDisplaysAccessibleFilterControlsAboveTree()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("root", "Root")
+            };
+            var viewModel = CreateLoadedViewModel(mutableRoots);
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            var rootChildren = component.Find(".mb-project-browser").Children;
+            var filterRegion = component.Find(".mb-project-browser__filters");
+            var searchInput = component.FindComponent<SearchInputComponent>();
+            var selectInput = component.FindComponent<SelectInputComponent>();
+            var clearButton = component.FindComponent<BbButton>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(rootChildren, Has.Count.EqualTo(2));
+                Assert.That(rootChildren[0].ClassList, Does.Contain("mb-project-browser__filters"));
+                Assert.That(rootChildren[1].ClassList, Does.Contain("mb-project-browser__tree-viewport"));
+                Assert.That(filterRegion.GetAttribute("role"), Is.EqualTo("search"));
+                Assert.That(filterRegion.GetAttribute("aria-label"), Is.EqualTo("Project browser filters"));
+                Assert.That(searchInput.Instance.Value, Is.Empty);
+                Assert.That(searchInput.Instance.FullWidth, Is.True);
+                Assert.That(searchInput.Instance.Placeholder, Is.EqualTo("Search elements"));
+                Assert.That(
+                    searchInput.Instance.AriaLabel,
+                    Is.EqualTo("Filter project browser by name or qualified name"));
+                Assert.That(searchInput.Instance.EnableShortcut, Is.False);
+                Assert.That(selectInput.Find("button").GetAttribute("aria-label"),
+                    Is.EqualTo("Filter project browser by element kind"));
+                Assert.That(selectInput.Instance.Value, Is.EqualTo("all"));
+                Assert.That(
+                    selectInput.Instance.Options.Select(option => option.Value),
+                    Is.EqualTo(ExpectedElementKindOptionValues));
+                Assert.That(selectInput.Instance.Options.First().Label, Is.EqualTo("All element kinds"));
+                Assert.That(clearButton.Instance.Disabled, Is.True);
+                Assert.That(clearButton.Markup, Does.Contain("Clear"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies both filter controls write directly to the caller-owned ViewModel state.
+        /// </summary>
+        [Test]
+        public async Task VerifyFilterControlsWriteDirectlyToViewModel()
+        {
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var viewModel = CreateLoadedViewModel(mutableRoots);
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            var searchInput = component.FindComponent<SearchInputComponent>();
+            var selectInput = component.FindComponent<SelectInputComponent>();
+
+            await component.InvokeAsync(() => searchInput.Instance.ValueChanged.InvokeAsync("  needle  "));
+            await component.InvokeAsync(() => selectInput.Instance.ValueChanged.InvokeAsync("Definition"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.Object.FilterText, Is.EqualTo("  needle  "));
+                Assert.That(viewModel.Object.ElementKindFilter, Is.EqualTo(SysmlModelElementKind.Definition));
+            }
+
+            await component.InvokeAsync(() => selectInput.Instance.ValueChanged.InvokeAsync("all"));
+
+            Assert.That(viewModel.Object.ElementKindFilter, Is.Null);
+        }
+
+        /// <summary>
+        /// Verifies the clear action delegates the coherent filter reset to the ViewModel owner.
+        /// </summary>
+        [Test]
+        public void VerifyClearFilterInvokesViewModelOwnerOperation()
+        {
+            using var presentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                new ContextAwareService());
+            presentationOwner.FilterText = "missing";
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("root", "Root")
+            };
+            var viewModel = CreateLoadedViewModel(mutableRoots);
+            viewModel.SetupGet(x => x.FilterPresentation).Returns(presentationOwner.FilterPresentation);
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            var clearButton = component.FindComponent<BbButton>();
+
+            clearButton.Find("button").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(clearButton.Instance.Disabled, Is.False);
+                viewModel.Verify(x => x.ClearFilter(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies an empty source model remains distinct from an active filter with no matches.
+        /// </summary>
+        [Test]
+        public void VerifyRenderDistinguishesModelEmptyAndFilteredEmptyStates()
+        {
+            var emptyRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var emptyViewModel = CreateLoadedViewModel(emptyRoots);
+            this.RegisterViewModel(emptyViewModel.Object);
+
+            using var emptyComponent = this.RenderProjectBrowser();
+            var modelEmptyState = emptyComponent.Find(".mb-project-browser__empty");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(modelEmptyState.TextContent, Does.Contain("No model elements available."));
+                Assert.That(modelEmptyState.GetAttribute("role"), Is.Null);
+                Assert.That(modelEmptyState.GetAttribute("aria-live"), Is.Null);
+            }
+
+            emptyComponent.Dispose();
+
+            using var presentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                new ContextAwareService());
+            presentationOwner.FilterText = "missing";
+            var filteredRoots = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("root", "Root")
+            };
+            var filteredViewModel = CreateLoadedViewModel(filteredRoots);
+            filteredViewModel.SetupGet(x => x.FilterPresentation).Returns(presentationOwner.FilterPresentation);
+            this.RegisterViewModel(filteredViewModel.Object);
+
+            using var filteredComponent = this.RenderProjectBrowser();
+            var filteredEmptyState = filteredComponent.Find(".mb-project-browser__empty");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    filteredEmptyState.TextContent,
+                    Does.Contain("No model elements match the current filters."));
+                Assert.That(filteredEmptyState.GetAttribute("role"), Is.EqualTo("status"));
+                Assert.That(filteredEmptyState.GetAttribute("aria-live"), Is.EqualTo("polite"));
+            }
+        }
+
+        /// <summary>
         /// Verifies the project browser renders parameters inherited from the caller-supplied Bloom reactive base.
         /// </summary>
         [Test]
@@ -217,7 +394,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -250,7 +427,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var isLoaded = false;
             var selectedNodeCallbackCount = 0;
             CancellationToken capturedToken = default;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -293,7 +470,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var interactions = new List<string>();
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -310,7 +487,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     interactions.Add("callback");
                 }));
 
-            component.Find("button").Click();
+            component.Find(".mb-project-browser-node__row").Click();
 
             using (Assert.EnterMultipleScope())
             {
@@ -330,7 +507,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var interactions = new List<string>();
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -342,13 +519,199 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.SelectedNodeChanged, _ => interactions.Add("callback")));
 
-            component.Find("button").Click();
+            component.Find(".mb-project-browser-node__row").Click();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(interactions, Is.EqualTo(ExpectedLeafNodeInteractions));
                 viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
                 viewModel.Verify(x => x.SelectNode(node), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies a filtered recursive render contains the complete match path and no unrelated nodes.
+        /// </summary>
+        [Test]
+        public async Task VerifyActiveFilterRendersMatchAncestorsAndExcludesNonmatches()
+        {
+            using var viewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            var root = viewModel.RootNodes[0];
+            var branch = root.Children[0];
+            branch.IsExpanded = false;
+            viewModel.FilterText = "needle";
+            this.RegisterViewModel(viewModel);
+
+            using var component = this.RenderProjectBrowser();
+            var titles = component.FindAll(".mb-project-browser-node__title")
+                .Select(title => title.TextContent)
+                .ToArray();
+            var treeItems = component.FindAll("[role='treeitem']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(titles, Is.EqualTo(new[] { "Root", "Branch", "Needle" }));
+                Assert.That(component.Markup, Does.Not.Contain("Sibling"));
+                Assert.That(component.Markup, Does.Not.Contain("Hidden descendant"));
+                Assert.That(treeItems, Has.Count.EqualTo(3));
+                Assert.That(treeItems[0].GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(treeItems[1].GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(treeItems[2].GetAttribute("aria-expanded"), Is.Null);
+                Assert.That(branch.IsExpanded, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies selecting a visible filtered parent preserves durable expansion while retaining selection flow.
+        /// </summary>
+        [Test]
+        public async Task VerifyFilteredNodeSelectionSkipsDurableToggle()
+        {
+            using var presentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            presentationOwner.FilterText = "needle";
+            var root = presentationOwner.RootNodes[0];
+            var branch = root.Children[0];
+            branch.IsExpanded = false;
+            var roots = new ObservableCollection<ProjectBrowserNodeViewModel> { root };
+            var viewModel = CreateLoadedViewModel(roots);
+            viewModel.SetupGet(x => x.FilterText).Returns("needle");
+            viewModel.SetupGet(x => x.FilterPresentation).Returns(presentationOwner.FilterPresentation);
+            viewModel.Setup(x => x.SelectNode(branch));
+            var selectedNode = default(ProjectBrowserNodeViewModel);
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser(parameters => parameters
+                .Add(browser => browser.SelectedNodeChanged, node => selectedNode = node));
+            var branchComponent = component.FindComponents<ProjectBrowserNodeComponent>()
+                .Single(candidate => ReferenceEquals(candidate.Instance.ViewModel, branch));
+
+            branchComponent.Find("button").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectedNode, Is.SameAs(branch));
+                Assert.That(branch.IsExpanded, Is.False);
+                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                viewModel.Verify(x => x.SelectNode(branch), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies the owner-published filter presentation rerenders the recursive tree through the reactive base.
+        /// </summary>
+        [Test]
+        public async Task VerifyFilterPresentationPropertyChangedRerendersComponent()
+        {
+            using var presentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            presentationOwner.FilterText = "needle";
+            var activePresentation = presentationOwner.FilterPresentation;
+            var currentPresentation = InactiveFilterPresentation;
+            var roots = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                presentationOwner.RootNodes[0]
+            };
+            var viewModel = CreateLoadedViewModel(roots);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
+            viewModel.SetupGet(x => x.FilterPresentation).Returns(() => currentPresentation);
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            var initialRenderCount = component.RenderCount;
+            Assert.That(component.Markup, Does.Contain("Sibling"));
+
+            currentPresentation = activePresentation;
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.FilterPresentation)));
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.RenderCount, Is.GreaterThan(initialRenderCount));
+                    Assert.That(component.Markup, Does.Contain("Needle"));
+                    Assert.That(component.Markup, Does.Not.Contain("Sibling"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies ViewModel replacement detaches the old top-level filter presentation publisher.
+        /// </summary>
+        [Test]
+        public async Task VerifyViewModelReplacementDetachesOldFilterPresentationPublication()
+        {
+            using var firstPresentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            using var secondPresentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            firstPresentationOwner.FilterText = "needle";
+            secondPresentationOwner.FilterText = "needle";
+            var firstActivePresentation = firstPresentationOwner.FilterPresentation;
+            var secondActivePresentation = secondPresentationOwner.FilterPresentation;
+            var firstCurrentPresentation = InactiveFilterPresentation;
+            var secondCurrentPresentation = InactiveFilterPresentation;
+            var firstViewModel = CreateLoadedViewModel(
+                new ObservableCollection<ProjectBrowserNodeViewModel> { firstPresentationOwner.RootNodes[0] });
+            var secondViewModel = CreateLoadedViewModel(
+                new ObservableCollection<ProjectBrowserNodeViewModel> { secondPresentationOwner.RootNodes[0] });
+            var firstNotifyingViewModel = firstViewModel.As<INotifyPropertyChanged>();
+            var secondNotifyingViewModel = secondViewModel.As<INotifyPropertyChanged>();
+            firstViewModel.SetupGet(x => x.FilterPresentation).Returns(() => firstCurrentPresentation);
+            secondViewModel.SetupGet(x => x.FilterPresentation).Returns(() => secondCurrentPresentation);
+            this.RegisterViewModel(firstViewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            component.Render(parameters => parameters
+                .Add(browser => browser.ViewModel, secondViewModel.Object));
+            var replacementRenderCount = component.RenderCount;
+
+            firstCurrentPresentation = firstActivePresentation;
+            firstNotifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.FilterPresentation)));
+
+            Assert.That(component.RenderCount, Is.EqualTo(replacementRenderCount));
+
+            secondCurrentPresentation = secondActivePresentation;
+            secondNotifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.FilterPresentation)));
+
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.RenderCount, Is.GreaterThan(replacementRenderCount));
+                    Assert.That(component.Markup, Does.Contain("Needle"));
+                    Assert.That(component.Markup, Does.Not.Contain("Sibling"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies generated field identifiers remain isolated across Project Browser instances.
+        /// </summary>
+        [Test]
+        public void VerifyMultipleInstancesGenerateUniqueFilterControlIds()
+        {
+            var roots = new ObservableCollection<ProjectBrowserNodeViewModel>();
+            var viewModel = CreateLoadedViewModel(roots);
+            this.RegisterViewModel(viewModel.Object);
+
+            using var firstComponent = this.RenderProjectBrowser();
+            using var secondComponent = this.RenderProjectBrowser();
+            var firstSearchId = firstComponent.Find("input[type='search']").Id;
+            var secondSearchId = secondComponent.Find("input[type='search']").Id;
+            var firstSelectId = firstComponent.Find(".mb-select-input__trigger").Id;
+            var secondSelectId = secondComponent.Find(".mb-select-input__trigger").Id;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstSearchId, Is.Not.Empty);
+                Assert.That(secondSearchId, Is.Not.Empty);
+                Assert.That(firstSelectId, Is.Not.Empty);
+                Assert.That(secondSelectId, Is.Not.Empty);
+                Assert.That(secondSearchId, Is.Not.EqualTo(firstSearchId));
+                Assert.That(secondSelectId, Is.Not.EqualTo(firstSelectId));
             }
         }
 
@@ -361,7 +724,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var isLoading = true;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
@@ -391,7 +754,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var isLoaded = true;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
@@ -421,7 +784,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var errorMessage = string.Empty;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
@@ -452,7 +815,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             ProjectBrowserNodeViewModel selectedNode = null;
             var callbackCount = 0;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.SelectedNode).Returns(() => selectedNode);
@@ -494,7 +857,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var thirdNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("third", "Third");
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { firstNode };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
@@ -539,7 +902,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var isLoaded = true;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(() => isLoaded);
@@ -565,7 +928,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var errorMessage = string.Empty;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(false);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -677,7 +1040,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var callbackCount = 0;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -755,7 +1118,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
@@ -791,7 +1154,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(false);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -819,7 +1182,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -842,7 +1205,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private static Mock<IProjectBrowserViewModel> CreateLoadedViewModel(
             ObservableCollection<ProjectBrowserNodeViewModel> rootSource)
         {
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var viewModel = CreateProjectBrowserViewModelMock();
             viewModel.SetupGet(x => x.RootNodes)
                 .Returns(new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(rootSource));
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
@@ -851,6 +1214,34 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
 
             return viewModel;
+        }
+
+        /// <summary>
+        /// Creates a strict Project Browser contract with ordinary inactive filter state.
+        /// </summary>
+        /// <returns>The configured strict ViewModel mock.</returns>
+        private static Mock<IProjectBrowserViewModel> CreateProjectBrowserViewModelMock()
+        {
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupProperty(x => x.FilterText, string.Empty);
+            viewModel.SetupProperty(x => x.ElementKindFilter, null);
+            viewModel.SetupGet(x => x.FilterPresentation).Returns(InactiveFilterPresentation);
+            viewModel.Setup(x => x.ClearFilter());
+
+            return viewModel;
+        }
+
+        /// <summary>
+        /// Gets an inactive immutable snapshot from its real production owner.
+        /// </summary>
+        /// <returns>The all-visible filter presentation.</returns>
+        private static ProjectBrowserFilterPresentation CreateInactiveFilterPresentation()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                new ContextAwareService());
+
+            return viewModel.FilterPresentation;
         }
 
         /// <summary>

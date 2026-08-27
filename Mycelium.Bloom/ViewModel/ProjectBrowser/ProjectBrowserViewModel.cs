@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using System.Collections.Immutable;
     using System.Collections.ObjectModel;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
@@ -45,6 +46,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly IElementSelectionService elementSelectionService;
 
         /// <summary>
+        /// Serializes filter mutations with canonical tree publication and final disposal.
+        /// </summary>
+        private readonly object stateMutationGate = new();
+
+        /// <summary>
         /// The set of node identifiers assigned in the current project browser tree.
         /// </summary>
         private readonly HashSet<string> nodeIds = new(StringComparer.Ordinal);
@@ -68,6 +74,21 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Cancels initialization when final ViewModel disposal begins.
         /// </summary>
         private readonly CancellationTokenSource lifetimeCancellation = new();
+
+        /// <summary>
+        /// The text entered for display-name or qualified-name filtering.
+        /// </summary>
+        private string filterText = string.Empty;
+
+        /// <summary>
+        /// The broad element kind selected for filtering, or <see langword="null" /> for all kinds.
+        /// </summary>
+        private SysmlModelElementKind? elementKindFilter;
+
+        /// <summary>
+        /// The latest coherent immutable visibility snapshot over the canonical tree.
+        /// </summary>
+        private ProjectBrowserFilterPresentation filterPresentation = ProjectBrowserFilterPresentation.Inactive;
 
         /// <summary>
         /// The node selected locally in this project browser.
@@ -109,6 +130,46 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
         /// <inheritdoc />
         public ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes => this.rootNodes;
+
+        /// <inheritdoc />
+        public string FilterText
+        {
+            get
+            {
+                lock (this.stateMutationGate)
+                {
+                    return this.filterText;
+                }
+            }
+
+            set => this.UpdateFilterState(value, null, updateText: true, updateElementKind: false);
+        }
+
+        /// <inheritdoc />
+        public SysmlModelElementKind? ElementKindFilter
+        {
+            get
+            {
+                lock (this.stateMutationGate)
+                {
+                    return this.elementKindFilter;
+                }
+            }
+
+            set => this.UpdateFilterState(null, value, updateText: false, updateElementKind: true);
+        }
+
+        /// <inheritdoc />
+        public ProjectBrowserFilterPresentation FilterPresentation
+        {
+            get
+            {
+                lock (this.stateMutationGate)
+                {
+                    return this.filterPresentation;
+                }
+            }
+        }
 
         /// <inheritdoc />
         [AllowNull]
@@ -187,10 +248,19 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            if (!this.isDisposed && node.HasChildren)
+            lock (this.stateMutationGate)
             {
-                node.IsExpanded = !node.IsExpanded;
+                if (!this.isDisposed && !this.filterPresentation.IsActive && node.HasChildren)
+                {
+                    node.IsExpanded = !node.IsExpanded;
+                }
             }
+        }
+
+        /// <inheritdoc />
+        public void ClearFilter()
+        {
+            this.UpdateFilterState(string.Empty, null, updateText: true, updateElementKind: true);
         }
 
         /// <inheritdoc />
@@ -208,16 +278,19 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <inheritdoc />
         public void Dispose()
         {
-            if (this.isDisposed)
+            lock (this.stateMutationGate)
             {
-                return;
-            }
+                if (this.isDisposed)
+                {
+                    return;
+                }
 
-            this.isDisposed = true;
-            this.lifetimeCancellation.Cancel();
-            this.rootNodeBinding.Dispose();
-            this.rootNodeSource.Dispose();
-            this.lifetimeCancellation.Dispose();
+                this.isDisposed = true;
+                this.lifetimeCancellation.Cancel();
+                this.rootNodeBinding.Dispose();
+                this.rootNodeSource.Dispose();
+                this.lifetimeCancellation.Dispose();
+            }
         }
 
         /// <summary>
@@ -232,25 +305,47 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             HashSet<string> stagedNodeIds,
             CancellationToken cancellationToken)
         {
-            if (this.isDisposed || cancellationToken.IsCancellationRequested)
+            lock (this.stateMutationGate)
             {
-                return false;
+                if (this.isDisposed || cancellationToken.IsCancellationRequested)
+                {
+                    return false;
+                }
+
+                var nextFilterPresentation = CreateFilterPresentation(
+                    [rootNode],
+                    this.filterText,
+                    this.elementKindFilter);
+                var filterPresentationChanged =
+                    !this.filterPresentation.HasSameVisibilityAs(nextFilterPresentation);
+
+                this.ClearTreeIndexesAndLocalSelection();
+                this.nodeIds.UnionWith(stagedNodeIds);
+
+                if (filterPresentationChanged)
+                {
+                    this.RaisePropertyChanging(nameof(this.FilterPresentation));
+                    this.filterPresentation = nextFilterPresentation;
+                }
+
+                this.EditRootNodes(nodes =>
+                {
+                    nodes.Clear();
+                    nodes.Add(rootNode);
+                });
+
+                this.ApplyDefaultRootSelection();
+                this.SetLoaded();
+
+                if (filterPresentationChanged)
+                {
+                    this.RaisePropertyChanged(nameof(this.FilterPresentation));
+                }
+
+                this.RaisePropertyChanged(nameof(this.RootNodes));
+
+                return true;
             }
-
-            this.ClearTreeIndexesAndLocalSelection();
-            this.nodeIds.UnionWith(stagedNodeIds);
-
-            this.EditRootNodes(nodes =>
-            {
-                nodes.Clear();
-                nodes.Add(rootNode);
-            });
-
-            this.ApplyDefaultRootSelection();
-            this.SetLoaded();
-            this.RaisePropertyChanged(nameof(this.RootNodes));
-
-            return true;
         }
 
         /// <summary>
@@ -349,17 +444,43 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private void ResetTree()
         {
-            var rootsChanged = this.RootNodes.Count > 0;
-            this.ClearTreeIndexesAndLocalSelection();
-
-            if (rootsChanged)
+            lock (this.stateMutationGate)
             {
-                this.EditRootNodes(nodes => nodes.Clear());
-            }
+                if (this.isDisposed)
+                {
+                    return;
+                }
 
-            if (rootsChanged)
-            {
-                this.RaisePropertyChanged(nameof(this.RootNodes));
+                var rootsChanged = this.RootNodes.Count > 0;
+                var nextFilterPresentation = CreateFilterPresentation(
+                    [],
+                    this.filterText,
+                    this.elementKindFilter);
+                var filterPresentationChanged =
+                    !this.filterPresentation.HasSameVisibilityAs(nextFilterPresentation);
+
+                this.ClearTreeIndexesAndLocalSelection();
+
+                if (filterPresentationChanged)
+                {
+                    this.RaisePropertyChanging(nameof(this.FilterPresentation));
+                    this.filterPresentation = nextFilterPresentation;
+                }
+
+                if (rootsChanged)
+                {
+                    this.EditRootNodes(nodes => nodes.Clear());
+                }
+
+                if (filterPresentationChanged)
+                {
+                    this.RaisePropertyChanged(nameof(this.FilterPresentation));
+                }
+
+                if (rootsChanged)
+                {
+                    this.RaisePropertyChanged(nameof(this.RootNodes));
+                }
             }
         }
 
@@ -394,6 +515,178 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             this.ResetTree();
             this.SetError(exception.Message);
+        }
+
+        /// <summary>
+        /// Settles filter criteria and publishes one coherent visibility state.
+        /// </summary>
+        /// <param name="filterText">The candidate filter text when text should be updated.</param>
+        /// <param name="elementKindFilter">The candidate element kind when kind should be updated.</param>
+        /// <param name="updateText">Whether to update the text criterion.</param>
+        /// <param name="updateElementKind">Whether to update the element-kind criterion.</param>
+        private void UpdateFilterState(
+            string filterText,
+            SysmlModelElementKind? elementKindFilter,
+            bool updateText,
+            bool updateElementKind)
+        {
+            lock (this.stateMutationGate)
+            {
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                var nextFilterText = updateText ? filterText ?? string.Empty : this.filterText;
+                var nextElementKindFilter = updateElementKind ? elementKindFilter : this.elementKindFilter;
+                var filterTextChanged = !string.Equals(
+                    this.filterText,
+                    nextFilterText,
+                    StringComparison.Ordinal);
+                var elementKindChanged = this.elementKindFilter != nextElementKindFilter;
+
+                if (!filterTextChanged && !elementKindChanged)
+                {
+                    return;
+                }
+
+                var nextFilterPresentation = CreateFilterPresentation(
+                    this.RootNodes,
+                    nextFilterText,
+                    nextElementKindFilter);
+                var filterPresentationChanged =
+                    !this.filterPresentation.HasSameVisibilityAs(nextFilterPresentation);
+
+                if (filterTextChanged)
+                {
+                    this.RaisePropertyChanging(nameof(this.FilterText));
+                }
+
+                if (elementKindChanged)
+                {
+                    this.RaisePropertyChanging(nameof(this.ElementKindFilter));
+                }
+
+                if (filterPresentationChanged)
+                {
+                    this.RaisePropertyChanging(nameof(this.FilterPresentation));
+                }
+
+                this.filterText = nextFilterText;
+                this.elementKindFilter = nextElementKindFilter;
+
+                if (filterPresentationChanged)
+                {
+                    this.filterPresentation = nextFilterPresentation;
+                }
+
+                if (filterTextChanged)
+                {
+                    this.RaisePropertyChanged(nameof(this.FilterText));
+                }
+
+                if (elementKindChanged)
+                {
+                    this.RaisePropertyChanged(nameof(this.ElementKindFilter));
+                }
+
+                if (filterPresentationChanged)
+                {
+                    this.RaisePropertyChanged(nameof(this.FilterPresentation));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Captures the complete immutable visibility presentation for the provided canonical roots.
+        /// </summary>
+        /// <param name="rootNodes">The canonical root nodes.</param>
+        /// <param name="filterText">The entered text criterion.</param>
+        /// <param name="elementKindFilter">The selected broad element kind, or <see langword="null" />.</param>
+        /// <returns>The coherent visibility presentation.</returns>
+        private static ProjectBrowserFilterPresentation CreateFilterPresentation(
+            IEnumerable<ProjectBrowserNodeViewModel> rootNodes,
+            string filterText,
+            SysmlModelElementKind? elementKindFilter)
+        {
+            var matchingText = (filterText ?? string.Empty).Trim();
+
+            if (matchingText.Length == 0 && elementKindFilter is null)
+            {
+                return ProjectBrowserFilterPresentation.Inactive;
+            }
+
+            var visibleNodes = ImmutableHashSet.CreateBuilder<ProjectBrowserNodeViewModel>(
+                ReferenceEqualityComparer.Instance);
+
+            foreach (var rootNode in rootNodes)
+            {
+                IncludeVisibleNode(rootNode, matchingText, elementKindFilter, visibleNodes);
+            }
+
+            return ProjectBrowserFilterPresentation.CreateActive(visibleNodes);
+        }
+
+        /// <summary>
+        /// Adds one matching branch to a post-order visibility projection.
+        /// </summary>
+        /// <param name="node">The canonical node being evaluated.</param>
+        /// <param name="matchingText">The trimmed text criterion.</param>
+        /// <param name="elementKindFilter">The selected broad element kind, or <see langword="null" />.</param>
+        /// <param name="visibleNodes">The reference-identity visibility builder.</param>
+        /// <returns>
+        /// <see langword="true" /> when the node directly matches or owns a visible descendant;
+        /// otherwise, <see langword="false" />.
+        /// </returns>
+        private static bool IncludeVisibleNode(
+            ProjectBrowserNodeViewModel node,
+            string matchingText,
+            SysmlModelElementKind? elementKindFilter,
+            ImmutableHashSet<ProjectBrowserNodeViewModel>.Builder visibleNodes)
+        {
+            var hasVisibleDescendant = false;
+
+            foreach (var childNode in node.Children)
+            {
+                hasVisibleDescendant |= IncludeVisibleNode(
+                    childNode,
+                    matchingText,
+                    elementKindFilter,
+                    visibleNodes);
+            }
+
+            if (!hasVisibleDescendant && !DirectlyMatches(node, matchingText, elementKindFilter))
+            {
+                return false;
+            }
+
+            visibleNodes.Add(node);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether a node satisfies every active filter criterion.
+        /// </summary>
+        /// <param name="node">The canonical node.</param>
+        /// <param name="matchingText">The trimmed text criterion.</param>
+        /// <param name="elementKindFilter">The selected broad element kind, or <see langword="null" />.</param>
+        /// <returns><see langword="true" /> when every active criterion matches the node.</returns>
+        private static bool DirectlyMatches(
+            ProjectBrowserNodeViewModel node,
+            string matchingText,
+            SysmlModelElementKind? elementKindFilter)
+        {
+            var textMatches = matchingText.Length == 0
+                              || node.DisplayName?.Contains(
+                                  matchingText,
+                                  StringComparison.OrdinalIgnoreCase) == true
+                              || node.QualifiedName?.Contains(
+                                  matchingText,
+                                  StringComparison.OrdinalIgnoreCase) == true;
+
+            return textMatches
+                   && (elementKindFilter is null || node.ElementKind == elementKindFilter);
         }
 
         /// <summary>

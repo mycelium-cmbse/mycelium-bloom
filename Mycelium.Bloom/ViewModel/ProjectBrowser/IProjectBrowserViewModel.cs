@@ -13,6 +13,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
 
+    using Mycelium.Bloom.Model.Enum;
+
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
@@ -22,6 +24,21 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the root nodes displayed by the project browser.
         /// </summary>
         ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }
+
+        /// <summary>
+        /// Gets or sets the text used to filter nodes by display name or qualified name.
+        /// </summary>
+        string FilterText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the broad element kind used to filter nodes, or <see langword="null" /> for all kinds.
+        /// </summary>
+        SysmlModelElementKind? ElementKindFilter { get; set; }
+
+        /// <summary>
+        /// Gets the current immutable visibility presentation over the canonical tree.
+        /// </summary>
+        ProjectBrowserFilterPresentation FilterPresentation { get; }
 
         /// <summary>
         /// Gets the currently selected node, or <see langword="null" /> when no node is selected.
@@ -50,6 +67,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="cancellationToken">Cancels initialization.</param>
         /// <returns><see langword="true" /> when a new tree is loaded; otherwise, <see langword="false" />.</returns>
         Task<bool> InitializeAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Clears every active project browser filter criterion.
+        /// </summary>
+        void ClearFilter();
 
         /// <summary>
         /// Toggles a project browser node.

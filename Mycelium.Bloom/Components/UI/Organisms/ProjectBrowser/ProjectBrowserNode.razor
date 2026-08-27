@@ -11,9 +11,11 @@
 
 @if (this.ViewModel is { } viewModel)
 {
+    var nodePresentation = this.GetNodePresentation();
+
     <div @attributes="this.AdditionalAttributes"
          class="@(this.BuildRootCssClass("mb-project-browser-node"))"
-         role="treeitem" aria-expanded="@(this.GetAriaExpanded())"
+         role="treeitem" aria-expanded="@(GetAriaExpanded(nodePresentation))"
          aria-selected="@(this.GetAriaSelected())">
         <button
             type="button"
@@ -23,10 +25,10 @@
             @onclick="this.SelectNodeAsync">
             <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())"></span>
 
-            @if (viewModel.HasChildren)
+            @if (nodePresentation.HasVisibleChildren)
             {
                 <span class="mb-project-browser-node__toggle" aria-hidden="true">
-                    @(viewModel.IsExpanded ? "v" : ">")
+                    @(nodePresentation.IsExpanded ? "v" : ">")
                 </span>
             }
             else
@@ -48,14 +50,15 @@
             </span>
         </button>
 
-        @if (viewModel.IsExpanded)
+        @if (nodePresentation.IsExpanded)
         {
             <div class="mb-project-browser-node__children" role="group">
-                @foreach (var child in viewModel.Children)
+                @foreach (var child in nodePresentation.VisibleChildren)
                 {
                     <ProjectBrowserNode
                         ViewModel="child"
                         Depth="@(this.Depth + 1)"
+                        FilterPresentation="this.FilterPresentation"
                         OnNodeSelected="this.OnNodeSelected"/>
                 }
             </div>

@@ -10,9 +10,9 @@
 @inherits BloomReactiveComponentBase<IProjectBrowserViewModel>
 
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    <div class="mb-project-browser__tree-viewport">
-        @if (this.ShouldShowLoadingState())
-        {
+    @if (this.ShouldShowLoadingState())
+    {
+        <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree">
                 <div class="mb-project-browser__state" role="status" aria-live="polite">
                     <strong class="mb-project-browser__state-title">
@@ -23,9 +23,11 @@
                     </p>
                 </div>
             </div>
-        }
-        else if (this.ShouldShowErrorState())
-        {
+        </div>
+    }
+    else if (this.ShouldShowErrorState())
+    {
+        <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree">
                 <div class="mb-project-browser__state mb-project-browser__state--error" role="alert" aria-live="assertive">
                     <strong class="mb-project-browser__state-title">
@@ -40,9 +42,46 @@
                     }
                 </div>
             </div>
-        }
-        else
-        {
+        </div>
+    }
+    else
+    {
+        var filterPresentation = this.RequiredViewModel.FilterPresentation;
+        var visibleRootNodes = this.GetVisibleRootNodes(filterPresentation);
+
+        <div class="mb-project-browser__filters"
+             role="search"
+             aria-label="Project browser filters">
+            <SearchInput
+                Value="@(this.RequiredViewModel.FilterText)"
+                ValueChanged="this.HandleFilterTextChangedAsync"
+                FullWidth="true"
+                Placeholder="Search elements"
+                AriaLabel="Filter project browser by name or qualified name"
+                EnableShortcut="false"
+                ShowShortcut="false" />
+
+            <div class="mb-project-browser__filter-row">
+                <div class="mb-project-browser__kind-filter">
+                    <SelectInput
+                        Value="@(this.GetElementKindFilterValue())"
+                        ValueChanged="this.HandleElementKindFilterChangedAsync"
+                        Options="elementKindOptions"
+                        aria-label="Filter project browser by element kind" />
+                </div>
+
+                <BbButton
+                    Type="BlazorBlueprint.Components.ButtonType.Button"
+                    Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                    Size="BlazorBlueprint.Components.ButtonSize.Small"
+                    Disabled="@(!filterPresentation.IsActive)"
+                    OnClick="this.HandleClearFilterAsync">
+                    Clear
+                </BbButton>
+            </div>
+        </div>
+
+        <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
                 @if (this.RequiredViewModel.RootNodes.Count == 0)
                 {
@@ -50,17 +89,24 @@
                         No model elements available.
                     </div>
                 }
+                else if (filterPresentation.IsActive && visibleRootNodes.Count == 0)
+                {
+                    <div class="mb-project-browser__empty" role="status" aria-live="polite">
+                        No model elements match the current filters.
+                    </div>
+                }
                 else
                 {
-                    @foreach (var node in this.RequiredViewModel.RootNodes)
+                    @foreach (var node in visibleRootNodes)
                     {
                         <ProjectBrowserNode
                             ViewModel="node"
                             Depth="0"
+                            FilterPresentation="filterPresentation"
                             OnNodeSelected="this.HandleNodeSelectedAsync"/>
                     }
                 }
             </div>
-        }
-    </div>
+        </div>
+    }
 </div>
