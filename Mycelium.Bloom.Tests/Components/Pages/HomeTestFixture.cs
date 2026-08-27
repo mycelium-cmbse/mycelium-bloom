@@ -63,6 +63,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         private static readonly string[] ExpectedWorkspaceBodyElementNames = ["aside", "div", "aside"];
 
         /// <summary>
+        /// The editor-type icon names expected for the default placeholder tabs.
+        /// </summary>
+        private static readonly string[] ExpectedPlaceholderTabIconNames = ["file-text", "file-text"];
+
+        /// <summary>
         /// The Blueprint portal host that owns portalled add-tab menu content.
         /// </summary>
         private IRenderedComponent<BbPortalHost> portalHost;
@@ -160,7 +165,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(
                     composition.Editor.Groups.Skip(1)
                         .Select(group => renderedTabIcons[group.ActiveTab.Id]),
-                    Is.EqualTo(new[] { "file-text", "file-text" }));
+                    Is.EqualTo(ExpectedPlaceholderTabIconNames));
             }
 
             Assert.That(
@@ -321,10 +326,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         {
             var composition = this.RegisterWorkspaceServices(3);
             var initialGroup = composition.Editor.Groups.Single();
-            Assert.That(
-                composition.Editor.TryOpenTab(initialGroup.Id, "Existing editor", "placeholder", out _),
-                Is.True);
-            Assert.That(composition.Editor.TryAddGroup(out var targetGroup), Is.True);
+            var existingEditorOpened = composition.Editor.TryOpenTab(
+                initialGroup.Id,
+                "Existing editor",
+                "placeholder",
+                out _);
+            var targetGroupAdded = composition.Editor.TryAddGroup(out var targetGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(existingEditorOpened, Is.True);
+                Assert.That(targetGroupAdded, Is.True);
+            }
+
             using var navigationViewModel = composition.Navigation;
             using var component = this.Render<Home>();
 

@@ -954,10 +954,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 ? new TabDropTarget(destinationGroupId, beforeTabId)
                 : null;
 
-            if (this.tabDropTarget != dropTarget)
-            {
-                this.tabDropTarget = dropTarget;
-            }
+            this.tabDropTarget = dropTarget;
         }
 
         /// <summary>
@@ -1675,7 +1672,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         private void ReconcileGroupWeights(
             WorkspaceEditorRenderState renderState,
-            IReadOnlyList<Guid> previousGroupIds)
+            Guid[] previousGroupIds)
         {
             if (renderState.Groups.Length == 0)
             {
@@ -1695,7 +1692,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 .ToArray();
 
             if (newGroups.Length == 1
-                && renderState.Groups.Length == previousGroupIds.Count + 1)
+                && renderState.Groups.Length == previousGroupIds.Length + 1)
             {
                 var newGroup = newGroups[0];
                 var newGroupIndex = FindGroupIndex(renderState, newGroup.Id);

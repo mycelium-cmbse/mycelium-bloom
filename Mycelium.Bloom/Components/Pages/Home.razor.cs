@@ -157,7 +157,7 @@ namespace Mycelium.Bloom.Components.Pages
         /// Creates the generic add-tab actions from the workspace's current coherent rendering state.
         /// </summary>
         /// <returns>The actions available to every editor group.</returns>
-        private IReadOnlyList<ActionMenuItem> CreateAddTabActions()
+        private ActionMenuItem[] CreateAddTabActions()
         {
             return EditorTypes
                 .Select(editorType => new ActionMenuItem
