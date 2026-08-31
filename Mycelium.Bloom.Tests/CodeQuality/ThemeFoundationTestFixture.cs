@@ -103,12 +103,12 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         private static readonly IReadOnlyDictionary<string, string> RequiredPackageVersions =
             new Dictionary<string, string>
             {
-                ["AngleSharp"] = "1.7.1",
+                ["AngleSharp"] = "1.7.2",
                 ["BlazorBlueprint.Components"] = "3.15.0",
                 ["BlazorBlueprint.Icons.Lucide"] = "2.0.2",
                 ["BlazorBlueprint.Primitives"] = "3.15.0",
                 ["DynamicData"] = "9.4.33",
-                ["HtmlSanitizer"] = "9.2.995",
+                ["HtmlSanitizer"] = "9.2.1039",
                 ["ReactiveUI.Blazor"] = "24.1.0"
             };
 
@@ -347,7 +347,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.15.0\""));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Icons.Lucide\" Version=\"2.0.2\""));
                 Assert.That(project, Does.Not.Contain("<PackageReference Include=\"BlazorBlueprint.Primitives\""));
-                Assert.That(project, Does.Contain("HtmlSanitizer\" Version=\"9.2.995\""));
+                Assert.That(project, Does.Contain("HtmlSanitizer\" Version=\"9.2.1039\""));
                 Assert.That(project, Does.Contain("must be reassessed when either dependency is upgraded"));
             }
         }

@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
             var stopwatch = Stopwatch.StartNew();
 
             var deSerializer = new DeSerializer(this.loggerFactory);
-            var model = deSerializer.DeSerialize(modelUri);
+            var readResult = deSerializer.DeSerialize(modelUri);
             stopwatch.Stop();
 
             if (this.logger.IsEnabled(LogLevel.Information))
@@ -84,7 +84,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
                     stopwatch.ElapsedMilliseconds);
             }
 
-            return model;
+            return readResult.RootNamespace;
         }
 
         /// <summary>
