@@ -605,8 +605,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             try
             {
-                Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
-                Assert.That(await foregroundViewModel.InitializeAsync(CancellationToken.None), Is.True);
+                var backgroundLoadStarted = loadStarted.Wait(TimeSpan.FromSeconds(10));
+                var foregroundInitialized = await foregroundViewModel.InitializeAsync(CancellationToken.None);
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(backgroundLoadStarted, Is.True);
+                    Assert.That(foregroundInitialized, Is.True);
+                }
+
                 var foregroundThrusterNode = foregroundViewModel.RootNodes[0].Children
                     .Single(node => node.DisplayName == "Thruster");
                 foregroundViewModel.SelectNode(foregroundThrusterNode);
