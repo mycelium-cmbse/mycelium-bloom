@@ -17,6 +17,9 @@ namespace Mycelium.Bloom.Model.Enum
         /// <summary>A document symbol.</summary>
         Document,
 
+        /// <summary>A hierarchical browser or tree symbol.</summary>
+        Tree,
+
         /// <summary>A visibility or inspect-details symbol.</summary>
         Inspect,
 

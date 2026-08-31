@@ -8,46 +8,113 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @page "/"
-@inherits ComponentBase
+@layout WorkspaceLayout
+@using BlazorBlueprint.Icons.Lucide.Components
+@using Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
+@using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
-<div class="min-h-screen bg-(--mb-color-background) p-4 text-(--mb-color-text-primary)">
-    <div class="mx-auto h-[calc(100vh-2rem)] min-h-0 max-w-7xl">
-        <WorkspaceShell>
-            <LeftPanel>
-                <div class="flex min-h-0 flex-col overflow-hidden" style="height: 100%;">
-                    <header class="flex h-14 shrink-0 flex-col justify-center border-b border-slate-200 px-4">
-                        <h1 class="mb-text-heading-xs">
-                            Project Browser
-                        </h1>
-                        <p class="mb-text-body-sm text-(--mb-color-text-muted)">
-                            Quantities model
-                        </p>
-                    </header>
-
-                    <div class="min-h-0 flex-1">
-                        <ProjectBrowser/>
+<div class="mb-main-workspace" data-testid="main-workspace">
+    <WorkspaceShell FullApplication="true"
+                    LeftPanelCollapsed="this.isNavigationCollapsed"
+                    AriaLabel="Bloom engineering workspace"
+                    HeaderAriaLabel="Application header"
+                    LeftPanelAriaLabel="Workspace navigation"
+                    MainContentAriaLabel="Editor workspace"
+                    RightPanelAriaLabel="Workspace auxiliary region"
+                    StatusBarAriaLabel="Workspace status"
+                    CompactLeftPanelLabel="Navigation"
+                    CompactMainContentLabel="Editors"
+                    CompactRightPanelLabel="Auxiliary"
+                    role="main"
+                    style="--mb-workspace-right-panel-width: 380px;">
+        <Header>
+            <AppHeader Compact="true"
+                       AriaLabel="Bloom application header"
+                       style="height: 48px; min-height: 48px;">
+                <BrandContent>
+                    <div class="mb-main-workspace__brand">
+                        <h1 class="mb-main-workspace__heading">Bloom workspace</h1>
+                        <BrandMark style="width: 22.2px;" />
                     </div>
-                </div>
-            </LeftPanel>
+                </BrandContent>
+            </AppHeader>
+        </Header>
 
-            <MainContent>
-                <main class="flex min-w-0 flex-1 flex-col gap-4 overflow-auto p-4">
-                    <section class="rounded-lg border border-slate-200 p-4">
-                        <h2 class="mb-text-heading-xs">
-                            Workspace
-                        </h2>
-                        <p class="mb-text-body-sm mt-2 text-(--mb-color-text-secondary)">
-                            Element workspace content will use the selected element.
-                        </p>
-                    </section>
-                </main>
-            </MainContent>
+        <LeftPanel>
+            <NavigationRail ViewModel="this.NavigationViewModel"
+                            LayoutCollapsedChanged="this.HandleNavigationLayoutCollapsedChanged" />
+        </LeftPanel>
 
-            <RightPanel>
-                <DetailsPanel />
-            </RightPanel>
-        </WorkspaceShell>
-    </div>
+        <MainContent>
+            <EditorWorkspace ViewModel="this.WorkspaceEditorViewModel"
+                             InitialGroupWeights="this.initialGroupWeights"
+                             TabClosed="this.HandleTabClosed"
+                             AriaLabel="Workspace editors">
+                <TabLeadingContent Context="tab">
+                    @if (GetEditorTabIconName(tab) is { Length: > 0 } iconName)
+                    {
+                        <span data-testid="workspace-editor-tab-icon"
+                              data-tab-id="@(tab.Id)"
+                              data-icon-name="@(iconName)">
+                            <LucideIcon Name="@(iconName)"
+                                        Size="14"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </span>
+                    }
+                </TabLeadingContent>
+
+                <AddTabControl Context="groupId">
+                    <ActionMenu Class="mb-editor-workspace__add-tab-menu"
+                                Items="@(this.CreateAddTabActions())"
+                                TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
+                                TriggerTitle="Add tab"
+                                TriggerClass="mb-editor-workspace__add-tab"
+                                Alignment="ActionMenuAlignment.Start"
+                                ItemSelected="item => this.HandleAddTabActionSelected(groupId, item)"
+                                data-group-id="@(groupId)"
+                                data-testid="editor-workspace-add-tab-menu">
+                        <TriggerContent>
+                            <LucideIcon Name="plus"
+                                        Size="14"
+                                        StrokeWidth="1.16667"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </TriggerContent>
+                    </ActionMenu>
+                </AddTabControl>
+
+                <EditorContent Context="tab">
+                    @if (IsProjectBrowserTab(tab))
+                    {
+                        <ProjectBrowser ViewModel="this.ProjectBrowserViewModel"
+                                        data-testid="workspace-project-browser"
+                                        data-tab-id="@(tab.Id)" />
+                    }
+                    else
+                    {
+                        <div class="mb-main-workspace__editor-placeholder"
+                             data-testid="workspace-editor-placeholder"
+                             data-tab-id="@(tab.Id)">
+                            <strong>@(tab.Title)</strong>
+                            <span>Feature content will be composed here.</span>
+                        </div>
+                    }
+                </EditorContent>
+            </EditorWorkspace>
+        </MainContent>
+
+        <RightPanel>
+            <DetailsPanel data-testid="workspace-details-panel" />
+        </RightPanel>
+
+        <StatusBar>
+            <Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar AriaLabel="Workspace status" />
+        </StatusBar>
+    </WorkspaceShell>
 </div>

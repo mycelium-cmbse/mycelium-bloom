@@ -9,7 +9,10 @@
 
 @inherits BloomComponentBase
 
-<section class="@(this.GetCssClass())" aria-label="@(this.AriaLabel)" @attributes="this.AdditionalAttributes">
+<section @attributes="this.AdditionalAttributes"
+         class="@(this.GetCssClass())"
+         aria-label="@(this.AriaLabel)"
+         data-navigation-collapsed="@(this.LeftPanelCollapsed ? "true" : "false")">
     @if (this.Header is not null)
     {
         <div class="mb-workspace-shell__header" role="region" aria-label="@(this.HeaderAriaLabel)">
@@ -29,7 +32,7 @@
                         aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Left))"
                         aria-controls="@(this.leftPanelId)"
                         @onclick="() => this.SelectNarrowPane(NarrowPane.Left)">
-                    Navigation
+                    @(this.CompactLeftPanelLabel)
                 </button>
             }
 
@@ -38,7 +41,7 @@
                     aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Main))"
                     aria-controls="@(this.mainContentId)"
                     @onclick="() => this.SelectNarrowPane(NarrowPane.Main)">
-                Canvas
+                @(this.CompactMainContentLabel)
             </button>
 
             @if (this.ShouldRenderRightPanel())
@@ -48,7 +51,7 @@
                         aria-pressed="@(this.GetPaneAriaPressed(NarrowPane.Right))"
                         aria-controls="@(this.rightPanelId)"
                         @onclick="() => this.SelectNarrowPane(NarrowPane.Right)">
-                    Details
+                    @(this.CompactRightPanelLabel)
                 </button>
             }
         </div>
@@ -60,6 +63,7 @@
             <aside id="@(this.leftPanelId)"
                    class="mb-workspace-shell__left-panel"
                    aria-label="@(this.LeftPanelAriaLabel)"
+                   data-collapsed="@(this.LeftPanelCollapsed ? "true" : "false")"
                    data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Left))">
                 @(this.LeftPanel)
             </aside>

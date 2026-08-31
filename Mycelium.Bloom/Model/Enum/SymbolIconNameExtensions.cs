@@ -24,6 +24,7 @@ namespace Mycelium.Bloom.Model.Enum
             return symbol switch
             {
                 SymbolIconName.Document => "file-text",
+                SymbolIconName.Tree => "list-tree",
                 SymbolIconName.Inspect => "eye",
                 SymbolIconName.Copy => "copy",
                 SymbolIconName.User => "user",

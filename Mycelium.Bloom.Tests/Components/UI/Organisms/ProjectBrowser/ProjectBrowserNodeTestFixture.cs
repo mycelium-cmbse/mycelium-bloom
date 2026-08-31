@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
+    using System.IO;
+
     using Bunit;
 
     using Mycelium.Bloom.Model.Enum;
@@ -87,6 +89,47 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(root.GetAttribute("data-testid"), Is.EqualTo("project-browser-node"));
                 Assert.That(root.GetAttribute("role"), Is.EqualTo("treeitem"));
                 Assert.That(root.GetAttribute("aria-selected"), Is.EqualTo("false"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies node rows retain intrinsic content width for Project Browser horizontal scrolling.
+        /// </summary>
+        [Test]
+        public void VerifyNodeStylePreservesIntrinsicWidthWithoutTitleEllipsis()
+        {
+            var repositoryRoot = TestRepository.GetRootPath();
+            var componentDirectory = Path.Combine(
+                repositoryRoot,
+                "Mycelium.Bloom",
+                "Components",
+                "UI",
+                "Organisms",
+                "ProjectBrowser");
+            var style = File.ReadAllText(Path.Combine(componentDirectory, "ProjectBrowserNode.razor.css"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser-node\s*\{[^}]*box-sizing:\s*border-box;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser-node__row\s*\{[^}]*box-sizing:\s*border-box;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser-node__title\s*\{[^}]*flex:\s*0\s+0\s+auto;[^}]*min-width:\s*max-content;[^}]*white-space:\s*nowrap;"));
+                Assert.That(
+                    style,
+                    Does.Not.Match(
+                        @"(?s)\.mb-project-browser-node__title\s*\{[^}]*text-overflow:"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser-node__children\s*\{[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
             }
         }
 

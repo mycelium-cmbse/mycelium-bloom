@@ -13,14 +13,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+    using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
-    using Microsoft.Extensions.DependencyInjection;
-
     using Moq;
 
     using Mycelium.Bloom.Tests.Common;
@@ -47,6 +47,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
 
         /// <summary>
+        /// The caller-owned ViewModel supplied to the component under test.
+        /// </summary>
+        private IProjectBrowserViewModel registeredViewModel;
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -70,7 +75,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
 
             using (Assert.EnterMultipleScope())
             {
@@ -99,7 +104,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
 
             using (Assert.EnterMultipleScope())
             {
@@ -129,7 +134,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
 
             using (Assert.EnterMultipleScope())
             {
@@ -143,7 +148,65 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies the project browser renders parameters inherited from the injectable Bloom reactive base.
+        /// Verifies the tree retains its accessible semantics inside the independent scroll viewport.
+        /// </summary>
+        [Test]
+        public void VerifyTreeViewportPreservesAccessibleTreeAndIntrinsicWidthContract()
+        {
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                "quantities/long",
+                "ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling");
+            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
+            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+            var viewport = component.Find(".mb-project-browser__tree-viewport");
+            var tree = component.Find(".mb-project-browser__tree");
+            var repositoryRoot = TestRepository.GetRootPath();
+            var componentDirectory = Path.Combine(
+                repositoryRoot,
+                "Mycelium.Bloom",
+                "Components",
+                "UI",
+                "Organisms",
+                "ProjectBrowser");
+            var style = File.ReadAllText(Path.Combine(componentDirectory, "ProjectBrowser.razor.css"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewport.Children, Has.Count.EqualTo(1));
+                Assert.That(viewport.Children[0].ClassList, Does.Contain("mb-project-browser__tree"));
+                Assert.That(tree.GetAttribute("role"), Is.EqualTo("tree"));
+                Assert.That(tree.GetAttribute("aria-label"), Is.EqualTo("Project browser"));
+                Assert.That(component.Markup, Does.Contain("ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser__tree-viewport\s*\{[^}]*overflow:\s*auto;[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*var\(--mb-project-browser-scrollbar-thumb\)\s+transparent;"));
+                Assert.That(
+                    style,
+                    Does.Contain("background-attachment: local, local, local, local, scroll, scroll, scroll, scroll;"));
+                Assert.That(style, Does.Contain("@supports (scrollbar-width: none)"));
+                Assert.That(style, Does.Contain("scrollbar-width: none;"));
+                Assert.That(style, Does.Contain("@media (forced-colors: active)"));
+                Assert.That(style, Does.Contain("scrollbar-color: ButtonText Canvas;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-project-browser__tree\s*\{[^}]*flex:\s*0\s+0\s+auto;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;[^}]*background:\s*transparent;"));
+                Assert.That(style, Does.Contain(".mb-project-browser__tree-viewport::-webkit-scrollbar-button"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies the project browser renders parameters inherited from the caller-supplied Bloom reactive base.
         /// </summary>
         [Test]
         public void VerifyRenderUsesInheritedBloomParameters()
@@ -158,7 +221,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+            using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.Class, "custom-project-browser")
                 .AddUnmatched("data-testid", "project-browser"));
 
@@ -201,7 +264,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+            using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.SelectedNodeChanged, _ => selectedNodeCallbackCount++));
 
             component.WaitForAssertion(() => Assert.That(component.Markup, Does.Contain("Quantities")));
@@ -236,7 +299,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+            using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.SelectedNodeChanged, selectedNode =>
                 {
                     Assert.That(selectedNode, Is.SameAs(node));
@@ -272,7 +335,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+            using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.SelectedNodeChanged, _ => interactions.Add("callback")));
 
             component.Find("button").Click();
@@ -303,7 +366,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
             Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
 
             isLoading = false;
@@ -333,7 +396,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
             Assert.That(component.Markup, Does.Contain("No model elements available."));
 
             isLoaded = false;
@@ -363,7 +426,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
 
             errorMessage = "Reactive model failure";
             notifyingViewModel.Raise(
@@ -395,7 +458,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+            using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.SelectedNodeChanged, _ => callbackCount++));
             var renderCount = component.RenderCount;
 
@@ -417,10 +480,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies the stable root collection's native notification rerenders the real component.
+        /// Verifies roots rerender only through the ViewModel's coherent top-level publication.
         /// </summary>
         [Test]
-        public void VerifyRootNodesCollectionChangedRerendersComponent()
+        public void VerifyRootNodesTopLevelPublicationRerendersComponent()
         {
             var firstNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
             var secondNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second");
@@ -428,6 +491,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { firstNode };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -435,12 +499,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
             Assert.That(component.Find(".mb-project-browser-node__title").TextContent, Is.EqualTo("First"));
+            var initialRenderCount = component.RenderCount;
 
             mutableRoots.Clear();
             mutableRoots.Add(secondNode);
             mutableRoots.Add(thirdNode);
+
+            Assert.That(component.RenderCount, Is.EqualTo(initialRenderCount));
+
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
 
             component.WaitForAssertion(() =>
             {
@@ -473,7 +544,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
             var renderCount = component.RenderCount;
 
             isLoaded = false;
@@ -506,13 +577,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
 
             Assert.That(component.Find("[role='alert']").TextContent, Does.Contain("Model load failed"));
         }
 
         /// <summary>
-        /// Verifies component disposal cancels a blocked initialization and disposes the ViewModel once.
+        /// Verifies component disposal cancels a blocked initialization without disposing the caller-owned ViewModel.
         /// </summary>
         [Test]
         public void VerifyDisposeDuringInitializationCancelsAndQuarantinesCompletion()
@@ -537,7 +608,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
             Assert.That(capturedToken.CanBeCanceled, Is.True);
             var renderCount = component.RenderCount;
 
@@ -548,7 +619,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             {
                 Assert.That(capturedToken.IsCancellationRequested, Is.True);
                 Assert.That(component.RenderCount, Is.EqualTo(renderCount));
-                viewModel.Verify(x => x.Dispose(), Times.Once);
+                viewModel.Verify(x => x.Dispose(), Times.Never);
             }
         }
 
@@ -570,7 +641,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+            using var component = this.RenderProjectBrowser(parameters => parameters
                 .Add(browser => browser.SelectedNodeChanged, _ => callbackCount++));
             var nodeCallback = component.FindComponent<ProjectBrowserNodeComponent>().Instance.OnNodeSelected;
 
@@ -588,47 +659,60 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies a normal rerender does not duplicate the root collection subscription.
+        /// Verifies ViewModel replacement detaches the old top-level root publisher.
         /// </summary>
         [Test]
-        public void VerifyRerenderDoesNotDuplicateRootNodesSubscription()
+        public void VerifyViewModelReplacementDetachesOldRootPublication()
         {
-            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
-            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
-            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
-            viewModel.SetupGet(x => x.IsLoading).Returns(false);
-            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
-            viewModel.Setup(x => x.Dispose());
-            this.RegisterViewModel(viewModel.Object);
+            var firstRootsSource = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First")
+            };
+            var secondRootsSource = new ObservableCollection<ProjectBrowserNodeViewModel>
+            {
+                ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second")
+            };
+            var firstViewModel = CreateLoadedViewModel(firstRootsSource);
+            var secondViewModel = CreateLoadedViewModel(secondRootsSource);
+            this.RegisterViewModel(firstViewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
-            component.Render(ParameterView.Empty);
-            var renderCount = component.RenderCount;
+            using var component = this.RenderProjectBrowser();
+            component.Render(parameters => parameters
+                .Add(browser => browser.ViewModel, secondViewModel.Object));
+            var replacementRenderCount = component.RenderCount;
 
-            mutableRoots.Clear();
+            firstRootsSource.Clear();
+            firstViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
+
+            Assert.That(component.RenderCount, Is.EqualTo(replacementRenderCount));
+
+            secondRootsSource.Clear();
+            secondViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
 
             component.WaitForAssertion(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(component.RenderCount, Is.EqualTo(renderCount + 1));
+                    Assert.That(component.RenderCount, Is.GreaterThan(replacementRenderCount));
                     Assert.That(component.Markup, Does.Contain("No model elements available."));
                 }
             });
         }
 
         /// <summary>
-        /// Verifies root collection changes cannot rerender the component after reactive deactivation.
+        /// Verifies top-level root publication cannot rerender the component after reactive deactivation.
         /// </summary>
         [Test]
-        public async Task VerifyDisposedComponentIgnoresRootNodesCollectionChanges()
+        public async Task VerifyDisposedComponentIgnoresRootNodesPublication()
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
             viewModel.SetupGet(x => x.RootNodes).Returns(roots);
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
@@ -636,18 +720,22 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
 
             await this.DisposeComponentsAsync();
             var renderCountAfterDisposal = component.RenderCount;
 
-            await this.Renderer.Dispatcher.InvokeAsync(() =>
-                mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First")));
+            mutableRoots.Add(ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First"));
+#pragma warning disable S6966 // Moq cannot asynchronously raise a synchronous event after its handlers are detached.
+            notifyingViewModel.Raise(
+                x => x.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RootNodes)));
+#pragma warning restore S6966
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.RenderCount, Is.EqualTo(renderCountAfterDisposal));
-                viewModel.Verify(x => x.Dispose(), Times.Once);
+                viewModel.Verify(x => x.Dispose(), Times.Never);
             }
         }
 
@@ -673,17 +761,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(
                 () =>
                 {
-                    using var component = this.Render<ProjectBrowserComponent>();
+                    using var component = this.RenderProjectBrowser();
                     Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
                 },
                 Throws.Nothing);
         }
 
         /// <summary>
-        /// Verifies the component disposes its injected ViewModel boundary exactly once.
+        /// Verifies the component does not dispose its caller-owned ViewModel boundary.
         /// </summary>
         [Test]
-        public void VerifyComponentDisposesMockedViewModelBoundary()
+        public void VerifyComponentDoesNotDisposeCallerOwnedViewModelBoundary()
         {
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
@@ -695,20 +783,54 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
 
-            using var component = this.Render<ProjectBrowserComponent>();
+            using var component = this.RenderProjectBrowser();
             component.Instance.Dispose();
             component.Instance.Dispose();
 
-            viewModel.Verify(x => x.Dispose(), Times.Once);
+            viewModel.Verify(x => x.Dispose(), Times.Never);
         }
 
         /// <summary>
-        /// Registers the already configured Project Browser contract for the component under test.
+        /// Creates a loaded reactive contract over a caller-owned mutable root source.
+        /// </summary>
+        /// <param name="rootSource">The roots exposed through the stable read-only projection.</param>
+        /// <returns>The configured ViewModel mock.</returns>
+        private static Mock<IProjectBrowserViewModel> CreateLoadedViewModel(
+            ObservableCollection<ProjectBrowserNodeViewModel> rootSource)
+        {
+            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(x => x.RootNodes)
+                .Returns(new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(rootSource));
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.Dispose());
+
+            return viewModel;
+        }
+
+        /// <summary>
+        /// Stores the already configured Project Browser contract for the component under test.
         /// </summary>
         /// <param name="viewModel">The scenario-local mocked ViewModel.</param>
         private void RegisterViewModel(IProjectBrowserViewModel viewModel)
         {
-            this.Services.AddSingleton(viewModel);
+            this.registeredViewModel = viewModel;
+        }
+
+        /// <summary>
+        /// Renders the Project Browser with the caller-owned ViewModel and optional scenario parameters.
+        /// </summary>
+        /// <param name="configure">The optional scenario-specific parameter configuration.</param>
+        /// <returns>The rendered Project Browser component.</returns>
+        private IRenderedComponent<ProjectBrowserComponent> RenderProjectBrowser(
+            Action<ComponentParameterCollectionBuilder<ProjectBrowserComponent>> configure = null)
+        {
+            return this.Render<ProjectBrowserComponent>(parameters =>
+            {
+                parameters.Add(component => component.ViewModel, this.registeredViewModel);
+                configure?.Invoke(parameters);
+            });
         }
     }
 }

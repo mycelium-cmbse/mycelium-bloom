@@ -1,4 +1,21 @@
 .mb-project-browser {
+    --mb-project-browser-scrollbar-size: 6px;
+    --mb-project-browser-scrollbar-thumb: color-mix(
+        in srgb,
+        var(--mb-color-text-muted) 40%,
+        transparent
+    );
+    --mb-project-browser-scrollbar-thumb-hover: color-mix(
+        in srgb,
+        var(--mb-color-text-muted) 64%,
+        transparent
+    );
+    --mb-project-browser-scroll-shadow: color-mix(
+        in srgb,
+        var(--mb-color-text-muted) 28%,
+        transparent
+    );
+
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -11,18 +28,117 @@
     color: var(--mb-color-text-primary);
 }
 
-.mb-project-browser__tree {
+.mb-project-browser__tree-viewport {
     display: flex;
     flex: 1 1 auto;
-    flex-direction: column;
-    gap: 2px;
     min-width: 0;
     min-height: 0;
     max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--mb-project-browser-scrollbar-thumb) transparent;
+    background-color: var(--mb-color-surface);
+    background-image:
+        linear-gradient(to bottom, var(--mb-color-surface) 30%, transparent),
+        linear-gradient(to top, var(--mb-color-surface) 30%, transparent),
+        linear-gradient(to right, var(--mb-color-surface) 30%, transparent),
+        linear-gradient(to left, var(--mb-color-surface) 30%, transparent),
+        radial-gradient(farthest-side at 50% 0, var(--mb-project-browser-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 50% 100%, var(--mb-project-browser-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 0 50%, var(--mb-project-browser-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 100% 50%, var(--mb-project-browser-scroll-shadow), transparent);
+    background-position:
+        center top,
+        center bottom,
+        left center,
+        right center,
+        center top,
+        center bottom,
+        left center,
+        right center;
+    background-repeat: no-repeat;
+    background-size:
+        100% 12px,
+        100% 12px,
+        12px 100%,
+        12px 100%,
+        100% 10px,
+        100% 10px,
+        10px 100%,
+        10px 100%;
+    background-attachment: local, local, local, local, scroll, scroll, scroll, scroll;
+}
+
+.mb-project-browser__tree-viewport::-webkit-scrollbar {
+    width: var(--mb-project-browser-scrollbar-size);
+    height: var(--mb-project-browser-scrollbar-size);
+}
+
+.mb-project-browser__tree-viewport::-webkit-scrollbar-track,
+.mb-project-browser__tree-viewport::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.mb-project-browser__tree-viewport::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: var(--mb-radius-full);
+    background: var(--mb-project-browser-scrollbar-thumb);
+    background-clip: padding-box;
+}
+
+.mb-project-browser__tree-viewport::-webkit-scrollbar-thumb:hover {
+    background: var(--mb-project-browser-scrollbar-thumb-hover);
+}
+
+.mb-project-browser__tree-viewport::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+@supports (scrollbar-width: none) {
+    .mb-project-browser__tree-viewport {
+        scrollbar-width: none;
+    }
+
+    .mb-project-browser__tree-viewport::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@media (forced-colors: active) {
+    .mb-project-browser__tree-viewport {
+        scrollbar-width: auto;
+        scrollbar-color: ButtonText Canvas;
+    }
+
+    .mb-project-browser__tree-viewport::-webkit-scrollbar {
+        display: block;
+    }
+
+    .mb-project-browser__tree-viewport::-webkit-scrollbar-track,
+    .mb-project-browser__tree-viewport::-webkit-scrollbar-corner {
+        background: Canvas;
+    }
+
+    .mb-project-browser__tree-viewport::-webkit-scrollbar-thumb {
+        border-color: Canvas;
+        background: ButtonText;
+    }
+}
+
+.mb-project-browser__tree {
+    box-sizing: border-box;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 2px;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
     padding: var(--mb-spacing-3);
-    overflow-x: hidden;
-    overflow-y: auto;
-    background: var(--mb-color-surface);
+    background: transparent;
 }
 
 .mb-project-browser__state,

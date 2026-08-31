@@ -1,5 +1,6 @@
 .mb-workspace-shell {
     --mb-workspace-left-panel-width: 20rem;
+    --mb-workspace-left-panel-collapsed-width: 3.5rem;
     --mb-workspace-right-panel-width: 22.5rem;
 
     container-name: mb-workspace-shell;
@@ -23,9 +24,21 @@
     color: var(--mb-color-component-text);
 }
 
+.mb-workspace-shell--full-application {
+    --mb-workspace-left-panel-collapsed-width: 52px;
+
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+}
+
 .mb-workspace-shell__header,
 .mb-workspace-shell__status {
     min-width: 0;
+    min-height: 0;
 }
 
 .mb-workspace-shell__header {
@@ -70,6 +83,7 @@
     grid-column: 1;
     width: var(--mb-workspace-left-panel-width);
     border-right: 1px solid var(--mb-color-border);
+    transition: width var(--mb-transition-fast);
 }
 
 .mb-workspace-shell__right-panel {
@@ -101,6 +115,23 @@
         --mb-workspace-left-panel-width: 17.5rem;
         --mb-workspace-right-panel-width: 18rem;
     }
+}
+
+.mb-workspace-shell--left-panel-collapsed .mb-workspace-shell__body {
+    --mb-workspace-left-panel-width: var(--mb-workspace-left-panel-collapsed-width);
+}
+
+.mb-workspace-shell--full-application .mb-workspace-shell__header,
+.mb-workspace-shell--full-application .mb-workspace-shell__main,
+.mb-workspace-shell--full-application .mb-workspace-shell__right-panel,
+.mb-workspace-shell--full-application .mb-workspace-shell__status {
+    overflow: hidden;
+}
+
+.mb-workspace-shell--full-application .mb-workspace-shell__left-panel {
+    position: relative;
+    z-index: 7;
+    overflow: visible;
 }
 
 /*
@@ -159,7 +190,23 @@
         border: 0;
     }
 
+    .mb-workspace-shell--full-application .mb-workspace-shell__left-panel {
+        overflow: hidden;
+    }
+
     .mb-workspace-shell__body > [data-narrow-active="true"] {
         display: block;
+    }
+}
+
+@supports (interpolate-size: allow-keywords) {
+    .mb-workspace-shell__left-panel {
+        interpolate-size: allow-keywords;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mb-workspace-shell__left-panel {
+        transition: none;
     }
 }

@@ -10,6 +10,8 @@
 @page "/design-system"
 
 @using BlazorBlueprint.Icons.Lucide.Components
+@using Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
+@using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
 <PageTitle>Bloom Design System</PageTitle>
 
@@ -1174,6 +1176,79 @@
         </div>
 
         <div class="mb-design-system__grid">
+            <article class="mb-design-system__example mb-design-system__example--wide"
+                     data-component="editor-workspace">
+                <header class="mb-design-system__example-heading">
+                    <h3>EditorWorkspace</h3>
+                    <p>Independent editor groups, per-group tab requests, Figma-derived initial proportions, and compact presentation over real workspace state.</p>
+                </header>
+
+                <div class="mb-design-system__editor-workspace-gallery">
+                    <div class="mb-design-system__editor-workspace-example">
+                        <span class="mb-design-system__state-label">Three groups · 300 / 320 / 868</span>
+                        <div class="mb-design-system__editor-workspace-stage"
+                             data-testid="editor-workspace-canonical">
+                            <EditorWorkspace ViewModel="this.EditorWorkspacePreviewViewModel"
+                                             InitialGroupWeights="this.EditorWorkspacePreviewWeights"
+                                             AddTabRequested="this.HandleEditorWorkspaceAddTabRequested"
+                                             AriaLabel="Three-group editor workspace preview">
+                                <EditorContent Context="tab">
+                                    <div class="mb-design-system__editor-workspace-placeholder"
+                                         data-preview-tab-id="@tab.Id"
+                                         data-preview-view-type="@tab.ViewTypeKey">
+                                        <span class="mb-design-system__state-label">Generic editor content</span>
+                                        <strong>@tab.Title</strong>
+                                        <span>Template context: @tab.ViewTypeKey</span>
+                                    </div>
+                                </EditorContent>
+                            </EditorWorkspace>
+                        </div>
+                    </div>
+
+                    <div class="mb-design-system__editor-workspace-example">
+                        <span class="mb-design-system__state-label">Compact constrained width</span>
+                        <div class="mb-design-system__editor-workspace-stage mb-design-system__editor-workspace-stage--compact"
+                             data-testid="editor-workspace-compact">
+                            <EditorWorkspace ViewModel="this.CompactEditorWorkspacePreviewViewModel"
+                                             AddTabRequested="this.HandleCompactEditorWorkspaceAddTabRequested"
+                                             AriaLabel="Compact editor workspace preview">
+                                <EditorContent Context="tab">
+                                    <div class="mb-design-system__editor-workspace-placeholder"
+                                         data-preview-tab-id="@tab.Id"
+                                         data-preview-view-type="@tab.ViewTypeKey">
+                                        <span class="mb-design-system__state-label">Generic editor content</span>
+                                        <strong>@tab.Title</strong>
+                                        <span>Template context: @tab.ViewTypeKey</span>
+                                    </div>
+                                </EditorContent>
+                            </EditorWorkspace>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article id="navigation-rail-preview"
+                     class="mb-design-system__example mb-design-system__example--wide"
+                     data-component="navigation-rail">
+                <header class="mb-design-system__example-heading">
+                    <h3>NavigationRail</h3>
+                    <p>Representative preview destinations with controlled selection and Expanded, Collapsed, and Expand on hover presentation modes.</p>
+                </header>
+
+                <div class="mb-design-system__navigation-rail-stage">
+                    <NavigationRail ViewModel="this.NavigationRailPreviewViewModel"
+                                    AriaLabel="Navigation rail preview" />
+                </div>
+
+                <DesignSystemNavigationRailPreview ViewModel="this.NavigationRailPreviewViewModel"
+                                                   Context="previewViewModel">
+                <p id="navigation-rail-preview-result" class="mb-design-system__result">
+                    Selected: @previewViewModel.SelectedItem?.Label.
+                    Presentation: @previewViewModel.PresentationMode.
+                </p>
+                </DesignSystemNavigationRailPreview>
+            </article>
+
             <article class="mb-design-system__example mb-design-system__example--wide" data-component="app-header">
                 <header class="mb-design-system__example-heading">
                     <h3>AppHeader</h3>

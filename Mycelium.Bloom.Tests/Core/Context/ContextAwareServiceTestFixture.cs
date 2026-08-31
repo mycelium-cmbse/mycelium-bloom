@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ElementSelectionServiceTestFixture.cs" company="Starion Group S.A.">
+// <copyright file="ContextAwareServiceTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -7,61 +7,66 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Tests.Core.Selection
+namespace Mycelium.Bloom.Tests.Core.Context
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
 
     using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Model.Enum;
 
     using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
-    /// <summary>
-    /// Tests the <see cref="ElementSelectionService" />.
-    /// </summary>
     [TestFixture]
-    public sealed class ElementSelectionServiceTestFixture
+    public sealed class ContextAwareServiceTestFixture
     {
-        /// <summary>
-        /// The expected notification order for the first selection.
-        /// </summary>
         private static readonly string[] ExpectedFirstSelectionCallbacks =
             ["changing:null", "changed:selected"];
 
-        /// <summary>
-        /// Verifies the initial state and current-value observable behavior.
-        /// </summary>
-        [Test]
-        public void VerifySelectedElementInitialState()
-        {
-            var service = new ElementSelectionService();
-            var observedValues = new List<IElement>();
+        private static readonly ProjectLifecycleState[] ExpectedLifecycleStates =
+        [
+            ProjectLifecycleState.Preparation,
+            ProjectLifecycleState.Open,
+            ProjectLifecycleState.Review
+        ];
 
-            using var subscription = System.ObservableExtensions.Subscribe(
-                service.WhenAnyValue(selection => selection.SelectedElement),
-                observedValues.Add);
+        [Test]
+        public void VerifyInitialStateAndCurrentValueObservables()
+        {
+            var service = new ContextAwareService();
+            var observedElements = new List<IElement>();
+            var observedLifecycleStates = new List<ProjectLifecycleState>();
+
+            using var selectionSubscription = System.ObservableExtensions.Subscribe(
+                service.WhenAnyValue(context => context.SelectedElement),
+                observedElements.Add);
+            using var lifecycleSubscription = System.ObservableExtensions.Subscribe(
+                service.WhenAnyValue(context => context.LifecycleState),
+                observedLifecycleStates.Add);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(service.SelectedElement, Is.Null);
-                Assert.That(observedValues, Is.EqualTo(new IElement[] { null }));
+                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleState.Preparation));
+                Assert.That(observedElements, Is.EqualTo(new IElement[] { null }));
+                Assert.That(observedLifecycleStates,
+                    Is.EqualTo(new[] { ProjectLifecycleState.Preparation }));
             }
         }
 
-        /// <summary>
-        /// Verifies first-selection state and notification ordering.
-        /// </summary>
         [Test]
         public void VerifySelectedElementPublishesAfterStateChanges()
         {
-            var service = new ElementSelectionService();
+            var service = new ContextAwareService();
             var element = new Namespace();
             var callbacks = new List<string>();
 
@@ -92,13 +97,10 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             }
         }
 
-        /// <summary>
-        /// Verifies that selecting the same object reference twice is silent.
-        /// </summary>
         [Test]
         public void VerifySelectedElementIsSilentForSameReference()
         {
-            var service = new ElementSelectionService();
+            var service = new ContextAwareService();
             var element = new Namespace();
             var propertyChangedCount = 0;
 
@@ -116,19 +118,16 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             Assert.That(propertyChangedCount, Is.EqualTo(1));
         }
 
-        /// <summary>
-        /// Verifies that distinct references with the same ElementId still publish.
-        /// </summary>
         [Test]
         public void VerifySelectedElementPublishesForDistinctReferencesWithSameElementId()
         {
-            var service = new ElementSelectionService();
+            var service = new ContextAwareService();
             var firstElement = new Namespace { ElementId = "shared-id" };
             var secondElement = new Namespace { ElementId = "shared-id" };
             var observedValues = new List<IElement>();
 
             using var subscription = System.ObservableExtensions.Subscribe(
-                service.WhenAnyValue(selection => selection.SelectedElement),
+                service.WhenAnyValue(context => context.SelectedElement),
                 observedValues.Add);
 
             service.SelectedElement = firstElement;
@@ -142,13 +141,10 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             }
         }
 
-        /// <summary>
-        /// Verifies that distinct references publish even when value equality returns true.
-        /// </summary>
         [Test]
         public void VerifySelectedElementPublishesForDistinctReferencesThatCompareEqual()
         {
-            var service = new ElementSelectionService();
+            var service = new ContextAwareService();
             var firstElement = new Mock<IElement>();
             var secondElement = new Mock<IElement>();
             var propertyChangedCount = 0;
@@ -176,17 +172,14 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             }
         }
 
-        /// <summary>
-        /// Verifies clear and repeated-clear semantics.
-        /// </summary>
         [Test]
         public void VerifySelectedElementNullPublishesOnlyWhenSelectionExists()
         {
-            var service = new ElementSelectionService();
+            var service = new ContextAwareService();
             var observedValues = new List<IElement>();
 
             using var subscription = System.ObservableExtensions.Subscribe(
-                service.WhenAnyValue(selection => selection.SelectedElement),
+                service.WhenAnyValue(context => context.SelectedElement),
                 observedValues.Add);
 
             service.SelectedElement = null;
@@ -204,22 +197,19 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             }
         }
 
-        /// <summary>
-        /// Verifies multiple subscribers and deterministic unsubscription.
-        /// </summary>
         [Test]
         public void VerifySelectedElementSupportsMultipleSubscribersAndUnsubscribe()
         {
-            var service = new ElementSelectionService();
+            var service = new ContextAwareService();
             var firstSubscriberCount = 0;
             var secondSubscriberCount = 0;
 
             var firstSubscription = System.ObservableExtensions.Subscribe(
-                service.WhenAnyValue(selection => selection.SelectedElement),
+                service.WhenAnyValue(context => context.SelectedElement),
                 _ => firstSubscriberCount++);
 
             using var secondSubscription = System.ObservableExtensions.Subscribe(
-                service.WhenAnyValue(selection => selection.SelectedElement),
+                service.WhenAnyValue(context => context.SelectedElement),
                 _ => secondSubscriberCount++);
 
             service.SelectedElement = new Namespace();
@@ -233,42 +223,89 @@ namespace Mycelium.Bloom.Tests.Core.Selection
             }
         }
 
-        /// <summary>
-        /// Verifies independent scoped service instances do not leak selection.
-        /// </summary>
         [Test]
-        public void VerifyScopedInstancesKeepIndependentSelection()
+        public void VerifyLifecycleStatePublishesDistinctValidValues()
+        {
+            var service = new ContextAwareService();
+            var observedValues = new List<ProjectLifecycleState>();
+
+            using var subscription = System.ObservableExtensions.Subscribe(
+                service.WhenAnyValue(context => context.LifecycleState),
+                observedValues.Add);
+
+            service.LifecycleState = ProjectLifecycleState.Open;
+            service.LifecycleState = ProjectLifecycleState.Open;
+            service.LifecycleState = ProjectLifecycleState.Review;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleState.Review));
+                Assert.That(observedValues, Is.EqualTo(ExpectedLifecycleStates));
+            }
+        }
+
+        [Test]
+        public void VerifyLifecycleStateRejectsUndefinedValues()
+        {
+            var service = new ContextAwareService();
+
+            var exception = Assert.Throws<InvalidEnumArgumentException>(() =>
+                service.LifecycleState = (ProjectLifecycleState)999);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(exception.ParamName, Is.EqualTo("value"));
+                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleState.Preparation));
+            }
+        }
+
+        [Test]
+        public void VerifyScopedInterfacesResolveTheSameContextInstance()
         {
             var services = new ServiceCollection();
-            services.AddScoped<IElementSelectionService, ElementSelectionService>();
+            services.AddScoped<ContextAwareService>();
+            services.AddScoped<IContextAwareService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+            services.AddScoped<IElementSelectionService>(
+                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
 
             using var provider = services.BuildServiceProvider(validateScopes: true);
             using var firstScope = provider.CreateScope();
             using var secondScope = provider.CreateScope();
 
-            var firstService = firstScope.ServiceProvider.GetRequiredService<IElementSelectionService>();
-            var secondService = secondScope.ServiceProvider.GetRequiredService<IElementSelectionService>();
+            var concreteService = firstScope.ServiceProvider.GetRequiredService<ContextAwareService>();
+            var contextService = firstScope.ServiceProvider.GetRequiredService<IContextAwareService>();
+            var selectionService = firstScope.ServiceProvider.GetRequiredService<IElementSelectionService>();
+            var secondContextService = secondScope.ServiceProvider.GetRequiredService<IContextAwareService>();
             var element = new Namespace();
 
-            firstService.SelectedElement = element;
+            selectionService.SelectedElement = element;
+            contextService.LifecycleState = ProjectLifecycleState.Open;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(firstService, Is.Not.SameAs(secondService));
-                Assert.That(firstService.SelectedElement, Is.SameAs(element));
-                Assert.That(secondService.SelectedElement, Is.Null);
+                Assert.That(contextService, Is.SameAs(concreteService));
+                Assert.That(selectionService, Is.SameAs(concreteService));
+                Assert.That(secondContextService, Is.Not.SameAs(concreteService));
+                Assert.That(contextService.SelectedElement, Is.SameAs(element));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(element));
+                Assert.That(concreteService.LifecycleState, Is.EqualTo(ProjectLifecycleState.Open));
+                Assert.That(secondContextService.SelectedElement, Is.Null);
+                Assert.That(secondContextService.LifecycleState, Is.EqualTo(ProjectLifecycleState.Preparation));
             }
         }
 
-        /// <summary>
-        /// Verifies the service explicitly fulfills the ReactiveUI object contract.
-        /// </summary>
         [Test]
-        public void VerifyServiceImplementsReactiveObjectContract()
+        public void VerifyServiceImplementsReactiveObjectContracts()
         {
-            IElementSelectionService service = new ElementSelectionService();
+            var service = new ContextAwareService();
 
-            Assert.That(service, Is.AssignableTo<IReactiveObject>());
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(service, Is.AssignableTo<IContextAwareService>());
+                Assert.That(service, Is.AssignableTo<IElementSelectionService>());
+                Assert.That(service, Is.AssignableTo<IReactiveObject>());
+            }
         }
     }
 }

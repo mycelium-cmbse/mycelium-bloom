@@ -12,9 +12,7 @@ namespace Mycelium.Bloom
     using BlazorBlueprint.Components;
 
     using Mycelium.Bloom.Components;
-    using Mycelium.Bloom.Core.ModelLoading;
-    using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.Extensions;
 
     using OpenTelemetry.Resources;
 
@@ -41,6 +39,8 @@ namespace Mycelium.Bloom
 
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
+
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))
                 .WithLogging();
@@ -50,12 +50,8 @@ namespace Mycelium.Bloom
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
-            builder.Services.AddBlazorBlueprintComponents();
-
-            // Add application services.
-            builder.Services.AddScoped<IModelLoaderService, ModelLoaderService>();
-            builder.Services.AddScoped<IElementSelectionService, ElementSelectionService>();
-            builder.Services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+            builder.Services.AddBlazorBlueprintComponents()
+                .AddApplicationServices();
 
             var app = builder.Build();
 

@@ -55,6 +55,13 @@
     }
 }
 
+.mb-action-menu__item-pointer-surface {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    cursor: pointer;
+}
+
 .mb-action-menu__item-content {
     display: flex;
     flex: 1 1 auto;

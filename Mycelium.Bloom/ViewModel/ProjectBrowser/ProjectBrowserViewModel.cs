@@ -71,7 +71,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly IDisposable rootNodeBinding;
 
         /// <summary>
-        /// Reconciles global selection whenever either selection or roots change.
+        /// Reconciles global selection changes against the currently published tree.
         /// </summary>
         private readonly IDisposable selectionProjectionSubscription;
 
@@ -117,18 +117,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             this.rootNodes = boundRootNodes;
 
-            var selectedElementChanges = this.elementSelectionService
-                .WhenAnyValue(service => service.SelectedElement);
-
-            var rootChanges = System.Reactive.Linq.Observable.Select(
-                this.rootNodeSource.Connect(),
-                _ => true);
-
             this.selectionProjectionSubscription = System.ObservableExtensions.Subscribe(
-                System.Reactive.Linq.Observable.CombineLatest(
-                    selectedElementChanges,
-                    rootChanges,
-                    (selectedElement, _) => selectedElement),
+                this.elementSelectionService.WhenAnyValue(service => service.SelectedElement),
                 this.ApplySelectedElement);
         }
 
@@ -282,30 +272,36 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 nodes.Add(rootNode);
             });
 
-            this.SelectDefaultRootNode();
+            this.ReconcileSelectionAfterRootPublication(selectDefaultRoot: true);
             this.SetLoaded();
+            this.RaisePropertyChanged(nameof(this.RootNodes));
 
             return true;
         }
 
         /// <summary>
-        /// Selects and expands the first root node when no global selection exists.
+        /// Reconciles the latest shared selection after a complete root publication or reset.
         /// </summary>
-        private void SelectDefaultRootNode()
+        /// <param name="selectDefaultRoot">Whether an empty shared selection should select the first root.</param>
+        private void ReconcileSelectionAfterRootPublication(bool selectDefaultRoot)
         {
-            if (this.RootNodes.Count == 0 || this.elementSelectionService.SelectedElement != null)
+            var selectedElement = this.elementSelectionService.SelectedElement;
+            this.ApplySelectedElement(selectedElement);
+
+            if (selectDefaultRoot && selectedElement is null && this.RootNodes.Count > 0)
             {
-                return;
+                var rootNode = this.RootNodes[0];
+                this.ApplySelectedNode(rootNode);
+
+                if (rootNode.HasChildren && !rootNode.IsExpanded)
+                {
+                    rootNode.IsExpanded = true;
+                }
+
+                this.elementSelectionService.SelectedElement = rootNode.SourceElement;
             }
 
-            var rootNode = this.RootNodes[0];
-
-            this.SelectNode(rootNode);
-
-            if (rootNode.HasChildren && !rootNode.IsExpanded)
-            {
-                this.ToggleNode(rootNode);
-            }
+            this.ApplySelectedElement(this.elementSelectionService.SelectedElement);
         }
 
         /// <summary>
@@ -409,11 +405,19 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private void ResetTree()
         {
+            var rootsChanged = this.RootNodes.Count > 0;
             this.ClearTreeIndexesAndOwnedSelection();
 
-            if (this.RootNodes.Count > 0)
+            if (rootsChanged)
             {
                 this.EditRootNodes(nodes => nodes.Clear());
+            }
+
+            this.ReconcileSelectionAfterRootPublication(selectDefaultRoot: false);
+
+            if (rootsChanged)
+            {
+                this.RaisePropertyChanged(nameof(this.RootNodes));
             }
         }
 

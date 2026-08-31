@@ -75,7 +75,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
 
             var trigger = component.Find("button");
             await trigger.ClickAsync();
-            var menu = this.portalHost.WaitForElement("[role='menu']");
+            var menu = await this.portalHost.WaitForElementAsync("[role='menu']");
 
             using (Assert.EnterMultipleScope())
             {
@@ -84,6 +84,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 Assert.That(trigger.GetAttribute("title"), Is.EqualTo("Element actions"));
                 Assert.That(trigger.GetAttribute("aria-haspopup"), Is.EqualTo("menu"));
                 Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(trigger.GetAttribute("style"), Does.Contain("cursor: pointer"));
                 Assert.That(trigger.ClassList, Does.Contain("custom-trigger"));
                 Assert.That(trigger.TextContent, Does.Contain("Actions"));
                 Assert.That(menu.ClassList, Does.Contain("custom-menu"));
@@ -101,13 +102,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 .Add(menu => menu.Items, Items));
 
             await component.Find("button").ClickAsync();
-            var menuItems = this.portalHost.WaitForElements("[role='menuitem']", Items.Count);
+            var menuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']", Items.Count);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(menuItems[0].TextContent, Does.Contain("Open details"));
                 Assert.That(menuItems[0].TextContent, Does.Contain("Inspect the selected element"));
+                var enabledSurface = menuItems[0].QuerySelector(".mb-action-menu__item-pointer-surface");
+                Assert.That(enabledSurface, Is.Not.Null);
+                Assert.That(enabledSurface.GetAttribute("role"), Is.EqualTo("presentation"));
+                Assert.That(enabledSurface.GetAttribute("aria-hidden"), Is.EqualTo("true"));
                 Assert.That(menuItems[1].GetAttribute("aria-disabled"), Is.EqualTo("true"));
+                Assert.That(menuItems[1].QuerySelector(".mb-action-menu__item-pointer-surface"), Is.Null);
                 Assert.That(menuItems[2].ClassList, Does.Contain("text-destructive"));
                 Assert.That(menuItems[2].TextContent, Does.Contain("Destructive action"));
                 Assert.That(this.portalHost.FindAll("[role='separator']"), Has.Count.EqualTo(1));
@@ -131,7 +137,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 .Add(menu => menu.IsSelectionMenu, true));
 
             await component.Find("button").ClickAsync();
-            var items = this.portalHost.WaitForElements("[role='menuitem']", 2);
+            var items = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 2);
 
             using (Assert.EnterMultipleScope())
             {
@@ -158,7 +164,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 }));
 
             await component.Find("button").ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']", Items.Count)[0].ClickAsync();
+            var menuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']", Items.Count);
+            await menuItems[0].ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -180,7 +187,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 .Add(menu => menu.ItemSelected, _ => callbackCount++));
 
             await component.Find("button").ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']", Items.Count)[1].ClickAsync();
+            var menuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']", Items.Count);
+            await menuItems[1].ClickAsync();
 
             Assert.That(callbackCount, Is.Zero);
         }
@@ -256,7 +264,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
                 }));
 
             await component.Find("button").ClickAsync();
-            var firstItem = this.portalHost.WaitForElements("[role='menuitem']", Items.Count)[0];
+            var firstItem = (await this.portalHost.WaitForElementsAsync("[role='menuitem']", Items.Count))[0];
             var firstSelection = firstItem.ClickAsync();
             await callbackStarted.Task;
             await firstItem.ClickAsync();
