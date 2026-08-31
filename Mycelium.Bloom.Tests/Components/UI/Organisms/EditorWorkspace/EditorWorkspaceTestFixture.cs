@@ -1523,8 +1523,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
 
             using var component = this.RenderWorkspace(viewModel.Object);
 
-            Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
-            Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
+                Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+            }
 
             await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
                 .TriggerEventAsync("ondragstart", new DragEventArgs());
@@ -1688,13 +1691,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                     Does.Contain("mb-editor-workspace__tab-split-drop-target--active"));
             }
 
-            Assert.That(component.Find(TabSplitDropTargetSelectorFor(destinationGroup.Id)).ClassList,
-                Does.Contain("mb-editor-workspace__tab-split-drop-target--active"));
-
             await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
                 .TriggerEventAsync("ondragend", new DragEventArgs());
-            Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
-            Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
+                Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+            }
 
             using var soleTabState = CreateViewModel();
             var soleTabGroup = soleTabState.Groups[0];

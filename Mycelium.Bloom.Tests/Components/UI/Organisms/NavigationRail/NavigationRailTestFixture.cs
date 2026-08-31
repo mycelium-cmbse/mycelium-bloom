@@ -140,6 +140,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
         private static readonly string[] ExpectedPresentationModeLabels = ["Expanded", "Collapsed"];
 
+        private static readonly bool[] InitialCollapsedLayoutStates = [true];
+
+        private static readonly bool[] ExpandedLayoutStates = [true, false];
+
+        private static readonly bool[] CollapsedAgainLayoutStates = [true, false, true];
+
         private readonly IRenderedComponent<BbPortalHost> portalHost;
 
         public NavigationRailTestFixture()
@@ -586,7 +592,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 {
                     Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
                     Assert.That(component.Find("nav").GetAttribute("data-layout-collapsed"), Is.EqualTo("true"));
-                    Assert.That(reportedStates, Is.EqualTo(new[] { true }));
+                    Assert.That(reportedStates, Is.EqualTo(InitialCollapsedLayoutStates));
                 }
             });
 
@@ -596,19 +602,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(reportedStates, Is.EqualTo(new[] { true }));
+                    Assert.That(reportedStates, Is.EqualTo(InitialCollapsedLayoutStates));
                 }
             });
 
             viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(reportedStates, Is.EqualTo(new[] { true, false })));
+                Assert.That(reportedStates, Is.EqualTo(ExpandedLayoutStates)));
 
             viewModel.PresentationMode = NavigationRailPresentationMode.Collapsed;
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(reportedStates, Is.EqualTo(new[] { true, false, true })));
+                Assert.That(reportedStates, Is.EqualTo(CollapsedAgainLayoutStates)));
         }
 
         [Test]

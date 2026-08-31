@@ -1813,16 +1813,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                     .Where(currentIds.Contains);
 
                 if (newGroupIndex > 0
-                    && retainedOrder.SequenceEqual(retainedPreviousOrder)
-                    && this.groupWeights.ContainsKey(renderState.Groups[newGroupIndex - 1].Id))
+                    && retainedOrder.SequenceEqual(retainedPreviousOrder))
                 {
                     this.NormalizeWeights();
-                    var leftGroupWeight = this.groupWeights[renderState.Groups[newGroupIndex - 1].Id];
-                    var splitWeight = leftGroupWeight / 2d;
-                    this.groupWeights[renderState.Groups[newGroupIndex - 1].Id] = splitWeight;
-                    this.groupWeights[newGroup.Id] = splitWeight;
-                    this.NormalizeWeights();
-                    return;
+                    var leftGroupId = renderState.Groups[newGroupIndex - 1].Id;
+
+                    if (this.groupWeights.TryGetValue(leftGroupId, out var leftGroupWeight))
+                    {
+                        var splitWeight = leftGroupWeight / 2d;
+                        this.groupWeights[leftGroupId] = splitWeight;
+                        this.groupWeights[newGroup.Id] = splitWeight;
+                        this.NormalizeWeights();
+                        return;
+                    }
                 }
             }
 
