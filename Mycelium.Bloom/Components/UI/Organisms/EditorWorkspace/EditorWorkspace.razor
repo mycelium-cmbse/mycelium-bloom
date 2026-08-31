@@ -120,7 +120,7 @@
                                             data-group-id="@(group.Id)"
                                             data-tab-id="@(tab.Id)"
                                             data-testid="editor-workspace-tab-close"
-                                            @onclick="() => this.CloseTab(group, tab)"
+                                            @onclick="() => this.CloseTabAsync(group, tab)"
                                             @onclick:stopPropagation>
                                         <LucideIcon Name="x"
                                                     Size="14"
@@ -244,6 +244,38 @@
                                 Empty editor group
                             </div>
                         }
+
+                        @if (this.CanPresentTabSplitDropTarget(group))
+                        {
+                            <div class="mb-editor-workspace__tab-split-docking-surface"
+                                 role="presentation"
+                                 aria-hidden="true"
+                                 data-group-id="@(group.Id)"
+                                 data-testid="editor-workspace-tab-split-docking-surface"
+                                 @ondragenter="() => this.PresentTabSplitDropTarget(group.Id)"
+                                 @ondragenter:stopPropagation
+                                 @ondragover:preventDefault
+                                 @ondragover:stopPropagation
+                                 @ondrop="this.EndTabDrag"
+                                 @ondrop:preventDefault
+                                 @ondrop:stopPropagation></div>
+
+                            <div class="@(this.GetTabSplitDropTargetCssClass(group))"
+                                 role="presentation"
+                                 aria-hidden="true"
+                                 data-group-id="@(group.Id)"
+                                 data-testid="editor-workspace-tab-split-drop-zone"
+                                 @ondragenter="() => this.PresentTabSplitDropTarget(group.Id)"
+                                 @ondragenter:stopPropagation
+                                 @ondragover:preventDefault
+                                 @ondragover:stopPropagation
+                                 @ondrop="this.DropTabToNewGroup"
+                                 @ondrop:preventDefault
+                                 @ondrop:stopPropagation>
+                                <span class="mb-editor-workspace__tab-split-docking-plus"
+                                      aria-hidden="true">+</span>
+                            </div>
+                        }
                     </div>
                 </section>
 
@@ -288,8 +320,9 @@
                                     title="Split editor here"
                                     @onclick="() => this.SplitGroup(group)">
                                 <LucideIcon Name="plus"
-                                            Size="14"
+                                            Size="18"
                                             StrokeWidth="1.16667"
+                                            Class="mb-editor-workspace__split-add-icon"
                                             role="presentation"
                                             aria-hidden="true"
                                             focusable="false" />
@@ -312,8 +345,9 @@
                             title="Split editor here"
                             @onclick="() => this.SplitGroup(finalGroup)">
                         <LucideIcon Name="plus"
-                                    Size="14"
+                                    Size="18"
                                     StrokeWidth="1.16667"
+                                    Class="mb-editor-workspace__split-add-icon"
                                     role="presentation"
                                     aria-hidden="true"
                                     focusable="false" />

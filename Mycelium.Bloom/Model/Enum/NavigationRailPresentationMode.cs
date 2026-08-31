@@ -10,7 +10,7 @@
 namespace Mycelium.Bloom.Model.Enum
 {
     /// <summary>
-    /// Defines how a navigation rail responds to its primary presentation control.
+    /// Defines the persistent width reserved for a navigation rail.
     /// </summary>
     public enum NavigationRailPresentationMode
     {
@@ -23,10 +23,5 @@ namespace Mycelium.Bloom.Model.Enum
         /// The rail remains collapsed.
         /// </summary>
         Collapsed,
-
-        /// <summary>
-        /// The rail rests collapsed and expands temporarily while hovered.
-        /// </summary>
-        ExpandOnHover
     }
 }

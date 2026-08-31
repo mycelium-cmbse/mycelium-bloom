@@ -138,10 +138,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
         private static readonly string[] ExpectedSettingsOnlyLabels = ["Settings"];
 
-        private static readonly string[] ExpectedPresentationModeLabels =
-            ["Expanded", "Collapsed", "Expand on hover"];
-
-        private static readonly bool[] ExpectedEffectiveCollapsedStates = [true, false, true, false];
+        private static readonly string[] ExpectedPresentationModeLabels = ["Expanded", "Collapsed"];
 
         private readonly IRenderedComponent<BbPortalHost> portalHost;
 
@@ -308,9 +305,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         [Test]
-        public async Task VerifySidebarControlMenuOwnsPresentationChoices()
+        public async Task VerifySidebarControlMenuOpensFromNormalTriggerAndSeparatesSettings()
         {
-            using var viewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
+            using var viewModel = CreateViewModel(isExpandOnHoverEnabled: true);
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
             var trigger = component.Find(".mb-navigation-rail__collapse-toggle");
@@ -321,32 +318,36 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var options = await this.portalHost.WaitForElementsAsync(
                 "[role='menuitem']",
                 ExpectedPresentationModeLabels.Length);
-            var selectedOption = options.Single(option => option.TextContent.Contains("Expand on hover"));
+            var selectedOption = options.Single(option => option.TextContent.Contains("Collapsed"));
+            var hoverOption = await this.portalHost.WaitForElementAsync("[role='menuitemcheckbox']");
             var dropdownTrigger = component.FindComponent<BbDropdownMenuTrigger>();
             var dropdownContent = component.FindComponent<BbDropdownMenuContent>();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(trigger.GetAttribute("aria-label"),
-                    Is.EqualTo("Expand workspace navigation; right-click for sidebar controls"));
-                Assert.That(trigger.GetAttribute("aria-keyshortcuts"), Is.EqualTo("Shift+F10"));
+                Assert.That(trigger.GetAttribute("aria-label"), Is.EqualTo("Navigation rail options"));
+                Assert.That(trigger.GetAttribute("aria-keyshortcuts"), Is.Null);
                 Assert.That(trigger.GetAttribute("aria-haspopup"), Is.EqualTo("menu"));
                 Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
-                Assert.That(menu.TextContent, Does.Contain("Sidebar control"));
+                Assert.That(component.Find("nav").GetAttribute("data-overlay-expanded"), Is.EqualTo("false"));
+                Assert.That(menu.TextContent, Does.Not.Contain("Navigation rail"));
+                Assert.That(menu.TextContent, Does.Contain("Default state"));
                 Assert.That(options.Select(option => option.TextContent
                         .Replace("\u2022", string.Empty, StringComparison.Ordinal)
                         .Replace("Current selection", string.Empty, StringComparison.Ordinal)
                         .Trim()),
                     Is.EqualTo(ExpectedPresentationModeLabels));
-                Assert.That(this.portalHost.FindAll("[role='separator']"), Has.Count.EqualTo(2));
+                Assert.That(this.portalHost.FindAll("[role='separator']"), Has.Count.EqualTo(1));
                 Assert.That(options.All(option => option.GetAttribute("aria-disabled") != "true"), Is.True);
                 Assert.That(selectedOption.ClassList,
                     Does.Contain("mb-navigation-rail__control-option--selected"));
                 Assert.That(selectedOption.TextContent, Does.Contain("Current selection"));
+                Assert.That(hoverOption.TextContent.Trim(), Is.EqualTo("Expand on hover"));
+                Assert.That(hoverOption.GetAttribute("aria-checked"), Is.EqualTo("true"));
                 Assert.That(component.FindComponents<BbDropdownMenu>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<BbDropdownMenuContent>(), Has.Count.EqualTo(1));
                 Assert.That(dropdownTrigger.Instance.AsChild, Is.False);
-                Assert.That(dropdownTrigger.Instance.CustomClickHandling, Is.True);
+                Assert.That(dropdownTrigger.Instance.CustomClickHandling, Is.False);
                 Assert.That(dropdownContent.Instance.Side, Is.EqualTo(PopoverSide.Right));
                 Assert.That(dropdownContent.Instance.Align, Is.EqualTo(PopoverAlign.End));
                 Assert.That(dropdownContent.Instance.Offset, Is.EqualTo(4));
@@ -360,6 +361,81 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                    Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
+                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+                    Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies the menu checkbox enables hover expansion while retaining a collapsed persistent layout.
+        /// </summary>
+        [Test]
+        public async Task VerifySidebarControlMenuEnablesHoverPreferenceForCollapsedPresentation()
+        {
+            using var viewModel = CreateViewModel();
+            using var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.ViewModel, viewModel));
+
+            await OpenSidebarControlMenuAsync(component);
+            var hoverOption = await this.portalHost.WaitForElementAsync("[role='menuitemcheckbox']");
+
+            await hoverOption.ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.IsExpandOnHoverEnabled, Is.True);
+                    Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                    Assert.That(component.Find("nav").GetAttribute("data-layout-collapsed"), Is.EqualTo("true"));
+                    Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifySidebarControlMenuEnablingHoverCollapsesExpandedRailAndSelectingExpandedDisablesHover()
+        {
+            using var viewModel = CreateViewModel(NavigationRailPresentationMode.Expanded);
+            using var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.ViewModel, viewModel));
+
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+            await OpenSidebarControlMenuAsync(component);
+            await (await this.portalHost.WaitForElementAsync("[role='menuitemcheckbox']")).ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                    Assert.That(viewModel.IsExpandOnHoverEnabled, Is.True);
+                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
+                    Assert.That(component.Find("nav").GetAttribute("data-overlay-expanded"), Is.EqualTo("false"));
+                    Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
+                }
+            });
+
+            await component.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(component.Find("nav").GetAttribute("data-overlay-expanded"), Is.EqualTo("true")));
+
+            await OpenSidebarControlMenuAsync(component);
+            var options = await this.portalHost.WaitForElementsAsync(
+                "[role='menuitem']",
+                ExpectedPresentationModeLabels.Length);
+            await options.Single(option => option.TextContent.Trim() == "Expanded").ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                    Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
                     Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
                     Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
                 }
@@ -367,7 +443,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         [Test]
-        public async Task VerifySidebarControlPrimaryClickTogglesFixedModes()
+        public async Task VerifySidebarControlTriggerDoesNotTogglePersistentPresentation()
         {
             using var viewModel = CreateViewModel(NavigationRailPresentationMode.Expanded);
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
@@ -377,25 +453,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             Assert.That(sidebarControlIcon.Instance.Name, Is.EqualTo("panel-left-close"));
 
-            await OpenSidebarControlMenuAsync(component);
-            await this.portalHost.WaitForElementAsync("[role='menu']");
-            await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
-
-            await component.WaitForAssertionAsync(() =>
-            {
-                using (Assert.EnterMultipleScope())
-                {
-                    Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
-                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
-                    Assert.That(this.portalHost.FindAll("[role='menu']"), Is.Empty);
-                }
-            });
-
-            sidebarControlIcon = component.FindComponent<BbDropdownMenuTrigger>()
-                .FindComponent<LucideIcon>();
-
-            Assert.That(sidebarControlIcon.Instance.Name, Is.EqualTo("panel-left-open"));
-
             await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
@@ -403,7 +460,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                    Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
                     Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+                    Assert.That(this.portalHost.FindAll("[role='menu']"), Has.Count.EqualTo(1));
                 }
             });
         }
@@ -411,16 +470,32 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         [Test]
         public async Task VerifyHoverModeReactsWithoutCallerRoundTrips()
         {
-            using var viewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
+            using var viewModel = CreateViewModel(isExpandOnHoverEnabled: true);
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
 
-            Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
+                Assert.That(component.Find("nav").ClassList,
+                    Does.Contain("mb-navigation-rail--hover-overlay"));
+                Assert.That(component.Find("nav").ClassList,
+                    Does.Not.Contain("mb-navigation-rail--overlay-expanded"));
+            }
 
             await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false")));
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+                    Assert.That(component.Find("nav").ClassList,
+                        Does.Contain("mb-navigation-rail--hover-overlay"));
+                    Assert.That(component.Find("nav").ClassList,
+                        Does.Contain("mb-navigation-rail--overlay-expanded"));
+                }
+            });
 
             await component.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
 
@@ -429,19 +504,70 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
-                    Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.ExpandOnHover));
+                    Assert.That(component.Find("nav").ClassList,
+                        Does.Contain("mb-navigation-rail--hover-overlay"));
+                    Assert.That(component.Find("nav").ClassList,
+                        Does.Not.Contain("mb-navigation-rail--overlay-expanded"));
+                    Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                    Assert.That(viewModel.IsExpandOnHoverEnabled, Is.True);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies pointer entry cannot expand a persistently collapsed rail when hover expansion is disabled.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisabledHoverPreferenceKeepsCollapsedRailVisuallyCollapsed()
+        {
+            using var viewModel = CreateViewModel();
+            using var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.ViewModel, viewModel));
+
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("true"));
+                    Assert.That(component.Find("nav").GetAttribute("data-overlay-expanded"), Is.EqualTo("false"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies an expanded default state stays persistently expanded regardless of hover preference.
+        /// </summary>
+        [Test]
+        public async Task VerifyPersistentExpandedStateDoesNotUseTransientOverlay()
+        {
+            using var viewModel = CreateViewModel(NavigationRailPresentationMode.Expanded);
+            using var component = this.Render<NavigationRailComponent>(parameters => parameters
+                .Add(rail => rail.ViewModel, viewModel));
+
+            await component.Find("nav").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+            await component.Find("nav").TriggerEventAsync("onmouseleave", new MouseEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+                    Assert.That(component.Find("nav").GetAttribute("data-layout-collapsed"), Is.EqualTo("false"));
+                    Assert.That(component.Find("nav").GetAttribute("data-overlay-expanded"), Is.EqualTo("false"));
                 }
             });
         }
 
         [Test]
-        public async Task VerifyEffectiveCollapsedChangesAreReportedToOwningComposition()
+        public async Task VerifyLayoutCollapsedChangesReportOnlyPersistentShellReservation()
         {
-            using var viewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
+            using var viewModel = CreateViewModel(isExpandOnHoverEnabled: true);
             var reportedStates = new List<bool>();
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel)
-                .Add(rail => rail.EffectiveCollapsedChanged, reportedStates.Add));
+                .Add(rail => rail.LayoutCollapsedChanged, reportedStates.Add));
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -458,8 +584,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(reportedStates, Has.Count.EqualTo(2));
-                    Assert.That(reportedStates[^1], Is.False);
+                    Assert.That(component.Find("nav").GetAttribute("data-collapsed"), Is.EqualTo("false"));
+                    Assert.That(component.Find("nav").GetAttribute("data-layout-collapsed"), Is.EqualTo("true"));
+                    Assert.That(reportedStates, Is.EqualTo(new[] { true }));
                 }
             });
 
@@ -469,15 +596,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(reportedStates, Has.Count.EqualTo(3));
-                    Assert.That(reportedStates[^1], Is.True);
+                    Assert.That(reportedStates, Is.EqualTo(new[] { true }));
                 }
             });
 
             viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(reportedStates, Is.EqualTo(ExpectedEffectiveCollapsedStates)));
+                Assert.That(reportedStates, Is.EqualTo(new[] { true, false })));
+
+            viewModel.PresentationMode = NavigationRailPresentationMode.Collapsed;
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(reportedStates, Is.EqualTo(new[] { true, false, true })));
         }
 
         [Test]
@@ -581,7 +712,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         [Test]
         public async Task VerifyComponentsSharingViewModelDoNotShareHoverState()
         {
-            using var viewModel = CreateViewModel(NavigationRailPresentationMode.ExpandOnHover);
+            using var viewModel = CreateViewModel(isExpandOnHoverEnabled: true);
             using var first = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
             using var second = this.Render<NavigationRailComponent>(parameters => parameters
@@ -673,6 +804,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(style, Does.Contain("@media (forced-colors: active)"));
                 Assert.That(style, Does.Contain("scrollbar-color: ButtonText Canvas;"));
                 Assert.That(style, Does.Contain(".mb-navigation-rail__items::-webkit-scrollbar-button"));
+                Assert.That(style, Does.Contain("--mb-navigation-rail-collapsed-width: 52px;"));
+                Assert.That(style, Does.Not.Contain("--mb-navigation-rail-expanded-max-width:"));
+                Assert.That(style, Does.Not.Contain("--mb-navigation-rail-expanded-width:"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -680,7 +814,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
+                        @"(?s)\.mb-navigation-rail--collapsed\s*\{[^}]*width:\s*var\(--mb-navigation-rail-collapsed-width\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail--hover-overlay\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*2;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail--hover-overlay\s*\{[^}]*width:\s*max-content;[^}]*max-width:\s*calc\(100vw\s*-\s*var\(--mb-spacing-4\)\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail--overlay-expanded\s*\{[^}]*box-shadow:"));
+                Assert.That(
+                    style,
+                    Does.Match(
                         @"(?s)\.mb-navigation-rail__items\s*\{[^}]*align-self:\s*flex-start;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--collapsed\)\s+\.mb-navigation-rail__items\s*\{[^}]*align-items:\s*stretch;"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -771,6 +925,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
+                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--hover-overlay\)\s*\{[^}]*transition:\s*width\s+var\(--mb-transition-fast\);"));
+                Assert.That(
+                    style,
+                    Does.Match(
                         @"(?s)\.mb-navigation-rail__link\s*\{[^}]*gap\s+var\(--mb-transition-fast\);"));
                 Assert.That(
                     style,
@@ -788,7 +946,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     style,
                     Does.Match(
                         @"(?s)@media\s*\(prefers-reduced-motion:\s*reduce\).*?\.mb-navigation-rail__label\s*\{[^}]*transition:\s*none;"));
-                Assert.That(style, Does.Not.Contain("width: 52px;"));
             }
         }
 
@@ -800,6 +957,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             viewModel.SetupGet(x => x.NavigationItems).Returns(navigationItems);
             viewModel.SetupProperty(x => x.SelectedItem, Items[0]);
             viewModel.SetupProperty(x => x.PresentationMode, NavigationRailPresentationMode.Collapsed);
+            viewModel.SetupProperty(x => x.IsExpandOnHoverEnabled, false);
             viewModel.Setup(x => x.Dispose());
 
             return viewModel;
@@ -807,13 +965,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
         private static NavigationRailViewModel CreateViewModel(
             NavigationRailPresentationMode mode = NavigationRailPresentationMode.Collapsed,
-            string selectedItemId = "overview")
+            string selectedItemId = "overview",
+            bool isExpandOnHoverEnabled = false)
         {
             var viewModel = new NavigationRailViewModel(
                 new ContextAwareService(),
                 CreateNavigationRailItemProvider((_, _) => Items));
             viewModel.SelectedItem = Items.Single(item => item.Id == selectedItemId);
             viewModel.PresentationMode = mode;
+            viewModel.IsExpandOnHoverEnabled = isExpandOnHoverEnabled;
 
             return viewModel;
         }
@@ -836,8 +996,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         private static Task OpenSidebarControlMenuAsync(
             IRenderedComponent<NavigationRailComponent> component)
         {
-            return component.Find(".mb-navigation-rail__context-trigger")
-                .TriggerEventAsync("oncontextmenu", new MouseEventArgs { Button = 2 });
+            return component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
         }
 
         private static INavigationRailItemProvider CreateNavigationRailItemProvider(

@@ -107,7 +107,6 @@ namespace Mycelium.Bloom.Components.Pages
             {
                 NavigationRailPresentationMode.Expanded => false,
                 NavigationRailPresentationMode.Collapsed => true,
-                NavigationRailPresentationMode.ExpandOnHover => true,
                 _ => throw CreateInvalidPresentationModeException(
                     this.NavigationViewModel.PresentationMode)
             };
@@ -192,12 +191,28 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Updates component-local shell width presentation from the rail's effective state.
+        /// Updates component-local shell width presentation from the rail's persistent layout state.
         /// </summary>
         /// <param name="isCollapsed">Whether the rail is currently presented as collapsed.</param>
-        private void HandleNavigationCollapsedChanged(bool isCollapsed)
+        private void HandleNavigationLayoutCollapsedChanged(bool isCollapsed)
         {
             this.isNavigationCollapsed = isCollapsed;
+        }
+
+        /// <summary>
+        /// Resets composition-owned placeholder numbering only after a successful close leaves the entire workspace empty.
+        /// </summary>
+        /// <param name="tab">The exact tab successfully closed by the editor workspace.</param>
+        private void HandleTabClosed(EditorTabItem tab)
+        {
+            ArgumentNullException.ThrowIfNull(tab);
+
+            if (!this.WorkspaceEditorViewModel.RenderState.Groups
+                .SelectMany(group => group.Tabs)
+                .Any())
+            {
+                this.nextPlaceholderTabNumber = 1;
+            }
         }
 
         /// <summary>

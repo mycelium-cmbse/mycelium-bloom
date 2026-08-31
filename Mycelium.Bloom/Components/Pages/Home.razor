@@ -44,12 +44,13 @@
 
         <LeftPanel>
             <NavigationRail ViewModel="this.NavigationViewModel"
-                            EffectiveCollapsedChanged="this.HandleNavigationCollapsedChanged" />
+                            LayoutCollapsedChanged="this.HandleNavigationLayoutCollapsedChanged" />
         </LeftPanel>
 
         <MainContent>
             <EditorWorkspace ViewModel="this.WorkspaceEditorViewModel"
                              InitialGroupWeights="this.initialGroupWeights"
+                             TabClosed="this.HandleTabClosed"
                              AriaLabel="Workspace editors">
                 <TabLeadingContent Context="tab">
                     @if (GetEditorTabIconName(tab) is { Length: > 0 } iconName)

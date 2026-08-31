@@ -112,9 +112,36 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
                         typeof(NavigationRailPresentationMode));
                 }
 
+                if (value == NavigationRailPresentationMode.Expanded
+                    && this.IsExpandOnHoverEnabled)
+                {
+                    this.IsExpandOnHoverEnabled = false;
+                }
+
                 this.RaiseAndSetIfChanged(ref field, value);
             }
         } = NavigationRailPresentationMode.Collapsed;
+
+        /// <inheritdoc />
+        public bool IsExpandOnHoverEnabled
+        {
+            get;
+            set
+            {
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                if (value
+                    && this.PresentationMode != NavigationRailPresentationMode.Collapsed)
+                {
+                    this.PresentationMode = NavigationRailPresentationMode.Collapsed;
+                }
+
+                this.RaiseAndSetIfChanged(ref field, value);
+            }
+        }
 
         /// <inheritdoc />
         public void Dispose()

@@ -417,7 +417,8 @@ namespace Mycelium.Bloom.Components.Pages
                 new FixedNavigationRailItemProvider(this.NavigationRailPreviewItems));
 
             this.NavigationRailPreviewViewModel.SelectedItem = this.NavigationRailPreviewItems.Single(item => item.Id == "structure");
-            this.NavigationRailPreviewViewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
+            this.NavigationRailPreviewViewModel.PresentationMode = NavigationRailPresentationMode.Collapsed;
+            this.NavigationRailPreviewViewModel.IsExpandOnHoverEnabled = true;
 
             base.OnInitialized();
         }

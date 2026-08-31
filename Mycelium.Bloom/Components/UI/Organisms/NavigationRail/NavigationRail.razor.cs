@@ -44,7 +44,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private bool isDisposed;
 
         /// <summary>
-        /// The effective collapse state most recently reported to the owning composition.
+        /// The persistent layout collapse state most recently reported to the owning composition.
         /// </summary>
         private bool? reportedCollapsedState;
 
@@ -62,13 +62,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// <summary>
         /// Gets a value indicating whether this component currently uses its icon-first presentation.
         /// </summary>
-        private bool IsCollapsed => this.RequiredViewModel.PresentationMode switch
+        private bool IsLayoutCollapsed => this.RequiredViewModel.PresentationMode switch
         {
             NavigationRailPresentationMode.Expanded => false,
             NavigationRailPresentationMode.Collapsed => true,
-            NavigationRailPresentationMode.ExpandOnHover => !this.isPointerOver,
             _ => throw CreateInvalidPresentationModeException(this.RequiredViewModel.PresentationMode)
         };
+
+        /// <summary>
+        /// Gets a value indicating whether this component temporarily expands over the editor workspace.
+        /// </summary>
+        private bool IsOverlayExpanded => this.IsLayoutCollapsed
+                                          && this.RequiredViewModel.IsExpandOnHoverEnabled
+                                          && this.isPointerOver;
+
+        /// <summary>
+        /// Gets a value indicating whether the rail stays in overlay positioning throughout hover mode.
+        /// </summary>
+        private bool IsHoverOverlayMode => this.IsLayoutCollapsed
+                                           && this.RequiredViewModel.IsExpandOnHoverEnabled;
+
+        /// <summary>
+        /// Gets a value indicating whether labels are hidden for the current visual presentation.
+        /// </summary>
+        private bool IsVisuallyCollapsed => this.IsLayoutCollapsed && !this.IsOverlayExpanded;
 
         /// <summary>
         /// Gets or sets the accessible label of the navigation region.
@@ -77,10 +94,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         public string AriaLabel { get; set; } = "Workspace navigation";
 
         /// <summary>
-        /// Gets or sets the callback invoked when fixed or transient presentation changes the rail's effective width.
+        /// Gets or sets the callback invoked when the persistent rail width reservation changes.
         /// </summary>
         [Parameter]
-        public EventCallback<bool> EffectiveCollapsedChanged { get; set; }
+        public EventCallback<bool> LayoutCollapsedChanged { get; set; }
 
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -89,12 +106,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
             if (this.isDisposed
                 || this.ViewModel is null
-                || !this.EffectiveCollapsedChanged.HasDelegate)
+                || !this.LayoutCollapsedChanged.HasDelegate)
             {
                 return;
             }
 
-            var isCollapsed = this.IsCollapsed;
+            var isCollapsed = this.IsLayoutCollapsed;
 
             if (this.reportedCollapsedState == isCollapsed)
             {
@@ -102,7 +119,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             }
 
             this.reportedCollapsedState = isCollapsed;
-            await this.EffectiveCollapsedChanged.InvokeAsync(isCollapsed);
+            await this.LayoutCollapsedChanged.InvokeAsync(isCollapsed);
         }
 
         /// <summary>
@@ -131,7 +148,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         {
             return this.BuildRootCssClass(
                 "mb-navigation-rail",
-                CssClassBuilder.When("mb-navigation-rail--collapsed", this.IsCollapsed));
+                CssClassBuilder.When("mb-navigation-rail--collapsed", this.IsVisuallyCollapsed),
+                CssClassBuilder.When("mb-navigation-rail--hover-overlay", this.IsHoverOverlayMode),
+                CssClassBuilder.When("mb-navigation-rail--overlay-expanded", this.IsOverlayExpanded));
         }
 
         /// <summary>
@@ -163,7 +182,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// <returns>The destination label when collapsed; otherwise, null.</returns>
         private string GetItemTitle(NavigationRailItem item)
         {
-            return this.IsCollapsed ? item.Label : null;
+            return this.IsVisuallyCollapsed ? item.Label : null;
         }
 
         /// <summary>
@@ -177,20 +196,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             {
                 NavigationRailPresentationMode.Expanded => "Expanded",
                 NavigationRailPresentationMode.Collapsed => "Collapsed",
-                NavigationRailPresentationMode.ExpandOnHover => "Expand on hover",
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
-        }
-
-        /// <summary>
-        /// Gets the accessible label and pointer hint for the sidebar-control button.
-        /// </summary>
-        /// <returns>The primary toggle action and context-menu hint.</returns>
-        private string GetSidebarControlLabel()
-        {
-            var action = this.IsCollapsed ? "Expand" : "Collapse";
-
-            return $"{action} workspace navigation; right-click for sidebar controls";
         }
 
         /// <summary>
@@ -232,33 +239,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         }
 
         /// <summary>
-        /// Switches the persistent presentation between expanded and collapsed.
-        /// </summary>
-        private void TogglePresentation()
-        {
-            this.RequiredViewModel.PresentationMode = this.IsCollapsed
-                ? NavigationRailPresentationMode.Expanded
-                : NavigationRailPresentationMode.Collapsed;
-        }
-
-        /// <summary>
-        /// Applies the primary sidebar-control action without opening its secondary menu.
-        /// </summary>
-        private void HandleSidebarControlPrimaryClick()
-        {
-            this.TogglePresentation();
-            this.isSidebarControlMenuOpen = false;
-        }
-
-        /// <summary>
-        /// Opens the trigger-anchored sidebar control menu for a context-menu request.
-        /// </summary>
-        private void HandleSidebarControlMenuRequested()
-        {
-            this.isSidebarControlMenuOpen = true;
-        }
-
-        /// <summary>
         /// Reconciles menu dismissal and keyboard-open requests from Blueprint.
         /// </summary>
         /// <param name="isOpen">Whether the sidebar control menu should be open.</param>
@@ -274,6 +254,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private void SetPresentationMode(NavigationRailPresentationMode mode)
         {
             this.RequiredViewModel.PresentationMode = mode;
+            this.isSidebarControlMenuOpen = false;
+        }
+
+        /// <summary>
+        /// Sets the independent preference that temporarily expands a collapsed rail while it is hovered.
+        /// </summary>
+        /// <param name="isEnabled">Whether hover expansion should be enabled.</param>
+        private void SetExpandOnHoverEnabled(bool isEnabled)
+        {
+            this.RequiredViewModel.IsExpandOnHoverEnabled = isEnabled;
+
+            if (isEnabled)
+            {
+                this.isPointerOver = false;
+            }
+
+            this.isSidebarControlMenuOpen = false;
         }
 
         /// <summary>

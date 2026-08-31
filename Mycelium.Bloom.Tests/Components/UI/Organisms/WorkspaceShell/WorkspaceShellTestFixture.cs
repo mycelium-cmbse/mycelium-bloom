@@ -329,6 +329,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
             var fullApplicationRegionsRule = GetStyleRule(
                 style,
                 ".mb-workspace-shell--full-application .mb-workspace-shell__header,");
+            var fullApplicationLeftPanelRule = GetStyleRule(
+                style,
+                ".mb-workspace-shell--full-application .mb-workspace-shell__left-panel {");
 
             using (Assert.EnterMultipleScope())
             {
@@ -345,6 +348,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 Assert.That(collapsedRule,
                     Does.Contain("--mb-workspace-left-panel-width: var(--mb-workspace-left-panel-collapsed-width);"));
                 Assert.That(fullApplicationRegionsRule, Does.Contain("overflow: hidden;"));
+                Assert.That(fullApplicationLeftPanelRule, Does.Contain("position: relative;"));
+                Assert.That(fullApplicationLeftPanelRule, Does.Contain("z-index: 7;"));
+                Assert.That(fullApplicationLeftPanelRule, Does.Contain("overflow: visible;"));
                 Assert.That(style, Does.Match(
                     @"(?s)@supports\s*\(interpolate-size:\s*allow-keywords\)\s*\{\s*\.mb-workspace-shell__left-panel\s*\{[^}]*interpolate-size:\s*allow-keywords;"));
                 Assert.That(style, Does.Contain("@media (prefers-reduced-motion: reduce)"));

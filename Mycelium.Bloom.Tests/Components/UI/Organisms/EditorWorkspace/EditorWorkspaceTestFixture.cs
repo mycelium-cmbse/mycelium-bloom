@@ -78,6 +78,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
         private const string GroupDropSurfaceSelector =
             "[data-testid='editor-workspace-group-drop-surface']";
 
+        private const string TabSplitDropTargetSelector =
+            "[data-testid='editor-workspace-tab-split-drop-zone']";
+
+        private const string TabSplitDockingSurfaceSelector =
+            "[data-testid='editor-workspace-tab-split-docking-surface']";
+
         private const string TabPanelSelector = "[data-testid='editor-workspace-tabpanel']";
 
         private static readonly string[] ExpectedDuplicateCompactSwitcherTitles =
@@ -312,6 +318,44 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                         @"(?s)\.mb-editor-workspace__tab-drop-marker--active\s*\{[^}]*opacity:\s*1;[^}]*transform:\s*scaleX\(1\);"));
                 Assert.That(style, Does.Contain("mb-editor-workspace__split-add-host"));
                 Assert.That(style, Does.Contain("mb-editor-workspace__right-edge-split-add-host"));
+                Assert.That(style, Does.Contain("--mb-editor-split-add-visible-size: clamp(32px, 2cqi, 40px);"));
+                Assert.That(style, Does.Contain("--mb-editor-split-add-hit-size: clamp(48px, 3cqi, 64px);"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-docking-surface\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*4;[^}]*top:\s*0;[^}]*right:\s*50%;[^}]*bottom:\s*0;[^}]*left:\s*0;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*5;[^}]*top:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*50%;[^}]*border-left:\s*var\(--mb-border-width-sm\)\s+solid\s+var\(--mb-color-border-selected\);[^}]*pointer-events:\s*none;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target--available\s*\{[^}]*pointer-events:\s*auto;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target--active\s*\{[^}]*opacity:\s*1;"));
+                Assert.That(
+                    style,
+                    Does.Not.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*\btransform\s*:"));
+                Assert.That(
+                    style,
+                    Does.Not.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*transition\s*:[^}]*\btransform\b"));
+                Assert.That(
+                    style,
+                    Does.Not.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target--active\s*\{[^}]*\btransform\s*:"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-docking-plus\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;[^}]*pointer-events:\s*none;"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)@keyframes\s+mb-editor-split-drop-confirm\s*\{.*?transform:\s*scale\(0\.88\);.*?transform:\s*scale\(1\.1\);.*?transform:\s*scale\(1\);"));
             }
         }
 
@@ -613,6 +657,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
             var tabItemOpeningTag = razor
                 .Split("<div @key=\"tab.Id\"", StringSplitOptions.None)[1];
             tabItemOpeningTag = tabItemOpeningTag[..tabItemOpeningTag.IndexOf('>')];
+            var splitDropTargetTail = razor
+                .Split("data-testid=\"editor-workspace-tab-split-drop-zone\"", StringSplitOptions.None)[1];
+            splitDropTargetTail = splitDropTargetTail[..splitDropTargetTail.IndexOf("</div>", StringComparison.Ordinal)];
 
             using (Assert.EnterMultipleScope())
             {
@@ -635,6 +682,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(groupSurfaceTail, Does.Contain("@ondrop:stopPropagation"));
                 Assert.That(groupSurfaceTail, Does.Not.Contain("tabindex"));
                 Assert.That(tabItemOpeningTag, Does.Contain("@ondrop:stopPropagation"));
+                Assert.That(splitDropTargetTail, Does.Contain("@ondragover:preventDefault"));
+                Assert.That(splitDropTargetTail, Does.Contain("@ondragover:stopPropagation"));
+                Assert.That(splitDropTargetTail, Does.Contain("@ondrop=\"this.DropTabToNewGroup\""));
+                Assert.That(splitDropTargetTail, Does.Contain("@ondrop:preventDefault"));
+                Assert.That(splitDropTargetTail, Does.Contain("@ondrop:stopPropagation"));
+                Assert.That(splitDropTargetTail, Does.Not.Contain("@ondragleave"));
             }
         }
 
@@ -1460,6 +1513,218 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
         }
 
         [Test]
+        public async Task VerifyContentSideTabDragCreatesAndMovesToNewGroupAtomically()
+        {
+            var state = CreateViewModel();
+            var sourceGroup = state.Groups[0];
+            var retainedTab = OpenTab(state, sourceGroup, "A", "a");
+            var movedTab = OpenTab(state, sourceGroup, "B", "b");
+            var viewModel = CreateConsumerMock(state);
+
+            using var component = this.RenderWorkspace(viewModel.Object);
+
+            Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
+            Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+
+            await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
+                .TriggerEventAsync("ondragstart", new DragEventArgs());
+            var dockingSurface = component.Find(TabSplitDockingSurfaceSelectorFor(sourceGroup.Id));
+            var dropTarget = component.Find(TabSplitDropTargetSelectorFor(sourceGroup.Id));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dockingSurface.GetAttribute("role"), Is.EqualTo("presentation"));
+                Assert.That(dockingSurface.GetAttribute("aria-hidden"), Is.EqualTo("true"));
+                Assert.That(dockingSurface.GetAttribute("tabindex"), Is.Null);
+                Assert.That(dropTarget.GetAttribute("role"), Is.EqualTo("presentation"));
+                Assert.That(dropTarget.GetAttribute("aria-hidden"), Is.EqualTo("true"));
+                Assert.That(dropTarget.GetAttribute("tabindex"), Is.Null);
+                Assert.That(dropTarget.ClassList,
+                    Does.Not.Contain("mb-editor-workspace__tab-split-drop-target--active"));
+                Assert.That(dropTarget.ClassList,
+                    Does.Contain("mb-editor-workspace__tab-split-drop-target--available"));
+                Assert.That(dropTarget.QuerySelectorAll(".mb-editor-workspace__tab-split-docking-plus"), Has.Count.EqualTo(1));
+            }
+
+            await dockingSurface.TriggerEventAsync("ondragenter", new DragEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(TabSplitDropTargetSelectorFor(sourceGroup.Id)).ClassList,
+                        Does.Contain("mb-editor-workspace__tab-split-drop-target--active"));
+                }
+            });
+
+            await dropTarget.TriggerEventAsync("ondrop", new DragEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var newGroup = state.Groups[1];
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(state.Groups, Is.EqualTo(new[] { sourceGroup, newGroup }));
+                    Assert.That(sourceGroup.Tabs.Single(), Is.SameAs(retainedTab));
+                    Assert.That(newGroup.Tabs.Single(), Is.SameAs(movedTab));
+                    Assert.That(newGroup.ActiveTab, Is.SameAs(movedTab));
+                    Assert.That(state.FocusedGroup, Is.SameAs(newGroup));
+                    Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
+                    Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+                }
+            });
+
+            viewModel.Verify(
+                x => x.TryMoveTabToNewGroup(
+                    sourceGroup.Id,
+                    movedTab.Id,
+                    sourceGroup.Id,
+                    out It.Ref<EditorGroupViewModel>.IsAny),
+                Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyContentSplitOverlayAppearsImmediatelyAndLeftHalfDoesNotSplit()
+        {
+            var state = CreateViewModel();
+            var sourceGroup = state.Groups[0];
+            var retainedTab = OpenTab(state, sourceGroup, "A", "a");
+            var movedTab = OpenTab(state, sourceGroup, "B", "b");
+
+            using var component = this.RenderWorkspace(state);
+            await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
+                .TriggerEventAsync("ondragstart", new DragEventArgs());
+            var dockingSurface = component.Find(TabSplitDockingSurfaceSelectorFor(sourceGroup.Id));
+
+            await dockingSurface.TriggerEventAsync("ondragenter", new DragEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(component.Find(TabSplitDropTargetSelectorFor(sourceGroup.Id)).ClassList,
+                    Does.Contain("mb-editor-workspace__tab-split-drop-target--active")));
+
+            await dockingSurface.TriggerEventAsync("ondrop", new DragEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(state.Groups, Is.EqualTo(new[] { sourceGroup }));
+                    Assert.That(sourceGroup.Tabs, Is.EqualTo(new[] { retainedTab, movedTab }));
+                    Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+                    Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifyContentSideCrossGroupSplitHalvesTargetWeightAndPreservesRetainedRatios()
+        {
+            var state = CreateViewModel(maximumGroupCount: 4);
+            var sourceGroup = state.Groups[0];
+            var movedTab = OpenTab(state, sourceGroup, "A", "a");
+            var splitAfterGroup = AddGroup(state);
+            OpenTab(state, splitAfterGroup, "B", "b");
+            var unrelatedGroup = AddGroup(state);
+            OpenTab(state, unrelatedGroup, "C", "c");
+
+            using var component = this.Render<EditorWorkspaceComponent>(parameters => parameters
+                .Add(workspace => workspace.ViewModel, state)
+                .Add(workspace => workspace.EditorContent, CreateContent())
+                .Add(workspace => workspace.InitialGroupWeights, new Dictionary<Guid, double>
+                {
+                    [sourceGroup.Id] = 0.2d,
+                    [splitAfterGroup.Id] = 0.3d,
+                    [unrelatedGroup.Id] = 0.5d
+                }));
+
+            await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
+                .TriggerEventAsync("ondragstart", new DragEventArgs());
+            await component.Find(TabSplitDockingSurfaceSelectorFor(splitAfterGroup.Id))
+                .TriggerEventAsync("ondragenter", new DragEventArgs());
+            await component.Find(TabSplitDropTargetSelectorFor(splitAfterGroup.Id))
+                .TriggerEventAsync("ondrop", new DragEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var newGroup = state.Groups[1];
+                var weights = GetRenderedWeights(component);
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(state.Groups, Is.EqualTo(new[] { splitAfterGroup, newGroup, unrelatedGroup }));
+                    Assert.That(newGroup.Tabs.Single(), Is.SameAs(movedTab));
+                    Assert.That(weights[splitAfterGroup.Id], Is.EqualTo(0.1875d).Within(1e-9));
+                    Assert.That(weights[newGroup.Id], Is.EqualTo(0.1875d).Within(1e-9));
+                    Assert.That(weights[unrelatedGroup.Id], Is.EqualTo(0.625d).Within(1e-9));
+                    Assert.That(weights.Values.Sum(), Is.EqualTo(1d).Within(1e-9));
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifyContentSideTabDragPreviewPersistsUntilDragEndAndIsUnavailableForInvalidSplits()
+        {
+            var state = CreateViewModel(maximumGroupCount: 3);
+            var sourceGroup = state.Groups[0];
+            OpenTab(state, sourceGroup, "A", "a");
+            var movedTab = OpenTab(state, sourceGroup, "B", "b");
+            var destinationGroup = AddGroup(state);
+            OpenTab(state, destinationGroup, "C", "c");
+
+            using var component = this.RenderWorkspace(state);
+            await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
+                .TriggerEventAsync("ondragstart", new DragEventArgs());
+            await component.Find(TabSplitDockingSurfaceSelectorFor(sourceGroup.Id))
+                .TriggerEventAsync("ondragenter", new DragEventArgs());
+            await component.Find(TabSplitDockingSurfaceSelectorFor(destinationGroup.Id))
+                .TriggerEventAsync("ondragenter", new DragEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(TabSplitDropTargetSelector + ".mb-editor-workspace__tab-split-drop-target--active"),
+                    Has.Count.EqualTo(1));
+                Assert.That(component.Find(TabSplitDropTargetSelectorFor(destinationGroup.Id)).ClassList,
+                    Does.Contain("mb-editor-workspace__tab-split-drop-target--active"));
+            }
+
+            Assert.That(component.Find(TabSplitDropTargetSelectorFor(destinationGroup.Id)).ClassList,
+                Does.Contain("mb-editor-workspace__tab-split-drop-target--active"));
+
+            await component.Find(TabSelectorFor(sourceGroup.Id, movedTab.Id))
+                .TriggerEventAsync("ondragend", new DragEventArgs());
+            Assert.That(component.FindAll(TabSplitDropTargetSelector), Is.Empty);
+            Assert.That(component.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+
+            using var soleTabState = CreateViewModel();
+            var soleTabGroup = soleTabState.Groups[0];
+            var soleTab = OpenTab(soleTabState, soleTabGroup, "Only", "only");
+            using var soleTabComponent = this.RenderWorkspace(soleTabState);
+            await soleTabComponent.Find(TabSelectorFor(soleTabGroup.Id, soleTab.Id))
+                .TriggerEventAsync("ondragstart", new DragEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(soleTabComponent.FindAll(TabSplitDropTargetSelector), Is.Empty);
+                Assert.That(soleTabComponent.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+            }
+
+            using var maximumState = CreateViewModel(maximumGroupCount: 2);
+            var maximumSourceGroup = maximumState.Groups[0];
+            var maximumDraggedTab = OpenTab(maximumState, maximumSourceGroup, "A", "a");
+            AddGroup(maximumState);
+            using var maximumComponent = this.RenderWorkspace(maximumState);
+            await maximumComponent.Find(TabSelectorFor(maximumSourceGroup.Id, maximumDraggedTab.Id))
+                .TriggerEventAsync("ondragstart", new DragEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(maximumComponent.FindAll(TabSplitDropTargetSelector), Is.Empty);
+                Assert.That(maximumComponent.FindAll(TabSplitDockingSurfaceSelector), Is.Empty);
+            }
+        }
+
+        [Test]
         public void VerifySplitActionsAreOmittedAtMaximumGroupCount()
         {
             var state = CreateViewModel(2);
@@ -1923,6 +2188,28 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                     Assert.That(focusHandler.Invocations, Has.Count.EqualTo(1));
                     Assert.That(focusHandler.Invocations["focusElementById"][0].Arguments[0],
                         Is.EqualTo(groupElementId));
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifySuccessfulCloseNotifiesTheCallerWithTheExactCanonicalTab()
+        {
+            var state = CreateViewModel();
+            var group = state.Groups[0];
+            var closedTab = OpenTab(state, group, "Close", "close-view");
+            EditorTabItem callbackTab = null;
+            var callback = EventCallback.Factory.Create<EditorTabItem>(this, tab => callbackTab = tab);
+
+            using var component = this.RenderWorkspace(state, tabClosed: callback);
+            await component.Find(CloseSelectorFor(group.Id, closedTab.Id)).ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(group.Tabs, Is.Empty);
+                    Assert.That(callbackTab, Is.SameAs(closedTab));
                 }
             });
         }
@@ -2443,6 +2730,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                     out It.Ref<EditorGroupViewModel>.IsAny))
                 .Returns((Guid groupId, out EditorGroupViewModel group) =>
                     state.TrySplitGroup(groupId, out group));
+            viewModel.Setup(x => x.TryMoveTabToNewGroup(
+                    It.IsAny<Guid>(),
+                    It.IsAny<Guid>(),
+                    It.IsAny<Guid>(),
+                    out It.Ref<EditorGroupViewModel>.IsAny))
+                .Returns((
+                    Guid sourceGroupId,
+                    Guid tabId,
+                    Guid splitAfterGroupId,
+                    out EditorGroupViewModel group) => state.TryMoveTabToNewGroup(
+                    sourceGroupId,
+                    tabId,
+                    splitAfterGroupId,
+                    out group));
             viewModel.Setup(x => x.MoveTab(
                     It.IsAny<Guid>(),
                     It.IsAny<Guid>(),
@@ -2521,14 +2822,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
             RenderFragment<EditorTabItem> editorContent = null,
             EventCallback<Guid> addTabRequested = default,
             RenderFragment<Guid> addTabControl = null,
-            RenderFragment<EditorTabItem> tabLeadingContent = null)
+            RenderFragment<EditorTabItem> tabLeadingContent = null,
+            EventCallback<EditorTabItem> tabClosed = default)
         {
             return this.Render<EditorWorkspaceComponent>(parameters => parameters
                 .Add(workspace => workspace.ViewModel, viewModel)
                 .Add(workspace => workspace.EditorContent, editorContent ?? CreateContent())
                 .Add(workspace => workspace.AddTabRequested, addTabRequested)
                 .Add(workspace => workspace.AddTabControl, addTabControl)
-                .Add(workspace => workspace.TabLeadingContent, tabLeadingContent));
+                .Add(workspace => workspace.TabLeadingContent, tabLeadingContent)
+                .Add(workspace => workspace.TabClosed, tabClosed));
         }
 
         private static string GroupSelectorFor(Guid groupId)
@@ -2566,5 +2869,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
         {
             return $"{GroupDropSurfaceSelector}[data-group-id='{groupId}']";
         }
+
+        private static string TabSplitDropTargetSelectorFor(Guid groupId)
+        {
+            return $"{TabSplitDropTargetSelector}[data-group-id='{groupId}']";
+        }
+
+        private static string TabSplitDockingSurfaceSelectorFor(Guid groupId)
+        {
+            return $"{TabSplitDockingSurfaceSelector}[data-group-id='{groupId}']";
+        }
+
     }
 }

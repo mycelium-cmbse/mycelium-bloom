@@ -282,15 +282,76 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var changedProperties = new List<string>();
             viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
 
-            viewModel.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
+            viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             var exception = Assert.Throws<InvalidEnumArgumentException>(() =>
                 viewModel.PresentationMode = (NavigationRailPresentationMode)999);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.ExpandOnHover));
-                Assert.That(changedProperties, Is.EqualTo(new[] { nameof(viewModel.PresentationMode) }));
+                Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
+                Assert.That(changedProperties, Is.EqualTo(new[]
+                {
+                    nameof(viewModel.PresentationMode)
+                }));
                 Assert.That(exception.ParamName, Is.EqualTo("value"));
+            }
+        }
+
+        [Test]
+        public void VerifyEnablingHoverPreferenceCollapsesAnExpandedPresentation()
+        {
+            var contextService = CreateContextService(ProjectLifecycleState.Preparation);
+            using var viewModel = new NavigationRailViewModel(
+                contextService,
+                CreateNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
+
+            viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
+            viewModel.IsExpandOnHoverEnabled = true;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                Assert.That(viewModel.IsExpandOnHoverEnabled, Is.True);
+            }
+        }
+
+        [Test]
+        public void VerifySelectingExpandedPresentationDisablesHoverPreference()
+        {
+            var contextService = CreateContextService(ProjectLifecycleState.Preparation);
+            using var viewModel = new NavigationRailViewModel(
+                contextService,
+                CreateNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
+
+            viewModel.IsExpandOnHoverEnabled = true;
+            viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
+            }
+        }
+
+        [Test]
+        public void VerifyDisablingHoverPreferenceRetainsCollapsedPresentation()
+        {
+            var contextService = CreateContextService(ProjectLifecycleState.Preparation);
+            using var viewModel = new NavigationRailViewModel(
+                contextService,
+                CreateNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
+
+            viewModel.IsExpandOnHoverEnabled = true;
+            viewModel.IsExpandOnHoverEnabled = false;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
             }
         }
 
@@ -309,7 +370,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                     static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
             first.SelectedItem = Review;
-            first.PresentationMode = NavigationRailPresentationMode.Expanded;
+            first.IsExpandOnHoverEnabled = true;
             firstContextService.LifecycleState = ProjectLifecycleState.Open;
 
             using (Assert.EnterMultipleScope())
@@ -319,8 +380,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 Assert.That(second.NavigationItems, Is.EqualTo(ReviewItems));
                 Assert.That(first.SelectedItem, Is.SameAs(OpenReview));
                 Assert.That(second.SelectedItem, Is.SameAs(Activity));
-                Assert.That(first.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                Assert.That(first.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
                 Assert.That(second.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                Assert.That(first.IsExpandOnHoverEnabled, Is.True);
+                Assert.That(second.IsExpandOnHoverEnabled, Is.False);
             }
         }
 
@@ -344,6 +407,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 Assert.That(viewModel.NavigationItems, Is.EqualTo(PreparationItems));
                 Assert.That(viewModel.SelectedItem, Is.SameAs(Overview));
                 Assert.That(viewModel.PresentationMode, Is.EqualTo(NavigationRailPresentationMode.Collapsed));
+                Assert.That(viewModel.IsExpandOnHoverEnabled, Is.False);
             }
         }
 

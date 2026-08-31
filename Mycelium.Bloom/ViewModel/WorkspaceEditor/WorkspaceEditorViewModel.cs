@@ -186,6 +186,50 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         }
 
         /// <inheritdoc />
+        public bool TryMoveTabToNewGroup(
+            Guid sourceGroupId,
+            Guid tabId,
+            Guid splitAfterGroupId,
+            out EditorGroupViewModel group)
+        {
+            EditorGroupViewModel createdGroup = null;
+
+            var moved = this.ExecuteMutation(() =>
+            {
+                if (this.groups.Count >= this.MaximumGroupCount
+                    || !this.TryGetGroup(sourceGroupId, out var sourceGroup)
+                    || !this.TryGetGroup(splitAfterGroupId, out var splitAfterGroup)
+                    || !sourceGroup.TryGetTab(tabId, out _)
+                    || (ReferenceEquals(sourceGroup, splitAfterGroup) && sourceGroup.Tabs.Count == 1))
+                {
+                    return false;
+                }
+
+                if (!sourceGroup.TryRemoveTab(tabId, out var movedTab))
+                {
+                    return false;
+                }
+
+                createdGroup = new EditorGroupViewModel();
+                var insertionIndex = this.groups.IndexOf(splitAfterGroup) + 1;
+                this.groups.Insert(insertionIndex, createdGroup);
+                createdGroup.AddTab(movedTab);
+                this.FocusedGroup = createdGroup;
+
+                if (sourceGroup.Tabs.Count == 0)
+                {
+                    this.RemoveEmptyGroup(sourceGroup);
+                }
+
+                return true;
+            });
+
+            group = createdGroup;
+
+            return moved;
+        }
+
+        /// <inheritdoc />
         public bool TryOpenTab(
             Guid groupId,
             string title,

@@ -111,6 +111,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         private TabDropTarget tabDropTarget;
 
         /// <summary>
+        /// The proposed right-side group split presented during one native tab drag session.
+        /// </summary>
+        private TabSplitDropTarget tabSplitDropTarget;
+
+        /// <summary>
         /// The DOM element to focus after the next completed render.
         /// </summary>
         private string pendingFocusElementId;
@@ -170,6 +175,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         [Parameter]
         public EventCallback<Guid> AddTabRequested { get; set; }
+
+        /// <summary>
+        /// Gets or sets the callback invoked after a tab was successfully closed by the durable workspace owner.
+        /// </summary>
+        [Parameter]
+        public EventCallback<EditorTabItem> TabClosed { get; set; }
 
         /// <summary>
         /// Gets or sets the accessible label of the workspace region.
@@ -585,6 +596,33 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         }
 
         /// <summary>
+        /// Determines whether one group's content-side split target should participate in the active drag session.
+        /// </summary>
+        /// <param name="group">The group whose right content edge would become the split boundary.</param>
+        /// <returns><see langword="true" /> when the group can accept a meaningful tab-to-new-group drop.</returns>
+        private bool CanPresentTabSplitDropTarget(WorkspaceEditorGroupRenderState group)
+        {
+            return this.IsStructurallyValidTabSplitDropTarget(group.Id);
+        }
+
+        /// <summary>
+        /// Gets the CSS classes for one presented right-half split preview and drop target.
+        /// </summary>
+        /// <param name="group">The group whose content-side docking target is represented.</param>
+        /// <returns>The content-side docking target CSS classes.</returns>
+        private string GetTabSplitDropTargetCssClass(WorkspaceEditorGroupRenderState group)
+        {
+            return CssClassBuilder.Build(
+                "mb-editor-workspace__tab-split-drop-target",
+                CssClassBuilder.When(
+                    "mb-editor-workspace__tab-split-drop-target--available",
+                    this.CanPresentTabSplitDropTarget(group)),
+                CssClassBuilder.When(
+                    "mb-editor-workspace__tab-split-drop-target--active",
+                    this.tabSplitDropTarget?.SplitAfterGroupId == group.Id));
+        }
+
+        /// <summary>
         /// Gets the CSS classes applied to a compact group button.
         /// </summary>
         /// <param name="group">The represented group.</param>
@@ -880,13 +918,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// </summary>
         /// <param name="group">The owning group.</param>
         /// <param name="tab">The tab to close.</param>
-        private void CloseTab(WorkspaceEditorGroupRenderState group, WorkspaceEditorTabRenderState tab)
+        private async Task CloseTabAsync(
+            WorkspaceEditorGroupRenderState group,
+            WorkspaceEditorTabRenderState tab)
         {
             _ = this.ViewModel.FocusGroup(group.Id);
 
             if (this.ViewModel.CloseTab(group.Id, tab.Id))
             {
                 this.QueueFocusForGroup(GetFocusedGroup(this.ViewModel.RenderState));
+                await this.TabClosed.InvokeAsync(tab.Item);
             }
         }
 
@@ -941,6 +982,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         {
             this.tabDragState = new TabDragState(group.Id, tab.Id);
             this.tabDropTarget = null;
+            this.tabSplitDropTarget = null;
         }
 
         /// <summary>
@@ -955,6 +997,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 : null;
 
             this.tabDropTarget = dropTarget;
+            this.tabSplitDropTarget = null;
+        }
+
+        /// <summary>
+        /// Presents the full right-half group split preview for an eligible editor content area.
+        /// </summary>
+        /// <param name="splitAfterGroupId">The group on the left side of the proposed new boundary.</param>
+        private void PresentTabSplitDropTarget(Guid splitAfterGroupId)
+        {
+            if (!this.IsStructurallyValidTabSplitDropTarget(splitAfterGroupId))
+            {
+                this.tabSplitDropTarget = null;
+                return;
+            }
+
+            this.tabSplitDropTarget = new TabSplitDropTarget(splitAfterGroupId);
+            this.tabDropTarget = null;
         }
 
         /// <summary>
@@ -978,6 +1037,35 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                         dragState.TabId,
                         dropTarget.DestinationGroupId,
                         dropTarget.BeforeTabId);
+                }
+            }
+            finally
+            {
+                this.ClearTabDragState();
+            }
+        }
+
+        /// <summary>
+        /// Atomically creates one group at the presented right-side boundary and transfers the dragged canonical tab.
+        /// </summary>
+        private void DropTabToNewGroup()
+        {
+            var dragState = this.tabDragState;
+            var splitDropTarget = this.tabSplitDropTarget;
+
+            try
+            {
+                if (dragState is not null
+                    && splitDropTarget is not null
+                    && this.ViewModel.TryMoveTabToNewGroup(
+                        dragState.SourceGroupId,
+                        dragState.TabId,
+                        splitDropTarget.SplitAfterGroupId,
+                        out var group))
+                {
+                    this.ReconcileRenderState(this.ViewModel.RenderState);
+                    this.QueueFocusForGroup(
+                        this.ViewModel.RenderState.Groups.FirstOrDefault(candidate => candidate.Id == group.Id));
                 }
             }
             finally
@@ -1026,6 +1114,28 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
             }
 
             return beforeTabId is null || destinationAnchorIndex < destinationGroup.Tabs.Length;
+        }
+
+        /// <summary>
+        /// Determines whether the active drag can meaningfully create a group after the supplied group.
+        /// </summary>
+        /// <param name="splitAfterGroupId">The group on the left side of the proposed boundary.</param>
+        /// <returns><see langword="true" /> when the proposal is valid for the current canonical snapshot.</returns>
+        private bool IsStructurallyValidTabSplitDropTarget(Guid splitAfterGroupId)
+        {
+            if (this.tabDragState is not { } dragState
+                || this.presentedRenderState is not { } renderState
+                || renderState.Groups.Length >= this.ViewModel.MaximumGroupCount)
+            {
+                return false;
+            }
+
+            var sourceGroup = renderState.Groups.FirstOrDefault(group => group.Id == dragState.SourceGroupId);
+            var splitAfterGroup = renderState.Groups.FirstOrDefault(group => group.Id == splitAfterGroupId);
+
+            return FindTabIndex(sourceGroup, dragState.TabId) >= 0
+                   && splitAfterGroup is not null
+                   && (sourceGroup.Id != splitAfterGroup.Id || sourceGroup.Tabs.Length > 1);
         }
 
         /// <summary>
@@ -1115,6 +1225,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         {
             this.tabDragState = null;
             this.tabDropTarget = null;
+            this.tabSplitDropTarget = null;
         }
 
         /// <summary>
@@ -1691,21 +1802,22 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 .Where(group => !this.groupWeights.ContainsKey(group.Id))
                 .ToArray();
 
-            if (newGroups.Length == 1
-                && renderState.Groups.Length == previousGroupIds.Length + 1)
+            if (newGroups.Length == 1)
             {
                 var newGroup = newGroups[0];
                 var newGroupIndex = FindGroupIndex(renderState, newGroup.Id);
                 var retainedOrder = renderState.Groups
                     .Where(group => group.Id != newGroup.Id)
                     .Select(group => group.Id);
+                var retainedPreviousOrder = previousGroupIds
+                    .Where(currentIds.Contains);
 
                 if (newGroupIndex > 0
-                    && retainedOrder.SequenceEqual(previousGroupIds)
-                    && this.groupWeights.TryGetValue(
-                        renderState.Groups[newGroupIndex - 1].Id,
-                        out var leftGroupWeight))
+                    && retainedOrder.SequenceEqual(retainedPreviousOrder)
+                    && this.groupWeights.ContainsKey(renderState.Groups[newGroupIndex - 1].Id))
                 {
+                    this.NormalizeWeights();
+                    var leftGroupWeight = this.groupWeights[renderState.Groups[newGroupIndex - 1].Id];
                     var splitWeight = leftGroupWeight / 2d;
                     this.groupWeights[renderState.Groups[newGroupIndex - 1].Id] = splitWeight;
                     this.groupWeights[newGroup.Id] = splitWeight;
@@ -1843,6 +1955,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <param name="DestinationGroupId">The canonical destination group identity.</param>
         /// <param name="BeforeTabId">The destination anchor, or null to append.</param>
         private sealed record TabDropTarget(Guid DestinationGroupId, Guid? BeforeTabId);
+
+        /// <summary>
+        /// Identifies the left-side group of one proposed tab-to-new-group split.
+        /// </summary>
+        /// <param name="SplitAfterGroupId">The group immediately preceding the proposed new group.</param>
+        private sealed record TabSplitDropTarget(Guid SplitAfterGroupId);
 
         /// <summary>
         /// Captures the immutable baseline used throughout one pointer resize.

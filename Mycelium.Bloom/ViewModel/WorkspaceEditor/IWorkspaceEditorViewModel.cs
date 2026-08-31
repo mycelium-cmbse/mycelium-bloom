@@ -64,6 +64,26 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
         bool TrySplitGroup(Guid groupId, out EditorGroupViewModel group);
 
         /// <summary>
+        /// Attempts to create a group immediately after an existing group and transfer one canonical tab into it.
+        /// </summary>
+        /// <param name="sourceGroupId">The identity of the group expected to own the tab.</param>
+        /// <param name="tabId">The identity of the tab to transfer.</param>
+        /// <param name="splitAfterGroupId">The identity of the group on the left side of the new boundary.</param>
+        /// <param name="group">
+        /// The created group when the source tab and split boundary are valid and the group limit permits creation;
+        /// otherwise, <see langword="null" />.
+        /// </param>
+        /// <returns>
+        /// <see langword="true" /> when one new group was created and received the exact source tab; otherwise,
+        /// <see langword="false" />.
+        /// </returns>
+        bool TryMoveTabToNewGroup(
+            Guid sourceGroupId,
+            Guid tabId,
+            Guid splitAfterGroupId,
+            out EditorGroupViewModel group);
+
+        /// <summary>
         /// Attempts to create, append, activate, and focus a tab in an existing editor group.
         /// </summary>
         /// <param name="groupId">The identity of the group that will own the tab.</param>

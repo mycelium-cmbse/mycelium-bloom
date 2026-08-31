@@ -5,6 +5,7 @@
     --mb-navigation-rail-divider-height: 22px;
     --mb-navigation-rail-divider-width: var(--mb-spacing-6);
     --mb-navigation-rail-collapse-size: 32px;
+    --mb-navigation-rail-collapsed-width: 52px;
     --mb-navigation-rail-scrollbar-size: 6px;
     --mb-navigation-rail-scrollbar-thumb: color-mix(
         in srgb,
@@ -36,6 +37,22 @@
     border-right: 1px solid var(--mb-color-border-subtle);
     background: var(--mb-color-background);
     color: var(--mb-color-text-muted);
+}
+
+.mb-navigation-rail--collapsed {
+    width: var(--mb-navigation-rail-collapsed-width);
+}
+
+.mb-navigation-rail--hover-overlay {
+    position: absolute;
+    z-index: 2;
+    inset: 0 auto 0 0;
+    width: max-content;
+    max-width: calc(100vw - var(--mb-spacing-4));
+}
+
+.mb-navigation-rail--overlay-expanded {
+    box-shadow: 2px 0 8px color-mix(in srgb, var(--mb-color-text-muted) 20%, transparent);
 }
 
 .mb-navigation-rail__items {
@@ -356,6 +373,10 @@
         interpolate-size: allow-keywords;
     }
 
+    .mb-navigation-rail:not(.mb-navigation-rail--hover-overlay) {
+        transition: width var(--mb-transition-fast);
+    }
+
     .mb-navigation-rail ::deep .mb-navigation-rail__link {
         transition:
             background-color var(--mb-transition-fast),
@@ -385,6 +406,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .mb-navigation-rail,
     .mb-navigation-rail ::deep .mb-navigation-rail__link,
     .mb-navigation-rail ::deep .mb-navigation-rail__link::before,
     .mb-navigation-rail__label {

@@ -23,6 +23,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
+    using Microsoft.AspNetCore.Components.Web;
 
     using Moq;
 
@@ -127,6 +128,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(editorWorkspace.Instance.ViewModel, Is.SameAs(composition.Editor));
                 Assert.That(editorWorkspace.Instance.AddTabControl, Is.Not.Null);
                 Assert.That(editorWorkspace.Instance.AddTabRequested.HasDelegate, Is.False);
+                Assert.That(editorWorkspace.Instance.TabClosed.HasDelegate, Is.True);
                 Assert.That(editorWorkspace.Instance.TabLeadingContent, Is.Not.Null);
                 Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
                 Assert.That(detailsPanel.Instance.ViewModel, Is.SameAs(composition.Context));
@@ -418,6 +420,113 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             });
         }
 
+        [Test]
+        public async Task VerifyClosingAllWorkspaceTabsResetsPlaceholderNumbering()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var tabs = composition.Editor.RenderState.Groups
+                .SelectMany(group => group.Tabs.Select(tab => (GroupId: group.Id, TabId: tab.Id)))
+                .ToArray();
+
+            foreach (var tab in tabs)
+            {
+                await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
+                    .ClickAsync();
+            }
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(composition.Editor.RenderState.Groups.SelectMany(group => group.Tabs), Is.Empty));
+
+            var remainingGroup = composition.Editor.Groups.Single();
+            await FindAddTabMenu(component, remainingGroup.Id).QuerySelector("button").ClickAsync();
+            await FindPortalledMenuItem("Empty editor").ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Editor 1"));
+                    Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifyClosingPlaceholdersDoesNotResetNumberingWhileProjectBrowserRemains()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var placeholderTabs = composition.Editor.RenderState.Groups
+                .SelectMany(group => group.Tabs
+                    .Where(tab => tab.Item.ViewTypeKey == "placeholder")
+                    .Select(tab => (GroupId: group.Id, TabId: tab.Id)))
+                .ToArray();
+
+            foreach (var tab in placeholderTabs)
+            {
+                await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
+                    .ClickAsync();
+            }
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(composition.Editor.RenderState.Groups.SelectMany(group => group.Tabs)
+                    .Single().Item.ViewTypeKey, Is.EqualTo("project-browser"));
+            });
+
+            var browserGroup = composition.Editor.Groups.Single();
+            await FindAddTabMenu(component, browserGroup.Id).QuerySelector("button").ClickAsync();
+            await FindPortalledMenuItem("Empty editor").ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(browserGroup.ActiveTab.Title, Is.EqualTo("Editor 4")));
+        }
+
+        /// <summary>
+        /// Verifies the composition resets numbering only after the final retained Project Browser closes too.
+        /// </summary>
+        [Test]
+        public async Task VerifyClosingFinalProjectBrowserResetsPlaceholderNumberingWhenWorkspaceBecomesEmpty()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var placeholderTabs = composition.Editor.RenderState.Groups
+                .SelectMany(group => group.Tabs
+                    .Where(tab => tab.Item.ViewTypeKey == "placeholder")
+                    .Select(tab => (GroupId: group.Id, TabId: tab.Id)))
+                .ToArray();
+
+            foreach (var tab in placeholderTabs)
+            {
+                await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
+                    .ClickAsync();
+            }
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(composition.Editor.RenderState.Groups.SelectMany(group => group.Tabs)
+                    .Single().Item.ViewTypeKey, Is.EqualTo("project-browser")));
+
+            var projectBrowserTab = composition.Editor.RenderState.Groups
+                .SelectMany(group => group.Tabs.Select(tab => (GroupId: group.Id, TabId: tab.Id)))
+                .Single();
+            await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{projectBrowserTab.GroupId}'][data-tab-id='{projectBrowserTab.TabId}']")
+                .ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(composition.Editor.RenderState.Groups.SelectMany(group => group.Tabs), Is.Empty));
+
+            var remainingGroup = composition.Editor.Groups.Single();
+            await FindAddTabMenu(component, remainingGroup.Id).QuerySelector("button").ClickAsync();
+            await FindPortalledMenuItem("Empty editor").ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Editor 1")));
+        }
+
         /// <summary>
         /// Verifies moving Project Browser retains its exact tab and ViewModel without enabling duplication.
         /// </summary>
@@ -483,7 +592,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies the rail's effective presentation controls the shell-owned navigation width state.
+        /// Verifies the rail's persistent presentation controls the shell-owned navigation width state.
         /// </summary>
         [Test]
         public async Task VerifyNavigationCollapsePresentationUpdatesWorkspaceShell()
@@ -496,6 +605,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
 
             await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
+            var expandedAction = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 2);
+            await expandedAction.Single(item => item.TextContent.Trim().Contains("Expanded", StringComparison.Ordinal))
+                .ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -505,6 +617,30 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                         Is.EqualTo(NavigationRailPresentationMode.Expanded));
                     Assert.That(component.Find("section.mb-workspace-shell")
                         .GetAttribute("data-navigation-collapsed"), Is.EqualTo("false"));
+                }
+            });
+        }
+
+        [Test]
+        public async Task VerifyNavigationHoverDoesNotChangeShellWidthReservation()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            composition.Navigation.IsExpandOnHoverEnabled = true;
+            using var component = this.Render<Home>();
+            var shell = component.Find("section.mb-workspace-shell");
+            var editorWorkspace = component.FindComponent<EditorWorkspaceComponent>().Instance;
+
+            await component.Find("nav.mb-navigation-rail").TriggerEventAsync("onmouseenter", new MouseEventArgs());
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(shell.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
+                    Assert.That(component.Find("nav.mb-navigation-rail").GetAttribute("data-overlay-expanded"),
+                        Is.EqualTo("true"));
+                    Assert.That(component.FindComponent<EditorWorkspaceComponent>().Instance, Is.SameAs(editorWorkspace));
                 }
             });
         }

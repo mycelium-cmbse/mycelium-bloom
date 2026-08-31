@@ -122,11 +122,16 @@
 }
 
 .mb-workspace-shell--full-application .mb-workspace-shell__header,
-.mb-workspace-shell--full-application .mb-workspace-shell__left-panel,
 .mb-workspace-shell--full-application .mb-workspace-shell__main,
 .mb-workspace-shell--full-application .mb-workspace-shell__right-panel,
 .mb-workspace-shell--full-application .mb-workspace-shell__status {
     overflow: hidden;
+}
+
+.mb-workspace-shell--full-application .mb-workspace-shell__left-panel {
+    position: relative;
+    z-index: 7;
+    overflow: visible;
 }
 
 /*
@@ -183,6 +188,10 @@
         max-width: none;
         max-height: none;
         border: 0;
+    }
+
+    .mb-workspace-shell--full-application .mb-workspace-shell__left-panel {
+        overflow: hidden;
     }
 
     .mb-workspace-shell__body > [data-narrow-active="true"] {

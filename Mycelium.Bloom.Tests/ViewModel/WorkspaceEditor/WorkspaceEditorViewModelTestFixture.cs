@@ -267,6 +267,219 @@ namespace Mycelium.Bloom.Tests.ViewModel.WorkspaceEditor
         }
 
         [Test]
+        public void VerifyTryMoveTabToNewGroupSplitsSameGroupAtomically()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 4);
+            var sourceGroup = viewModel.Groups[0];
+            var retainedTab = OpenTab(viewModel, sourceGroup, "A", "a");
+            var movedTab = OpenTab(viewModel, sourceGroup, "B", "b");
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var result = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                movedTab.Id,
+                sourceGroup.Id,
+                out var newGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups, Is.EqualTo(new[] { sourceGroup, newGroup }));
+                Assert.That(sourceGroup.Tabs.Single(), Is.SameAs(retainedTab));
+                Assert.That(sourceGroup.ActiveTab, Is.SameAs(retainedTab));
+                Assert.That(newGroup.Tabs.Single(), Is.SameAs(movedTab));
+                Assert.That(newGroup.ActiveTab, Is.SameAs(movedTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(newGroup));
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+                Assert.That(publishedStates[0].Groups.Select(group => group.Id),
+                    Is.EqualTo(new[] { sourceGroup.Id, newGroup.Id }));
+                Assert.That(publishedStates[0].Groups[1].Tabs.Single().Item, Is.SameAs(movedTab));
+            }
+        }
+
+        [Test]
+        public void VerifyTryMoveTabToNewGroupMovesCrossGroupTabAndCleansAnEmptySource()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 5);
+            var sourceGroup = viewModel.Groups[0];
+            var movedTab = OpenTab(viewModel, sourceGroup, "A", "a");
+            var splitAfterGroup = AddGroup(viewModel);
+            var retainedTab = OpenTab(viewModel, splitAfterGroup, "B", "b");
+            var finalGroup = AddGroup(viewModel);
+            var finalTab = OpenTab(viewModel, finalGroup, "C", "c");
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var result = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                movedTab.Id,
+                splitAfterGroup.Id,
+                out var newGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups, Is.EqualTo(new[] { splitAfterGroup, newGroup, finalGroup }));
+                Assert.That(sourceGroup.Tabs, Is.Empty);
+                Assert.That(sourceGroup.ActiveTab, Is.Null);
+                Assert.That(splitAfterGroup.Tabs.Single(), Is.SameAs(retainedTab));
+                Assert.That(newGroup.Tabs.Single(), Is.SameAs(movedTab));
+                Assert.That(newGroup.Tabs[0], Is.SameAs(movedTab));
+                Assert.That(newGroup.ActiveTab, Is.SameAs(movedTab));
+                Assert.That(finalGroup.Tabs.Single(), Is.SameAs(finalTab));
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(newGroup));
+                Assert.That(viewModel.Groups.SelectMany(group => group.Tabs), Is.Unique);
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+            }
+        }
+
+        [Test]
+        public void VerifyTryMoveTabToNewGroupInsertsAfterTargetWhenEmptySourceFollowsTarget()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 5);
+            var splitAfterGroup = viewModel.Groups[0];
+            var splitAfterTab = OpenTab(viewModel, splitAfterGroup, "A", "a");
+            var retainedGroup = AddGroup(viewModel);
+            var retainedTab = OpenTab(viewModel, retainedGroup, "B", "b");
+            var sourceGroup = AddGroup(viewModel);
+            var movedTab = OpenTab(viewModel, sourceGroup, "C", "c");
+            var initialRevision = viewModel.RenderState.Revision;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var result = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                movedTab.Id,
+                splitAfterGroup.Id,
+                out var newGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.True);
+                Assert.That(viewModel.Groups, Is.EqualTo(new[] { splitAfterGroup, newGroup, retainedGroup }));
+                Assert.That(splitAfterGroup.Tabs.Single(), Is.SameAs(splitAfterTab));
+                Assert.That(newGroup.Tabs.Single(), Is.SameAs(movedTab));
+                Assert.That(newGroup.ActiveTab, Is.SameAs(movedTab));
+                Assert.That(retainedGroup.Tabs.Single(), Is.SameAs(retainedTab));
+                Assert.That(sourceGroup.Tabs, Is.Empty);
+                Assert.That(viewModel.FocusedGroup, Is.SameAs(newGroup));
+                Assert.That(publishedStates, Has.Count.EqualTo(1));
+                Assert.That(publishedStates[0].Revision, Is.EqualTo(initialRevision + 1));
+            }
+        }
+
+        [Test]
+        public void VerifyTryMoveTabToNewGroupRejectsInvalidAndNoOpRequestsWithoutPublication()
+        {
+            using var viewModel = CreateViewModel(maximumGroupCount: 2);
+            var sourceGroup = viewModel.Groups[0];
+            var onlyTab = OpenTab(viewModel, sourceGroup, "Only", "only");
+            var splitAfterGroup = AddGroup(viewModel);
+            var expectedGroups = viewModel.Groups.ToArray();
+            var expectedRenderState = viewModel.RenderState;
+            var publishedStates = new List<WorkspaceEditorRenderState>();
+            viewModel.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.RenderState))
+                {
+                    publishedStates.Add(viewModel.RenderState);
+                }
+            };
+
+            var maximumResult = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                onlyTab.Id,
+                splitAfterGroup.Id,
+                out var maximumGroup);
+            var missingSourceResult = viewModel.TryMoveTabToNewGroup(
+                Guid.NewGuid(),
+                onlyTab.Id,
+                splitAfterGroup.Id,
+                out var missingSourceGroup);
+            var missingTabResult = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                Guid.NewGuid(),
+                splitAfterGroup.Id,
+                out var missingTabGroup);
+            var missingBoundaryResult = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                onlyTab.Id,
+                Guid.NewGuid(),
+                out var missingBoundaryGroup);
+
+            viewModel.Dispose();
+            var disposedResult = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                onlyTab.Id,
+                splitAfterGroup.Id,
+                out var disposedGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(maximumResult, Is.False);
+                Assert.That(missingSourceResult, Is.False);
+                Assert.That(missingTabResult, Is.False);
+                Assert.That(missingBoundaryResult, Is.False);
+                Assert.That(disposedResult, Is.False);
+                Assert.That(maximumGroup, Is.Null);
+                Assert.That(missingSourceGroup, Is.Null);
+                Assert.That(missingTabGroup, Is.Null);
+                Assert.That(missingBoundaryGroup, Is.Null);
+                Assert.That(disposedGroup, Is.Null);
+                Assert.That(viewModel.Groups, Is.EqualTo(expectedGroups));
+                Assert.That(viewModel.RenderState, Is.SameAs(expectedRenderState));
+                Assert.That(publishedStates, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void VerifyTryMoveTabToNewGroupRejectsSoleTabSelfSplitWithoutMutation()
+        {
+            using var viewModel = CreateViewModel();
+            var sourceGroup = viewModel.Groups[0];
+            var onlyTab = OpenTab(viewModel, sourceGroup, "Only", "only");
+            var expectedRenderState = viewModel.RenderState;
+
+            var result = viewModel.TryMoveTabToNewGroup(
+                sourceGroup.Id,
+                onlyTab.Id,
+                sourceGroup.Id,
+                out var newGroup);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result, Is.False);
+                Assert.That(newGroup, Is.Null);
+                Assert.That(viewModel.Groups.Single(), Is.SameAs(sourceGroup));
+                Assert.That(sourceGroup.Tabs.Single(), Is.SameAs(onlyTab));
+                Assert.That(viewModel.RenderState, Is.SameAs(expectedRenderState));
+            }
+        }
+
+        [Test]
         public void VerifyGroupsExposeStableOrderedCollectionNotifications()
         {
             var viewModel = CreateViewModel();
