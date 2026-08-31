@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Components.Pages
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.IO;
     using System.Linq;
@@ -130,7 +131,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(editorWorkspace.Instance.AddTabRequested.HasDelegate, Is.False);
                 Assert.That(editorWorkspace.Instance.TabClosed.HasDelegate, Is.True);
                 Assert.That(editorWorkspace.Instance.TabLeadingContent, Is.Not.Null);
-                Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
+                Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowsers[0].Object));
                 Assert.That(detailsPanel.Instance.ViewModel, Is.SameAs(composition.Context));
                 Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
@@ -295,10 +296,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies the retained Project Browser cannot be opened more than once in the workspace.
+        /// Verifies the Project Browser action remains available while another browser exists.
         /// </summary>
         [Test]
-        public async Task VerifyProjectBrowserActionIsDisabledWhileBrowserExists()
+        public async Task VerifyProjectBrowserActionRemainsEnabledWhileBrowserExists()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -308,23 +309,129 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
             var projectBrowserAction = FindPortalledMenuItem("Project Browser");
 
-            Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.EqualTo("true"));
+            Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.Not.EqualTo("true"));
+        }
 
-            await projectBrowserAction.ClickAsync();
+        /// <summary>
+        /// Verifies multiple Project Browser tabs in one group retain distinct identities and exact ViewModels.
+        /// </summary>
+        [Test]
+        public async Task VerifyMultipleProjectBrowsersOpenIndependentlyInSameGroup()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var group = composition.Editor.Groups[0];
+            var firstTab = group.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+            var firstRenderedBrowser = component.FindComponent<ProjectBrowserComponent>().Instance;
+
+            await this.OpenProjectBrowserAsync(component, group.Id);
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var projectBrowserTabs = group.Tabs
+                    .Where(tab => tab.ViewTypeKey == "project-browser")
+                    .ToArray();
+                var secondTab = projectBrowserTabs[1];
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(projectBrowserTabs, Has.Length.EqualTo(2));
+                    Assert.That(secondTab.Id, Is.Not.EqualTo(firstTab.Id));
+                    Assert.That(projectBrowserTabs.All(tab => tab.ViewTypeKey == "project-browser"), Is.True);
+                    Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(2));
+                    Assert.That(composition.ProjectBrowsers[1].Object,
+                        Is.Not.SameAs(composition.ProjectBrowsers[0].Object));
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, secondTab.Id),
+                        Is.SameAs(composition.ProjectBrowsers[1].Object));
+                    Assert.That(component.FindComponent<ProjectBrowserComponent>().Instance,
+                        Is.Not.SameAs(firstRenderedBrowser));
+                }
+            });
+
+            var secondRenderedBrowser = component.FindComponent<ProjectBrowserComponent>().Instance;
+
+            await component.Find(
+                    $"[data-testid='editor-workspace-tab'][data-group-id='{group.Id}'][data-tab-id='{firstTab.Id}']")
+                .ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, firstTab.Id),
+                        Is.SameAs(composition.ProjectBrowsers[0].Object));
+                    Assert.That(component.FindComponent<ProjectBrowserComponent>().Instance,
+                        Is.Not.SameAs(secondRenderedBrowser));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies Project Browser tabs in different groups render their own exact ViewModels concurrently.
+        /// </summary>
+        [Test]
+        public async Task VerifyMultipleProjectBrowsersOpenIndependentlyInDifferentGroups()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var firstGroup = composition.Editor.Groups[0];
+            var secondGroup = composition.Editor.Groups[1];
+            var firstTab = firstGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+
+            await this.OpenProjectBrowserAsync(component, secondGroup.Id);
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var secondTab = secondGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(firstTab.Id, Is.Not.EqualTo(secondTab.Id));
+                    Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(2));
+                    Assert.That(component.FindComponents<ProjectBrowserComponent>(), Has.Count.EqualTo(2));
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, firstTab.Id),
+                        Is.SameAs(composition.ProjectBrowsers[0].Object));
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, secondTab.Id),
+                        Is.SameAs(composition.ProjectBrowsers[1].Object));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies durable Project Browser tabs present before Home initialization receive explicit ownership.
+        /// </summary>
+        [Test]
+        public void VerifyExistingProjectBrowserTabIsComposedAtInitializationBoundary()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            var group = composition.Editor.Groups.Single();
+            Assert.That(
+                composition.Editor.TryOpenTab(group.Id, "Project Browser", "project-browser", out var tab),
+                Is.True);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
-                    .Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(1));
-                Assert.That(targetGroup.Tabs, Has.Count.EqualTo(1));
+                Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
+                Assert.That(
+                    GetRenderedProjectBrowserViewModel(component, tab.Id),
+                    Is.SameAs(composition.ProjectBrowsers[0].Object));
+                Assert.That(component.FindAll("[data-testid='workspace-project-browser-unavailable']"), Is.Empty);
             }
         }
 
         /// <summary>
-        /// Verifies Project Browser creation targets the requesting group and uses the retained ViewModel.
+        /// Verifies Project Browser creation targets the requesting group and uses its fresh ViewModel.
         /// </summary>
         [Test]
-        public async Task VerifyProjectBrowserActionTargetsExactGroupAndRetainedViewModel()
+        public async Task VerifyProjectBrowserActionTargetsExactGroupAndFreshViewModel()
         {
             var composition = this.RegisterWorkspaceServices(3);
             var initialGroup = composition.Editor.Groups.Single();
@@ -366,7 +473,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(targetGroup.Tabs, Has.Count.EqualTo(1));
                     Assert.That(targetGroup.ActiveTab, Is.SameAs(browserTab));
                     Assert.That(composition.Editor.FocusedGroup, Is.SameAs(targetGroup));
-                    Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
+                    Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowsers[0].Object));
                     Assert.That(component.Find("[data-testid='workspace-project-browser']")
                         .GetAttribute("data-tab-id"), Is.EqualTo(browserTab.Id.ToString()));
                     Assert.That(component.Find(
@@ -377,10 +484,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies closing Project Browser re-enables its action without consuming placeholder numbering.
+        /// Verifies closing Project Browser releases it and does not consume placeholder numbering.
         /// </summary>
         [Test]
-        public async Task VerifyClosingProjectBrowserReenablesCreationWithoutConsumingPlaceholderNumber()
+        public async Task VerifyClosingProjectBrowserReleasesInstanceWithoutConsumingPlaceholderNumber()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -394,6 +501,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.WaitForAssertionAsync(() =>
                 Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
                     .Any(tab => tab.ViewTypeKey == "project-browser"), Is.False));
+
+            composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Once);
 
             var targetGroup = composition.Editor.Groups[0];
             await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
@@ -416,6 +525,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
                     Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
                         .Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(1));
+                    Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(2));
+                    Assert.That(composition.ProjectBrowsers[1].Object,
+                        Is.Not.SameAs(composition.ProjectBrowsers[0].Object));
                 }
             });
         }
@@ -486,7 +598,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies the composition resets numbering only after the final retained Project Browser closes too.
+        /// Verifies the composition resets numbering only after the final Project Browser closes too.
         /// </summary>
         [Test]
         public async Task VerifyClosingFinalProjectBrowserResetsPlaceholderNumberingWhenWorkspaceBecomesEmpty()
@@ -528,10 +640,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies moving Project Browser retains its exact tab and ViewModel without enabling duplication.
+        /// Verifies moving Project Browser retains its exact tab and ViewModel without factory recreation.
         /// </summary>
         [Test]
-        public async Task VerifyMovingProjectBrowserRetainsCompositionAndUniqueness()
+        public async Task VerifyMovingProjectBrowserRetainsTabAndViewModelIdentity()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -553,7 +665,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(composition.Editor.Groups, Does.Not.Contain(sourceGroup));
                     Assert.That(destinationGroup.Tabs.Any(tab => ReferenceEquals(tab, projectBrowserTab)), Is.True);
                     Assert.That(destinationGroup.ActiveTab, Is.SameAs(projectBrowserTab));
-                    Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowser));
+                    Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowsers[0].Object));
                     Assert.That(component.Find("[data-testid='workspace-project-browser']")
                         .GetAttribute("data-tab-id"), Is.EqualTo(projectBrowserTab.Id.ToString()));
                 }
@@ -561,8 +673,209 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             await FindAddTabMenu(component, destinationGroup.Id).QuerySelector("button").ClickAsync();
 
-            Assert.That(FindPortalledMenuItem("Project Browser").GetAttribute("aria-disabled"),
-                Is.EqualTo("true"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(FindPortalledMenuItem("Project Browser").GetAttribute("aria-disabled"),
+                    Is.Not.EqualTo("true"));
+                composition.ProjectBrowserFactory.Verify(factory => factory.Create(), Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies splitting and moving a Project Browser preserves both tab and ViewModel identity.
+        /// </summary>
+        [Test]
+        public async Task VerifyMovingProjectBrowserToNewSplitRetainsTabAndViewModelIdentity()
+        {
+            var composition = this.RegisterWorkspaceServices(4);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var sourceGroup = composition.Editor.Groups[0];
+            var splitAfterGroup = composition.Editor.Groups[1];
+            var projectBrowserTab = sourceGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+            var projectBrowserViewModel = composition.ProjectBrowsers[0].Object;
+
+            Assert.That(
+                composition.Editor.TryMoveTabToNewGroup(
+                    sourceGroup.Id,
+                    projectBrowserTab.Id,
+                    splitAfterGroup.Id,
+                    out var newGroup),
+                Is.True);
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(newGroup.Tabs.Single(), Is.SameAs(projectBrowserTab));
+                    Assert.That(newGroup.Tabs.Single().Id, Is.EqualTo(projectBrowserTab.Id));
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, projectBrowserTab.Id),
+                        Is.SameAs(projectBrowserViewModel));
+                    composition.ProjectBrowserFactory.Verify(factory => factory.Create(), Times.Once);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies closing one of several Project Browsers disposes only its exact ViewModel.
+        /// </summary>
+        [Test]
+        public async Task VerifyClosingOneOfManyProjectBrowsersDisposesOnlyOwnedInstance()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var group = composition.Editor.Groups[0];
+
+            await this.OpenProjectBrowserAsync(component, group.Id);
+            await this.OpenProjectBrowserAsync(component, group.Id);
+
+            var projectBrowserTabs = group.Tabs
+                .Where(tab => tab.ViewTypeKey == "project-browser")
+                .ToArray();
+            var middleTab = projectBrowserTabs[1];
+
+            await component.Find(
+                    $"[data-testid='editor-workspace-tab-close'][data-group-id='{group.Id}'][data-tab-id='{middleTab.Id}']")
+                .ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(group.Tabs.Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(2));
+                    composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Never);
+                    composition.ProjectBrowsers[1].Verify(viewModel => viewModel.Dispose(), Times.Once);
+                    composition.ProjectBrowsers[2].Verify(viewModel => viewModel.Dispose(), Times.Never);
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, projectBrowserTabs[2].Id),
+                        Is.SameAs(composition.ProjectBrowsers[2].Object));
+                }
+            });
+
+            await component.Find(
+                    $"[data-testid='editor-workspace-tab'][data-group-id='{group.Id}'][data-tab-id='{projectBrowserTabs[0].Id}']")
+                .ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(
+                    GetRenderedProjectBrowserViewModel(component, projectBrowserTabs[0].Id),
+                    Is.SameAs(composition.ProjectBrowsers[0].Object)));
+        }
+
+        /// <summary>
+        /// Verifies closing every Project Browser releases each instance and a later open creates a fresh one.
+        /// </summary>
+        [Test]
+        public async Task VerifyClosingAllProjectBrowsersReleasesInstancesBeforeFreshOpen()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var initialGroup = composition.Editor.Groups[0];
+
+            await this.OpenProjectBrowserAsync(component, initialGroup.Id);
+            await this.OpenProjectBrowserAsync(component, initialGroup.Id);
+
+            var projectBrowserTabs = initialGroup.Tabs
+                .Where(tab => tab.ViewTypeKey == "project-browser")
+                .ToArray();
+
+            foreach (var tab in projectBrowserTabs)
+            {
+                await component.Find(
+                        $"[data-testid='editor-workspace-tab-close'][data-tab-id='{tab.Id}']")
+                    .ClickAsync();
+            }
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
+                        .Any(tab => tab.ViewTypeKey == "project-browser"), Is.False);
+
+                    foreach (var projectBrowser in composition.ProjectBrowsers)
+                    {
+                        projectBrowser.Verify(viewModel => viewModel.Dispose(), Times.Once);
+                    }
+                }
+            });
+
+            var remainingGroup = composition.Editor.Groups[0];
+            await this.OpenProjectBrowserAsync(component, remainingGroup.Id);
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                var newTab = remainingGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(4));
+                    Assert.That(composition.ProjectBrowsers.Take(3)
+                        .Any(previous => ReferenceEquals(previous.Object, composition.ProjectBrowsers[3].Object)),
+                        Is.False);
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, newTab.Id),
+                        Is.SameAs(composition.ProjectBrowsers[3].Object));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies Home disposal releases all survivors once without disposing shared composition state.
+        /// </summary>
+        [Test]
+        public async Task VerifyHomeDisposalReleasesAllSurvivingProjectBrowsersExactlyOnce()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            var component = this.Render<Home>();
+
+            await this.OpenProjectBrowserAsync(component, composition.Editor.Groups[1].Id);
+            component.Instance.Dispose();
+            component.Instance.Dispose();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(2));
+                composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Once);
+                composition.ProjectBrowsers[1].Verify(viewModel => viewModel.Dispose(), Times.Once);
+                Assert.That(
+                    composition.Editor.TryOpenTab(
+                        composition.Editor.Groups[0].Id,
+                        "Still active",
+                        "placeholder",
+                        out _),
+                    Is.True);
+                Assert.That(composition.Context, Is.SameAs(this.Services.GetRequiredService<IElementSelectionService>()));
+            }
+        }
+
+        /// <summary>
+        /// Verifies a failed durable tab open immediately disposes its factory-created candidate.
+        /// </summary>
+        [Test]
+        public void VerifyFailedProjectBrowserOpenDisposesCandidateWithoutOwnershipEntry()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            composition.Editor.Dispose();
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs), Is.Empty);
+                Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
+                composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Once);
+                composition.ProjectBrowserFactory.Verify(factory => factory.Create(), Times.Once);
+                Assert.That(component.FindAll("[data-testid='workspace-project-browser']"), Is.Empty);
+                Assert.That(component.FindAll("[data-testid='workspace-project-browser-unavailable']"), Is.Empty);
+            }
+
+            component.Instance.Dispose();
+            composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Once);
         }
 
         /// <summary>
@@ -584,7 +897,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(composition.Context.SelectedElement,
-                        Is.SameAs(composition.ProjectBrowserNode.SourceElement));
+                        Is.SameAs(composition.ProjectBrowserNodes[0].SourceElement));
                     Assert.That(component.FindAll(".mb-details-panel__empty"), Is.Empty);
                     Assert.That(component.FindAll(".mb-details-panel__properties"), Has.Count.EqualTo(1));
                 }
@@ -677,6 +990,34 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
+        /// Opens a Project Browser through the add-tab menu owned by one exact editor group.
+        /// </summary>
+        /// <param name="component">The rendered Home composition.</param>
+        /// <param name="groupId">The target editor group.</param>
+        /// <returns>A task representing the interaction.</returns>
+        private async Task OpenProjectBrowserAsync(IRenderedComponent<Home> component, Guid groupId)
+        {
+            await FindAddTabMenu(component, groupId).QuerySelector("button").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
+        }
+
+        /// <summary>
+        /// Gets the exact Project Browser ViewModel rendered for one tab identity.
+        /// </summary>
+        /// <param name="component">The rendered Home composition.</param>
+        /// <param name="tabId">The represented durable tab identity.</param>
+        /// <returns>The ViewModel supplied to the matching Project Browser component.</returns>
+        private static IProjectBrowserViewModel GetRenderedProjectBrowserViewModel(
+            IRenderedComponent<Home> component,
+            Guid tabId)
+        {
+            return component.FindComponents<ProjectBrowserComponent>()
+                .Single(browser => browser.Instance.AdditionalAttributes.TryGetValue("data-tab-id", out var value)
+                                   && string.Equals(value?.ToString(), tabId.ToString(), StringComparison.Ordinal))
+                .Instance.ViewModel;
+        }
+
+        /// <summary>
         /// Finds the generic add-tab menu belonging to one exact editor group.
         /// </summary>
         /// <param name="component">The rendered Home composition.</param>
@@ -707,9 +1048,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         private (
             WorkspaceEditorViewModel Editor,
             NavigationRailViewModel Navigation,
-            IProjectBrowserViewModel ProjectBrowser,
+            Mock<IProjectBrowserViewModelFactory> ProjectBrowserFactory,
+            List<Mock<IProjectBrowserViewModel>> ProjectBrowsers,
             ContextAwareService Context,
-            ProjectBrowserNodeViewModel ProjectBrowserNode) RegisterWorkspaceServices(
+            List<ProjectBrowserNodeViewModel> ProjectBrowserNodes) RegisterWorkspaceServices(
             int maximumGroupCount)
         {
             var context = new ContextAwareService();
@@ -718,33 +1060,51 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var navigationViewModel = new NavigationRailViewModel(
                 context,
                 new NavigationRailItemProvider());
-            var projectBrowserNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
-                "project-root",
-                "Project root");
-            var mutableRootNodes = new ObservableCollection<ProjectBrowserNodeViewModel> { projectBrowserNode };
-            var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
-            var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
-            projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
-            projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
-            projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
-            projectBrowserViewModel
-                .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
-                .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
+            var projectBrowserViewModels = new List<Mock<IProjectBrowserViewModel>>();
+            var projectBrowserNodes = new List<ProjectBrowserNodeViewModel>();
+            var projectBrowserFactory = new Mock<IProjectBrowserViewModelFactory>(MockBehavior.Strict);
+            projectBrowserFactory
+                .Setup(factory => factory.Create())
+                .Returns(() =>
+                {
+                    var instanceNumber = projectBrowserViewModels.Count + 1;
+                    var projectBrowserNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                        $"project-root-{instanceNumber}",
+                        $"Project root {instanceNumber}");
+                    var mutableRootNodes = new ObservableCollection<ProjectBrowserNodeViewModel>
+                    {
+                        projectBrowserNode
+                    };
+                    var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
+                    var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+                    projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
+                    projectBrowserViewModel
+                        .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
+                        .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
+                    projectBrowserViewModels.Add(projectBrowserViewModel);
+                    projectBrowserNodes.Add(projectBrowserNode);
+
+                    return projectBrowserViewModel.Object;
+                });
 
             this.Services.AddSingleton<IWorkspaceEditorViewModel>(editorViewModel);
             this.Services.AddSingleton<INavigationRailViewModel>(navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
-            this.Services.AddSingleton(projectBrowserViewModel.Object);
+            this.Services.AddSingleton(projectBrowserFactory.Object);
             this.portalHost = this.Render<BbPortalHost>();
 
             return (
                 editorViewModel,
                 navigationViewModel,
-                projectBrowserViewModel.Object,
+                projectBrowserFactory,
+                projectBrowserViewModels,
                 context,
-                projectBrowserNode);
+                projectBrowserNodes);
         }
     }
 }

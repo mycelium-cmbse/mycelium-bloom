@@ -70,7 +70,7 @@
 
                 <AddTabControl Context="groupId">
                     <ActionMenu Class="mb-editor-workspace__add-tab-menu"
-                                Items="@(this.CreateAddTabActions())"
+                                Items="@(CreateAddTabActions())"
                                 TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
                                 TriggerTitle="Add tab"
                                 TriggerClass="mb-editor-workspace__add-tab"
@@ -92,9 +92,23 @@
                 <EditorContent Context="tab">
                     @if (IsProjectBrowserTab(tab))
                     {
-                        <ProjectBrowser ViewModel="this.ProjectBrowserViewModel"
-                                        data-testid="workspace-project-browser"
-                                        data-tab-id="@(tab.Id)" />
+                        @if (this.TryGetProjectBrowserViewModel(tab, out var projectBrowserViewModel))
+                        {
+                            <ProjectBrowser @key="tab.Id"
+                                            ViewModel="projectBrowserViewModel"
+                                            data-testid="workspace-project-browser"
+                                            data-tab-id="@(tab.Id)" />
+                        }
+                        else
+                        {
+                            <div class="mb-main-workspace__editor-placeholder"
+                                 role="status"
+                                 data-testid="workspace-project-browser-unavailable"
+                                 data-tab-id="@(tab.Id)">
+                                <strong>Project Browser unavailable</strong>
+                                <span>This editor instance could not be composed.</span>
+                            </div>
+                        }
                     }
                     else
                     {

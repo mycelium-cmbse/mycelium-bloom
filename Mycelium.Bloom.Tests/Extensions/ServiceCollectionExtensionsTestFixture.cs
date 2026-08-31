@@ -16,10 +16,14 @@ namespace Mycelium.Bloom.Tests.Extensions
 
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+
+    using Moq;
 
     [TestFixture]
     public sealed class ServiceCollectionExtensionsTestFixture
@@ -115,6 +119,33 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(secondContext, Is.SameAs(secondConcreteContext));
                 Assert.That(secondSelection, Is.SameAs(secondConcreteContext));
                 Assert.That(secondConcreteContext, Is.Not.SameAs(firstConcreteContext));
+            }
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersScopedProjectBrowserFactoryOnly()
+        {
+            var services = new ServiceCollection();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            services.AddApplicationServices();
+            services.AddScoped(_ => modelLoaderService.Object);
+
+            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            using var firstScope = serviceProvider.CreateScope();
+            using var secondScope = serviceProvider.CreateScope();
+            var firstFactory = firstScope.ServiceProvider.GetRequiredService<IProjectBrowserViewModelFactory>();
+            var repeatedFactory = firstScope.ServiceProvider.GetRequiredService<IProjectBrowserViewModelFactory>();
+            var secondFactory = secondScope.ServiceProvider.GetRequiredService<IProjectBrowserViewModelFactory>();
+            using var firstViewModel = firstFactory.Create();
+            using var secondViewModel = firstFactory.Create();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstFactory, Is.TypeOf<ProjectBrowserViewModelFactory>());
+                Assert.That(repeatedFactory, Is.SameAs(firstFactory));
+                Assert.That(secondFactory, Is.Not.SameAs(firstFactory));
+                Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+                Assert.That(firstScope.ServiceProvider.GetService<IProjectBrowserViewModel>(), Is.Null);
             }
         }
     }
