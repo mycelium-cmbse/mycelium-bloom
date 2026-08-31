@@ -12,8 +12,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using AngleSharp.Dom;
@@ -31,6 +33,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
@@ -46,6 +49,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
     using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
+
+    using SysML2.NET.Core.POCO.Root.Namespaces;
 
     /// <summary>
     /// Tests the <see cref="Home" /> workspace composition.
@@ -367,6 +372,121 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                         Is.Not.SameAs(secondRenderedBrowser));
                 }
             });
+        }
+
+        /// <summary>
+        /// Verifies rapid tab replacement leaves every still-owned Project Browser initialization alive.
+        /// </summary>
+        [Test]
+        public async Task VerifyRapidProjectBrowserTabSwitchingLoadsEveryStillOpenInstance()
+        {
+            const int projectBrowserCount = 5;
+            using var releaseLoad = new ManualResetEventSlim();
+            using var allLoadsStarted = new CountdownEvent(projectBrowserCount);
+            var composition = this.RegisterWorkspaceServices(3);
+            var model = new Mock<INamespace>();
+            model.SetupGet(x => x.ElementId).Returns("root");
+            model.SetupGet(x => x.DeclaredName).Returns("Root");
+            model.SetupGet(x => x.ownedElement).Returns([]);
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    allLoadsStarted.Signal();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    return model.Object;
+                });
+            var projectBrowserViewModels = new List<ProjectBrowserViewModel>();
+            composition.ProjectBrowserFactory.Reset();
+            composition.ProjectBrowserFactory
+                .Setup(factory => factory.Create())
+                .Returns(() =>
+                {
+                    var viewModel = new ProjectBrowserViewModel(
+                        modelLoaderService.Object,
+                        composition.Context);
+                    projectBrowserViewModels.Add(viewModel);
+
+                    return viewModel;
+                });
+
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var group = composition.Editor.Groups[0];
+
+            for (var index = 1; index < projectBrowserCount; index++)
+            {
+                await this.OpenProjectBrowserAsync(component, group.Id);
+            }
+
+            Assert.That(allLoadsStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+            var projectBrowserTabs = group.Tabs
+                .Where(tab => tab.ViewTypeKey == "project-browser")
+                .ToArray();
+
+            foreach (var tab in projectBrowserTabs.Concat(projectBrowserTabs.Reverse()))
+            {
+                await component.Find(
+                        $"[data-testid='editor-workspace-tab'][data-group-id='{group.Id}'][data-tab-id='{tab.Id}']")
+                    .ClickAsync();
+            }
+
+            var initializationCompletions = projectBrowserViewModels
+                .Select(viewModel => new
+                {
+                    ViewModel = viewModel,
+                    Completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+                })
+                .ToArray();
+            var loadedHandlers = initializationCompletions
+                .Select(completion => new PropertyChangedEventHandler((_, args) =>
+                {
+                    if (args.PropertyName == nameof(ProjectBrowserViewModel.IsLoaded)
+                        && completion.ViewModel.IsLoaded)
+                    {
+                        completion.Completion.TrySetResult(true);
+                    }
+                }))
+                .ToArray();
+
+            for (var index = 0; index < initializationCompletions.Length; index++)
+            {
+                initializationCompletions[index].ViewModel.PropertyChanged += loadedHandlers[index];
+            }
+
+            try
+            {
+                releaseLoad.Set();
+                await Task.WhenAll(initializationCompletions
+                    .Select(completion => completion.Completion.Task.WaitAsync(TimeSpan.FromSeconds(10))));
+            }
+            finally
+            {
+                for (var index = 0; index < initializationCompletions.Length; index++)
+                {
+                    initializationCompletions[index].ViewModel.PropertyChanged -= loadedHandlers[index];
+                }
+            }
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(projectBrowserTabs, Has.Length.EqualTo(projectBrowserCount));
+                Assert.That(projectBrowserViewModels, Has.Count.EqualTo(projectBrowserCount));
+                Assert.That(projectBrowserViewModels.All(viewModel => viewModel.IsLoaded), Is.True);
+                Assert.That(projectBrowserViewModels.All(viewModel => !viewModel.IsLoading), Is.True);
+                Assert.That(projectBrowserViewModels.All(viewModel => viewModel.ErrorMessage.Length == 0), Is.True);
+                Assert.That(projectBrowserViewModels.Select(viewModel => viewModel.RootNodes[0]).Distinct().ToArray(),
+                    Has.Length.EqualTo(projectBrowserCount));
+                modelLoaderService.Verify(
+                    loader => loader.LoadQuantitiesModel(),
+                    Times.Exactly(projectBrowserCount));
+            }
         }
 
         /// <summary>
@@ -762,6 +882,90 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(
                     GetRenderedProjectBrowserViewModel(component, projectBrowserTabs[0].Id),
                     Is.SameAs(composition.ProjectBrowsers[0].Object)));
+        }
+
+        /// <summary>
+        /// Verifies closing an initializing Project Browser releases only that owner and remains circuit-safe.
+        /// </summary>
+        [Test]
+        public async Task VerifyClosingInitializingProjectBrowserDoesNotAffectAnotherInstance()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ObservableCollection<ProjectBrowserNodeViewModel> initializingMutableRoots = [];
+            var initializingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
+                initializingMutableRoots);
+            var initializingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var survivingNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("surviving", "Surviving");
+            ObservableCollection<ProjectBrowserNodeViewModel> survivingMutableRoots = [survivingNode];
+            var survivingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
+                survivingMutableRoots);
+            var survivingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            var initializationToken = CancellationToken.None;
+            var factoryInvocation = 0;
+
+            initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
+            initializingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(false);
+            initializingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
+            initializingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+            initializingViewModel
+                .Setup(viewModel => viewModel.InitializeAsync(It.IsAny<CancellationToken>()))
+                .Returns<CancellationToken>(token =>
+                {
+                    initializationToken = token;
+
+                    return initialization.Task;
+                });
+            initializingViewModel
+                .Setup(viewModel => viewModel.Dispose())
+                .Callback(() => initialization.TrySetResult(false));
+            survivingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(survivingRoots);
+            survivingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
+            survivingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
+            survivingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+            survivingViewModel.Setup(viewModel => viewModel.Dispose());
+            survivingViewModel
+                .Setup(viewModel => viewModel.SelectNode(survivingNode))
+                .Callback(() => composition.Context.SelectedElement = survivingNode.SourceElement);
+            composition.ProjectBrowserFactory.Reset();
+            composition.ProjectBrowserFactory
+                .Setup(factory => factory.Create())
+                .Returns(() =>
+                {
+                    var createdViewModel = factoryInvocation++ == 0
+                        ? initializingViewModel
+                        : survivingViewModel;
+                    composition.ProjectBrowsers.Add(createdViewModel);
+
+                    return createdViewModel.Object;
+                });
+
+            using var navigationViewModel = composition.Navigation;
+            using var component = this.Render<Home>();
+            var initializingGroup = composition.Editor.Groups[0];
+            var initializingTab = initializingGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+            var survivingGroup = composition.Editor.Groups[1];
+            await this.OpenProjectBrowserAsync(component, survivingGroup.Id);
+            var survivingTab = survivingGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
+
+            await component.Find(
+                    $"[data-testid='editor-workspace-tab-close'][data-tab-id='{initializingTab.Id}']")
+                .ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(initializationToken.CanBeCanceled, Is.False);
+                    Assert.That(initializationToken.IsCancellationRequested, Is.False);
+                    Assert.That(initializingRoots, Is.Empty);
+                    initializingViewModel.Verify(viewModel => viewModel.Dispose(), Times.Once);
+                    survivingViewModel.Verify(viewModel => viewModel.Dispose(), Times.Never);
+                    Assert.That(
+                        GetRenderedProjectBrowserViewModel(component, survivingTab.Id),
+                        Is.SameAs(survivingViewModel.Object));
+                }
+            });
         }
 
         /// <summary>
