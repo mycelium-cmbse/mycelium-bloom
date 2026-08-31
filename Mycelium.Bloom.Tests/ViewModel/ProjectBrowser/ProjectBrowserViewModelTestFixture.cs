@@ -612,13 +612,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 foregroundViewModel.SelectNode(foregroundThrusterNode);
 
                 releaseLoad.Set();
-                Assert.That(await backgroundInitialization, Is.True);
+                var backgroundInitialized = await backgroundInitialization;
                 var backgroundRootNode = backgroundViewModel.RootNodes[0];
                 var backgroundThrusterNode = backgroundRootNode.Children
                     .Single(node => node.DisplayName == "Thruster");
 
                 using (Assert.EnterMultipleScope())
                 {
+                    Assert.That(backgroundInitialized, Is.True);
                     Assert.That(selectionService.SelectedElement, Is.SameAs(foregroundThrusterNode.SourceElement));
                     Assert.That(foregroundViewModel.SelectedNode, Is.SameAs(foregroundThrusterNode));
                     Assert.That(foregroundThrusterNode.IsSelected, Is.True);

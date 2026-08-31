@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.Components.Pages
     /// <summary>
     /// Composes the full-application Bloom workspace from reusable structural components.
     /// </summary>
-    public partial class Home : ComponentBase, IDisposable
+    public sealed partial class Home : ComponentBase, IDisposable
     {
         /// <summary>
         /// The number of editor groups represented by the native desktop design when configuration permits it.
@@ -146,6 +146,7 @@ namespace Mycelium.Bloom.Components.Pages
 
             this.isDisposed = true;
             this.DisposeProjectBrowserViewModels();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -153,19 +154,20 @@ namespace Mycelium.Bloom.Components.Pages
         /// </summary>
         private void InitializeExistingProjectBrowserOwnership()
         {
-            foreach (var tab in this.WorkspaceEditorViewModel.RenderState.Groups
+            foreach (var tabId in this.WorkspaceEditorViewModel.RenderState.Groups
                          .SelectMany(group => group.Tabs)
                          .Select(tab => tab.Item)
-                         .Where(IsProjectBrowserTab))
+                         .Where(IsProjectBrowserTab)
+                         .Select(tab => tab.Id))
             {
                 var viewModel = this.CreateProjectBrowserViewModel();
 
-                if (!this.projectBrowserViewModels.TryAdd(tab.Id, viewModel))
+                if (!this.projectBrowserViewModels.TryAdd(tabId, viewModel))
                 {
                     viewModel.Dispose();
 
                     throw new InvalidOperationException(
-                        $"Project Browser ownership already exists for editor tab '{tab.Id}'.");
+                        $"Project Browser ownership already exists for editor tab '{tabId}'.");
                 }
             }
         }
