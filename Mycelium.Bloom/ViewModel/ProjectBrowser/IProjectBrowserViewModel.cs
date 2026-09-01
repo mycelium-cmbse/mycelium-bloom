@@ -31,9 +31,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         string FilterText { get; set; }
 
         /// <summary>
-        /// Gets or sets the broad element kind used to filter nodes, or <see langword="null" /> for all kinds.
+        /// Gets the broad element kinds selected for filtering. An empty set includes every kind.
         /// </summary>
-        SysmlModelElementKind? ElementKindFilter { get; set; }
+        IReadOnlySet<SysmlModelElementKind> SelectedElementKinds { get; }
 
         /// <summary>
         /// Gets the current immutable visibility presentation over the canonical tree.
@@ -72,6 +72,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Clears every active project browser filter criterion.
         /// </summary>
         void ClearFilter();
+
+        /// <summary>
+        /// Adds or removes a broad element kind from the active filter.
+        /// </summary>
+        /// <param name="elementKind">The element kind to toggle.</param>
+        void ToggleElementKindFilter(SysmlModelElementKind elementKind);
 
         /// <summary>
         /// Toggles a project browser node.

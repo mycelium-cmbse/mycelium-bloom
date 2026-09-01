@@ -12,7 +12,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -22,28 +21,35 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
-        /// Maps the UI's all-kinds option to a <see langword="null" /> element-kind filter.
-        /// </summary>
-        private const string AllElementKindsValue = "all";
-
-        /// <summary>
         /// The complete set of broad element-kind filter choices.
         /// </summary>
-        private static readonly IReadOnlyList<SelectInputOption> elementKindOptions =
-        [
-            new() { Value = AllElementKindsValue, Label = "All element kinds" },
-            .. Enum.GetValues<SysmlModelElementKind>()
-                .Select(elementKind => new SelectInputOption
-                {
-                    Value = elementKind.ToString(),
-                    Label = elementKind.ToString()
-                })
-        ];
+        private static readonly IReadOnlyList<SysmlModelElementKind> elementKindOptions =
+            Enum.GetValues<SysmlModelElementKind>();
+
+        /// <summary>
+        /// The unique identifier of the filter drawer heading.
+        /// </summary>
+        private readonly string filterDrawerHeadingId = $"mb-project-browser-filter-heading-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// The unique identifier of the Type filter section heading.
+        /// </summary>
+        private readonly string typeFilterHeadingId = $"mb-project-browser-type-filter-heading-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// The focus target inside the portalled filter drawer.
+        /// </summary>
+        private ElementReference filterDrawerReference;
 
         /// <summary>
         /// A value indicating whether the component has been disposed.
         /// </summary>
         private bool isDisposed;
+
+        /// <summary>
+        /// A value indicating whether this rendered browser's filter drawer is open.
+        /// </summary>
+        private bool isFilterDrawerOpen;
 
         /// <summary>
         /// Gets the caller-supplied ViewModel required by this component.
@@ -106,6 +112,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.isDisposed = true;
+            this.isFilterDrawerOpen = false;
 
             base.Dispose(disposing);
         }
@@ -161,12 +168,70 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the select value representing the current nullable element-kind filter.
+        /// Gets the number of active selectable values represented in the filter drawer.
         /// </summary>
-        /// <returns>The element-kind value or the all-kinds sentinel.</returns>
-        private string GetElementKindFilterValue()
+        /// <returns>The number of selected element kinds.</returns>
+        private int GetActiveDrawerFilterCount()
         {
-            return this.RequiredViewModel.ElementKindFilter?.ToString() ?? AllElementKindsValue;
+            return this.RequiredViewModel.SelectedElementKinds.Count;
+        }
+
+        /// <summary>
+        /// Gets the Figma-aligned notation for a broad element kind.
+        /// </summary>
+        /// <param name="elementKind">The broad element kind.</param>
+        /// <returns>The element-kind chip label.</returns>
+        private static string GetElementKindLabel(SysmlModelElementKind elementKind)
+        {
+            return $"«{elementKind.ToString().ToLowerInvariant()}»";
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether an element kind is selected in the owning ViewModel.
+        /// </summary>
+        /// <param name="elementKind">The element kind to inspect.</param>
+        /// <returns><see langword="true" /> when the kind is selected; otherwise, <see langword="false" />.</returns>
+        private bool IsElementKindSelected(SysmlModelElementKind elementKind)
+        {
+            return this.RequiredViewModel.SelectedElementKinds.Contains(elementKind);
+        }
+
+        /// <summary>
+        /// Tracks controlled open-state changes requested by the anchored filter popover.
+        /// </summary>
+        /// <param name="isOpen">Whether the filter drawer should be open.</param>
+        private void HandleFilterDrawerOpenChanged(bool isOpen)
+        {
+            if (!this.isDisposed)
+            {
+                this.isFilterDrawerOpen = isOpen;
+            }
+        }
+
+        /// <summary>
+        /// Moves keyboard focus into the drawer after Blueprint has mounted and positioned its content.
+        /// </summary>
+        /// <returns>A task representing the focus operation.</returns>
+        private async Task HandleFilterDrawerContentReadyAsync()
+        {
+            if (!this.isDisposed && this.isFilterDrawerOpen)
+            {
+                await this.filterDrawerReference.FocusAsync(preventScroll: true);
+            }
+        }
+
+        /// <summary>
+        /// Closes the transient filter drawer while retaining ViewModel-owned criteria.
+        /// </summary>
+        /// <returns>A completed task.</returns>
+        private Task HandleFilterDrawerCloseAsync()
+        {
+            if (!this.isDisposed)
+            {
+                this.isFilterDrawerOpen = false;
+            }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -185,28 +250,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Maps a controlled select value to the owning ViewModel's nullable element-kind filter.
+        /// Toggles one selected element-kind value through the owning ViewModel.
         /// </summary>
-        /// <param name="value">The selected UI value.</param>
+        /// <param name="elementKind">The element kind requested by the chip.</param>
         /// <returns>A completed task.</returns>
-        private Task HandleElementKindFilterChangedAsync(string value)
+        private Task HandleElementKindFilterToggledAsync(SysmlModelElementKind elementKind)
         {
-            if (this.isDisposed)
+            if (!this.isDisposed)
             {
-                return Task.CompletedTask;
-            }
-
-            if (string.Equals(value, AllElementKindsValue, StringComparison.Ordinal))
-            {
-                this.RequiredViewModel.ElementKindFilter = null;
-
-                return Task.CompletedTask;
-            }
-
-            if (Enum.TryParse<SysmlModelElementKind>(value, false, out var elementKind)
-                && Enum.IsDefined(elementKind))
-            {
-                this.RequiredViewModel.ElementKindFilter = elementKind;
+                this.RequiredViewModel.ToggleElementKindFilter(elementKind);
             }
 
             return Task.CompletedTask;

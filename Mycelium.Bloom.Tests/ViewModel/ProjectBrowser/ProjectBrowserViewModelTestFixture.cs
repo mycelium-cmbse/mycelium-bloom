@@ -388,7 +388,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.ElementKindFilter, Is.Null);
+                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(Flatten(rootNode).All(viewModel.FilterPresentation.IsVisible), Is.True);
             }
@@ -498,10 +498,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies nullable element-kind filtering supports both a real Unknown value and the all-kinds state.
+        /// Verifies element-kind filtering uses multi-select OR semantics and an empty all-kinds state.
         /// </summary>
         [Test]
-        public async Task VerifyElementKindFilterSupportsUnknownAndNullAllKinds()
+        public async Task VerifyElementKindFiltersSupportMultipleSelectionsAndEmptyAllKinds()
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
@@ -511,7 +511,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var unknownNode = FindNode(rootNode, "Mystery element");
             var namespaceSibling = FindNode(rootNode, "Sibling branch");
 
-            viewModel.ElementKindFilter = SysmlModelElementKind.Namespace;
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
 
             using (Assert.EnterMultipleScope())
             {
@@ -521,7 +521,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.FilterPresentation.IsVisible(unknownNode), Is.False);
             }
 
-            viewModel.ElementKindFilter = SysmlModelElementKind.Unknown;
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(unknownNode), Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(namespaceSibling), Is.True);
+                Assert.That(
+                    viewModel.SelectedElementKinds,
+                    Is.EquivalentTo(new[] { SysmlModelElementKind.Namespace, SysmlModelElementKind.Unknown }));
+            }
+
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
 
             using (Assert.EnterMultipleScope())
             {
@@ -529,13 +542,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(unknownNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(namespaceSibling), Is.False);
+                Assert.That(viewModel.SelectedElementKinds, Is.EquivalentTo(new[] { SysmlModelElementKind.Unknown }));
             }
 
-            viewModel.ElementKindFilter = null;
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
+                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
                 Assert.That(Flatten(rootNode).All(viewModel.FilterPresentation.IsVisible), Is.True);
             }
         }
@@ -554,7 +569,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var targetNode = FindNode(rootNode, "Deep target");
 
             viewModel.FilterText = "Deep target";
-            viewModel.ElementKindFilter = SysmlModelElementKind.Namespace;
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
 
             using (Assert.EnterMultipleScope())
             {
@@ -563,7 +578,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.False);
             }
 
-            viewModel.ElementKindFilter = SysmlModelElementKind.Unknown;
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
 
             using (Assert.EnterMultipleScope())
             {
@@ -678,7 +693,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.ElementKindFilter, Is.Null);
+                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(rootNode.IsExpanded, Is.False);
                 Assert.That(branchNode.IsExpanded, Is.True);
@@ -697,7 +712,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Deep target";
-            viewModel.ElementKindFilter = SysmlModelElementKind.Unknown;
+            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
             var changedProperties = new List<string>();
             var everyChangedNotificationWasCoherent = true;
 
@@ -705,7 +720,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 changedProperties.Add(args.PropertyName);
                 everyChangedNotificationWasCoherent &= viewModel.FilterText == string.Empty
-                                                        && viewModel.ElementKindFilter is null
+                                                        && viewModel.SelectedElementKinds.Count == 0
                                                         && !viewModel.FilterPresentation.IsActive;
             };
             viewModel.PropertyChanged += propertyHandler;
@@ -725,7 +740,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(everyChangedNotificationWasCoherent, Is.True);
                 Assert.That(changedProperties.Count(name => name == nameof(viewModel.FilterText)), Is.EqualTo(1));
                 Assert.That(
-                    changedProperties.Count(name => name == nameof(viewModel.ElementKindFilter)),
+                    changedProperties.Count(name => name == nameof(viewModel.SelectedElementKinds)),
                     Is.EqualTo(1));
                 Assert.That(
                     changedProperties.Count(name => name == nameof(viewModel.FilterPresentation)),
@@ -753,7 +768,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 viewModel.FilterText = "  DEEP TARGET  ";
                 viewModel.FilterText = "  DEEP TARGET  ";
-                viewModel.ElementKindFilter = null;
             }
             finally
             {
@@ -928,14 +942,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             await secondViewModel.InitializeAsync(CancellationToken.None);
 
             firstViewModel.FilterText = "Deep target";
-            secondViewModel.ElementKindFilter = SysmlModelElementKind.Namespace;
+            secondViewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(firstViewModel.FilterText, Is.EqualTo("Deep target"));
-                Assert.That(firstViewModel.ElementKindFilter, Is.Null);
+                Assert.That(firstViewModel.SelectedElementKinds, Is.Empty);
                 Assert.That(secondViewModel.FilterText, Is.Empty);
-                Assert.That(secondViewModel.ElementKindFilter, Is.EqualTo(SysmlModelElementKind.Namespace));
+                Assert.That(
+                    secondViewModel.SelectedElementKinds,
+                    Is.EquivalentTo(new[] { SysmlModelElementKind.Namespace }));
                 Assert.That(firstViewModel.FilterPresentation, Is.Not.SameAs(secondViewModel.FilterPresentation));
             }
         }
@@ -957,7 +973,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             try
             {
                 viewModel.FilterText = "Deep target";
-                viewModel.ElementKindFilter = SysmlModelElementKind.Unknown;
+                viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
                 viewModel.ClearFilter();
             }
             finally
@@ -968,7 +984,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.ElementKindFilter, Is.Null);
+                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(propertyNotifications, Is.Empty);
             }
@@ -989,6 +1005,21 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(() => viewModel.ToggleNode(null), Throws.ArgumentNullException);
                 Assert.That(() => viewModel.SelectNode(null), Throws.ArgumentNullException);
             }
+        }
+
+        /// <summary>
+        /// Verifies Type filter state cannot contain undefined element-kind values.
+        /// </summary>
+        [Test]
+        public void VerifyToggleElementKindFilterRejectsUndefinedValues()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>().Object,
+                new ContextAwareService());
+
+            Assert.That(
+                () => viewModel.ToggleElementKindFilter((SysmlModelElementKind)int.MaxValue),
+                Throws.TypeOf<ArgumentOutOfRangeException>());
         }
 
         /// <summary>
