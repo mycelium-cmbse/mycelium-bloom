@@ -23,8 +23,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components;
     using Moq;
 
+    using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
+    using SysML2.NET.Core.POCO.Root.Namespaces;
 
     using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
@@ -271,7 +275,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(capturedToken.CanBeCanceled, Is.True);
+                Assert.That(capturedToken.CanBeCanceled, Is.False);
                 Assert.That(capturedToken.IsCancellationRequested, Is.False);
                 Assert.That(selectedNodeCallbackCount, Is.Zero);
                 viewModel.Verify(x => x.InitializeAsync(capturedToken), Times.Once);
@@ -583,43 +587,83 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies component disposal cancels a blocked initialization without disposing the caller-owned ViewModel.
+        /// Verifies replacing a disposed component does not cancel initialization owned by its caller-owned ViewModel.
         /// </summary>
         [Test]
-        public void VerifyDisposeDuringInitializationCancelsAndQuarantinesCompletion()
+        public async Task VerifyComponentReplacementKeepsRealViewModelInitializationAlive()
         {
-            var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>();
-            var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
-            var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            CancellationToken capturedToken = default;
-            var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            viewModel.SetupGet(x => x.RootNodes).Returns(roots);
-            viewModel.SetupGet(x => x.IsLoaded).Returns(false);
-            viewModel.SetupGet(x => x.IsLoading).Returns(false);
-            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
-            viewModel
-                .Setup(x => x.InitializeAsync(It.IsAny<CancellationToken>()))
-                .Returns<CancellationToken>(token =>
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            var model = new Mock<INamespace>();
+            model.SetupGet(x => x.ElementId).Returns("root");
+            model.SetupGet(x => x.DeclaredName).Returns("Root");
+            model.SetupGet(x => x.ownedElement).Returns([]);
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns(() =>
                 {
-                    capturedToken = token;
+                    loadStarted.Set();
 
-                    return initialization.Task;
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release model loading.");
+                    }
+
+                    return model.Object;
                 });
-            viewModel.Setup(x => x.Dispose());
-            this.RegisterViewModel(viewModel.Object);
+            using var viewModel = new ProjectBrowserViewModel(
+                modelLoaderService.Object,
+                new ContextAwareService());
+            this.RegisterViewModel(viewModel);
 
-            using var component = this.RenderProjectBrowser();
-            Assert.That(capturedToken.CanBeCanceled, Is.True);
-            var renderCount = component.RenderCount;
+            using var firstComponent = this.RenderProjectBrowser();
+            Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
+            IRenderedComponent<ProjectBrowserComponent> replacementComponent = null;
 
-            component.Instance.Dispose();
-            initialization.SetResult(true);
-
-            using (Assert.EnterMultipleScope())
+            await this.Renderer.Dispatcher.InvokeAsync(() =>
             {
-                Assert.That(capturedToken.IsCancellationRequested, Is.True);
-                Assert.That(component.RenderCount, Is.EqualTo(renderCount));
-                viewModel.Verify(x => x.Dispose(), Times.Never);
+                replacementComponent = this.RenderProjectBrowser();
+                firstComponent.Instance.Dispose();
+            });
+
+            using (replacementComponent)
+            {
+                var initializationCompleted = new TaskCompletionSource<bool>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                PropertyChangedEventHandler loadedHandler = (_, args) =>
+                {
+                    if (args.PropertyName == nameof(ProjectBrowserViewModel.IsLoaded)
+                        && viewModel.IsLoaded)
+                    {
+                        initializationCompleted.TrySetResult(true);
+                    }
+                };
+                viewModel.PropertyChanged += loadedHandler;
+
+                try
+                {
+                    releaseLoad.Set();
+                    await initializationCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                }
+                finally
+                {
+                    viewModel.PropertyChanged -= loadedHandler;
+                }
+
+                replacementComponent.WaitForAssertion(() =>
+                    Assert.That(
+                        replacementComponent.FindAll(".mb-project-browser-node__row"),
+                        Has.Count.EqualTo(1)),
+                    TimeSpan.FromSeconds(10));
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.IsLoaded, Is.True);
+                    Assert.That(viewModel.IsLoading, Is.False);
+                    Assert.That(viewModel.ErrorMessage, Is.Empty);
+                    modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+                }
             }
         }
 

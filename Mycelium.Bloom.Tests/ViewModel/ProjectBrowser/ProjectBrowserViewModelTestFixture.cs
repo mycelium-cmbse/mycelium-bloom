@@ -144,10 +144,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies successful initialization loads, selects, and expands the default root.
+        /// Verifies successful initialization loads, selects, and expands a local default root.
         /// </summary>
         [Test]
-        public async Task VerifyInitializeAsyncLoadsQuantitiesModelAndSelectsDefaultRoot()
+        public async Task VerifyInitializeAsyncLoadsQuantitiesModelAndSelectsLocalDefaultRoot()
         {
             var model = CreateMinimalModel();
             var modelLoaderService = CreateModelLoader(model);
@@ -164,7 +164,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
                 Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
-                Assert.That(selectionService.SelectedElement, Is.SameAs(viewModel.RootNodes[0].SourceElement));
+                Assert.That(selectionService.SelectedElement, Is.Null);
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.IsLoading, Is.False);
                 Assert.That(viewModel.ErrorMessage, Is.Empty);
@@ -173,39 +173,52 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that separate Project Browser ViewModels keep independent visual state.
+        /// Verifies that separate Project Browser ViewModels keep independent expansion state over shared selection.
         /// </summary>
         [Test]
-        public async Task VerifyProjectBrowserViewModelsKeepIndependentState()
+        public async Task VerifyProjectBrowserViewModelsKeepIndependentExpansionState()
         {
             var model = CreateMinimalModel();
             var modelLoaderService = CreateModelLoader(model);
+            var selectionService = new ContextAwareService();
             using var firstViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService());
+                selectionService);
             using var secondViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService());
+                selectionService);
 
-            await firstViewModel.InitializeAsync(CancellationToken.None);
-            await secondViewModel.InitializeAsync(CancellationToken.None);
+            await Task.WhenAll(
+                firstViewModel.InitializeAsync(CancellationToken.None),
+                secondViewModel.InitializeAsync(CancellationToken.None));
 
             var firstRootNode = firstViewModel.RootNodes[0];
             var secondRootNode = secondViewModel.RootNodes[0];
 
+            if (firstRootNode.IsExpanded)
+            {
+                firstViewModel.ToggleNode(firstRootNode);
+            }
+
+            if (secondRootNode.IsExpanded)
+            {
+                secondViewModel.ToggleNode(secondRootNode);
+            }
+
             firstViewModel.ToggleNode(firstRootNode);
-            firstViewModel.SelectNode(firstRootNode.Children[0]);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
                 Assert.That(secondRootNode, Is.Not.SameAs(firstRootNode));
-                Assert.That(firstRootNode.IsExpanded, Is.False);
-                Assert.That(secondRootNode.IsExpanded, Is.True);
-                Assert.That(firstRootNode.Children[0].IsSelected, Is.True);
-                Assert.That(secondRootNode.Children[0].IsSelected, Is.False);
-                Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstRootNode.Children[0]));
+                Assert.That(secondRootNode.Children[0], Is.Not.SameAs(firstRootNode.Children[0]));
+                Assert.That(firstRootNode.IsExpanded, Is.True);
+                Assert.That(secondRootNode.IsExpanded, Is.False);
+                Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstRootNode));
                 Assert.That(secondViewModel.SelectedNode, Is.SameAs(secondRootNode));
+                Assert.That(firstViewModel.SelectedNode.SourceElement,
+                    Is.SameAs(secondViewModel.SelectedNode.SourceElement));
+                Assert.That(selectionService.SelectedElement, Is.Null);
                 modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Exactly(2));
             }
         }
@@ -375,10 +388,35 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies external selection updates the Project Browser visual projection for its full lifetime.
+        /// Verifies workspace selection does not replace this browser's local visual selection.
         /// </summary>
         [Test]
-        public async Task VerifyExternalSelectionUpdatesVisualProjection()
+        public async Task VerifyExternalSelectionDoesNotChangeLocalVisualSelection()
+        {
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var rootNode = viewModel.RootNodes[0];
+            var node = viewModel.RootNodes[0].Children[0];
+
+            selectionService.SelectedElement = node.SourceElement;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(rootNode));
+                Assert.That(rootNode.IsSelected, Is.True);
+                Assert.That(node.IsSelected, Is.False);
+            }
+        }
+
+        /// <summary>
+        /// Verifies clearing workspace selection does not clear this browser's local selection.
+        /// </summary>
+        [Test]
+        public async Task VerifyExternalClearSelectionPreservesLocalVisualSelection()
         {
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
@@ -387,10 +425,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
 
-            selectionService.SelectedElement = node.SourceElement;
+            viewModel.SelectNode(node);
+            selectionService.SelectedElement = null;
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(selectionService.SelectedElement, Is.Null);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(node));
                 Assert.That(node.IsSelected, Is.True);
                 Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
@@ -398,33 +438,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies externally clearing selection clears the visual projection.
+        /// Verifies final disposal preserves both local presentation and independently changing workspace context.
         /// </summary>
         [Test]
-        public async Task VerifyExternalClearSelectionClearsVisualProjection()
-        {
-            var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
-            await viewModel.InitializeAsync(CancellationToken.None);
-            var node = viewModel.RootNodes[0].Children[0];
-
-            selectionService.SelectedElement = node.SourceElement;
-            selectionService.SelectedElement = null;
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.SelectedNode, Is.Null);
-                Assert.That(node.IsSelected, Is.False);
-            }
-        }
-
-        /// <summary>
-        /// Verifies final disposal removes the external selection subscription.
-        /// </summary>
-        [Test]
-        public async Task VerifyDisposedViewModelDoesNotObserveExternalSelection()
+        public async Task VerifyDisposedViewModelPreservesLocalSelectionAndSharedContext()
         {
             var selectionService = new ContextAwareService();
             var viewModel = new ProjectBrowserViewModel(
@@ -432,51 +449,76 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
-            selectionService.SelectedElement = null;
+            viewModel.SelectNode(node);
+            var externalElement = new Namespace { ElementId = "external" };
 
             viewModel.Dispose();
-            selectionService.SelectedElement = node.SourceElement;
+            selectionService.SelectedElement = externalElement;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
-                Assert.That(viewModel.SelectedNode, Is.Null);
-                Assert.That(node.IsSelected, Is.False);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(externalElement));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(node));
+                Assert.That(node.IsSelected, Is.True);
             }
         }
 
         /// <summary>
-        /// Verifies two Project Browser consumers synchronize through one scoped selection service.
+        /// Verifies two Project Browsers keep local selection while publishing shared workspace context.
         /// </summary>
         [Test]
-        public async Task VerifyTwoViewModelsObserveSameSelectionService()
+        public async Task VerifyTwoViewModelsKeepIndependentLocalSelectionAndSharedContext()
         {
-            var model = CreateMinimalModel();
+            var model = CreateSelectionModel();
             var selectionService = new ContextAwareService();
             var modelLoaderService = CreateModelLoader(model);
             using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
             using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
 
-            await firstViewModel.InitializeAsync(CancellationToken.None);
-            await secondViewModel.InitializeAsync(CancellationToken.None);
+            await Task.WhenAll(
+                firstViewModel.InitializeAsync(CancellationToken.None),
+                secondViewModel.InitializeAsync(CancellationToken.None));
 
-            selectionService.SelectedElement = null;
-            var selectedElement = firstViewModel.RootNodes[0].Children[0].SourceElement;
-            selectionService.SelectedElement = selectedElement;
+            var firstRootNode = firstViewModel.RootNodes[0];
+            var secondRootNode = secondViewModel.RootNodes[0];
+            var firstThrusterNode = firstRootNode.Children.Single(node => node.DisplayName == "Thruster");
+            var secondThrusterNode = secondRootNode.Children.Single(node => node.DisplayName == "Thruster");
+            var firstTankNode = firstRootNode.Children.Single(node => node.DisplayName == "Tank");
+            var secondTankNode = secondRootNode.Children.Single(node => node.DisplayName == "Tank");
+
+            firstViewModel.SelectNode(firstThrusterNode);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(firstViewModel.SelectedNode.SourceElement, Is.SameAs(selectedElement));
-                Assert.That(secondViewModel.SelectedNode.SourceElement, Is.SameAs(selectedElement));
-                Assert.That(firstViewModel.SelectedNode, Is.Not.SameAs(secondViewModel.SelectedNode));
+                Assert.That(firstThrusterNode, Is.Not.SameAs(secondThrusterNode));
+                Assert.That(firstTankNode, Is.Not.SameAs(secondTankNode));
+                Assert.That(firstThrusterNode.SourceElement, Is.SameAs(secondThrusterNode.SourceElement));
+                Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstThrusterNode));
+                Assert.That(firstThrusterNode.IsSelected, Is.True);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(firstThrusterNode.SourceElement));
+                Assert.That(secondViewModel.SelectedNode, Is.SameAs(secondRootNode));
+                Assert.That(secondRootNode.IsSelected, Is.True);
+                Assert.That(secondThrusterNode.IsSelected, Is.False);
+            }
+
+            secondViewModel.SelectNode(secondTankNode);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(secondViewModel.SelectedNode, Is.SameAs(secondTankNode));
+                Assert.That(secondTankNode.IsSelected, Is.True);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(secondTankNode.SourceElement));
+                Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstThrusterNode));
+                Assert.That(firstThrusterNode.IsSelected, Is.True);
+                Assert.That(firstTankNode.IsSelected, Is.False);
             }
         }
 
         /// <summary>
-        /// Verifies initialization preserves an external selection absent from the loaded tree.
+        /// Verifies initialization applies a local default without overwriting external workspace context.
         /// </summary>
         [Test]
-        public async Task VerifyInitializeAsyncPreservesExternalSelectionAbsentFromTree()
+        public async Task VerifyInitializeAsyncSelectsLocalDefaultAndPreservesExternalContext()
         {
             var externalElement = new Namespace { ElementId = "external" };
             var selectionService = new ContextAwareService
@@ -494,22 +536,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(initialized, Is.True);
                 Assert.That(selectionService.SelectedElement, Is.SameAs(externalElement));
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
-                Assert.That(viewModel.SelectedNode, Is.Null);
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
+                Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
+                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
+                Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
                 Assert.That(viewModel.IsLoaded, Is.True);
             }
         }
 
         /// <summary>
-        /// Verifies an external selection present before initialization maps by object identity.
+        /// Verifies initialization does not project a matching workspace selection into local presentation.
         /// </summary>
         [Test]
-        public async Task VerifyInitializeAsyncProjectsExistingExternalSelection()
+        public async Task VerifyInitializeAsyncDoesNotProjectExistingWorkspaceSelection()
         {
-            var model = CreateMinimalModel();
+            var model = CreateSelectionModel();
+            var thrusterElement = model.ownedElement.Single(element => element.ElementId == "thruster");
             var selectionService = new ContextAwareService
             {
-                SelectedElement = model
+                SelectedElement = thrusterElement
             };
             using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
 
@@ -520,30 +564,80 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(initialized, Is.True);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
                 Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
-                Assert.That(viewModel.RootNodes[0].IsExpanded, Is.False);
-                Assert.That(selectionService.SelectedElement, Is.SameAs(model));
+                Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
+                Assert.That(viewModel.RootNodes[0].Children.Single(node => node.DisplayName == "Thruster").IsSelected,
+                    Is.False);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(thrusterElement));
             }
         }
 
         /// <summary>
-        /// Verifies a distinct external object with the same ElementId does not match a visual node.
+        /// Verifies a background browser completing initialization does not replace another browser's selection.
         /// </summary>
         [Test]
-        public async Task VerifyExternalSelectionUsesReferenceIdentity()
+        public async Task VerifyBackgroundInitializationPreservesLocalAndSharedSelection()
         {
-            var model = new Namespace { ElementId = "shared-id" };
-            var distinctElement = new Namespace { ElementId = "shared-id" };
+            using var loadStarted = new ManualResetEventSlim();
+            using var releaseLoad = new ManualResetEventSlim();
+            var model = CreateSelectionModel();
+            var backgroundModelLoaderService = new Mock<IModelLoaderService>();
+            backgroundModelLoaderService
+                .Setup(service => service.LoadQuantitiesModel())
+                .Returns(() =>
+                {
+                    loadStarted.Set();
+
+                    if (!releaseLoad.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        throw new TimeoutException("The test did not release background model loading.");
+                    }
+
+                    return model;
+                });
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
-            await viewModel.InitializeAsync(CancellationToken.None);
+            using var foregroundViewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(model).Object,
+                selectionService);
+            using var backgroundViewModel = new ProjectBrowserViewModel(
+                backgroundModelLoaderService.Object,
+                selectionService);
+            var backgroundInitialization = backgroundViewModel.InitializeAsync(CancellationToken.None);
 
-            selectionService.SelectedElement = distinctElement;
-
-            using (Assert.EnterMultipleScope())
+            try
             {
-                Assert.That(selectionService.SelectedElement, Is.SameAs(distinctElement));
-                Assert.That(viewModel.SelectedNode, Is.Null);
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
+                var backgroundLoadStarted = loadStarted.Wait(TimeSpan.FromSeconds(10));
+                var foregroundInitialized = await foregroundViewModel.InitializeAsync(CancellationToken.None);
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(backgroundLoadStarted, Is.True);
+                    Assert.That(foregroundInitialized, Is.True);
+                }
+
+                var foregroundThrusterNode = foregroundViewModel.RootNodes[0].Children
+                    .Single(node => node.DisplayName == "Thruster");
+                foregroundViewModel.SelectNode(foregroundThrusterNode);
+
+                releaseLoad.Set();
+                var backgroundInitialized = await backgroundInitialization;
+                var backgroundRootNode = backgroundViewModel.RootNodes[0];
+                var backgroundThrusterNode = backgroundRootNode.Children
+                    .Single(node => node.DisplayName == "Thruster");
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(backgroundInitialized, Is.True);
+                    Assert.That(selectionService.SelectedElement, Is.SameAs(foregroundThrusterNode.SourceElement));
+                    Assert.That(foregroundViewModel.SelectedNode, Is.SameAs(foregroundThrusterNode));
+                    Assert.That(foregroundThrusterNode.IsSelected, Is.True);
+                    Assert.That(backgroundViewModel.SelectedNode, Is.SameAs(backgroundRootNode));
+                    Assert.That(backgroundRootNode.IsSelected, Is.True);
+                    Assert.That(backgroundThrusterNode.IsSelected, Is.False);
+                }
+            }
+            finally
+            {
+                releaseLoad.Set();
             }
         }
 
@@ -616,10 +710,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies one local selection produces one visual projection notification.
+        /// Verifies one local selection produces one local selection notification.
         /// </summary>
         [Test]
-        public async Task VerifySelectNodeDoesNotDuplicateSelectionProjection()
+        public async Task VerifySelectNodeDoesNotDuplicateLocalSelectionNotification()
         {
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
@@ -824,6 +918,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 CreateModelLoader(CreateMinimalModel()).Object,
                 selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
+            viewModel.SelectNode(viewModel.RootNodes[0].Children[0]);
             var selectedElement = selectionService.SelectedElement;
 
             Assert.That(viewModel.Dispose, Throws.Nothing);
@@ -863,12 +958,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         [Test]
-        public async Task VerifyRootPublicationNotifiesOnlyAfterSelectionProjectionIsCoherent()
+        public async Task VerifyRootPublicationNotifiesOnlyAfterLocalSelectionIsCoherent()
         {
             var model = CreateMinimalModel();
+            var workspaceElement = new Namespace { ElementId = "workspace-selection" };
             var selectionService = new ContextAwareService
             {
-                SelectedElement = model
+                SelectedElement = workspaceElement
             };
             using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
             var coherentPublicationObserved = false;
@@ -890,7 +986,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(coherentPublicationObserved, Is.True);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
-                Assert.That(selectionService.SelectedElement, Is.SameAs(model));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(workspaceElement));
             }
         }
 
@@ -907,6 +1003,30 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 .Returns(model);
 
             return modelLoaderService;
+        }
+
+        /// <summary>
+        /// Creates a model with two elements used to prove independent local browser selection.
+        /// </summary>
+        /// <returns>The selection-focused namespace model.</returns>
+        private static INamespace CreateSelectionModel()
+        {
+            var thruster = new Mock<INamespace>();
+            thruster.SetupGet(element => element.ElementId).Returns("thruster");
+            thruster.SetupGet(element => element.DeclaredName).Returns("Thruster");
+            thruster.SetupGet(element => element.ownedElement).Returns([]);
+
+            var tank = new Mock<INamespace>();
+            tank.SetupGet(element => element.ElementId).Returns("tank");
+            tank.SetupGet(element => element.DeclaredName).Returns("Tank");
+            tank.SetupGet(element => element.ownedElement).Returns([]);
+
+            var root = new Mock<INamespace>();
+            root.SetupGet(element => element.ElementId).Returns("root");
+            root.SetupGet(element => element.DeclaredName).Returns("Root");
+            root.SetupGet(element => element.ownedElement).Returns([thruster.Object, tank.Object]);
+
+            return root.Object;
         }
 
         /// <summary>

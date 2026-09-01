@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Components.Pages
 {
     using Microsoft.AspNetCore.Components;
+    using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -20,7 +21,7 @@ namespace Mycelium.Bloom.Components.Pages
     /// <summary>
     /// Composes the full-application Bloom workspace from reusable structural components.
     /// </summary>
-    public partial class Home : ComponentBase
+    public sealed partial class Home : ComponentBase, IDisposable
     {
         /// <summary>
         /// The number of editor groups represented by the native desktop design when configuration permits it.
@@ -33,7 +34,7 @@ namespace Mycelium.Bloom.Components.Pages
         private const string EmptyEditorActionId = "empty-editor";
 
         /// <summary>
-        /// The composition-owned action that opens the retained Project Browser content.
+        /// The composition-owned action that opens independent Project Browser content.
         /// </summary>
         private const string ProjectBrowserActionId = "open-project-browser";
 
@@ -62,6 +63,11 @@ namespace Mycelium.Bloom.Components.Pages
         ];
 
         /// <summary>
+        /// The Project Browser ViewModels owned by their exact durable editor-tab identities.
+        /// </summary>
+        private readonly Dictionary<Guid, IProjectBrowserViewModel> projectBrowserViewModels = [];
+
+        /// <summary>
         /// The initial-only presentation weights supplied to the editor workspace.
         /// </summary>
         private IReadOnlyDictionary<Guid, double> initialGroupWeights = new Dictionary<Guid, double>();
@@ -70,6 +76,11 @@ namespace Mycelium.Bloom.Components.Pages
         /// A value indicating whether the shell currently reserves the collapsed navigation width.
         /// </summary>
         private bool isNavigationCollapsed = true;
+
+        /// <summary>
+        /// A value indicating whether final component disposal has occurred.
+        /// </summary>
+        private bool isDisposed;
 
         /// <summary>
         /// The number assigned to the next generic placeholder tab.
@@ -83,10 +94,11 @@ namespace Mycelium.Bloom.Components.Pages
         private INavigationRailViewModel NavigationViewModel { get; set; }
 
         /// <summary>
-        /// Gets or sets the Project Browser state retained by the workspace composition root.
+        /// Gets or sets the scoped service provider used to resolve composition-owned Project Browser state.
+        /// Resolved disposable transients remain scope-tracked after Home ends their logical tab lifetime.
         /// </summary>
         [Inject]
-        private IProjectBrowserViewModel ProjectBrowserViewModel { get; set; }
+        private IServiceProvider ServiceProvider { get; set; }
 
         /// <summary>
         /// Gets or sets the durable editor state resolved once by the workspace composition root.
@@ -100,18 +112,66 @@ namespace Mycelium.Bloom.Components.Pages
             base.OnInitialized();
 
             ArgumentNullException.ThrowIfNull(this.NavigationViewModel);
-            ArgumentNullException.ThrowIfNull(this.ProjectBrowserViewModel);
+            ArgumentNullException.ThrowIfNull(this.ServiceProvider);
             ArgumentNullException.ThrowIfNull(this.WorkspaceEditorViewModel);
 
-            this.isNavigationCollapsed = this.NavigationViewModel.PresentationMode switch
+            try
             {
-                NavigationRailPresentationMode.Expanded => false,
-                NavigationRailPresentationMode.Collapsed => true,
-                _ => throw CreateInvalidPresentationModeException(
-                    this.NavigationViewModel.PresentationMode)
-            };
+                this.isNavigationCollapsed = this.NavigationViewModel.PresentationMode switch
+                {
+                    NavigationRailPresentationMode.Expanded => false,
+                    NavigationRailPresentationMode.Collapsed => true,
+                    _ => throw CreateInvalidPresentationModeException(
+                        this.NavigationViewModel.PresentationMode)
+                };
 
-            this.InitializePlaceholderWorkspace();
+                this.InitializeExistingProjectBrowserOwnership();
+                this.InitializePlaceholderWorkspace();
+            }
+            catch
+            {
+                this.DisposeProjectBrowserViewModels();
+
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Releases every Project Browser ViewModel still owned by this composition.
+        /// </summary>
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+            this.DisposeProjectBrowserViewModels();
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Creates ownership for Project Browser tabs already present in durable workspace state.
+        /// </summary>
+        private void InitializeExistingProjectBrowserOwnership()
+        {
+            foreach (var tabId in this.WorkspaceEditorViewModel.RenderState.Groups
+                         .SelectMany(group => group.Tabs)
+                         .Select(tab => tab.Item)
+                         .Where(IsProjectBrowserTab)
+                         .Select(tab => tab.Id))
+            {
+                var viewModel = this.CreateProjectBrowserViewModel();
+
+                if (!this.projectBrowserViewModels.TryAdd(tabId, viewModel))
+                {
+                    viewModel.Dispose();
+
+                    throw new InvalidOperationException(
+                        $"Project Browser ownership already exists for editor tab '{tabId}'.");
+                }
+            }
         }
 
         /// <summary>
@@ -156,16 +216,14 @@ namespace Mycelium.Bloom.Components.Pages
         /// Creates the generic add-tab actions from the workspace's current coherent rendering state.
         /// </summary>
         /// <returns>The actions available to every editor group.</returns>
-        private ActionMenuItem[] CreateAddTabActions()
+        private static ActionMenuItem[] CreateAddTabActions()
         {
             return EditorTypes
                 .Select(editorType => new ActionMenuItem
                 {
                     Id = editorType.ActionId,
                     Label = editorType.Label,
-                    Symbol = editorType.Symbol,
-                    Disabled = editorType.ActionId == ProjectBrowserActionId
-                        && this.HasProjectBrowserTab()
+                    Symbol = editorType.Symbol
                 })
                 .ToArray();
         }
@@ -207,6 +265,12 @@ namespace Mycelium.Bloom.Components.Pages
         {
             ArgumentNullException.ThrowIfNull(tab);
 
+            if (IsProjectBrowserTab(tab)
+                && this.projectBrowserViewModels.Remove(tab.Id, out var viewModel))
+            {
+                viewModel.Dispose();
+            }
+
             if (!this.WorkspaceEditorViewModel.RenderState.Groups
                 .SelectMany(group => group.Tabs)
                 .Any())
@@ -216,22 +280,44 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Attempts to open the retained Project Browser content in one workspace group when it is not already open.
+        /// Attempts to open independently owned Project Browser content in one workspace group.
         /// </summary>
         /// <param name="groupId">The target editor group.</param>
         /// <returns><see langword="true" /> when the Project Browser tab was opened; otherwise, <see langword="false" />.</returns>
         private bool OpenProjectBrowserTab(Guid groupId)
         {
-            if (this.HasProjectBrowserTab())
-            {
-                return false;
-            }
+            var viewModel = this.CreateProjectBrowserViewModel();
+            var ownershipTransferred = false;
 
-            return this.WorkspaceEditorViewModel.TryOpenTab(
-                groupId,
-                "Project Browser",
-                ProjectBrowserViewTypeKey,
-                out _);
+            try
+            {
+                if (!this.WorkspaceEditorViewModel.TryOpenTab(
+                        groupId,
+                        "Project Browser",
+                        ProjectBrowserViewTypeKey,
+                        out var tab))
+                {
+                    return false;
+                }
+
+                if (!this.projectBrowserViewModels.TryAdd(tab.Id, viewModel))
+                {
+                    _ = this.WorkspaceEditorViewModel.CloseTab(groupId, tab.Id);
+
+                    return false;
+                }
+
+                ownershipTransferred = true;
+
+                return true;
+            }
+            finally
+            {
+                if (!ownershipTransferred)
+                {
+                    viewModel.Dispose();
+                }
+            }
         }
 
         /// <summary>
@@ -253,13 +339,28 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Checks whether an editor tab selects the retained Project Browser content.
+        /// Checks whether an editor tab selects Project Browser content.
         /// </summary>
         /// <param name="tab">The durable editor tab state.</param>
         /// <returns><see langword="true" /> when the Project Browser should be rendered.</returns>
         private static bool IsProjectBrowserTab(EditorTabItem tab)
         {
             return string.Equals(tab.ViewTypeKey, ProjectBrowserViewTypeKey, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Retrieves the exact Project Browser ViewModel owned by one durable editor tab.
+        /// </summary>
+        /// <param name="tab">The durable Project Browser tab.</param>
+        /// <param name="viewModel">The caller-owned ViewModel associated with the tab.</param>
+        /// <returns><see langword="true" /> when the tab has an owned Project Browser ViewModel.</returns>
+        private bool TryGetProjectBrowserViewModel(
+            EditorTabItem tab,
+            out IProjectBrowserViewModel viewModel)
+        {
+            ArgumentNullException.ThrowIfNull(tab);
+
+            return this.projectBrowserViewModels.TryGetValue(tab.Id, out viewModel);
         }
 
         /// <summary>
@@ -280,14 +381,25 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Checks the current coherent workspace snapshot for the retained Project Browser tab.
+        /// Resolves one fresh transient Project Browser ViewModel owned by this composition.
         /// </summary>
-        /// <returns><see langword="true" /> when the Project Browser exists anywhere in the workspace.</returns>
-        private bool HasProjectBrowserTab()
+        /// <returns>The fresh caller-owned ViewModel.</returns>
+        private IProjectBrowserViewModel CreateProjectBrowserViewModel()
         {
-            return this.WorkspaceEditorViewModel.RenderState.Groups
-                .SelectMany(group => group.Tabs)
-                .Any(tab => IsProjectBrowserTab(tab.Item));
+            return this.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
+        }
+
+        /// <summary>
+        /// Disposes and forgets all Project Browser ViewModels still owned by this composition.
+        /// </summary>
+        private void DisposeProjectBrowserViewModels()
+        {
+            foreach (var viewModel in this.projectBrowserViewModels.Values)
+            {
+                viewModel.Dispose();
+            }
+
+            this.projectBrowserViewModels.Clear();
         }
 
         /// <summary>

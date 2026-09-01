@@ -20,11 +20,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
-        /// Cancels component-owned initialization when the component is disposed.
-        /// </summary>
-        private CancellationTokenSource initializationCancellation;
-
-        /// <summary>
         /// A value indicating whether the component has been disposed.
         /// </summary>
         private bool isDisposed;
@@ -45,16 +40,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> SelectedNodeChanged { get; set; }
-
-        /// <summary>
-        /// Creates component-owned initialization cancellation.
-        /// </summary>
-        protected override void OnInitialized()
-        {
-            this.initializationCancellation = new CancellationTokenSource();
-
-            base.OnInitialized();
-        }
 
         /// <summary>
         /// Initializes the configured project browser ViewModel.
@@ -78,7 +63,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             try
             {
-                await viewModel.InitializeAsync(this.initializationCancellation.Token);
+                await viewModel.InitializeAsync(CancellationToken.None);
             }
             catch (Exception)
             {
@@ -87,7 +72,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Cancels initialization and releases component-owned reactive subscriptions.
+        /// Releases component-owned reactive subscriptions.
         /// </summary>
         /// <param name="disposing">
         /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
@@ -101,28 +86,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             this.isDisposed = true;
 
-            if (!disposing)
-            {
-                base.Dispose(false);
-
-                return;
-            }
-
-            try
-            {
-                this.initializationCancellation?.Cancel();
-            }
-            finally
-            {
-                try
-                {
-                    base.Dispose(true);
-                }
-                finally
-                {
-                    this.initializationCancellation?.Dispose();
-                }
-            }
+            base.Dispose(disposing);
         }
 
         /// <summary>

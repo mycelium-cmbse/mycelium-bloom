@@ -16,10 +16,15 @@ namespace Mycelium.Bloom.Tests.Extensions
 
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+
+    using Moq;
 
     [TestFixture]
     public sealed class ServiceCollectionExtensionsTestFixture
@@ -115,6 +120,56 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(secondContext, Is.SameAs(secondConcreteContext));
                 Assert.That(secondSelection, Is.SameAs(secondConcreteContext));
                 Assert.That(secondConcreteContext, Is.Not.SameAs(firstConcreteContext));
+            }
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersProjectBrowserViewModelAsTransient()
+        {
+            var services = new ServiceCollection();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            var modelLoaderDisposal = modelLoaderService.As<IDisposable>();
+            var selectionService = new Mock<IElementSelectionService>();
+            var selectionServiceDisposal = selectionService.As<IDisposable>();
+            selectionService.SetupProperty(service => service.SelectedElement);
+            services.AddApplicationServices();
+            services.AddScoped(_ => modelLoaderService.Object);
+            services.AddScoped(_ => selectionService.Object);
+
+            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            var scope = serviceProvider.CreateScope();
+            var firstViewModel = scope.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
+            var secondViewModel = scope.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
+            var firstNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
+            var secondNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second");
+
+            firstViewModel.SelectNode(firstNode);
+            secondViewModel.SelectNode(secondNode);
+            firstViewModel.Dispose();
+            secondViewModel.Dispose();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstViewModel, Is.TypeOf<ProjectBrowserViewModel>());
+                Assert.That(secondViewModel, Is.TypeOf<ProjectBrowserViewModel>());
+                Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+                Assert.That(selectionService.Object.SelectedElement, Is.SameAs(secondNode.SourceElement));
+                selectionService.VerifySet(
+                    service => service.SelectedElement = firstNode.SourceElement,
+                    Times.Once);
+                selectionService.VerifySet(
+                    service => service.SelectedElement = secondNode.SourceElement,
+                    Times.Once);
+                modelLoaderDisposal.Verify(service => service.Dispose(), Times.Never);
+                selectionServiceDisposal.Verify(service => service.Dispose(), Times.Never);
+            }
+
+            Assert.That(scope.Dispose, Throws.Nothing);
+
+            using (Assert.EnterMultipleScope())
+            {
+                modelLoaderDisposal.Verify(service => service.Dispose(), Times.Once);
+                selectionServiceDisposal.Verify(service => service.Dispose(), Times.Once);
             }
         }
     }

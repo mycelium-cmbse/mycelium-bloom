@@ -50,12 +50,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly HashSet<string> nodeIds = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// Maps source element object identities to their visual project browser nodes.
-        /// </summary>
-        private readonly Dictionary<IElement, ProjectBrowserNodeViewModel> elementNodes =
-            new(ReferenceEqualityComparer.Instance);
-
-        /// <summary>
         /// Owns the root node collection and publishes batched root changes.
         /// </summary>
         private readonly SourceList<ProjectBrowserNodeViewModel> rootNodeSource = new();
@@ -71,17 +65,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly IDisposable rootNodeBinding;
 
         /// <summary>
-        /// Reconciles global selection changes against the currently published tree.
-        /// </summary>
-        private readonly IDisposable selectionProjectionSubscription;
-
-        /// <summary>
         /// Cancels initialization when final ViewModel disposal begins.
         /// </summary>
         private readonly CancellationTokenSource lifetimeCancellation = new();
 
         /// <summary>
-        /// The visual projection of the globally selected element.
+        /// The node selected locally in this project browser.
         /// </summary>
         [AllowNull]
         [MaybeNull]
@@ -116,10 +105,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 this.rootNodeSource.Connect().Bind(out var boundRootNodes));
 
             this.rootNodes = boundRootNodes;
-
-            this.selectionProjectionSubscription = System.ObservableExtensions.Subscribe(
-                this.elementSelectionService.WhenAnyValue(service => service.SelectedElement),
-                this.ApplySelectedElement);
         }
 
         /// <inheritdoc />
@@ -164,13 +149,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 ArgumentNullException.ThrowIfNull(model);
 
                 var stagedNodeIds = new HashSet<string>(StringComparer.Ordinal);
-                var stagedElementNodes = new Dictionary<IElement, ProjectBrowserNodeViewModel>(
-                    ReferenceEqualityComparer.Instance);
                 var rootNode = this.BuildNode(
                     model,
                     "root",
                     stagedNodeIds,
-                    stagedElementNodes,
                     initializationToken);
 
                 initializationToken.ThrowIfCancellationRequested();
@@ -178,7 +160,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 return this.TryPublishTree(
                     rootNode,
                     stagedNodeIds,
-                    stagedElementNodes,
                     initializationToken);
             }
             catch (Exception) when (initializationToken.IsCancellationRequested || this.isDisposed)
@@ -219,6 +200,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             if (!this.isDisposed)
             {
+                this.ApplySelectedNode(node);
                 this.elementSelectionService.SelectedElement = node.SourceElement;
             }
         }
@@ -233,7 +215,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             this.isDisposed = true;
             this.lifetimeCancellation.Cancel();
-            this.selectionProjectionSubscription.Dispose();
             this.rootNodeBinding.Dispose();
             this.rootNodeSource.Dispose();
             this.lifetimeCancellation.Dispose();
@@ -244,13 +225,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         /// <param name="rootNode">The staged root node.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementNodes">The reference-identity lookup built while staging.</param>
         /// <param name="cancellationToken">Cancels publication before staged state is exposed.</param>
         /// <returns><see langword="true" /> when the staged tree was published; otherwise, <see langword="false" />.</returns>
         private bool TryPublishTree(
             ProjectBrowserNodeViewModel rootNode,
             HashSet<string> stagedNodeIds,
-            Dictionary<IElement, ProjectBrowserNodeViewModel> stagedElementNodes,
             CancellationToken cancellationToken)
         {
             if (this.isDisposed || cancellationToken.IsCancellationRequested)
@@ -258,13 +237,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 return false;
             }
 
-            this.ClearTreeIndexesAndOwnedSelection();
+            this.ClearTreeIndexesAndLocalSelection();
             this.nodeIds.UnionWith(stagedNodeIds);
-
-            foreach (var elementNode in stagedElementNodes)
-            {
-                this.elementNodes.Add(elementNode.Key, elementNode.Value);
-            }
 
             this.EditRootNodes(nodes =>
             {
@@ -272,7 +246,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 nodes.Add(rootNode);
             });
 
-            this.ReconcileSelectionAfterRootPublication(selectDefaultRoot: true);
+            this.ApplyDefaultRootSelection();
             this.SetLoaded();
             this.RaisePropertyChanged(nameof(this.RootNodes));
 
@@ -280,28 +254,24 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Reconciles the latest shared selection after a complete root publication or reset.
+        /// Applies the initial local selection after a complete root publication.
         /// </summary>
-        /// <param name="selectDefaultRoot">Whether an empty shared selection should select the first root.</param>
-        private void ReconcileSelectionAfterRootPublication(bool selectDefaultRoot)
+        private void ApplyDefaultRootSelection()
         {
-            var selectedElement = this.elementSelectionService.SelectedElement;
-            this.ApplySelectedElement(selectedElement);
-
-            if (selectDefaultRoot && selectedElement is null && this.RootNodes.Count > 0)
+            if (this.RootNodes.Count == 0)
             {
-                var rootNode = this.RootNodes[0];
-                this.ApplySelectedNode(rootNode);
+                this.ApplySelectedNode(null);
 
-                if (rootNode.HasChildren && !rootNode.IsExpanded)
-                {
-                    rootNode.IsExpanded = true;
-                }
-
-                this.elementSelectionService.SelectedElement = rootNode.SourceElement;
+                return;
             }
 
-            this.ApplySelectedElement(this.elementSelectionService.SelectedElement);
+            var rootNode = this.RootNodes[0];
+            this.ApplySelectedNode(rootNode);
+
+            if (rootNode.HasChildren && !rootNode.IsExpanded)
+            {
+                rootNode.IsExpanded = true;
+            }
         }
 
         /// <summary>
@@ -310,14 +280,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="element">The SysML element represented by the node.</param>
         /// <param name="fallbackId">The fallback identifier used when the element has no identifier.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementNodes">The reference-identity lookup built while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <returns>The project browser node for the provided SysML element.</returns>
         private ProjectBrowserNodeViewModel BuildNode(
             IElement element,
             string fallbackId,
             HashSet<string> stagedNodeIds,
-            Dictionary<IElement, ProjectBrowserNodeViewModel> stagedElementNodes,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -331,7 +299,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 element,
                 nodeId,
                 stagedNodeIds,
-                stagedElementNodes,
                 cancellationToken);
             var displayName = GetDisplayName(element, runtimeTypeName);
             var qualifiedName = element.qualifiedName.ToDisplayString();
@@ -350,30 +317,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 metadata,
                 children);
 
-            stagedElementNodes.TryAdd(element, node);
-
             return node;
-        }
-
-        /// <summary>
-        /// Applies the shared selected element to the visual node projection.
-        /// </summary>
-        /// <param name="element">The selected element, or <see langword="null" />.</param>
-        private void ApplySelectedElement([AllowNull] IElement element)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            if (element != null && this.elementNodes.TryGetValue(element, out var node))
-            {
-                this.ApplySelectedNode(node);
-
-                return;
-            }
-
-            this.ApplySelectedNode(null);
         }
 
         /// <summary>
@@ -401,19 +345,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Clears the current tree and any shared selection owned by that tree.
+        /// Clears the current tree and its local selection.
         /// </summary>
         private void ResetTree()
         {
             var rootsChanged = this.RootNodes.Count > 0;
-            this.ClearTreeIndexesAndOwnedSelection();
+            this.ClearTreeIndexesAndLocalSelection();
 
             if (rootsChanged)
             {
                 this.EditRootNodes(nodes => nodes.Clear());
             }
-
-            this.ReconcileSelectionAfterRootPublication(selectDefaultRoot: false);
 
             if (rootsChanged)
             {
@@ -431,20 +373,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Clears visual lookup indexes and clears a shared selection owned by the current tree.
+        /// Clears visual lookup indexes and the selection owned by this project browser.
         /// </summary>
-        private void ClearTreeIndexesAndOwnedSelection()
+        private void ClearTreeIndexesAndLocalSelection()
         {
-            var selectedElement = this.elementSelectionService.SelectedElement;
-            var shouldClearSelection = selectedElement != null && this.elementNodes.ContainsKey(selectedElement);
-
+            this.ApplySelectedNode(null);
             this.nodeIds.Clear();
-            this.elementNodes.Clear();
-
-            if (shouldClearSelection)
-            {
-                this.elementSelectionService.SelectedElement = null;
-            }
         }
 
         /// <summary>
@@ -468,14 +402,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="element">The SysML element whose owned elements should be mapped.</param>
         /// <param name="parentNodeId">The identifier of the parent project browser node.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementNodes">The reference-identity lookup built while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <returns>The child project browser nodes for the provided SysML element.</returns>
         private List<ProjectBrowserNodeViewModel> BuildChildren(
             IElement element,
             string parentNodeId,
             HashSet<string> stagedNodeIds,
-            Dictionary<IElement, ProjectBrowserNodeViewModel> stagedElementNodes,
             CancellationToken cancellationToken)
         {
             var children = new List<ProjectBrowserNodeViewModel>();
@@ -497,7 +429,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                         childElement,
                         string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}"),
                         stagedNodeIds,
-                        stagedElementNodes,
                         cancellationToken));
                 }
 
