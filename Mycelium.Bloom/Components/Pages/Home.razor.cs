@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Components.Pages
 {
     using Microsoft.AspNetCore.Components;
+    using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -93,10 +94,11 @@ namespace Mycelium.Bloom.Components.Pages
         private INavigationRailViewModel NavigationViewModel { get; set; }
 
         /// <summary>
-        /// Gets or sets the factory used to create composition-owned Project Browser state.
+        /// Gets or sets the scoped service provider used to resolve composition-owned Project Browser state.
+        /// Resolved disposable transients remain scope-tracked after Home ends their logical tab lifetime.
         /// </summary>
         [Inject]
-        private IProjectBrowserViewModelFactory ProjectBrowserViewModelFactory { get; set; }
+        private IServiceProvider ServiceProvider { get; set; }
 
         /// <summary>
         /// Gets or sets the durable editor state resolved once by the workspace composition root.
@@ -110,7 +112,7 @@ namespace Mycelium.Bloom.Components.Pages
             base.OnInitialized();
 
             ArgumentNullException.ThrowIfNull(this.NavigationViewModel);
-            ArgumentNullException.ThrowIfNull(this.ProjectBrowserViewModelFactory);
+            ArgumentNullException.ThrowIfNull(this.ServiceProvider);
             ArgumentNullException.ThrowIfNull(this.WorkspaceEditorViewModel);
 
             try
@@ -379,14 +381,12 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Creates one fresh Project Browser ViewModel owned by this composition.
+        /// Resolves one fresh transient Project Browser ViewModel owned by this composition.
         /// </summary>
         /// <returns>The fresh caller-owned ViewModel.</returns>
         private IProjectBrowserViewModel CreateProjectBrowserViewModel()
         {
-            return this.ProjectBrowserViewModelFactory.Create()
-                   ?? throw new InvalidOperationException(
-                       $"{nameof(IProjectBrowserViewModelFactory)} returned no Project Browser ViewModel.");
+            return this.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
         }
 
         /// <summary>

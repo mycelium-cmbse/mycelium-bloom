@@ -383,7 +383,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             const int projectBrowserCount = 5;
             using var releaseLoad = new ManualResetEventSlim();
             using var allLoadsStarted = new CountdownEvent(projectBrowserCount);
-            var composition = this.RegisterWorkspaceServices(3);
             var model = new Mock<INamespace>();
             model.SetupGet(x => x.ElementId).Returns("root");
             model.SetupGet(x => x.DeclaredName).Returns("Root");
@@ -403,14 +402,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     return model.Object;
                 });
             var projectBrowserViewModels = new List<ProjectBrowserViewModel>();
-            composition.ProjectBrowserFactory.Reset();
-            composition.ProjectBrowserFactory
-                .Setup(factory => factory.Create())
-                .Returns(() =>
+            var composition = this.RegisterWorkspaceServices(
+                3,
+                context =>
                 {
                     var viewModel = new ProjectBrowserViewModel(
                         modelLoaderService.Object,
-                        composition.Context);
+                        context);
                     projectBrowserViewModels.Add(viewModel);
 
                     return viewModel;
@@ -760,7 +758,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies moving Project Browser retains its exact tab and ViewModel without factory recreation.
+        /// Verifies moving Project Browser retains its exact tab and ViewModel without another DI resolution.
         /// </summary>
         [Test]
         public async Task VerifyMovingProjectBrowserRetainsTabAndViewModelIdentity()
@@ -797,7 +795,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             {
                 Assert.That(FindPortalledMenuItem("Project Browser").GetAttribute("aria-disabled"),
                     Is.Not.EqualTo("true"));
-                composition.ProjectBrowserFactory.Verify(factory => factory.Create(), Times.Once);
+                Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
             }
         }
 
@@ -832,7 +830,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(
                         GetRenderedProjectBrowserViewModel(component, projectBrowserTab.Id),
                         Is.SameAs(projectBrowserViewModel));
-                    composition.ProjectBrowserFactory.Verify(factory => factory.Create(), Times.Once);
+                    Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
                 }
             });
         }
@@ -890,7 +888,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public async Task VerifyClosingInitializingProjectBrowserDoesNotAffectAnotherInstance()
         {
-            var composition = this.RegisterWorkspaceServices(3);
             var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             ObservableCollection<ProjectBrowserNodeViewModel> initializingMutableRoots = [];
             var initializingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
@@ -902,7 +899,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 survivingMutableRoots);
             var survivingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
             var initializationToken = CancellationToken.None;
-            var factoryInvocation = 0;
 
             initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(false);
@@ -924,21 +920,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             survivingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
             survivingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
             survivingViewModel.Setup(viewModel => viewModel.Dispose());
+            var projectBrowserViewModels = new Queue<IProjectBrowserViewModel>(
+                [initializingViewModel.Object, survivingViewModel.Object]);
+            var composition = this.RegisterWorkspaceServices(
+                3,
+                _ => projectBrowserViewModels.Dequeue());
             survivingViewModel
                 .Setup(viewModel => viewModel.SelectNode(survivingNode))
                 .Callback(() => composition.Context.SelectedElement = survivingNode.SourceElement);
-            composition.ProjectBrowserFactory.Reset();
-            composition.ProjectBrowserFactory
-                .Setup(factory => factory.Create())
-                .Returns(() =>
-                {
-                    var createdViewModel = factoryInvocation++ == 0
-                        ? initializingViewModel
-                        : survivingViewModel;
-                    composition.ProjectBrowsers.Add(createdViewModel);
-
-                    return createdViewModel.Object;
-                });
 
             using var navigationViewModel = composition.Navigation;
             using var component = this.Render<Home>();
@@ -1058,7 +1047,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies a failed durable tab open immediately disposes its factory-created candidate.
+        /// Verifies a failed durable tab open immediately disposes its DI-resolved candidate.
         /// </summary>
         [Test]
         public void VerifyFailedProjectBrowserOpenDisposesCandidateWithoutOwnershipEntry()
@@ -1073,7 +1062,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs), Is.Empty);
                 Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
                 composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Once);
-                composition.ProjectBrowserFactory.Verify(factory => factory.Create(), Times.Once);
                 Assert.That(component.FindAll("[data-testid='workspace-project-browser']"), Is.Empty);
                 Assert.That(component.FindAll("[data-testid='workspace-project-browser-unavailable']"), Is.Empty);
             }
@@ -1248,15 +1236,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         /// Registers one navigation and editor-state instance for the composition root to pass to its children.
         /// </summary>
         /// <param name="maximumGroupCount">The editor-group limit for the state instance.</param>
+        /// <param name="createProjectBrowserViewModel">The optional transient ViewModel creator.</param>
         /// <returns>The exact registered state instances.</returns>
         private (
             WorkspaceEditorViewModel Editor,
             NavigationRailViewModel Navigation,
-            Mock<IProjectBrowserViewModelFactory> ProjectBrowserFactory,
             List<Mock<IProjectBrowserViewModel>> ProjectBrowsers,
             ContextAwareService Context,
             List<ProjectBrowserNodeViewModel> ProjectBrowserNodes) RegisterWorkspaceServices(
-            int maximumGroupCount)
+            int maximumGroupCount,
+            Func<ContextAwareService, IProjectBrowserViewModel> createProjectBrowserViewModel = null)
         {
             var context = new ContextAwareService();
             var editorViewModel = new WorkspaceEditorViewModel(
@@ -1266,46 +1255,47 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 new NavigationRailItemProvider());
             var projectBrowserViewModels = new List<Mock<IProjectBrowserViewModel>>();
             var projectBrowserNodes = new List<ProjectBrowserNodeViewModel>();
-            var projectBrowserFactory = new Mock<IProjectBrowserViewModelFactory>(MockBehavior.Strict);
-            projectBrowserFactory
-                .Setup(factory => factory.Create())
-                .Returns(() =>
-                {
-                    var instanceNumber = projectBrowserViewModels.Count + 1;
-                    var projectBrowserNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
-                        $"project-root-{instanceNumber}",
-                        $"Project root {instanceNumber}");
-                    var mutableRootNodes = new ObservableCollection<ProjectBrowserNodeViewModel>
-                    {
-                        projectBrowserNode
-                    };
-                    var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
-                    var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-                    projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
-                    projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
-                    projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
-                    projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
-                    projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
-                    projectBrowserViewModel
-                        .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
-                        .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
-                    projectBrowserViewModels.Add(projectBrowserViewModel);
-                    projectBrowserNodes.Add(projectBrowserNode);
 
-                    return projectBrowserViewModel.Object;
-                });
+            this.Services.AddTransient<IProjectBrowserViewModel>(_ =>
+            {
+                if (createProjectBrowserViewModel != null)
+                {
+                    return createProjectBrowserViewModel(context);
+                }
+
+                var instanceNumber = projectBrowserViewModels.Count + 1;
+                var projectBrowserNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                    $"project-root-{instanceNumber}",
+                    $"Project root {instanceNumber}");
+                var mutableRootNodes = new ObservableCollection<ProjectBrowserNodeViewModel>
+                {
+                    projectBrowserNode
+                };
+                var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
+                var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+                projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
+                projectBrowserViewModel
+                    .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
+                    .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
+                projectBrowserViewModels.Add(projectBrowserViewModel);
+                projectBrowserNodes.Add(projectBrowserNode);
+
+                return projectBrowserViewModel.Object;
+            });
 
             this.Services.AddSingleton<IWorkspaceEditorViewModel>(editorViewModel);
             this.Services.AddSingleton<INavigationRailViewModel>(navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
-            this.Services.AddSingleton(projectBrowserFactory.Object);
             this.portalHost = this.Render<BbPortalHost>();
 
             return (
                 editorViewModel,
                 navigationViewModel,
-                projectBrowserFactory,
                 projectBrowserViewModels,
                 context,
                 projectBrowserNodes);
