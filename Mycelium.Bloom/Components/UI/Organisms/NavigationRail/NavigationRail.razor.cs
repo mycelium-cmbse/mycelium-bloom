@@ -66,21 +66,22 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         {
             NavigationRailPresentationMode.Expanded => false,
             NavigationRailPresentationMode.Collapsed => true,
+            NavigationRailPresentationMode.ExpandOnHover => true,
             _ => throw CreateInvalidPresentationModeException(this.RequiredViewModel.PresentationMode)
         };
 
         /// <summary>
         /// Gets a value indicating whether this component temporarily expands over the editor workspace.
         /// </summary>
-        private bool IsOverlayExpanded => this.IsLayoutCollapsed
-                                          && this.RequiredViewModel.IsExpandOnHoverEnabled
+        private bool IsOverlayExpanded => this.RequiredViewModel.PresentationMode
+                                          == NavigationRailPresentationMode.ExpandOnHover
                                           && this.isPointerOver;
 
         /// <summary>
         /// Gets a value indicating whether the rail stays in overlay positioning throughout hover mode.
         /// </summary>
-        private bool IsHoverOverlayMode => this.IsLayoutCollapsed
-                                           && this.RequiredViewModel.IsExpandOnHoverEnabled;
+        private bool IsHoverOverlayMode => this.RequiredViewModel.PresentationMode
+                                           == NavigationRailPresentationMode.ExpandOnHover;
 
         /// <summary>
         /// Gets a value indicating whether labels are hidden for the current visual presentation.
@@ -196,6 +197,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             {
                 NavigationRailPresentationMode.Expanded => "Expanded",
                 NavigationRailPresentationMode.Collapsed => "Collapsed",
+                NavigationRailPresentationMode.ExpandOnHover => "Expand on hover",
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)
             };
         }
@@ -254,18 +256,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private void SetPresentationMode(NavigationRailPresentationMode mode)
         {
             this.RequiredViewModel.PresentationMode = mode;
-            this.isSidebarControlMenuOpen = false;
-        }
 
-        /// <summary>
-        /// Sets the independent preference that temporarily expands a collapsed rail while it is hovered.
-        /// </summary>
-        /// <param name="isEnabled">Whether hover expansion should be enabled.</param>
-        private void SetExpandOnHoverEnabled(bool isEnabled)
-        {
-            this.RequiredViewModel.IsExpandOnHoverEnabled = isEnabled;
-
-            if (isEnabled)
+            if (mode == NavigationRailPresentationMode.ExpandOnHover)
             {
                 this.isPointerOver = false;
             }

@@ -128,6 +128,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(shell.Instance.FullApplication, Is.True);
                 Assert.That(shellRoot.GetAttribute("role"), Is.EqualTo("main"));
                 Assert.That(shellRoot.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
+                Assert.That(composition.Navigation.PresentationMode,
+                    Is.EqualTo(NavigationRailPresentationMode.ExpandOnHover));
                 Assert.That(shellRoot.GetAttribute("style"),
                     Does.Contain("--mb-workspace-right-panel-width: 380px;"));
                 Assert.That(navigation.Instance.ViewModel, Is.SameAs(composition.Navigation));
@@ -1139,7 +1141,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
 
             await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
-            var expandedAction = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 2);
+            var expandedAction = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 3);
             await expandedAction.Single(item => item.TextContent.Trim().Contains("Expanded", StringComparison.Ordinal))
                 .ClickAsync();
 
@@ -1160,7 +1162,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
-            composition.Navigation.IsExpandOnHoverEnabled = true;
+            composition.Navigation.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
             using var component = this.Render<Home>();
             var shell = component.Find("section.mb-workspace-shell");
             var editorWorkspace = component.FindComponent<EditorWorkspaceComponent>().Instance;
