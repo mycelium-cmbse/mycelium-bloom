@@ -58,6 +58,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
 
         /// <summary>
+        /// The selected type-chip labels expected from the active kind criteria.
+        /// </summary>
+        private static readonly string[] ExpectedSelectedTypeChipLabels =
+            ["«definition»", "«usage»", "«namespace»"];
+
+        /// <summary>
+        /// The visible node titles expected for a deep filtered match.
+        /// </summary>
+        private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
+
+        /// <summary>
         /// The immutable all-visible presentation used by ordinary strict interface scenarios.
         /// </summary>
         private static readonly ProjectBrowserFilterPresentation InactiveFilterPresentation =
@@ -313,13 +324,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await component.InvokeAsync(() => searchInput.Instance.ValueChanged.InvokeAsync("  needle  "));
             await component.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
-            this.OpenFilterDrawer(component);
-            this.portalHost.FindAll("button[aria-pressed]")
+            await this.OpenFilterDrawerAsync(component);
+            await this.portalHost.FindAll("button[aria-pressed]")
                 .Single(button => button.TextContent.Contains("«definition»", StringComparison.Ordinal))
-                .Click();
+                .ClickAsync();
 
             Assert.That(viewModel.Object.FilterText, Is.EqualTo("needle"));
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 viewModel.Verify(
                     owner => owner.ToggleElementKindFilter(SysmlModelElementKind.Definition),
                     Times.Once));
@@ -381,9 +392,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var viewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
             viewModel.SetupGet(owner => owner.SelectedElementKinds).Returns(() => selectedKinds);
             viewModel.Setup(owner => owner.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()))
-                .Callback<SysmlModelElementKind>(kind => selectedKinds = selectedKinds.Contains(kind)
-                    ? selectedKinds.Remove(kind)
-                    : selectedKinds.Add(kind));
+                .Callback<SysmlModelElementKind>(
+                    kind => selectedKinds = selectedKinds.SymmetricExcept([kind]));
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
@@ -391,24 +401,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var input = component.Find("input[role='combobox']");
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
                     Does.Contain("Contains")));
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
                     Does.Contain("«definition»")));
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowUp" });
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
                     Does.Contain("Contains")));
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
 
             using (Assert.EnterMultipleScope())
@@ -440,7 +450,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
 
             using (Assert.EnterMultipleScope())
@@ -462,7 +472,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await component.InvokeAsync(() => component.FindComponent<SearchInputComponent>()
                 .Instance.ValueChanged.InvokeAsync("thrusters"));
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"),
                     Has.Count.EqualTo(1)));
         }
@@ -482,7 +492,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
 
             using (Assert.EnterMultipleScope())
@@ -561,9 +571,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Object.FilterText = "thruster";
             viewModel.SetupGet(owner => owner.SelectedElementKinds).Returns(() => selectedKinds);
             viewModel.Setup(owner => owner.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()))
-                .Callback<SysmlModelElementKind>(kind => selectedKinds = selectedKinds.Contains(kind)
-                    ? selectedKinds.Remove(kind)
-                    : selectedKinds.Add(kind));
+                .Callback<SysmlModelElementKind>(
+                    kind => selectedKinds = selectedKinds.SymmetricExcept([kind]));
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
@@ -634,9 +643,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var viewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
             viewModel.SetupGet(owner => owner.SelectedElementKinds).Returns(() => selectedKinds);
             viewModel.Setup(owner => owner.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()))
-                .Callback<SysmlModelElementKind>(kind => selectedKinds = selectedKinds.Contains(kind)
-                    ? selectedKinds.Remove(kind)
-                    : selectedKinds.Add(kind));
+                .Callback<SysmlModelElementKind>(
+                    kind => selectedKinds = selectedKinds.SymmetricExcept([kind]));
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
@@ -644,9 +652,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var stableInputId = component.Find("input[role='combobox']").Id;
 
             await this.OpenSearchAssistantAsync(component, "usage");
-            this.portalHost.FindAll("[role='option']")
+            await this.portalHost.FindAll("[role='option']")
                 .Single(option => option.TextContent.Contains("«usage»", StringComparison.Ordinal))
-                .Click();
+                .ClickAsync();
 
             for (var iteration = 0; iteration < compositionCount; iteration++)
             {
@@ -692,9 +700,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var viewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
             viewModel.SetupGet(owner => owner.SelectedElementKinds).Returns(() => selectedKinds);
             viewModel.Setup(owner => owner.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()))
-                .Callback<SysmlModelElementKind>(kind => selectedKinds = selectedKinds.Contains(kind)
-                    ? selectedKinds.Remove(kind)
-                    : selectedKinds.Add(kind));
+                .Callback<SysmlModelElementKind>(
+                    kind => selectedKinds = selectedKinds.SymmetricExcept([kind]));
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
@@ -704,9 +711,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await component.Find("input[role='combobox']")
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
             await this.OpenSearchAssistantAsync(component, "usage");
-            this.portalHost.FindAll("[role='option']")
+            await this.portalHost.FindAll("[role='option']")
                 .Single(option => option.TextContent.Contains("«usage»", StringComparison.Ordinal))
-                .Click();
+                .ClickAsync();
             await this.OpenSearchAssistantAsync(component, "next criterion");
 
             using (Assert.EnterMultipleScope())
@@ -746,9 +753,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
                 await this.OpenSearchAssistantAsync(component, "usage");
-                this.portalHost.FindAll("[role='option']")
+                await this.portalHost.FindAll("[role='option']")
                     .Single(option => option.TextContent.Contains("«usage»", StringComparison.Ordinal))
-                    .Click();
+                    .ClickAsync();
 
                 var thirdDraft = $"gamma-{iteration}";
                 await this.OpenSearchAssistantAsync(component, thirdDraft);
@@ -761,14 +768,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(2));
                 }
 
-                component.Find($"button[aria-label='Remove Contains {firstDraft} search criterion']").Click();
+                await component.Find($"button[aria-label='Remove Contains {firstDraft} search criterion']")
+                    .ClickAsync();
 
-                component.WaitForAssertion(() =>
+                await component.WaitForAssertionAsync(() =>
                     Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False));
 
                 await this.OpenSearchAssistantAsync(component, $"delta-{iteration}");
-                this.OpenFilterDrawer(component);
-                this.portalHost.Find("button.mb-project-browser__clear-all").Click();
+                await this.OpenFilterDrawerAsync(component);
+                await this.portalHost.Find("button.mb-project-browser__clear-all").ClickAsync();
 
                 var finalDraft = $"epsilon-{iteration}";
                 await this.OpenSearchAssistantAsync(component, finalDraft);
@@ -813,16 +821,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var viewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
             viewModel.SetupGet(owner => owner.SelectedElementKinds).Returns(() => selectedKinds);
             viewModel.Setup(owner => owner.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()))
-                .Callback<SysmlModelElementKind>(kind => selectedKinds = selectedKinds.Contains(kind)
-                    ? selectedKinds.Remove(kind)
-                    : selectedKinds.Add(kind));
+                .Callback<SysmlModelElementKind>(
+                    kind => selectedKinds = selectedKinds.SymmetricExcept([kind]));
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "definition");
-            this.portalHost.FindAll("[role='option']")
+            await this.portalHost.FindAll("[role='option']")
                 .Single(option => option.TextContent.Contains("«definition»", StringComparison.Ordinal))
-                .Click();
+                .ClickAsync();
 
             Assert.That(component.Find(".mb-project-browser-search-assistant__criterion--type").TextContent,
                 Does.Contain("Type «definition»"));
@@ -838,7 +845,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(selectedDefinitionSuggestion.TextContent, Does.Contain("Selected type filter"));
             }
 
-            this.OpenFilterDrawer(component);
+            await this.OpenFilterDrawerAsync(component);
             var definitionChip = this.portalHost.FindAll("button[aria-pressed]")
                 .Single(button => button.TextContent.Contains("«definition»", StringComparison.Ordinal));
 
@@ -848,10 +855,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty);
             }
 
-            definitionChip.Click();
-            this.portalHost.Find("button[aria-label='Close project browser filters']").Click();
+            await definitionChip.ClickAsync();
+            await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
 
-            component.WaitForAssertion(() =>
+            await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion--type"), Is.Empty));
 
             await this.OpenSearchAssistantAsync(component, "definition");
@@ -880,18 +887,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var viewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
             viewModel.SetupGet(owner => owner.SelectedElementKinds).Returns(() => selectedKinds);
             viewModel.Setup(owner => owner.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()))
-                .Callback<SysmlModelElementKind>(kind => selectedKinds = selectedKinds.Contains(kind)
-                    ? selectedKinds.Remove(kind)
-                    : selectedKinds.Add(kind));
+                .Callback<SysmlModelElementKind>(
+                    kind => selectedKinds = selectedKinds.SymmetricExcept([kind]));
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "definition");
-            this.portalHost.FindAll("[role='option']")
+            await this.portalHost.FindAll("[role='option']")
                 .Single(option => option.TextContent.Contains("«definition»", StringComparison.Ordinal))
-                .Click();
+                .ClickAsync();
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
 
             using (Assert.EnterMultipleScope())
@@ -976,7 +982,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 await input.KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
                 component.Instance.Dispose();
 
-                this.portalHost.WaitForAssertion(() =>
+                await this.portalHost.WaitForAssertionAsync(() =>
                     Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
             }
 
@@ -1007,12 +1013,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "transient draft");
-            this.OpenFilterDrawer(component);
+            await this.OpenFilterDrawerAsync(component);
             var clearButton = this.portalHost.Find("button.mb-project-browser__clear-all");
 
-            clearButton.Click();
+            await clearButton.ClickAsync();
 
-            component.WaitForAssertion(() =>
+            await component.WaitForAssertionAsync(() =>
             {
                 Assert.That(component.Find("input[role='combobox']").GetAttribute("value"), Is.Empty);
                 viewModel.Verify(x => x.ClearFilter(), Times.Once);
@@ -1032,7 +1038,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            this.OpenFilterDrawer(component);
+            await this.OpenFilterDrawerAsync(component);
             var drawer = this.portalHost.Find(".mb-project-browser__filter-drawer");
             var popover = GetFilterDrawerPopover(component);
             var popoverContent = component.FindComponent<BbPopoverContent>();
@@ -1052,14 +1058,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(popoverContent.Instance.CloseOnClickOutside, Is.True);
             }
 
-            this.portalHost.Find("button[aria-label='Close project browser filters']").Click();
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Is.Empty));
 
-            this.OpenFilterDrawer(component);
+            await this.OpenFilterDrawerAsync(component);
             await this.portalHost.Find(".mb-project-browser__filter-popover")
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Is.Empty));
         }
 
@@ -1067,7 +1073,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// Verifies drawer state remains transient and independent across Project Browser components.
         /// </summary>
         [Test]
-        public void VerifyMultipleProjectBrowserDrawersRemainIndependent()
+        public async Task VerifyMultipleProjectBrowserDrawersRemainIndependent()
         {
             var firstViewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
             var secondViewModel = CreateLoadedViewModel(new ObservableCollection<ProjectBrowserNodeViewModel>());
@@ -1079,7 +1085,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(secondViewModel.Object);
             using var secondComponent = this.RenderProjectBrowser();
 
-            this.OpenFilterDrawer(firstComponent);
+            await this.OpenFilterDrawerAsync(firstComponent);
 
             using (Assert.EnterMultipleScope())
             {
@@ -1097,7 +1103,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// Verifies the active badge and selected chips derive from ViewModel-owned Type criteria only.
         /// </summary>
         [Test]
-        public void VerifyFilterDrawerDerivesActiveCountAndSelectedTypeChips()
+        public async Task VerifyFilterDrawerDerivesActiveCountAndSelectedTypeChips()
         {
             var roots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var selectedKinds = ImmutableHashSet.Create(
@@ -1110,7 +1116,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            this.OpenFilterDrawer(component);
+            await this.OpenFilterDrawerAsync(component);
             var selectedChips = this.portalHost.FindAll("button.mb-project-browser__type-chip[aria-pressed='true']");
 
             using (Assert.EnterMultipleScope())
@@ -1123,7 +1129,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Is.EqualTo("3 selected"));
                 Assert.That(selectedChips, Has.Count.EqualTo(3));
                 Assert.That(selectedChips.Select(chip => chip.TextContent.Trim()),
-                    Is.EquivalentTo(new[] { "«definition»", "«usage»", "«namespace»" }));
+                    Is.EquivalentTo(ExpectedSelectedTypeChipLabels));
             }
         }
 
@@ -1138,24 +1144,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel);
 
             using var component = this.RenderProjectBrowser();
-            this.OpenFilterDrawer(component);
-            this.portalHost.FindAll("button[aria-pressed]")
+            await this.OpenFilterDrawerAsync(component);
+            await this.portalHost.FindAll("button[aria-pressed]")
                 .Single(button => button.TextContent.Contains("«namespace»", StringComparison.Ordinal))
-                .Click();
-            this.portalHost.FindAll("button[aria-pressed]")
+                .ClickAsync();
+            await this.portalHost.FindAll("button[aria-pressed]")
                 .Single(button => button.TextContent.Contains("«unknown»", StringComparison.Ordinal))
-                .Click();
+                .ClickAsync();
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(
                     this.portalHost.Find(".mb-project-browser__filter-active-count").TextContent.Trim(),
                     Is.EqualTo("2 active")));
 
             Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(3));
 
-            this.portalHost.Find("button.mb-project-browser__clear-all").Click();
+            await this.portalHost.Find("button.mb-project-browser__clear-all").ClickAsync();
 
-            component.WaitForAssertion(() =>
+            await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
@@ -1184,7 +1190,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var emptyViewModel = CreateLoadedViewModel(emptyRoots);
             this.RegisterViewModel(emptyViewModel.Object);
 
-            using var emptyComponent = this.RenderProjectBrowser();
+            var emptyComponent = this.RenderProjectBrowser();
             var modelEmptyState = emptyComponent.Find(".mb-project-browser__empty");
 
             using (Assert.EnterMultipleScope())
@@ -1385,7 +1391,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(titles, Is.EqualTo(new[] { "Root", "Branch", "Needle" }));
+                Assert.That(titles, Is.EqualTo(ExpectedVisibleFilterPathTitles));
                 Assert.That(component.Markup, Does.Not.Contain("Sibling"));
                 Assert.That(component.Markup, Does.Not.Contain("Hidden descendant"));
                 Assert.That(treeItems, Has.Count.EqualTo(3));
@@ -1420,7 +1426,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var branchComponent = component.FindComponents<ProjectBrowserNodeComponent>()
                 .Single(candidate => ReferenceEquals(candidate.Instance.ViewModel, branch));
 
-            branchComponent.Find("button").Click();
+            await branchComponent.Find("button").ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -1437,29 +1443,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [Test]
         public async Task VerifyFilterPresentationPropertyChangedRerendersComponent()
         {
-            using var presentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
-            presentationOwner.FilterText = "needle";
-            var activePresentation = presentationOwner.FilterPresentation;
-            var currentPresentation = InactiveFilterPresentation;
-            var roots = new ObservableCollection<ProjectBrowserNodeViewModel>
-            {
-                presentationOwner.RootNodes[0]
-            };
-            var viewModel = CreateLoadedViewModel(roots);
-            var notifyingViewModel = viewModel.As<INotifyPropertyChanged>();
-            viewModel.SetupGet(x => x.FilterPresentation).Returns(() => currentPresentation);
-            this.RegisterViewModel(viewModel.Object);
+            using var viewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            this.RegisterViewModel(viewModel);
 
             using var component = this.RenderProjectBrowser();
             var initialRenderCount = component.RenderCount;
             Assert.That(component.Markup, Does.Contain("Sibling"));
 
-            currentPresentation = activePresentation;
-            notifyingViewModel.Raise(
-                x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.FilterPresentation)));
+            viewModel.FilterText = "needle";
 
-            component.WaitForAssertion(() =>
+            await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
@@ -1476,42 +1469,22 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [Test]
         public async Task VerifyViewModelReplacementDetachesOldFilterPresentationPublication()
         {
-            using var firstPresentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
-            using var secondPresentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
-            firstPresentationOwner.FilterText = "needle";
-            secondPresentationOwner.FilterText = "needle";
-            var firstActivePresentation = firstPresentationOwner.FilterPresentation;
-            var secondActivePresentation = secondPresentationOwner.FilterPresentation;
-            var firstCurrentPresentation = InactiveFilterPresentation;
-            var secondCurrentPresentation = InactiveFilterPresentation;
-            var firstViewModel = CreateLoadedViewModel(
-                new ObservableCollection<ProjectBrowserNodeViewModel> { firstPresentationOwner.RootNodes[0] });
-            var secondViewModel = CreateLoadedViewModel(
-                new ObservableCollection<ProjectBrowserNodeViewModel> { secondPresentationOwner.RootNodes[0] });
-            var firstNotifyingViewModel = firstViewModel.As<INotifyPropertyChanged>();
-            var secondNotifyingViewModel = secondViewModel.As<INotifyPropertyChanged>();
-            firstViewModel.SetupGet(x => x.FilterPresentation).Returns(() => firstCurrentPresentation);
-            secondViewModel.SetupGet(x => x.FilterPresentation).Returns(() => secondCurrentPresentation);
-            this.RegisterViewModel(firstViewModel.Object);
+            using var firstViewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            using var secondViewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            this.RegisterViewModel(firstViewModel);
 
             using var component = this.RenderProjectBrowser();
             component.Render(parameters => parameters
-                .Add(browser => browser.ViewModel, secondViewModel.Object));
+                .Add(browser => browser.ViewModel, secondViewModel));
             var replacementRenderCount = component.RenderCount;
 
-            firstCurrentPresentation = firstActivePresentation;
-            firstNotifyingViewModel.Raise(
-                x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.FilterPresentation)));
+            firstViewModel.FilterText = "needle";
 
             Assert.That(component.RenderCount, Is.EqualTo(replacementRenderCount));
 
-            secondCurrentPresentation = secondActivePresentation;
-            secondNotifyingViewModel.Raise(
-                x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.FilterPresentation)));
+            secondViewModel.FilterText = "needle";
 
-            component.WaitForAssertion(() =>
+            await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
@@ -1526,7 +1499,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// Verifies generated field identifiers remain isolated across Project Browser instances.
         /// </summary>
         [Test]
-        public void VerifyMultipleInstancesGenerateUniqueFilterControlIds()
+        public async Task VerifyMultipleInstancesGenerateUniqueFilterControlIds()
         {
             var roots = new ObservableCollection<ProjectBrowserNodeViewModel>();
             var viewModel = CreateLoadedViewModel(roots);
@@ -1541,13 +1514,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var firstSuggestionListId = firstSearch.GetAttribute("aria-controls");
             var secondSuggestionListId = secondSearch.GetAttribute("aria-controls");
 
-            this.OpenFilterDrawer(firstComponent);
+            await this.OpenFilterDrawerAsync(firstComponent);
             var firstDrawerHeadingId = this.portalHost.Find(".mb-project-browser__filter-drawer-title").Id;
-            this.portalHost.Find("button[aria-label='Close project browser filters']").Click();
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Is.Empty));
 
-            this.OpenFilterDrawer(secondComponent);
+            await this.OpenFilterDrawerAsync(secondComponent);
             var secondDrawerHeadingId = this.portalHost.Find(".mb-project-browser__filter-drawer-title").Id;
 
             using (Assert.EnterMultipleScope())
@@ -1863,7 +1836,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     viewModel.PropertyChanged -= loadedHandler;
                 }
 
-                replacementComponent.WaitForAssertion(() =>
+                await replacementComponent.WaitForAssertionAsync(() =>
                     Assert.That(
                         replacementComponent.FindAll(".mb-project-browser-node__row"),
                         Has.Count.EqualTo(1)),
@@ -2108,10 +2081,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// Opens the Project Browser filter drawer through its accessible trigger.
         /// </summary>
         /// <param name="component">The rendered Project Browser instance.</param>
-        private void OpenFilterDrawer(IRenderedComponent<ProjectBrowserComponent> component)
+        /// <returns>A task representing the drawer interaction.</returns>
+        private async Task OpenFilterDrawerAsync(IRenderedComponent<ProjectBrowserComponent> component)
         {
-            component.Find("button[aria-label='Open project browser filters']").Click();
-            this.portalHost.WaitForAssertion(() =>
+            await component.Find("button[aria-label='Open project browser filters']").ClickAsync();
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Has.Count.EqualTo(1)));
         }
 
@@ -2129,7 +2103,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await component.InvokeAsync(() => searchInput.Instance.ValueChanged.InvokeAsync(query));
 
-            this.portalHost.WaitForAssertion(() =>
+            await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(
                     this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"),
                     Has.Count.EqualTo(1)));

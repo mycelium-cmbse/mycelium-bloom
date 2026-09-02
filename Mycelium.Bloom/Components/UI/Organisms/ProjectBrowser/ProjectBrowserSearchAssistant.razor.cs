@@ -253,9 +253,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
                     break;
                 case "Escape" when this.IsOpen:
-                    this.hasEditedDraftInCurrentFocusSession = false;
-                    await this.SetOpenAsync(false);
-                    break;
                 case "Tab" when this.IsOpen:
                     this.hasEditedDraftInCurrentFocusSession = false;
                     await this.SetOpenAsync(false);

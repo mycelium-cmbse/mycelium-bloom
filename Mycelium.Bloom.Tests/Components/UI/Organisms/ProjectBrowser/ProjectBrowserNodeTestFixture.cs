@@ -31,6 +31,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     public sealed class ProjectBrowserNodeTestFixture : BunitContext
     {
         /// <summary>
+        /// The visible node titles expected for a deep filtered match.
+        /// </summary>
+        private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
+
+        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -257,7 +262,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(titles, Is.EqualTo(new[] { "Root", "Branch", "Needle" }));
+                Assert.That(titles, Is.EqualTo(ExpectedVisibleFilterPathTitles));
                 Assert.That(component.Markup, Does.Not.Contain("Sibling"));
                 Assert.That(component.Markup, Does.Not.Contain("Hidden descendant"));
                 Assert.That(component.FindAll("[role='group']"), Has.Count.EqualTo(2));

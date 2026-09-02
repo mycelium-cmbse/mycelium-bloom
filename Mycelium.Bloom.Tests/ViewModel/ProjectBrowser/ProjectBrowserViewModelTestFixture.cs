@@ -585,6 +585,19 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True);
             }
+
+            viewModel.FilterText = string.Empty;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.FilterText, Is.Empty);
+                Assert.That(viewModel.SelectedElementKinds, Has.Count.EqualTo(2));
+                Assert.That(viewModel.SelectedElementKinds, Does.Contain(SysmlModelElementKind.Namespace));
+                Assert.That(viewModel.SelectedElementKinds, Does.Contain(SysmlModelElementKind.Unknown));
+                Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True);
+            }
         }
 
         /// <summary>
@@ -1039,6 +1052,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
                 for (var iteration = 0; iteration < iterationCount; iteration++)
                 {
+                    var expectedFilterTexts = Enumerable.Repeat(string.Empty, viewModels.Length).ToArray();
+
                     for (var browserIndex = 0; browserIndex < viewModels.Length; browserIndex++)
                     {
                         var viewModel = viewModels[browserIndex];
@@ -1048,22 +1063,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                             : SysmlModelElementKind.Namespace;
                         viewModel.FilterText = criterion;
                         viewModel.ToggleElementKindFilter(selectedKind);
+                        expectedFilterTexts[browserIndex] = criterion;
 
-                        for (var comparisonIndex = 0; comparisonIndex < viewModels.Length; comparisonIndex++)
-                        {
-                            var comparedViewModel = viewModels[comparisonIndex];
-
-                            if (comparisonIndex < browserIndex)
-                            {
-                                Assert.That(
-                                    comparedViewModel.FilterText,
-                                    Is.EqualTo($"browser-{comparisonIndex}-iteration-{iteration}"));
-                            }
-                            else if (comparisonIndex > browserIndex)
-                            {
-                                Assert.That(comparedViewModel.FilterText, Is.Empty);
-                            }
-                        }
+                        Assert.That(
+                            viewModels.Select(candidate => candidate.FilterText),
+                            Is.EqualTo(expectedFilterTexts),
+                            $"filter isolation at iteration {iteration}, browser {browserIndex}");
                     }
 
                     for (var browserIndex = 0; browserIndex < viewModels.Length; browserIndex++)
