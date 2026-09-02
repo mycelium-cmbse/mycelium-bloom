@@ -9,6 +9,9 @@
 
 namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
 {
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Utilities;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.JSInterop;
@@ -42,6 +45,21 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         private bool shortcutRegistered;
 
         /// <summary>
+        /// The rendered Blueprint input used for focus restoration.
+        /// </summary>
+        private BbInputGroupInput inputReference;
+
+        /// <summary>
+        /// The outer unified input surface used to anchor a Blueprint overlay.
+        /// </summary>
+        private ElementReference rootReference;
+
+        /// <summary>
+        /// The trigger context most recently associated with the rendered anchor.
+        /// </summary>
+        private TriggerContext previousTriggerContext;
+
+        /// <summary>
         /// Gets or sets the current search value.
         /// </summary>
         [Parameter]
@@ -52,6 +70,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// </summary>
         [Parameter]
         public EventCallback<string> ValueChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets the native input type exposed through the Blueprint input.
+        /// </summary>
+        [Parameter]
+        public InputType InputType { get; set; } = InputType.Search;
 
         /// <summary>
         /// Gets or sets the placeholder text displayed when the search input is empty.
@@ -120,10 +144,74 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         public RenderFragment StartIcon { get; set; }
 
         /// <summary>
+        /// Gets or sets optional content rendered between the leading icon and the editable input.
+        /// </summary>
+        [Parameter]
+        public RenderFragment InlineContent { get; set; }
+
+        /// <summary>
         /// Gets or sets the callback invoked when a key is pressed while the search input is focused.
         /// </summary>
         [Parameter]
         public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether key events should also be forwarded to an enclosing Blueprint trigger.
+        /// </summary>
+        [Parameter]
+        public bool ForwardTriggerKeyDown { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether focus should be forwarded to an enclosing Blueprint trigger.
+        /// </summary>
+        [Parameter]
+        public bool ForwardTriggerFocus { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the callback invoked when the native input loses focus.
+        /// </summary>
+        [Parameter]
+        public EventCallback<FocusEventArgs> OnBlur { get; set; }
+
+        /// <summary>
+        /// Gets the Blueprint trigger context when this input is used as an as-child overlay anchor.
+        /// </summary>
+        [CascadingParameter(Name = "TriggerContext")]
+        public TriggerContext TriggerContext { get; set; }
+
+        /// <summary>
+        /// Moves focus to the native search input.
+        /// </summary>
+        /// <returns>A value task representing the focus operation.</returns>
+        public ValueTask FocusAsync()
+        {
+            return this.inputReference is null
+                ? ValueTask.CompletedTask
+                : this.inputReference.FocusAsync();
+        }
+
+        /// <summary>
+        /// Clears the controlled value while preserving the rendered Blueprint input instance.
+        /// </summary>
+        /// <returns>A value task representing native value synchronization.</returns>
+        public async ValueTask ClearAsync()
+        {
+            const string clearedValue = "";
+            this.Value = clearedValue;
+
+            if (this.inputReference is null)
+            {
+                return;
+            }
+
+            this.module ??= await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+
+            await this.module.InvokeVoidAsync(
+                "clearSearchInputValue",
+                this.inputReference.Element);
+        }
 
         /// <summary>
         /// Releases asynchronous resources used by the search input component.
@@ -146,6 +234,13 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
+
+            if (this.TriggerContext?.SetTriggerElement is not null
+                && (firstRender || !ReferenceEquals(this.TriggerContext, this.previousTriggerContext)))
+            {
+                this.TriggerContext.SetTriggerElement.Invoke(this.rootReference);
+                this.previousTriggerContext = this.TriggerContext;
+            }
 
             if (this.EnableShortcut)
             {
@@ -210,7 +305,52 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleKeyDownAsync(KeyboardEventArgs args)
         {
+            if (this.ForwardTriggerKeyDown && this.TriggerContext?.OnKeyDown is not null)
+            {
+                await this.TriggerContext.OnKeyDown.Invoke(args);
+            }
+
             await this.OnKeyDown.InvokeAsync(args);
+        }
+
+        /// <summary>
+        /// Forwards native focus to Blueprint trigger behavior.
+        /// </summary>
+        /// <param name="args">The focus event arguments.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private Task HandleFocusAsync(FocusEventArgs _)
+        {
+            if (this.ForwardTriggerFocus)
+            {
+                this.TriggerContext?.OnFocus?.Invoke();
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Gets the native focus callback only when the enclosing Blueprint trigger has focus behavior to run.
+        /// </summary>
+        /// <returns>The Blueprint trigger focus callback, or an empty callback when focus is presentation-only.</returns>
+        private EventCallback<FocusEventArgs> GetFocusEventCallback()
+        {
+            if (!this.ForwardTriggerFocus || this.TriggerContext?.OnFocus is null)
+            {
+                return default;
+            }
+
+            return EventCallback.Factory.Create<FocusEventArgs>(this, this.HandleFocusAsync);
+        }
+
+        /// <summary>
+        /// Forwards native blur to Blueprint trigger behavior and the configured callback.
+        /// </summary>
+        /// <param name="args">The focus event arguments.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task HandleBlurAsync(FocusEventArgs args)
+        {
+            this.TriggerContext?.OnBlur?.Invoke();
+            await this.OnBlur.InvokeAsync(args);
         }
 
         /// <summary>

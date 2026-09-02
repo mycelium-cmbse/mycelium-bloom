@@ -2,6 +2,21 @@ const registrations = new Map();
 
 let documentKeydownHandler;
 
+// Blazor defers value-attribute updates while a focused field is being edited.
+// Synchronize an explicitly cleared controlled value without replacing the
+// Blueprint input, its event listener, or its popover anchor.
+export function clearSearchInputValue(input) {
+    if (!(input instanceof HTMLInputElement)) {
+        return;
+    }
+
+    input.value = "";
+    input.dispatchEvent(new InputEvent("input", {
+        bubbles: true,
+        inputType: "deleteContentBackward"
+    }));
+}
+
 // Called from SearchInput.razor.cs through JS interop. Re-inserting an existing
 // registration moves it to the newest position without affecting other inputs.
 export function registerSearchShortcut(registrationId, inputId, shortcut) {

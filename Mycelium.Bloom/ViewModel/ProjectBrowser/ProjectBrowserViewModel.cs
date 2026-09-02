@@ -76,7 +76,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly CancellationTokenSource lifetimeCancellation = new();
 
         /// <summary>
-        /// The text entered for display-name or qualified-name filtering.
+        /// The committed Contains criterion used for display-name or qualified-name filtering.
         /// </summary>
         private string filterText = string.Empty;
 

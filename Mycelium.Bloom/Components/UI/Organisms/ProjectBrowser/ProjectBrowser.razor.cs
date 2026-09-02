@@ -42,6 +42,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private ElementReference filterDrawerReference;
 
         /// <summary>
+        /// The presentation-only reset signal for the search assistant's transient draft.
+        /// </summary>
+        private int searchAssistantDraftResetVersion;
+
+        /// <summary>
         /// A value indicating whether the component has been disposed.
         /// </summary>
         private bool isDisposed;
@@ -50,6 +55,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// A value indicating whether this rendered browser's filter drawer is open.
         /// </summary>
         private bool isFilterDrawerOpen;
+
+        /// <summary>
+        /// A value indicating whether this rendered browser's transient search assistant is open.
+        /// </summary>
+        private bool isSearchAssistantOpen;
 
         /// <summary>
         /// Gets the caller-supplied ViewModel required by this component.
@@ -113,6 +123,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             this.isDisposed = true;
             this.isFilterDrawerOpen = false;
+            this.isSearchAssistantOpen = false;
 
             base.Dispose(disposing);
         }
@@ -181,7 +192,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         /// <param name="elementKind">The broad element kind.</param>
         /// <returns>The element-kind chip label.</returns>
-        private static string GetElementKindLabel(SysmlModelElementKind elementKind)
+        internal static string GetElementKindLabel(SysmlModelElementKind elementKind)
         {
             return $"«{elementKind.ToString().ToLowerInvariant()}»";
         }
@@ -205,6 +216,42 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             if (!this.isDisposed)
             {
                 this.isFilterDrawerOpen = isOpen;
+
+                if (isOpen)
+                {
+                    this.isSearchAssistantOpen = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Closes the search assistant before Blueprint toggles the complete filter drawer.
+        /// </summary>
+        /// <returns>A completed task.</returns>
+        private Task HandleFilterDrawerTriggerClickAsync()
+        {
+            if (!this.isDisposed)
+            {
+                this.isSearchAssistantOpen = false;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Tracks controlled open-state changes requested by the search assistant.
+        /// </summary>
+        /// <param name="isOpen">Whether the search assistant should be open.</param>
+        private void HandleSearchAssistantOpenChanged(bool isOpen)
+        {
+            if (!this.isDisposed)
+            {
+                this.isSearchAssistantOpen = isOpen;
+
+                if (isOpen)
+                {
+                    this.isFilterDrawerOpen = false;
+                }
             }
         }
 
@@ -235,15 +282,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Forwards a text-filter change to the owning ViewModel.
+        /// Commits one Contains criterion to the owning ViewModel.
         /// </summary>
-        /// <param name="filterText">The updated text filter.</param>
+        /// <param name="filterText">The normalized committed text.</param>
         /// <returns>A completed task.</returns>
-        private Task HandleFilterTextChangedAsync(string filterText)
+        private Task HandleContainsCommittedAsync(string filterText)
         {
             if (!this.isDisposed)
             {
+                this.isSearchAssistantOpen = false;
                 this.RequiredViewModel.FilterText = filterText ?? string.Empty;
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Removes the committed Contains criterion from the owning ViewModel.
+        /// </summary>
+        /// <returns>A completed task.</returns>
+        private Task HandleContainsRemovedAsync()
+        {
+            if (!this.isDisposed)
+            {
+                this.RequiredViewModel.FilterText = string.Empty;
             }
 
             return Task.CompletedTask;
@@ -258,6 +320,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
+                this.isSearchAssistantOpen = false;
                 this.RequiredViewModel.ToggleElementKindFilter(elementKind);
             }
 
@@ -267,11 +330,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Clears both filter criteria through the owning ViewModel.
         /// </summary>
-        /// <returns>A completed task.</returns>
+        /// <returns>A task representing the coherent reset.</returns>
         private Task HandleClearFilterAsync()
         {
             if (!this.isDisposed)
             {
+                this.isSearchAssistantOpen = false;
+                this.searchAssistantDraftResetVersion++;
                 this.RequiredViewModel.ClearFilter();
             }
 

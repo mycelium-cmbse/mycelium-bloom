@@ -1,0 +1,82 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectBrowserSearchSuggestionList.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Icons.Lucide.Components
+
+<div class="mb-project-browser-search-suggestion-list" role="presentation">
+    <BbCommandGroup Class="mb-project-browser-search-suggestion-list__group"
+                    Heading="SEARCH">
+        <BbCommandItem
+            Class="mb-project-browser-search-suggestion-list__item"
+            Value="@(ContainsSuggestionValue)"
+            SearchText="@(this.Query)"
+            OnSelect="this.ContainsAccepted">
+            <span class="mb-project-browser-search-suggestion-list__item-icon"
+                  aria-hidden="true">
+                <LucideIcon Name="search"
+                            Size="14"
+                            StrokeWidth="1.75"
+                            role="presentation"
+                            aria-hidden="true"
+                            focusable="false" />
+            </span>
+            <span class="mb-project-browser-search-suggestion-list__item-label">
+                Contains &quot;@(this.Query)&quot;
+            </span>
+        </BbCommandItem>
+    </BbCommandGroup>
+
+    <BbCommandGroup Class="mb-project-browser-search-suggestion-list__group"
+                    Heading="TYPE">
+        @foreach (var elementKind in this.ElementKindOptions)
+        {
+            var isSelected = this.SelectedElementKinds.Contains(elementKind);
+
+            <BbCommandItem
+                @key="elementKind"
+                Class="@(GetTypeSuggestionCssClass(isSelected))"
+                Value="@(GetTypeSuggestionValue(elementKind))"
+                SearchText="@(GetElementKindSearchText(elementKind))"
+                OnSelect="() => this.ElementKindAccepted.InvokeAsync(elementKind)">
+                <span class="mb-project-browser-search-suggestion-list__item-icon"
+                      data-filter-selected="@(isSelected ? "true" : "false")"
+                      aria-hidden="true">
+                    @if (isSelected)
+                    {
+                        <LucideIcon Name="check"
+                                    Size="14"
+                                    StrokeWidth="2"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    }
+                    else
+                    {
+                        <LucideIcon Name="shapes"
+                                    Size="13"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    }
+                </span>
+                <span class="mb-project-browser-search-suggestion-list__item-label">
+                    <span>Type:</span>
+                    <span class="mb-project-browser-search-suggestion-list__kind-label">
+                        @(ProjectBrowser.GetElementKindLabel(elementKind))
+                    </span>
+                    @if (isSelected)
+                    {
+                        <span class="sr-only">Selected type filter</span>
+                    }
+                </span>
+            </BbCommandItem>
+        }
+    </BbCommandGroup>
+</div>

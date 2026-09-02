@@ -86,9 +86,26 @@
     box-shadow: none;
 }
 
+/*
+   Blueprint portals the Project Browser search assistant beside the drawer.
+   Match its trigger width while resetting only the styled Popover shell; the
+   authored assistant surface remains component-scoped.
+*/
+.mb-project-browser__search-assistant-popover {
+    z-index: 1050;
+    max-width: calc(100vw - (2 * var(--mb-spacing-2)));
+    max-height: min(320px, calc(100dvh - (2 * var(--mb-spacing-6))));
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mb-select-input__listbox,
-    .mb-project-browser__filter-popover {
+    .mb-project-browser__filter-popover,
+    .mb-project-browser__search-assistant-popover {
         animation: none;
         transition: none;
     }

@@ -8,6 +8,7 @@ import {
     releaseTheme
 } from "../../Components/Pages/DesignSystem.razor.js";
 import {
+    clearSearchInputValue,
     disposeSearchShortcut,
     registerSearchShortcut
 } from "../../Components/UI/Atoms/SearchInput/SearchInput.razor.js";
@@ -45,6 +46,7 @@ beforeEach(() => {
     globalThis.Element = dom.window.Element;
     globalThis.HTMLElement = dom.window.HTMLElement;
     globalThis.HTMLInputElement = dom.window.HTMLInputElement;
+    globalThis.InputEvent = dom.window.InputEvent;
     globalThis.MutationObserver = dom.window.MutationObserver;
     globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
     globalThis.requestAnimationFrame = callback => {
@@ -81,6 +83,7 @@ afterEach(() => {
     delete globalThis.Element;
     delete globalThis.HTMLElement;
     delete globalThis.HTMLInputElement;
+    delete globalThis.InputEvent;
     delete globalThis.MutationObserver;
     delete globalThis.getComputedStyle;
     delete globalThis.requestAnimationFrame;
@@ -185,6 +188,25 @@ test("search shortcuts prefer the newest usable registration", () => {
     document.body.dispatchEvent(preventedEvent);
 
     assert.equal(primaryFocus.count, 2);
+});
+
+test("search input synchronization clears stale text and emits one input mutation", () => {
+    document.body.innerHTML = "<input id='search' value='stale query'>";
+    const input = document.getElementById("search");
+    const inputEvents = [];
+    input.addEventListener("input", event => inputEvents.push({
+        bubbles: event.bubbles,
+        inputType: event.inputType
+    }));
+
+    clearSearchInputValue(input);
+    clearSearchInputValue(document.body);
+
+    assert.equal(input.value, "");
+    assert.deepEqual(inputEvents, [{
+        bubbles: true,
+        inputType: "deleteContentBackward"
+    }]);
 });
 
 test("search shortcuts honor custom modifiers and detach after disposal", () => {

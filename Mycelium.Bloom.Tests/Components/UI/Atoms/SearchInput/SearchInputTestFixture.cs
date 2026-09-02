@@ -9,13 +9,16 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
 {
+    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Utilities;
 
     using Bunit;
 
+    using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.JSInterop;
 
@@ -104,6 +107,143 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
             {
                 Assert.That(changedValue, Is.EqualTo("new query"));
                 Assert.That(component.Find("input").GetAttribute("value"), Is.EqualTo("new query"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies an explicit clear targets the existing Blueprint input with an immutable empty value.
+        /// </summary>
+        [Test]
+        public async Task VerifyClearAsyncSynchronizesStableBlueprintInputWithEmptyValue()
+        {
+            var module = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+            var clearValueHandler = module.SetupVoid("clearSearchInputValue", invocation => true);
+            clearValueHandler.SetVoidResult();
+
+            var component = this.Render<SearchInputComponent>(parameters => parameters
+                .Add(searchInput => searchInput.Value, "stale query"));
+            var blueprintInput = component.FindComponent<BbInputGroupInput>().Instance;
+
+            await component.Instance.ClearAsync();
+
+            var invocation = clearValueHandler.Invocations.Single();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Instance.Value, Is.Empty);
+                Assert.That(invocation.Arguments, Has.Count.EqualTo(1));
+                Assert.That(component.FindComponent<BbInputGroupInput>().Instance, Is.SameAs(blueprintInput));
+            }
+        }
+
+        /// <summary>
+        /// Verifies inline token actions cannot replace the unified search surface as an enclosing overlay anchor.
+        /// </summary>
+        [Test]
+        public async Task VerifyInlineContentDoesNotConsumeEnclosingTriggerContext()
+        {
+            var registeredTriggerCount = 0;
+            var triggerFocusCount = 0;
+            var triggerContext = new TriggerContext
+            {
+                TriggerId = "search-trigger",
+                SetTriggerElement = _ => registeredTriggerCount++,
+                OnFocus = () => triggerFocusCount++
+            };
+
+            RenderFragment inlineContent = builder =>
+            {
+                builder.OpenComponent<BbButton>(0);
+                builder.AddAttribute(1, nameof(BbButton.ChildContent), (RenderFragment)(contentBuilder =>
+                    contentBuilder.AddContent(0, "Remove criterion")));
+                builder.CloseComponent();
+            };
+
+            RenderFragment composition = builder =>
+            {
+                builder.OpenComponent<CascadingValue<TriggerContext>>(0);
+                builder.AddAttribute(1, nameof(CascadingValue<TriggerContext>.Name), "TriggerContext");
+                builder.AddAttribute(2, nameof(CascadingValue<TriggerContext>.Value), triggerContext);
+                builder.AddAttribute(3, nameof(CascadingValue<TriggerContext>.ChildContent), (RenderFragment)(contentBuilder =>
+                {
+                    contentBuilder.OpenComponent<SearchInputComponent>(0);
+                    contentBuilder.AddAttribute(1, nameof(SearchInputComponent.InlineContent), inlineContent);
+                    contentBuilder.CloseComponent();
+                }));
+                builder.CloseComponent();
+            };
+
+            var component = this.Render(composition);
+            var searchInput = component.FindComponent<SearchInputComponent>();
+            var inlineButton = component.FindComponent<BbButton>();
+
+            await searchInput.Find("input").TriggerEventAsync("onfocus", new FocusEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(searchInput.Instance.TriggerContext, Is.SameAs(triggerContext));
+                Assert.That(searchInput.Find(".mb-search-input").Id, Is.EqualTo("search-trigger"));
+                Assert.That(inlineButton.Instance.TriggerContext, Is.Null);
+                Assert.That(registeredTriggerCount, Is.EqualTo(1));
+                Assert.That(triggerFocusCount, Is.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies the native input type and blur lifecycle can be composed by an anchored Blueprint surface.
+        /// </summary>
+        [Test]
+        public async Task VerifyInputTypeAndBlurCallbackSupportOverlayComposition()
+        {
+            var blurCount = 0;
+            var changedValue = string.Empty;
+
+            var component = this.Render<SearchInputComponent>(parameters => parameters
+                .Add(searchInput => searchInput.InputType, InputType.Text)
+                .Add(searchInput => searchInput.OnBlur, _ => blurCount++)
+                .Add(searchInput => searchInput.ValueChanged, value => changedValue = value));
+            var blueprintInput = component.FindComponent<BbInputGroupInput>();
+            var input = component.Find("input");
+
+            await component.InvokeAsync(() => blueprintInput.Instance.JsOnInput("typed normally"));
+            await input.TriggerEventAsync("onblur", new FocusEventArgs());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(input.GetAttribute("type"), Is.EqualTo("text"));
+                Assert.That(blurCount, Is.EqualTo(1));
+                Assert.That(changedValue, Is.EqualTo("typed normally"));
+                Assert.That(
+                    this.JSInterop.Invocations["import"].Count(invocation =>
+                        Equals(invocation.Arguments[0], "./Components/UI/Atoms/SearchInput/SearchInput.razor.js")),
+                    Is.Zero);
+            }
+        }
+
+        /// <summary>
+        /// Verifies one outer surface owns focus presentation while the native field suppresses its own ring.
+        /// </summary>
+        [Test]
+        public void VerifyFocusPresentationIsUnifiedOnOuterInputSurface()
+        {
+            var repositoryRoot = TestRepository.GetRootPath();
+            var style = File.ReadAllText(Path.Combine(
+                repositoryRoot,
+                "Mycelium.Bloom",
+                "Components",
+                "UI",
+                "Atoms",
+                "SearchInput",
+                "SearchInput.razor.css"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    style,
+                    Does.Match(@"(?s)\.mb-search-input:focus-within\s+::deep\s+\.mb-search-input__control\s*\{[^}]*border-color:\s*var\(--mb-color-focus-ring\);[^}]*box-shadow:"));
+                Assert.That(
+                    style,
+                    Does.Match(@"(?s)\.mb-search-input\s+::deep\s+\.mb-search-input__field:focus-visible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*none(?:\s*!important)?;"));
             }
         }
 
@@ -284,6 +424,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
             {
                 Assert.That(component.Find(".mb-search-input__icon").TextContent.Trim(), Is.EqualTo("Custom icon"));
                 Assert.That(component.FindAll(".mb-search-input__shortcut"), Is.Empty);
+            }
+        }
+
+        /// <summary>
+        /// Verifies optional inline content shares the Blueprint input surface without replacing the native field.
+        /// </summary>
+        [Test]
+        public void VerifyInlineContentRendersInsideUnifiedInputGroup()
+        {
+            var component = this.Render<SearchInputComponent>(parameters => parameters
+                .Add(searchInput => searchInput.InlineContent, "<span data-testid='criterion'>Contains text</span>"));
+            var control = component.Find(".mb-search-input__control");
+            var inlineContent = component.Find(".mb-search-input__inline-content");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(inlineContent.TextContent, Is.EqualTo("Contains text"));
+                Assert.That(inlineContent.ParentElement?.ClassList.Contains("mb-search-input__control"), Is.True);
+                Assert.That(control.QuerySelector("input"), Is.Not.Null);
+                Assert.That(control.QuerySelector("[data-testid='criterion']"), Is.Not.Null);
             }
         }
 

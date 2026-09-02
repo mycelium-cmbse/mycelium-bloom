@@ -26,7 +26,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }
 
         /// <summary>
-        /// Gets or sets the text used to filter nodes by display name or qualified name.
+        /// Gets or sets the committed Contains criterion used to filter nodes by display name or qualified name.
         /// </summary>
         string FilterText { get; set; }
 

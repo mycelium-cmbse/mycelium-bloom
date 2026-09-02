@@ -57,21 +57,24 @@
              role="search"
              aria-label="Project browser filters">
             <div class="mb-project-browser__search">
-                <SearchInput
-                    Value="@(this.RequiredViewModel.FilterText)"
-                    ValueChanged="this.HandleFilterTextChangedAsync"
-                    FullWidth="true"
-                    Placeholder="Search elements..."
-                    AriaLabel="Filter project browser by name or qualified name"
-                    EnableShortcut="false"
-                    ShowShortcut="false" />
+                <ProjectBrowserSearchAssistant
+                    CommittedFilterText="@(this.RequiredViewModel.FilterText)"
+                    SelectedElementKinds="@(this.RequiredViewModel.SelectedElementKinds)"
+                    ElementKindOptions="elementKindOptions"
+                    IsOpen="@(this.isSearchAssistantOpen)"
+                    DraftResetVersion="@(this.searchAssistantDraftResetVersion)"
+                    IsOpenChanged="this.HandleSearchAssistantOpenChanged"
+                    ContainsCommitted="this.HandleContainsCommittedAsync"
+                    ContainsRemoved="this.HandleContainsRemovedAsync"
+                    ElementKindToggled="this.HandleElementKindFilterToggledAsync" />
             </div>
 
             <div class="mb-project-browser__filter-trigger-host">
                 <BbPopover Open="@(this.isFilterDrawerOpen)"
                            OpenChanged="this.HandleFilterDrawerOpenChanged"
                            RestoreFocusOnClose="true">
-                    <BbPopoverTrigger AsChild="true">
+                    <BbPopoverTrigger AsChild="true"
+                                      OnClick="this.HandleFilterDrawerTriggerClickAsync">
                         <BbButton
                             Class="mb-project-browser__filter-trigger"
                             Type="BlazorBlueprint.Components.ButtonType.Button"

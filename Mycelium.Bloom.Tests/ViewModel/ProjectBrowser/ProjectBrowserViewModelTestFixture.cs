@@ -957,6 +957,159 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies repeated commit, remove, Type, and clear mutations never corrupt canonical browser state.
+        /// </summary>
+        [Test]
+        public async Task VerifyFilterFlushAndRebuildStressPreservesCanonicalState()
+        {
+            const int iterationCount = 100;
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateFilterModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            var rootNode = viewModel.RootNodes[0];
+            var branchNode = FindNode(rootNode, "Subsystem alpha");
+            var targetNode = FindNode(rootNode, "Deep target");
+            var canonicalNodes = Flatten(rootNode).ToArray();
+            var canonicalChildren = canonicalNodes.ToDictionary(
+                node => node,
+                node => node.Children.ToArray(),
+                ReferenceEqualityComparer.Instance);
+            rootNode.IsExpanded = false;
+            branchNode.IsExpanded = true;
+            viewModel.SelectNode(targetNode);
+
+            for (var iteration = 0; iteration < iterationCount; iteration++)
+            {
+                viewModel.FilterText = "Deep target";
+                viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.FilterPresentation.IsActive, Is.True, $"active commit at {iteration}");
+                    Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True, $"visible target at {iteration}");
+                    Assert.That(viewModel.SelectedElementKinds, Has.Count.EqualTo(1), $"single Type at {iteration}");
+                }
+
+                viewModel.FilterText = string.Empty;
+                viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+                viewModel.ClearFilter();
+                viewModel.ClearFilter();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.FilterText, Is.Empty, $"cleared Contains at {iteration}");
+                    Assert.That(viewModel.SelectedElementKinds, Is.Empty, $"cleared Types at {iteration}");
+                    Assert.That(viewModel.FilterPresentation.IsActive, Is.False, $"inactive presentation at {iteration}");
+                    Assert.That(Flatten(rootNode), Is.EqualTo(canonicalNodes), $"canonical nodes at {iteration}");
+                    Assert.That(
+                        canonicalNodes.All(node => node.Children.SequenceEqual(canonicalChildren[node])),
+                        Is.True,
+                        $"canonical children at {iteration}");
+                    Assert.That(rootNode.IsExpanded, Is.False, $"root expansion at {iteration}");
+                    Assert.That(branchNode.IsExpanded, Is.True, $"branch expansion at {iteration}");
+                    Assert.That(viewModel.SelectedNode, Is.SameAs(targetNode), $"local selection at {iteration}");
+                    Assert.That(targetNode.IsSelected, Is.True, $"selection presentation at {iteration}");
+                    Assert.That(selectionService.SelectedElement, Is.SameAs(targetNode.SourceElement), $"shared context at {iteration}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Verifies repeated criteria and selection mutations remain isolated across five real browser ViewModels.
+        /// </summary>
+        [Test]
+        public async Task VerifyMultipleProjectBrowserFilterStressRemainsIsolated()
+        {
+            const int iterationCount = 50;
+            const int browserCount = 5;
+            var selectionService = new ContextAwareService();
+            var modelLoaderService = CreateModelLoader(CreateFilterModel());
+            var viewModels = Enumerable.Range(0, browserCount)
+                .Select(_ => new ProjectBrowserViewModel(modelLoaderService.Object, selectionService))
+                .ToArray();
+
+            try
+            {
+                foreach (var viewModel in viewModels)
+                {
+                    await viewModel.InitializeAsync(CancellationToken.None);
+                }
+
+                for (var iteration = 0; iteration < iterationCount; iteration++)
+                {
+                    for (var browserIndex = 0; browserIndex < viewModels.Length; browserIndex++)
+                    {
+                        var viewModel = viewModels[browserIndex];
+                        var criterion = $"browser-{browserIndex}-iteration-{iteration}";
+                        var selectedKind = browserIndex % 2 == 0
+                            ? SysmlModelElementKind.Unknown
+                            : SysmlModelElementKind.Namespace;
+                        viewModel.FilterText = criterion;
+                        viewModel.ToggleElementKindFilter(selectedKind);
+
+                        for (var comparisonIndex = 0; comparisonIndex < viewModels.Length; comparisonIndex++)
+                        {
+                            var comparedViewModel = viewModels[comparisonIndex];
+
+                            if (comparisonIndex < browserIndex)
+                            {
+                                Assert.That(
+                                    comparedViewModel.FilterText,
+                                    Is.EqualTo($"browser-{comparisonIndex}-iteration-{iteration}"));
+                            }
+                            else if (comparisonIndex > browserIndex)
+                            {
+                                Assert.That(comparedViewModel.FilterText, Is.Empty);
+                            }
+                        }
+                    }
+
+                    for (var browserIndex = 0; browserIndex < viewModels.Length; browserIndex++)
+                    {
+                        var selectingViewModel = viewModels[browserIndex];
+                        var targetNode = FindNode(selectingViewModel.RootNodes[0], "Deep target");
+                        var otherSelections = viewModels
+                            .Where(viewModel => !ReferenceEquals(viewModel, selectingViewModel))
+                            .ToDictionary(viewModel => viewModel, viewModel => viewModel.SelectedNode);
+
+                        selectingViewModel.SelectNode(targetNode);
+
+                        using (Assert.EnterMultipleScope())
+                        {
+                            Assert.That(selectionService.SelectedElement, Is.SameAs(targetNode.SourceElement));
+                            Assert.That(selectingViewModel.SelectedNode, Is.SameAs(targetNode));
+                            Assert.That(
+                                otherSelections.All(pair => ReferenceEquals(pair.Key.SelectedNode, pair.Value)),
+                                Is.True,
+                                $"selection isolation at iteration {iteration}, browser {browserIndex}");
+                        }
+                    }
+
+                    foreach (var viewModel in viewModels)
+                    {
+                        viewModel.ClearFilter();
+
+                        using (Assert.EnterMultipleScope())
+                        {
+                            Assert.That(viewModel.FilterText, Is.Empty);
+                            Assert.That(viewModel.SelectedElementKinds, Is.Empty);
+                            Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                foreach (var viewModel in viewModels)
+                {
+                    viewModel.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
         /// Verifies filter setters and clear do not publish after final disposal.
         /// </summary>
         [Test]
