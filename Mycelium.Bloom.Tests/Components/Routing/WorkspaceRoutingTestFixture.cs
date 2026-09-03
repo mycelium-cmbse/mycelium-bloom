@@ -28,6 +28,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
@@ -49,10 +50,14 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class WorkspaceRoutingTestFixture : BunitContext
     {
+        private static readonly ReadOnlyObservableCollection<Type> EmptyElementTypes =
+            new(new ObservableCollection<Type>());
+
         private readonly List<IWorkspaceEditorViewModel> editorViewModels = [];
         private readonly List<Mock<IProjectBrowserViewModel>> projectBrowserViewModels = [];
         private readonly List<INavigationRailViewModel> navigationViewModels = [];
         private readonly ContextAwareService context;
+        private readonly ProjectBrowserFilterPresentation inactiveFilterPresentation;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceRoutingTestFixture" /> class.
@@ -63,6 +68,10 @@ namespace Mycelium.Bloom.Tests.Components.Routing
 
             this.context = new ContextAwareService();
             var editorOptions = Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 3 });
+            using var filterPresentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                this.context);
+            this.inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
 
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
@@ -317,10 +326,16 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                 new ObservableCollection<ProjectBrowserNodeViewModel>());
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
             viewModel.SetupGet(candidate => candidate.RootNodes).Returns(rootNodes);
+            viewModel.SetupGet(candidate => candidate.AvailableElementTypes).Returns(EmptyElementTypes);
+            viewModel.SetupProperty(candidate => candidate.FilterText, string.Empty);
+            viewModel.SetupGet(candidate => candidate.SelectedElementTypes).Returns(EmptyElementTypes);
             viewModel.SetupGet(candidate => candidate.SelectedNode).Returns((ProjectBrowserNodeViewModel)null);
+            viewModel.SetupGet(candidate => candidate.FilterPresentation).Returns(this.inactiveFilterPresentation);
             viewModel.SetupGet(candidate => candidate.IsLoaded).Returns(true);
             viewModel.SetupGet(candidate => candidate.IsLoading).Returns(false);
             viewModel.SetupGet(candidate => candidate.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(candidate => candidate.ClearFilter());
+            viewModel.Setup(candidate => candidate.ToggleElementTypeFilter(It.IsAny<Type>()));
             viewModel.Setup(candidate => candidate.Dispose());
             this.projectBrowserViewModels.Add(viewModel);
 
