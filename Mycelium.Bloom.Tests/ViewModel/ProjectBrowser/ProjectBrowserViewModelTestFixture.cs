@@ -1862,7 +1862,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// Creates a model with two elements used to prove independent local browser selection.
         /// </summary>
         /// <returns>The selection-focused namespace model.</returns>
-        private static INamespace CreateSelectionModel()
+        private static Namespace CreateSelectionModel()
         {
             var thruster = CreateElement<PartDefinition>("thruster", "Thruster");
             var tank = CreateElement<PartUsage>("tank", "Tank");
@@ -1874,7 +1874,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// Creates a small model with two selectable children.
         /// </summary>
         /// <returns>The minimal namespace model.</returns>
-        private static INamespace CreateMinimalModel()
+        private static Namespace CreateMinimalModel()
         {
             var firstChild = CreateElement<PartDefinition>("first-child", "First child");
             var secondChild = CreateElement<PartUsage>("second-child", "Second child");
@@ -1886,7 +1886,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// Creates a canonical hierarchy with concrete definition, usage, namespace, and relationship nodes.
         /// </summary>
         /// <returns>The filter-focused namespace model.</returns>
-        private static INamespace CreateFilterModel()
+        private static Namespace CreateFilterModel()
         {
             var deepTarget = CreateElement<PartDefinition>(
                 "deep-target",
@@ -1922,7 +1922,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// Creates a model whose child matches only through qualified-name metadata.
         /// </summary>
         /// <returns>The qualified-name-focused namespace model.</returns>
-        private static INamespace CreateQualifiedNameModel()
+        private static Namespace CreateQualifiedNameModel()
         {
             var qualifiedNameOnly = CreateElement<QualifiedNamePartDefinition>(
                 "qualified-name-only",
