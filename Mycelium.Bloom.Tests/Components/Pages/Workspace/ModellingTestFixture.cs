@@ -1061,7 +1061,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         /// <summary>
-        /// Verifies Modelling disposal releases all survivors once without disposing shared composition state.
+        /// Verifies Modelling disposal releases all page- and tab-owned state exactly once.
         /// </summary>
         [Test]
         public async Task VerifyModellingDisposalReleasesAllSurvivingProjectBrowsersExactlyOnce()
@@ -1069,6 +1069,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
             var component = this.Render<Modelling>();
+            var groupId = composition.Editor.Groups[0].Id;
 
             await this.OpenProjectBrowserAsync(component, composition.Editor.Groups[1].Id);
             component.Instance.Dispose();
@@ -1081,17 +1082,17 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 composition.ProjectBrowsers[1].Verify(viewModel => viewModel.Dispose(), Times.Once);
                 Assert.That(
                     composition.Editor.TryOpenTab(
-                        composition.Editor.Groups[0].Id,
-                        "Still active",
+                        groupId,
+                        "Disposed editor",
                         "placeholder",
                         out _),
-                    Is.True);
+                    Is.False);
                 Assert.That(composition.Context, Is.SameAs(this.Services.GetRequiredService<IElementSelectionService>()));
             }
         }
 
         /// <summary>
-        /// Verifies a failed durable tab open immediately disposes its DI-resolved candidate.
+        /// Verifies a failed durable tab open immediately disposes its caller-created candidate.
         /// </summary>
         [Test]
         public void VerifyFailedProjectBrowserOpenDisposesCandidateWithoutOwnershipEntry()
@@ -1317,50 +1318,52 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 context);
             var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
 
-            this.Services.AddTransient<IProjectBrowserViewModel>(_ =>
-            {
-                if (createProjectBrowserViewModel != null)
+            this.Services.AddScoped<Func<IProjectBrowserViewModel>>(_ =>
+                () =>
                 {
-                    return createProjectBrowserViewModel(context);
-                }
+                    if (createProjectBrowserViewModel != null)
+                    {
+                        return createProjectBrowserViewModel(context);
+                    }
 
-                var instanceNumber = projectBrowserViewModels.Count + 1;
-                var projectBrowserNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
-                    $"project-root-{instanceNumber}",
-                    $"Project root {instanceNumber}");
-                var mutableRootNodes = new ObservableCollection<ProjectBrowserNodeViewModel>
-                {
-                    projectBrowserNode
-                };
-                var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
-                var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
-                projectBrowserViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
-                    .Returns(EmptyElementTypes);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedNode)
-                    .Returns(projectBrowserNode);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
-                    .Returns(inactiveFilterPresentation);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
-                projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
-                projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
-                projectBrowserViewModel.Setup(
-                    viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
-                projectBrowserViewModel
-                    .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
-                    .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
-                projectBrowserViewModels.Add(projectBrowserViewModel);
-                projectBrowserNodes.Add(projectBrowserNode);
+                    var instanceNumber = projectBrowserViewModels.Count + 1;
+                    var projectBrowserNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
+                        $"project-root-{instanceNumber}",
+                        $"Project root {instanceNumber}");
+                    var mutableRootNodes = new ObservableCollection<ProjectBrowserNodeViewModel>
+                    {
+                        projectBrowserNode
+                    };
+                    var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
+                    var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes)
+                        .Returns(EmptyElementTypes);
+                    projectBrowserViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                        .Returns(EmptyElementTypes);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedNode)
+                        .Returns(projectBrowserNode);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                        .Returns(inactiveFilterPresentation);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
+                    projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+                    projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
+                    projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
+                    projectBrowserViewModel.Setup(
+                        viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
+                    projectBrowserViewModel
+                        .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
+                        .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
+                    projectBrowserViewModels.Add(projectBrowserViewModel);
+                    projectBrowserNodes.Add(projectBrowserNode);
 
-                return projectBrowserViewModel.Object;
-            });
+                    return projectBrowserViewModel.Object;
+                });
 
-            this.Services.AddSingleton<IWorkspaceEditorViewModel>(editorViewModel);
-            this.Services.AddSingleton<INavigationRailViewModel>(navigationViewModel);
+            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editorViewModel);
+            this.Services.AddScoped<Func<INavigationRailViewModel>>(_ => () => navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
             this.portalHost = this.Render<BbPortalHost>();

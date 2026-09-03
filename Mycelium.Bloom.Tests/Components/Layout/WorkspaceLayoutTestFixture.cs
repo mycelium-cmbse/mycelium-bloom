@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Components.Layout
 {
     using System;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
@@ -18,7 +19,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
-    using Bunit.JSInterop;
 
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +45,10 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     {
         private readonly BunitJSModuleInterop themeModule;
 
+        private readonly ContextAwareService context;
+
+        private int navigationViewModelCreationCount;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceLayoutTestFixture" /> class.
         /// </summary>
@@ -52,11 +56,17 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         {
             BlueprintTestSetup.Configure(this);
 
-            var context = new ContextAwareService();
-            this.Services.AddSingleton<IContextAwareService>(context);
-            this.Services.AddSingleton<IElementSelectionService>(context);
+            this.context = new ContextAwareService();
+            this.Services.AddSingleton<IContextAwareService>(this.context);
+            this.Services.AddSingleton<IElementSelectionService>(this.context);
             this.Services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
-            this.Services.AddTransient<INavigationRailViewModel, NavigationRailViewModel>();
+            this.Services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
+                () =>
+                {
+                    this.navigationViewModelCreationCount++;
+
+                    return ActivatorUtilities.CreateInstance<NavigationRailViewModel>(serviceProvider);
+                });
 
             this.themeModule = this.JSInterop.SetupModule(
                 "./_content/BlazorBlueprint.Components/js/theme.js");
@@ -199,7 +209,41 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(component.Find("a[aria-label='Modelling']").GetAttribute("aria-current"), Is.Null);
                 Assert.That(component.FindAll(".mb-navigation-rail__link[aria-current='page']"),
                     Has.Count.EqualTo(1));
+                Assert.That(this.navigationViewModelCreationCount, Is.EqualTo(1));
             }
+        }
+
+        /// <summary>
+        /// Verifies layout disposal releases its navigation subscription idempotently.
+        /// </summary>
+        [Test]
+        public void VerifyDisposalReleasesLayoutOwnedNavigationState()
+        {
+            using var component = this.RenderLayout(CreateBody("Editor content", "Modelling"));
+            var layout = component.Instance;
+            var viewModel = component.FindComponent<NavigationRailComponent>().Instance.ViewModel;
+            var notificationCount = 0;
+            PropertyChangedEventHandler handler = (_, args) =>
+            {
+                if (string.Equals(args.PropertyName, nameof(viewModel.NavigationItems), StringComparison.Ordinal))
+                {
+                    notificationCount++;
+                }
+            };
+            viewModel.PropertyChanged += handler;
+
+            layout.Dispose();
+            notificationCount = 0;
+            this.context.LifecycleState = ProjectLifecycleState.Open;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notificationCount, Is.Zero);
+                Assert.That(this.navigationViewModelCreationCount, Is.EqualTo(1));
+                Assert.DoesNotThrow(layout.Dispose);
+            }
+
+            viewModel.PropertyChanged -= handler;
         }
 
         /// <summary>

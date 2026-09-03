@@ -27,7 +27,7 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
     /// <summary>
     /// Coordinates rendering-independent editor-group ownership, tab transfers, and logical workspace focus.
     /// </summary>
-    public sealed class WorkspaceEditorViewModel : ReactiveObject, IWorkspaceEditorViewModel, IDisposable
+    public sealed class WorkspaceEditorViewModel : ReactiveObject, IWorkspaceEditorViewModel
     {
         /// <summary>
         /// The mutable editor-group collection owned exclusively by this ViewModel.

@@ -9,12 +9,12 @@
 
 namespace Mycelium.Bloom.Tests.Components.Routing
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Linq;
     using System.Threading.Tasks;
-
-    using BlazorBlueprint.Components;
 
     using Bunit;
 
@@ -51,6 +51,8 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     {
         private readonly List<IWorkspaceEditorViewModel> editorViewModels = [];
         private readonly List<Mock<IProjectBrowserViewModel>> projectBrowserViewModels = [];
+        private readonly List<INavigationRailViewModel> navigationViewModels = [];
+        private readonly ContextAwareService context;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceRoutingTestFixture" /> class.
@@ -59,22 +61,30 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         {
             BlueprintTestSetup.Configure(this);
 
-            var context = new ContextAwareService();
+            this.context = new ContextAwareService();
             var editorOptions = Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 3 });
 
-            this.Services.AddSingleton<IContextAwareService>(context);
-            this.Services.AddSingleton<IElementSelectionService>(context);
+            this.Services.AddSingleton<IContextAwareService>(this.context);
+            this.Services.AddSingleton<IElementSelectionService>(this.context);
             this.Services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
-            this.Services.AddTransient<INavigationRailViewModel, NavigationRailViewModel>();
-            this.Services.AddSingleton<IOptions<WorkspaceEditorOptions>>(editorOptions);
-            this.Services.AddTransient<IWorkspaceEditorViewModel>(_ =>
-            {
-                var viewModel = new WorkspaceEditorViewModel(editorOptions);
-                this.editorViewModels.Add(viewModel);
+            this.Services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
+                () =>
+                {
+                    var viewModel = ActivatorUtilities.CreateInstance<NavigationRailViewModel>(serviceProvider);
+                    this.navigationViewModels.Add(viewModel);
 
-                return viewModel;
-            });
-            this.Services.AddTransient<IProjectBrowserViewModel>(_ => this.CreateProjectBrowserViewModel());
+                    return viewModel;
+                });
+            this.Services.AddSingleton<IOptions<WorkspaceEditorOptions>>(editorOptions);
+            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ =>
+                () =>
+                {
+                    var viewModel = new WorkspaceEditorViewModel(editorOptions);
+                    this.editorViewModels.Add(viewModel);
+
+                    return viewModel;
+                });
+            this.Services.AddScoped<Func<IProjectBrowserViewModel>>(_ => this.CreateProjectBrowserViewModel);
 
             var themeModule = this.JSInterop.SetupModule(
                 "./_content/BlazorBlueprint.Components/js/theme.js");
@@ -173,6 +183,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             var initialLayout = routes.FindComponent<WorkspaceLayout>().Instance;
             var initialNavigation = routes.FindComponent<NavigationRailComponent>().Instance.ViewModel;
             var initialEditor = routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel;
+            var initialEditorGroupId = initialEditor.Groups[0].Id;
             initialNavigation.PresentationMode = NavigationRailPresentationMode.Expanded;
 
             await routes.Find("button[aria-label='Switch to dark mode']").ClickAsync();
@@ -205,6 +216,19 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                 }
             });
 
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    initialEditor.TryOpenTab(
+                        initialEditorGroupId,
+                        "Disposed editor",
+                        "placeholder",
+                        out var disposedEditorTab),
+                    Is.False);
+                Assert.That(disposedEditorTab, Is.Null);
+                Assert.That(this.navigationViewModels, Has.Count.EqualTo(1));
+            }
+
             var modellingHref = routes.Find("a[aria-label='Modelling']").GetAttribute("href");
             Assert.That(modellingHref, Is.EqualTo("/workspace/modeling"));
             this.Services.GetRequiredService<NavigationManager>().NavigateTo(modellingHref);
@@ -228,6 +252,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                     Assert.That(initialNavigation.SelectedItem.Id, Is.EqualTo("modelling"));
                     Assert.That(initialNavigation.PresentationMode,
                         Is.EqualTo(NavigationRailPresentationMode.Expanded));
+                    Assert.That(this.navigationViewModels, Has.Count.EqualTo(1));
                     Assert.That(routes.Find("button[aria-label='Switch to light mode']"), Is.Not.Null);
                     Assert.That(routes.Find(".mb-workspace-shell__main h1").TextContent.Trim(),
                         Is.EqualTo("Modelling"));
@@ -247,6 +272,43 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                     Assert.That(routes.FindAll(".mb-details-panel"), Has.Count.EqualTo(1));
                 }
             });
+        }
+
+        /// <summary>
+        /// Verifies leaving the workspace layout releases its navigation subscription.
+        /// </summary>
+        [Test]
+        public void VerifyLeavingWorkspaceLayoutDisposesNavigationState()
+        {
+            using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
+            var navigation = routes.FindComponent<NavigationRailComponent>().Instance.ViewModel;
+            var notificationCount = 0;
+            PropertyChangedEventHandler handler = (_, args) =>
+            {
+                if (string.Equals(args.PropertyName, nameof(navigation.NavigationItems), StringComparison.Ordinal))
+                {
+                    notificationCount++;
+                }
+            };
+
+            navigation.PropertyChanged += handler;
+            this.Services.GetRequiredService<NavigationManager>().NavigateTo("/route-that-does-not-exist");
+
+            routes.WaitForAssertion(() =>
+            {
+                Assert.That(routes.FindComponents<WorkspaceLayout>(), Is.Empty);
+            });
+
+            notificationCount = 0;
+            this.context.LifecycleState = ProjectLifecycleState.Open;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notificationCount, Is.Zero);
+                Assert.That(this.navigationViewModels, Has.Count.EqualTo(1));
+            }
+
+            navigation.PropertyChanged -= handler;
         }
 
         private IProjectBrowserViewModel CreateProjectBrowserViewModel()

@@ -10,7 +10,6 @@
 namespace Mycelium.Bloom.Components.Pages.Workspace
 {
     using Microsoft.AspNetCore.Components;
-    using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
@@ -82,16 +81,20 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private int nextPlaceholderTabNumber;
 
         /// <summary>
-        /// Gets or sets the scoped service provider used to resolve composition-owned Project Browser state.
-        /// Resolved disposable transients remain scope-tracked after Modelling ends their logical tab lifetime.
+        /// Gets or sets the factory that creates editor state owned by this routed page.
         /// </summary>
         [Inject]
-        private IServiceProvider ServiceProvider { get; set; }
+        private Func<IWorkspaceEditorViewModel> WorkspaceEditorViewModelFactory { get; set; }
 
         /// <summary>
-        /// Gets or sets the durable editor state resolved once for this routed editor page.
+        /// Gets or sets the factory that creates Project Browser state owned by an editor tab.
         /// </summary>
         [Inject]
+        private Func<IProjectBrowserViewModel> ProjectBrowserViewModelFactory { get; set; }
+
+        /// <summary>
+        /// Gets the durable editor state owned by this routed editor page.
+        /// </summary>
         private IWorkspaceEditorViewModel WorkspaceEditorViewModel { get; set; }
 
         /// <inheritdoc />
@@ -99,8 +102,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         {
             base.OnInitialized();
 
-            ArgumentNullException.ThrowIfNull(this.ServiceProvider);
-            ArgumentNullException.ThrowIfNull(this.WorkspaceEditorViewModel);
+            ArgumentNullException.ThrowIfNull(this.WorkspaceEditorViewModelFactory);
+            ArgumentNullException.ThrowIfNull(this.ProjectBrowserViewModelFactory);
+
+            this.WorkspaceEditorViewModel = this.WorkspaceEditorViewModelFactory()
+                ?? throw new InvalidOperationException("The Workspace Editor ViewModel factory returned null.");
 
             try
             {
@@ -109,7 +115,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
             catch
             {
-                this.DisposeProjectBrowserViewModels();
+                this.Dispose();
 
                 throw;
             }
@@ -127,7 +133,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             this.isDisposed = true;
             this.DisposeProjectBrowserViewModels();
-            GC.SuppressFinalize(this);
+            this.WorkspaceEditorViewModel?.Dispose();
         }
 
         /// <summary>
@@ -351,12 +357,13 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         }
 
         /// <summary>
-        /// Resolves one fresh transient Project Browser ViewModel owned by this composition.
+        /// Creates one Project Browser ViewModel owned by this composition.
         /// </summary>
         /// <returns>The fresh caller-owned ViewModel.</returns>
         private IProjectBrowserViewModel CreateProjectBrowserViewModel()
         {
-            return this.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
+            return this.ProjectBrowserViewModelFactory()
+                ?? throw new InvalidOperationException("The Project Browser ViewModel factory returned null.");
         }
 
         /// <summary>

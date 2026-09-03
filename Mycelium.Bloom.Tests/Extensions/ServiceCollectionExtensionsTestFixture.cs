@@ -48,7 +48,7 @@ namespace Mycelium.Bloom.Tests.Extensions
         }
 
         [Test]
-        public void VerifyAddApplicationServicesRegistersNavigationRailLifetimes()
+        public void VerifyAddApplicationServicesRegistersCallerOwnedNavigationFactory()
         {
             var services = new ServiceCollection();
             services.AddApplicationServices();
@@ -58,21 +58,27 @@ namespace Mycelium.Bloom.Tests.Extensions
             using var secondScope = serviceProvider.CreateScope();
             var firstProvider = firstScope.ServiceProvider.GetRequiredService<INavigationRailItemProvider>();
             var secondProvider = secondScope.ServiceProvider.GetRequiredService<INavigationRailItemProvider>();
-            var firstViewModel = firstScope.ServiceProvider.GetRequiredService<INavigationRailViewModel>();
-            var secondViewModel = firstScope.ServiceProvider.GetRequiredService<INavigationRailViewModel>();
+            var firstFactory = firstScope.ServiceProvider.GetRequiredService<Func<INavigationRailViewModel>>();
+            var sameScopeFactory = firstScope.ServiceProvider.GetRequiredService<Func<INavigationRailViewModel>>();
+            var secondScopeFactory = secondScope.ServiceProvider.GetRequiredService<Func<INavigationRailViewModel>>();
+            using var firstViewModel = firstFactory();
+            using var secondViewModel = firstFactory();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(firstProvider, Is.TypeOf<NavigationRailItemProvider>());
                 Assert.That(secondProvider, Is.SameAs(firstProvider));
+                Assert.That((object)sameScopeFactory, Is.SameAs(firstFactory));
+                Assert.That((object)secondScopeFactory, Is.Not.SameAs(firstFactory));
                 Assert.That(firstViewModel, Is.TypeOf<NavigationRailViewModel>());
                 Assert.That(secondViewModel, Is.TypeOf<NavigationRailViewModel>());
                 Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
+                Assert.That(firstScope.ServiceProvider.GetService<INavigationRailViewModel>(), Is.Null);
             }
         }
 
         [Test]
-        public void VerifyAddApplicationServicesRegistersWorkspaceEditorViewModelAsTransient()
+        public void VerifyAddApplicationServicesRegistersCallerOwnedWorkspaceEditorFactory()
         {
             var services = new ServiceCollection();
             services.AddSingleton<IOptions<WorkspaceEditorOptions>>(
@@ -84,8 +90,9 @@ namespace Mycelium.Bloom.Tests.Extensions
 
             using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
             using var scope = serviceProvider.CreateScope();
-            var firstViewModel = scope.ServiceProvider.GetRequiredService<IWorkspaceEditorViewModel>();
-            var secondViewModel = scope.ServiceProvider.GetRequiredService<IWorkspaceEditorViewModel>();
+            var factory = scope.ServiceProvider.GetRequiredService<Func<IWorkspaceEditorViewModel>>();
+            using var firstViewModel = factory();
+            using var secondViewModel = factory();
 
             using (Assert.EnterMultipleScope())
             {
@@ -94,6 +101,7 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(secondViewModel, Is.Not.SameAs(firstViewModel));
                 Assert.That(firstViewModel.MaximumGroupCount, Is.EqualTo(3));
                 Assert.That(secondViewModel.MaximumGroupCount, Is.EqualTo(3));
+                Assert.That(scope.ServiceProvider.GetService<IWorkspaceEditorViewModel>(), Is.Null);
             }
         }
 
@@ -124,7 +132,43 @@ namespace Mycelium.Bloom.Tests.Extensions
         }
 
         [Test]
-        public void VerifyAddApplicationServicesRegistersProjectBrowserViewModelAsTransient()
+        public void VerifyCallerOwnedFactoriesUseSharedScopedContextAliases()
+        {
+            var services = new ServiceCollection();
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            services.AddApplicationServices();
+            services.AddScoped(_ => modelLoaderService.Object);
+
+            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            using var scope = serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ContextAwareService>();
+            var navigationFactory = scope.ServiceProvider.GetRequiredService<Func<INavigationRailViewModel>>();
+            var projectBrowserFactory = scope.ServiceProvider.GetRequiredService<Func<IProjectBrowserViewModel>>();
+            using var navigation = navigationFactory();
+            using var projectBrowser = projectBrowserFactory();
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("shared", "Shared");
+            var navigationNotificationCount = 0;
+            navigation.PropertyChanged += (_, args) =>
+            {
+                if (string.Equals(args.PropertyName, nameof(navigation.NavigationItems), StringComparison.Ordinal))
+                {
+                    navigationNotificationCount++;
+                }
+            };
+
+            projectBrowser.SelectNode(node);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(scope.ServiceProvider.GetRequiredService<IContextAwareService>(), Is.SameAs(context));
+                Assert.That(scope.ServiceProvider.GetRequiredService<IElementSelectionService>(), Is.SameAs(context));
+                Assert.That(context.SelectedElement, Is.SameAs(node.SourceElement));
+                Assert.That(navigationNotificationCount, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersCallerOwnedProjectBrowserFactory()
         {
             var services = new ServiceCollection();
             var modelLoaderService = new Mock<IModelLoaderService>();
@@ -138,8 +182,9 @@ namespace Mycelium.Bloom.Tests.Extensions
 
             using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
             var scope = serviceProvider.CreateScope();
-            var firstViewModel = scope.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
-            var secondViewModel = scope.ServiceProvider.GetRequiredService<IProjectBrowserViewModel>();
+            var factory = scope.ServiceProvider.GetRequiredService<Func<IProjectBrowserViewModel>>();
+            var firstViewModel = factory();
+            var secondViewModel = factory();
             var firstNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
             var secondNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second");
 
@@ -162,6 +207,7 @@ namespace Mycelium.Bloom.Tests.Extensions
                     Times.Once);
                 modelLoaderDisposal.Verify(service => service.Dispose(), Times.Never);
                 selectionServiceDisposal.Verify(service => service.Dispose(), Times.Never);
+                Assert.That(scope.ServiceProvider.GetService<IProjectBrowserViewModel>(), Is.Null);
             }
 
             Assert.That(scope.Dispose, Throws.Nothing);

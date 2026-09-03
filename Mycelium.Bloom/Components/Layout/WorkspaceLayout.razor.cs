@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.Components.Layout
     /// <summary>
     /// Composes the shared application frame for routed engineering-workspace pages.
     /// </summary>
-    public sealed partial class WorkspaceLayout : LayoutComponentBase
+    public sealed partial class WorkspaceLayout : LayoutComponentBase, IDisposable
     {
         /// <summary>
         /// A value indicating whether the shell currently reserves the collapsed navigation width.
@@ -30,39 +30,80 @@ namespace Mycelium.Bloom.Components.Layout
         private bool isDetailsPanelOpen = true;
 
         /// <summary>
+        /// A value indicating whether final layout disposal has occurred.
+        /// </summary>
+        private bool isDisposed;
+
+        /// <summary>
         /// Gets or sets the navigation service used to reconcile the current route and presentation state.
         /// </summary>
         [Inject]
         private NavigationManager NavigationManager { get; set; }
 
         /// <summary>
-        /// Gets or sets the navigation state owned by this workspace-layout instance.
+        /// Gets or sets the factory that creates navigation state owned by this workspace-layout instance.
         /// </summary>
         [Inject]
+        private Func<INavigationRailViewModel> NavigationViewModelFactory { get; set; }
+
+        /// <summary>
+        /// Gets the navigation state owned by this workspace-layout instance.
+        /// </summary>
         private INavigationRailViewModel NavigationViewModel { get; set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates the layout-owned navigation state and initializes its width reservation.
+        /// </summary>
         protected override void OnInitialized()
         {
             base.OnInitialized();
 
             ArgumentNullException.ThrowIfNull(this.NavigationManager);
-            ArgumentNullException.ThrowIfNull(this.NavigationViewModel);
+            ArgumentNullException.ThrowIfNull(this.NavigationViewModelFactory);
 
-            this.isNavigationCollapsed = this.NavigationViewModel.PresentationMode switch
+            var navigationViewModel = this.NavigationViewModelFactory()
+                ?? throw new InvalidOperationException("The navigation ViewModel factory returned null.");
+
+            try
             {
-                NavigationRailPresentationMode.Expanded => false,
-                NavigationRailPresentationMode.Collapsed => true,
-                NavigationRailPresentationMode.ExpandOnHover => true,
-                _ => throw CreateInvalidPresentationModeException(this.NavigationViewModel.PresentationMode)
-            };
+                this.isNavigationCollapsed = navigationViewModel.PresentationMode switch
+                {
+                    NavigationRailPresentationMode.Expanded => false,
+                    NavigationRailPresentationMode.Collapsed => true,
+                    NavigationRailPresentationMode.ExpandOnHover => true,
+                    _ => throw CreateInvalidPresentationModeException(navigationViewModel.PresentationMode)
+                };
+                this.NavigationViewModel = navigationViewModel;
+            }
+            catch
+            {
+                navigationViewModel.Dispose();
+
+                throw;
+            }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Reconciles navigation selection whenever routed body content changes.
+        /// </summary>
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
             this.NavigationViewModel.ReconcileSelection(this.GetNormalizedCurrentRoute());
+        }
+
+        /// <summary>
+        /// Releases the navigation state owned by this layout instance.
+        /// </summary>
+        public void Dispose()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.isDisposed = true;
+            this.NavigationViewModel?.Dispose();
         }
 
         /// <summary>
