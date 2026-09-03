@@ -56,10 +56,11 @@
                               Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                               Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
                               Class="@(this.GetItemCssClass(item))"
+                              Href="@(item.Href)"
+                              Disabled="@(string.IsNullOrWhiteSpace(item.Href))"
                               AriaLabel="@(item.Label)"
                               title="@(this.GetItemTitle(item))"
-                              aria-current="@(this.GetAriaCurrent(item))"
-                              OnClick="() => this.SelectItem(item)">
+                              aria-current="@(this.GetAriaCurrent(item))">
                         <span class="mb-navigation-rail__icon-slot" aria-hidden="true">
                             <LucideIcon Name="@(item.IconName)"
                                         Size="16"

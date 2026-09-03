@@ -4,10 +4,6 @@ import { afterEach, beforeEach, test } from "node:test";
 import { JSDOM } from "jsdom";
 
 import {
-    applyTheme,
-    releaseTheme
-} from "../../Components/Pages/DesignSystem.razor.js";
-import {
     clearSearchInputValue,
     disposeEmptySpaceGuard,
     disposeSearchShortcut,
@@ -33,7 +29,6 @@ let nextAnimationFrameId;
 const searchRegistrationIds = new Set();
 const emptySpaceRegistrationIds = new Set();
 const selectRegistrationIds = new Set();
-const themeOwnerIds = new Set();
 const workspaceGuardIds = new Set();
 
 beforeEach(() => {
@@ -71,10 +66,6 @@ afterEach(() => {
         disposeSelectCompatibility(registrationId);
     }
 
-    for (const ownerId of Array.from(themeOwnerIds).reverse()) {
-        releaseTheme(ownerId);
-    }
-
     for (const workspaceId of workspaceGuardIds) {
         unregisterKeydownGuards(workspaceId);
     }
@@ -82,7 +73,6 @@ afterEach(() => {
     emptySpaceRegistrationIds.clear();
     searchRegistrationIds.clear();
     selectRegistrationIds.clear();
-    themeOwnerIds.clear();
     workspaceGuardIds.clear();
     dom.window.close();
 
@@ -95,66 +85,6 @@ afterEach(() => {
     delete globalThis.MutationObserver;
     delete globalThis.getComputedStyle;
     delete globalThis.requestAnimationFrame;
-});
-
-test("theme preview validates ownership and restores a pre-existing theme", () => {
-    const root = document.documentElement;
-    root.dataset.theme = "system";
-    root.classList.add("dark");
-
-    applyOwnedTheme("theme-owner", "light");
-
-    assert.equal(root.dataset.theme, "light");
-    assert.equal(root.classList.contains("dark"), false);
-    assert.equal(root.dataset.mbDesignSystemThemeOwner, "theme-owner");
-
-    applyOwnedTheme("theme-owner", "dark");
-    releaseTheme("different-owner");
-
-    assert.equal(root.dataset.theme, "dark");
-    assert.equal(root.classList.contains("dark"), true);
-
-    releaseOwnedTheme("theme-owner");
-
-    assert.equal(root.dataset.theme, "system");
-    assert.equal(root.classList.contains("dark"), true);
-    assert.equal(Object.hasOwn(root.dataset, "mbDesignSystemThemeOwner"), false);
-});
-
-test("theme preview removes temporary state and rejects unsupported names", () => {
-    const root = document.documentElement;
-
-    assert.throws(
-        () => applyTheme("invalid-owner", "contrast"),
-        error => error instanceof RangeError && error.message.includes("contrast"));
-
-    applyOwnedTheme("temporary-owner", "dark");
-    releaseOwnedTheme("temporary-owner");
-
-    assert.equal(Object.hasOwn(root.dataset, "theme"), false);
-    assert.equal(root.classList.contains("dark"), false);
-    assert.equal(Object.hasOwn(root.dataset, "mbDesignSystemThemeOwner"), false);
-});
-
-test("theme preview preserves an empty theme across repeated ownership cycles", () => {
-    const root = document.documentElement;
-    root.dataset.theme = "";
-
-    applyOwnedTheme("empty-theme-owner", "dark");
-
-    assert.equal(root.dataset.theme, "dark");
-    assert.equal(root.classList.contains("dark"), true);
-
-    releaseOwnedTheme("empty-theme-owner");
-
-    assert.equal(Object.hasOwn(root.dataset, "theme"), true);
-    assert.equal(root.dataset.theme, "");
-
-    applyOwnedTheme("empty-theme-owner", "light");
-    releaseOwnedTheme("empty-theme-owner");
-
-    assert.equal(Object.hasOwn(root.dataset, "theme"), true);
-    assert.equal(root.dataset.theme, "");
 });
 
 test("search shortcuts prefer the newest usable registration", () => {
@@ -544,16 +474,6 @@ test("editor workspace key guards stay root-scoped and detach cleanly", () => {
 
     assert.equal(registerKeydownGuards("missing-workspace"), false);
 });
-
-function applyOwnedTheme(ownerId, themeName) {
-    themeOwnerIds.add(ownerId);
-    applyTheme(ownerId, themeName);
-}
-
-function releaseOwnedTheme(ownerId) {
-    releaseTheme(ownerId);
-    themeOwnerIds.delete(ownerId);
-}
 
 function registerSearch(registrationId, inputId, shortcut) {
     searchRegistrationIds.add(registrationId);

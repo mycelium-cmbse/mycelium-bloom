@@ -32,35 +32,40 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         {
             Id = "overview",
             Label = "Overview",
-            IconName = "layout-dashboard"
+            IconName = "layout-dashboard",
+            Href = "/"
         };
 
         private static readonly NavigationRailItem Review = new()
         {
             Id = "review",
             Label = "Review",
-            IconName = "messages-square"
+            IconName = "messages-square",
+            Href = "/review"
         };
 
         private static readonly NavigationRailItem OpenReview = new()
         {
             Id = "review",
             Label = "Review open project",
-            IconName = "messages-square"
+            IconName = "messages-square",
+            Href = "/review"
         };
 
         private static readonly NavigationRailItem Activity = new()
         {
             Id = "activity",
             Label = "Activity",
-            IconName = "history"
+            IconName = "history",
+            Href = "/activity"
         };
 
         private static readonly NavigationRailItem Settings = new()
         {
             Id = "settings",
             Label = "Settings",
-            IconName = "settings"
+            IconName = "settings",
+            Href = "/settings"
         };
 
         private static readonly NavigationRailItem[] PreparationItems = [Overview, Review];
@@ -218,6 +223,44 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             Assert.That(viewModel.SelectedItem, Is.Null);
         }
 
+        [TestCase("/", "overview")]
+        [TestCase("/REVIEW", "review")]
+        [TestCase("/activity", "activity")]
+        public void VerifyReconcileSelectionUsesCurrentRoute(string route, string expectedItemId)
+        {
+            var contextService = CreateContextService(ProjectLifecycleState.Preparation);
+            using var viewModel = new NavigationRailViewModel(
+                contextService,
+                CreateNavigationRailItemProvider(
+                    static (_, _) => [Overview, Review, Activity]));
+
+            viewModel.ReconcileSelection(route);
+
+            Assert.That(viewModel.SelectedItem.Id, Is.EqualTo(expectedItemId));
+        }
+
+        [Test]
+        public void VerifyReconcileSelectionClearsUnknownRoutesAndSurvivesInventoryRefresh()
+        {
+            var contextService = CreateContextService(ProjectLifecycleState.Preparation);
+            using var viewModel = new NavigationRailViewModel(
+                contextService,
+                CreateNavigationRailItemProvider(
+                    static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
+
+            viewModel.ReconcileSelection("/review");
+            contextService.LifecycleState = ProjectLifecycleState.Open;
+            var routeSelectedItem = viewModel.SelectedItem;
+            viewModel.ReconcileSelection("/unavailable");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(routeSelectedItem, Is.SameAs(OpenReview));
+                Assert.That(viewModel.SelectedItem, Is.Null);
+                Assert.Throws<ArgumentException>(() => viewModel.ReconcileSelection(" "));
+            }
+        }
+
         [Test]
         public void VerifySelectionFallsBackWhenDestinationDisappears()
         {
@@ -260,6 +303,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 nameof(NavigationRailItem.Id),
                 nameof(NavigationRailItem.Label),
                 nameof(NavigationRailItem.IconName),
+                nameof(NavigationRailItem.Href),
                 nameof(NavigationRailItem.GroupKey)
             };
 

@@ -30,6 +30,11 @@ namespace Mycelium.Bloom.Model
         public string IconName { get; init; } = string.Empty;
 
         /// <summary>
+        /// Gets the application-relative destination, or <see langword="null" /> when the item is unavailable.
+        /// </summary>
+        public string Href { get; init; }
+
+        /// <summary>
         /// Gets the key of the visual group containing this destination.
         /// </summary>
         public string GroupKey { get; init; } = string.Empty;

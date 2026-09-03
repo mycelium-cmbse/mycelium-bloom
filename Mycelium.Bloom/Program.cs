@@ -50,7 +50,12 @@ namespace Mycelium.Bloom
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
-            builder.Services.AddBlazorBlueprintComponents()
+            builder.Services.AddBlazorBlueprintComponents(
+                    configureTheme: options =>
+                    {
+                        options.DetectSystemPreference = false;
+                        options.DefaultRadius = 0.375d;
+                    })
                 .AddApplicationServices();
 
             var app = builder.Build();

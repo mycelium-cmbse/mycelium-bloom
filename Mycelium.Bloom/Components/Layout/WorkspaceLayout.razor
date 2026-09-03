@@ -8,11 +8,78 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @using BlazorBlueprint.Primitives.Services
+@using BlazorBlueprint.Icons.Lucide.Components
+@using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
 @inherits LayoutComponentBase
 
 <div class="mb-workspace-layout">
-    @(this.Body)
+    <WorkspaceShell FullApplication="true"
+                    LeftPanelCollapsed="this.isNavigationCollapsed"
+                    RightPanelVisible="this.isDetailsPanelOpen"
+                    AriaLabel="Bloom engineering workspace"
+                    HeaderAriaLabel="Application header"
+                    LeftPanelAriaLabel="Workspace navigation"
+                    MainContentAriaLabel="Workspace content"
+                    RightPanelAriaLabel="Workspace auxiliary region"
+                    StatusBarAriaLabel="Workspace status"
+                    CompactLeftPanelLabel="Navigation"
+                    CompactMainContentLabel="Content"
+                    CompactRightPanelLabel="Auxiliary"
+                    role="main"
+                    style="--mb-workspace-right-panel-width: 380px;">
+        <Header>
+            <AppHeader Compact="true"
+                       AriaLabel="Bloom application header"
+                       style="height: 48px; min-height: 48px;">
+                <BrandContent>
+                    <div class="mb-workspace-layout__brand">
+                        <span class="sr-only">Bloom workspace</span>
+                        <BrandMark style="width: 22.2px;" />
+                    </div>
+                </BrandContent>
+
+                <ActionsContent>
+                    <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                              Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                              Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                              AriaLabel="@(this.GetDetailsPanelToggleLabel())"
+                              title="@(this.GetDetailsPanelToggleLabel())"
+                              aria-pressed="@(this.isDetailsPanelOpen ? "true" : "false")"
+                              OnClick="this.ToggleDetailsPanel">
+                        <LucideIcon Name="@(this.GetDetailsPanelToggleIconName())"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                    </BbButton>
+
+                    <BbDarkModeToggle Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                      Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                                      ShowLabel="false" />
+                </ActionsContent>
+            </AppHeader>
+        </Header>
+
+        <LeftPanel>
+            <NavigationRail ViewModel="this.NavigationViewModel"
+                            LayoutCollapsedChanged="this.HandleNavigationLayoutCollapsedChanged" />
+        </LeftPanel>
+
+        <MainContent>
+            @(this.Body)
+        </MainContent>
+
+        <RightPanel>
+            <DetailsPanel CloseRequested="this.CloseDetailsPanel"
+                          data-testid="workspace-details-panel" />
+        </RightPanel>
+
+        <StatusBar>
+            <Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar AriaLabel="Workspace status" />
+        </StatusBar>
+    </WorkspaceShell>
 </div>
 
 <BbPortalHost />

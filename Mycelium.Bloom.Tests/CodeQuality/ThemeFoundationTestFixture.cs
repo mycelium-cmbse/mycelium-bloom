@@ -84,6 +84,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--mb-color-sysml-allocations-header:",
             "--mb-color-sysml-metadata-header:",
             "--mb-color-overlay-scrim:",
+            "--mb-shadow-md:",
             "--mb-shadow-lg:"
         ];
 
@@ -131,6 +132,8 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "minus",
             "mouse-pointer-2",
             "move",
+            "panel-right-close",
+            "panel-right-open",
             "pencil",
             "plus",
             "scan-line",
@@ -205,6 +208,42 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(bridge, Does.Not.Contain("#"));
                 Assert.That(bridge, Does.Not.Contain("rgb("));
                 Assert.That(bridge, Does.Contain("var(--mb-"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies editor drag feedback derives its contrast from shared light/dark semantic tokens.
+        /// </summary>
+        [Test]
+        public void VerifyEditorDragFeedbackUsesSemanticThemeTokens()
+        {
+            var style = File.ReadAllText(GetProjectFile(
+                "Components",
+                "UI",
+                "Organisms",
+                "EditorWorkspace",
+                "EditorWorkspace.razor.css"));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-item--dragging\s*\{[^}]*var\(--mb-color-border-selected\)[^}]*var\(--mb-shadow-md\)"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__group-drop-surface--empty\.mb-editor-workspace__group-drop-surface--active\s*\{[^}]*var\(--mb-color-surface-selected\)[^}]*var\(--mb-color-border-selected\)[^}]*var\(--mb-shadow-md\)"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target--active\s*\{[^}]*var\(--mb-color-border-selected\)[^}]*var\(--mb-shadow-md\)"));
+                Assert.That(
+                    style,
+                    Does.Match(
+                        @"(?s)\.mb-editor-workspace__tab-split-docking-plus\s*\{[^}]*box-shadow:\s*var\(--mb-shadow-md\)"));
+                Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
+                Assert.That(style, Does.Not.Contain("rgb("));
             }
         }
 
@@ -342,7 +381,8 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(program, Does.Contain("using BlazorBlueprint.Components;"));
                 Assert.That(
                     program,
-                    Does.Match(@"AddBlazorBlueprintComponents\(\)\s*\.AddApplicationServices\(\);"));
+                    Does.Match(
+                        @"AddBlazorBlueprintComponents\(\s*configureTheme:\s*options\s*=>\s*\{\s*options\.DetectSystemPreference\s*=\s*false;\s*options\.DefaultRadius\s*=\s*0\.375d;\s*\}\)\s*\.AddApplicationServices\(\);"));
                 Assert.That(program, Does.Not.Contain("AddBlazorBlueprintPrimitives();"));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.15.0\""));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Icons.Lucide\" Version=\"2.0.2\""));
@@ -411,21 +451,23 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         }
 
         /// <summary>
-        /// Verifies the page preview applies both theme conventions to the document root for portalled content.
+        /// Verifies DesignSystem and workspace composition use Blueprint's single application theme authority.
         /// </summary>
         [Test]
-        public void VerifyThemePreviewTargetsDocumentRoot()
+        public void VerifyThemeRuntimeUsesBlueprintAuthority()
         {
-            var module = File.ReadAllText(GetProjectFile("Components", "Pages", "DesignSystem.razor.js"));
+            var program = File.ReadAllText(GetProjectFile("Program.cs"));
+            var designSystem = File.ReadAllText(GetProjectFile("Components", "Pages", "DesignSystem.razor.cs"));
+            var obsoleteModule = GetProjectFile("Components", "Pages", "DesignSystem.razor.js");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(module, Does.Contain("document.documentElement"));
-                Assert.That(module, Does.Contain("Object.hasOwn(root.dataset, \"theme\")"));
-                Assert.That(module, Does.Contain("root.dataset.theme = themeName"));
-                Assert.That(module, Does.Contain("delete root.dataset.theme"));
-                Assert.That(module, Does.Contain("root.classList.toggle(\"dark\""));
-                Assert.That(module, Does.Contain("releaseTheme"));
+                Assert.That(program, Does.Contain("options.DetectSystemPreference = false"));
+                Assert.That(designSystem, Does.Contain("private ThemeService ThemeService"));
+                Assert.That(designSystem, Does.Contain("this.ThemeService.SetDarkModeAsync"));
+                Assert.That(designSystem, Does.Not.Contain("IJSRuntime"));
+                Assert.That(designSystem, Does.Not.Contain("DesignSystem.razor.js"));
+                Assert.That(File.Exists(obsoleteModule), Is.False);
             }
         }
 

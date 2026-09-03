@@ -48,6 +48,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "overview",
                 Label = "Overview",
                 IconName = "layout-dashboard",
+                Href = "/",
                 GroupKey = "model"
             },
             new NavigationRailItem
@@ -55,6 +56,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "traceability",
                 Label = "Traceability",
                 IconName = "waypoints",
+                Href = "/traceability",
                 GroupKey = "analysis",
                 GroupLabel = "ANALYSIS"
             },
@@ -70,6 +72,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "review",
                 Label = "Review",
                 IconName = "messages-square",
+                Href = "/review",
                 GroupKey = "collaboration",
                 GroupLabel = "COLLABORATION"
             }
@@ -82,6 +85,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "activity",
                 Label = "Activity",
                 IconName = "history",
+                Href = "/activity",
                 GroupKey = "activity"
             },
             new NavigationRailItem
@@ -89,6 +93,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "settings",
                 Label = "Settings",
                 IconName = "settings",
+                Href = "/settings",
                 GroupKey = "settings"
             }
         ];
@@ -100,6 +105,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "review",
                 Label = "Review queue",
                 IconName = "messages-square",
+                Href = "/review",
                 GroupKey = "collaboration"
             },
             new NavigationRailItem
@@ -107,6 +113,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "activity",
                 Label = "Activity",
                 IconName = "history",
+                Href = "/activity",
                 GroupKey = "activity"
             },
             new NavigationRailItem
@@ -114,6 +121,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Id = "overview",
                 Label = "Overview",
                 IconName = "layout-dashboard",
+                Href = "/",
                 GroupKey = "model"
             }
         ];
@@ -183,7 +191,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(root.ClassList, Does.Contain("custom-rail"));
                 Assert.That(component.FindAll("li.mb-navigation-rail__item"), Has.Count.EqualTo(Items.Length));
                 Assert.That(links.Select(link => link.GetAttribute("aria-label")), Is.EqualTo(ExpectedLabels));
-                Assert.That(links.All(link => link.GetAttribute("type") == "button"), Is.True);
+                Assert.That(links.Single(link => link.GetAttribute("aria-label") == "Overview").LocalName,
+                    Is.EqualTo("a"));
+                Assert.That(links.Single(link => link.GetAttribute("aria-label") == "Overview")
+                    .GetAttribute("href"), Is.EqualTo("/"));
+                Assert.That(links.Single(link => link.GetAttribute("aria-label") == "Compare").LocalName,
+                    Is.EqualTo("button"));
+                Assert.That(links.Single(link => link.GetAttribute("aria-label") == "Compare")
+                    .GetAttribute("disabled"), Is.Not.Null);
+                Assert.That(links.Single(link => link.GetAttribute("aria-label") == "Compare")
+                    .GetAttribute("aria-disabled"), Is.EqualTo("true"));
                 Assert.That(links.All(link => link.GetAttribute("title") is null), Is.True);
                 Assert.That(links.Single(link => link.GetAttribute("aria-label") == "Overview")
                     .GetAttribute("aria-current"), Is.EqualTo("page"));
@@ -246,34 +263,33 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         [Test]
-        public async Task VerifySelectionUpdatesReactiveStateAndRendering()
+        public async Task VerifyRouteSelectionUpdatesReactiveRendering()
         {
             using var viewModel = CreateViewModel(NavigationRailPresentationMode.Expanded);
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
 
-            await component.Find("button[aria-label='Review']").ClickAsync();
+            await component.InvokeAsync(() => viewModel.ReconcileSelection("/review"));
 
             await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(viewModel.SelectedItem, Is.SameAs(Items[3]));
-                    Assert.That(component.Find("button[aria-label='Overview']").GetAttribute("aria-current"), Is.Null);
-                    Assert.That(component.Find("button[aria-label='Review']").GetAttribute("aria-current"),
+                    Assert.That(component.Find("a[aria-label='Overview']").GetAttribute("aria-current"), Is.Null);
+                    Assert.That(component.Find("a[aria-label='Review']").GetAttribute("aria-current"),
                         Is.EqualTo("page"));
                 }
             });
         }
 
         [Test]
-        public async Task VerifyInteractionsDelegateToViewModelContract()
+        public async Task VerifyPresentationInteractionsDelegateToViewModelContract()
         {
             var viewModel = CreateViewModelMock();
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel.Object));
 
-            await component.Find("button[aria-label='Review']").ClickAsync();
             await OpenSidebarControlMenuAsync(component);
             var options = await this.portalHost.WaitForElementsAsync(
                 "[role='menuitem']",
@@ -282,8 +298,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             using (Assert.EnterMultipleScope())
             {
-                viewModel.VerifySet(x => x.SelectedItem = It.Is<NavigationRailItem>(item => item.Id == "review"),
-                    Times.Once);
+                viewModel.VerifySet(x => x.SelectedItem = It.IsAny<NavigationRailItem>(), Times.Never);
                 viewModel.VerifySet(x => x.PresentationMode = NavigationRailPresentationMode.Expanded, Times.Once);
             }
         }
@@ -314,7 +329,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                         .Select(link => link.GetAttribute("aria-label")),
                         Is.EqualTo(ExpectedReplacementLabels));
                     Assert.That(component.FindAll(".mb-navigation-rail__divider"), Has.Count.EqualTo(1));
-                    Assert.That(component.Find("button[aria-label='Activity']").GetAttribute("aria-current"),
+                    Assert.That(component.Find("a[aria-label='Activity']").GetAttribute("aria-current"),
                         Is.EqualTo("page"));
                     Assert.That(viewModel.SelectedItem, Is.SameAs(ReplacementItems[0]));
                 }

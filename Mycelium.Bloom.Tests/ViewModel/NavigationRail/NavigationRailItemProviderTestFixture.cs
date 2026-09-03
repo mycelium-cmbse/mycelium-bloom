@@ -121,6 +121,26 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             ""
         ];
 
+        private static readonly string[] ExpectedHrefs =
+        [
+            "/workspace/modeling",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "/workspace/dashboard",
+            null
+        ];
+
         [Test]
         public void VerifyGetNavigationItemsReturnsExpectedInventory()
         {
@@ -135,6 +155,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 Assert.That(navigationItems.Select(item => item.IconName), Is.EqualTo(ExpectedIconNames));
                 Assert.That(navigationItems.Select(item => item.GroupKey), Is.EqualTo(ExpectedGroupKeys));
                 Assert.That(navigationItems.Select(item => item.GroupLabel), Is.EqualTo(ExpectedGroupLabels));
+                Assert.That(navigationItems.Select(item => item.Href), Is.EqualTo(ExpectedHrefs));
+                Assert.That(navigationItems.Count(item => item.Href is not null), Is.EqualTo(2));
                 Assert.That(navigationItems.Select(item => item.Id).Distinct().Count(), Is.EqualTo(ExpectedIds.Length));
                 Assert.That(navigationItems.All(item => !string.IsNullOrWhiteSpace(item.IconName)), Is.True);
                 Assert.That(navigationItems.All(item => LucideIconData.IconExists(item.IconName)), Is.True);

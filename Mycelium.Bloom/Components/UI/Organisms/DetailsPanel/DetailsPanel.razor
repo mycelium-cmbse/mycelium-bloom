@@ -7,21 +7,43 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
+@using BlazorBlueprint.Icons.Lucide.Components
+
 @inherits BloomReactiveInjectableComponentBase<IElementSelectionService>
 
 <section class="@(this.GetCssClass())"
          aria-labelledby="@(this.headingId)"
          @attributes="this.AdditionalAttributes">
     <header class="mb-details-panel__header">
-        <h2 id="@(this.headingId)" class="mb-details-panel__title">
-            Details
-        </h2>
+        <div class="mb-details-panel__heading-content">
+            <h2 id="@(this.headingId)" class="mb-details-panel__title">
+                Details
+            </h2>
 
-        @if (this.SelectedElement is not null)
+            @if (this.SelectedElement is not null)
+            {
+                <p class="mb-details-panel__element-name">
+                    @(GetDisplayName(this.SelectedElement))
+                </p>
+            }
+        </div>
+
+        @if (this.CloseRequested.HasDelegate)
         {
-            <p class="mb-details-panel__element-name">
-                @(GetDisplayName(this.SelectedElement))
-            </p>
+            <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                      Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                      Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                      Class="mb-details-panel__close"
+                      AriaLabel="Close details panel"
+                      title="Close details panel"
+                      OnClick="this.RequestCloseAsync">
+                <LucideIcon Name="x"
+                            Size="16"
+                            StrokeWidth="1.75"
+                            role="presentation"
+                            aria-hidden="true"
+                            focusable="false" />
+            </BbButton>
         }
     </header>
 

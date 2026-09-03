@@ -21,6 +21,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
+    using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
 
@@ -79,8 +80,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
         private readonly IRenderedComponent<BbPortalHost> portalHost;
         private readonly BunitJSModuleInterop themeModule;
-        private readonly JSRuntimeInvocationHandler applyThemeHandler;
-        private readonly JSRuntimeInvocationHandler releaseThemeHandler;
+        private readonly JSRuntimeInvocationHandler applyDarkModeHandler;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DesignSystemTestFixture" /> class.
@@ -104,11 +104,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             editorWorkspaceModule.Setup<bool>("registerKeydownGuards", invocation => true).SetResult(true);
             editorWorkspaceModule.SetupVoid("unregisterKeydownGuards", invocation => true).SetVoidResult();
 
-            this.themeModule = this.JSInterop.SetupModule("./Components/Pages/DesignSystem.razor.js");
-            this.applyThemeHandler = this.themeModule.SetupVoid("applyTheme", invocation => true);
-            this.releaseThemeHandler = this.themeModule.SetupVoid("releaseTheme", invocation => true);
-            this.applyThemeHandler.SetVoidResult();
-            this.releaseThemeHandler.SetVoidResult();
+            this.themeModule = this.JSInterop.SetupModule(
+                "./_content/BlazorBlueprint.Components/js/theme.js");
+            this.themeModule.SetupVoid("applyTheme", invocation => true).SetVoidResult();
+            this.applyDarkModeHandler = this.themeModule.SetupVoid("applyDarkMode", invocation => true);
+            this.themeModule.SetupVoid("saveTheme", invocation => true).SetVoidResult();
+            this.applyDarkModeHandler.SetVoidResult();
         }
 
         /// <summary>
@@ -304,17 +305,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies the page applies the initial light theme at the document root and reports dark selection.
+        /// Verifies the page applies Light and Dark through the shared application theme service.
         /// </summary>
         [Test]
         public async System.Threading.Tasks.Task VerifyThemeControlAppliesDocumentLevelTheme()
         {
             var component = this.Render<DesignSystem>();
+            var themeService = this.Services.GetRequiredService<ThemeService>();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.applyThemeHandler.Invocations, Has.Count.EqualTo(1));
-                Assert.That(this.applyThemeHandler.Invocations["applyTheme"][0].Arguments[1], Is.EqualTo("light"));
+                Assert.That(themeService.IsDarkMode, Is.False);
+                Assert.That(this.themeModule.Invocations["applyTheme"], Has.Count.EqualTo(1));
+                Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[0], Is.EqualTo(false));
+                Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[3], Is.EqualTo(0.375d));
             }
 
             await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
@@ -323,8 +327,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.applyThemeHandler.Invocations, Has.Count.EqualTo(2));
-                Assert.That(this.applyThemeHandler.Invocations["applyTheme"][1].Arguments[1], Is.EqualTo("dark"));
+                Assert.That(themeService.IsDarkMode, Is.True);
+                Assert.That(this.applyDarkModeHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][0].Arguments[0], Is.EqualTo(true));
                 Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
                     .Single(button => button.TextContent.Trim() == "Dark")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
@@ -339,8 +344,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.applyThemeHandler.Invocations, Has.Count.EqualTo(3));
-                Assert.That(this.applyThemeHandler.Invocations["applyTheme"][2].Arguments[1], Is.EqualTo("light"));
+                Assert.That(themeService.IsDarkMode, Is.False);
+                Assert.That(this.applyDarkModeHandler.Invocations, Has.Count.EqualTo(2));
+                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][1].Arguments[0], Is.EqualTo(false));
                 Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
                     .Single(button => button.TextContent.Trim() == "Light")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
@@ -351,21 +357,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         }
 
         /// <summary>
-        /// Verifies page disposal releases only the theme preview owned by that page instance.
+        /// Verifies page disposal does not release or replace the application-owned theme state.
         /// </summary>
         [Test]
-        public async System.Threading.Tasks.Task VerifyThemePreviewIsReleasedOnDispose()
+        public async System.Threading.Tasks.Task VerifyThemeStateRemainsApplicationOwnedOnDispose()
         {
             var component = this.Render<DesignSystem>();
-            var ownerId = this.applyThemeHandler.Invocations["applyTheme"][0].Arguments[0];
+            var themeService = this.Services.GetRequiredService<ThemeService>();
+            await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                .Single(button => button.TextContent.Trim() == "Dark")
+                .ClickAsync();
 
             await component.Instance.DisposeAsync();
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(this.releaseThemeHandler.Invocations, Has.Count.EqualTo(1));
-                Assert.That(this.releaseThemeHandler.Invocations["releaseTheme"][0].Arguments[0], Is.EqualTo(ownerId));
-            }
+            Assert.That(themeService.IsDarkMode, Is.True);
         }
 
         /// <summary>
@@ -403,11 +408,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
             await component.Find("#showcase-select-input").ClickAsync();
             var listbox = await this.portalHost.WaitForElementAsync("[role='listbox']");
-            var applyThemeInvocations = this.applyThemeHandler.Invocations["applyTheme"];
+            var applyDarkModeInvocations = this.applyDarkModeHandler.Invocations["applyDarkMode"];
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(applyThemeInvocations[applyThemeInvocations.Count - 1].Arguments[1], Is.EqualTo("dark"));
+                Assert.That(applyDarkModeInvocations[applyDarkModeInvocations.Count - 1].Arguments[0], Is.EqualTo(true));
                 Assert.That(menuRendered, Is.True);
                 Assert.That(listbox.ClassList, Does.Contain("mb-select-input__listbox"));
             }
@@ -870,34 +875,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                         .GetAttribute("aria-busy"),
                     Is.EqualTo("true"));
             }
-        }
-
-        /// <summary>
-        /// Verifies that a disconnected browser during theme cleanup does not escape page disposal.
-        /// </summary>
-        [Test]
-        public async System.Threading.Tasks.Task VerifyThemeDisposalIgnoresDisconnectedJavaScriptRuntime()
-        {
-            this.releaseThemeHandler.SetException(new Microsoft.JSInterop.JSDisconnectedException("Disconnected"));
-            var component = this.Render<DesignSystem>();
-
-            await component.Instance.DisposeAsync();
-
-            Assert.That(this.releaseThemeHandler.Invocations, Has.Count.EqualTo(1));
-        }
-
-        /// <summary>
-        /// Verifies that renderer-owned module disposal does not escape page disposal.
-        /// </summary>
-        [Test]
-        public async System.Threading.Tasks.Task VerifyThemeDisposalIgnoresDisposedJavaScriptModule()
-        {
-            this.releaseThemeHandler.SetException(new ObjectDisposedException("theme module"));
-            var component = this.Render<DesignSystem>();
-
-            await component.Instance.DisposeAsync();
-
-            Assert.That(this.releaseThemeHandler.Invocations, Has.Count.EqualTo(1));
         }
 
         /// <summary>

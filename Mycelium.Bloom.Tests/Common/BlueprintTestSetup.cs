@@ -28,7 +28,12 @@ namespace Mycelium.Bloom.Tests.Common
         internal static void Configure(BunitContext context)
         {
             context.Services.AddLogging();
-            context.Services.AddBlazorBlueprintComponents();
+            context.Services.AddBlazorBlueprintComponents(
+                configureTheme: options =>
+                {
+                    options.DetectSystemPreference = false;
+                    options.DefaultRadius = 0.375d;
+                });
             context.JSInterop.Mode = JSRuntimeMode.Loose;
         }
 

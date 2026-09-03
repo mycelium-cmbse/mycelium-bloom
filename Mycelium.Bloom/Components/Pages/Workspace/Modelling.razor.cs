@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="Home.razor.cs" company="Starion Group S.A.">
+// <copyright file="Modelling.razor.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -7,21 +7,20 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Components.Pages
+namespace Mycelium.Bloom.Components.Pages.Workspace
 {
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
-    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     /// <summary>
-    /// Composes the full-application Bloom workspace from reusable structural components.
+    /// Composes the routed engineering editor and owns its feature-specific ViewModels.
     /// </summary>
-    public sealed partial class Home : ComponentBase, IDisposable
+    public sealed partial class Modelling : ComponentBase, IDisposable
     {
         /// <summary>
         /// The number of editor groups represented by the native desktop design when configuration permits it.
@@ -73,11 +72,6 @@ namespace Mycelium.Bloom.Components.Pages
         private IReadOnlyDictionary<Guid, double> initialGroupWeights = new Dictionary<Guid, double>();
 
         /// <summary>
-        /// A value indicating whether the shell currently reserves the collapsed navigation width.
-        /// </summary>
-        private bool isNavigationCollapsed = true;
-
-        /// <summary>
         /// A value indicating whether final component disposal has occurred.
         /// </summary>
         private bool isDisposed;
@@ -88,20 +82,14 @@ namespace Mycelium.Bloom.Components.Pages
         private int nextPlaceholderTabNumber;
 
         /// <summary>
-        /// Gets or sets the navigation state resolved once by the workspace composition root.
-        /// </summary>
-        [Inject]
-        private INavigationRailViewModel NavigationViewModel { get; set; }
-
-        /// <summary>
         /// Gets or sets the scoped service provider used to resolve composition-owned Project Browser state.
-        /// Resolved disposable transients remain scope-tracked after Home ends their logical tab lifetime.
+        /// Resolved disposable transients remain scope-tracked after Modelling ends their logical tab lifetime.
         /// </summary>
         [Inject]
         private IServiceProvider ServiceProvider { get; set; }
 
         /// <summary>
-        /// Gets or sets the durable editor state resolved once by the workspace composition root.
+        /// Gets or sets the durable editor state resolved once for this routed editor page.
         /// </summary>
         [Inject]
         private IWorkspaceEditorViewModel WorkspaceEditorViewModel { get; set; }
@@ -111,21 +99,11 @@ namespace Mycelium.Bloom.Components.Pages
         {
             base.OnInitialized();
 
-            ArgumentNullException.ThrowIfNull(this.NavigationViewModel);
             ArgumentNullException.ThrowIfNull(this.ServiceProvider);
             ArgumentNullException.ThrowIfNull(this.WorkspaceEditorViewModel);
 
             try
             {
-                this.isNavigationCollapsed = this.NavigationViewModel.PresentationMode switch
-                {
-                    NavigationRailPresentationMode.Expanded => false,
-                    NavigationRailPresentationMode.Collapsed => true,
-                    NavigationRailPresentationMode.ExpandOnHover => true,
-                    _ => throw CreateInvalidPresentationModeException(
-                        this.NavigationViewModel.PresentationMode)
-                };
-
                 this.InitializeExistingProjectBrowserOwnership();
                 this.InitializePlaceholderWorkspace();
             }
@@ -247,15 +225,6 @@ namespace Mycelium.Bloom.Components.Pages
                     _ = this.OpenProjectBrowserTab(groupId);
                     break;
             }
-        }
-
-        /// <summary>
-        /// Updates component-local shell width presentation from the rail's persistent layout state.
-        /// </summary>
-        /// <param name="isCollapsed">Whether the rail is currently presented as collapsed.</param>
-        private void HandleNavigationLayoutCollapsedChanged(bool isCollapsed)
-        {
-            this.isNavigationCollapsed = isCollapsed;
         }
 
         /// <summary>
@@ -424,18 +393,7 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Creates the exception raised when a navigation ViewModel exposes an unsupported presentation mode.
-        /// </summary>
-        /// <param name="presentationMode">The unsupported presentation mode.</param>
-        /// <returns>The exception describing the unsupported value.</returns>
-        private static ArgumentOutOfRangeException CreateInvalidPresentationModeException(
-            NavigationRailPresentationMode presentationMode)
-        {
-            return new ArgumentOutOfRangeException(nameof(presentationMode), presentationMode, null);
-        }
-
-        /// <summary>
-        /// Captures the semantic and visual metadata owned by the Home composition for one supported editor type.
+        /// Captures the semantic and visual metadata owned by the Modelling composition for one supported editor type.
         /// </summary>
         /// <param name="ActionId">The menu action identifier.</param>
         /// <param name="Label">The editor label.</param>

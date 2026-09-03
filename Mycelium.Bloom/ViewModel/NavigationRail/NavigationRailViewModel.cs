@@ -54,6 +54,11 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         private readonly IDisposable contextSubscription;
 
         /// <summary>
+        /// The normalized route currently responsible for selection, or <see langword="null" /> before routing is reconciled.
+        /// </summary>
+        private string currentRoute;
+
+        /// <summary>
         /// A value indicating whether final disposal has occurred.
         /// </summary>
         private bool isDisposed;
@@ -117,6 +122,20 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         } = NavigationRailPresentationMode.ExpandOnHover;
 
         /// <inheritdoc />
+        public void ReconcileSelection(string route)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(route);
+
+            if (this.isDisposed)
+            {
+                return;
+            }
+
+            this.currentRoute = route;
+            this.SelectedItem = GetRouteSelectedItem(this.navigationItems, route);
+        }
+
+        /// <inheritdoc />
         public void Dispose()
         {
             if (this.isDisposed)
@@ -148,7 +167,9 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
             ArgumentNullException.ThrowIfNull(selectedItems);
 
             var nextItems = selectedItems.ToArray();
-            var nextSelectedItem = GetReconciledSelectedItem(nextItems, this.SelectedItem);
+            var nextSelectedItem = this.currentRoute is null
+                ? GetReconciledSelectedItem(nextItems, this.SelectedItem)
+                : GetRouteSelectedItem(nextItems, this.currentRoute);
 
             this.navigationItemSource.Edit(items =>
             {
@@ -188,6 +209,21 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
             }
 
             return items[0];
+        }
+
+        /// <summary>
+        /// Finds the canonical destination represented by a normalized route.
+        /// </summary>
+        /// <param name="items">The available destinations.</param>
+        /// <param name="route">The normalized application-relative route.</param>
+        /// <returns>The matching destination, or <see langword="null" /> when the route is not represented.</returns>
+        private static NavigationRailItem GetRouteSelectedItem(
+            IEnumerable<NavigationRailItem> items,
+            string route)
+        {
+            return items.FirstOrDefault(item =>
+                !string.IsNullOrWhiteSpace(item.Href)
+                && string.Equals(item.Href, route, StringComparison.OrdinalIgnoreCase));
         }
     }
 }
