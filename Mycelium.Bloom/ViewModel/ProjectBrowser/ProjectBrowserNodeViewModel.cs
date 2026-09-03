@@ -9,8 +9,6 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
-    using Mycelium.Bloom.Model.Enum;
-
     using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -24,11 +22,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// A value indicating whether the node is expanded.
         /// </summary>
         private bool isExpanded;
-
-        /// <summary>
-        /// A value indicating whether the node is selected.
-        /// </summary>
-        private bool isSelected;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserNodeViewModel" /> class.
@@ -49,8 +42,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.DisplayName = displayName;
             this.ElementId = metadata.ElementId;
             this.QualifiedName = metadata.QualifiedName;
-            this.RuntimeTypeName = metadata.RuntimeTypeName;
-            this.ElementKind = metadata.ElementKind;
+            this.ElementType = metadata.SourceElement.GetType();
             this.Children = children;
             this.SourceElement = metadata.SourceElement;
         }
@@ -76,14 +68,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         public string QualifiedName { get; }
 
         /// <summary>
-        /// Gets the runtime SysML POCO type name.
+        /// Gets the concrete SysML POCO type represented by the node.
         /// </summary>
-        public string RuntimeTypeName { get; }
-
-        /// <summary>
-        /// Gets the broad SysML element kind.
-        /// </summary>
-        public SysmlModelElementKind ElementKind { get; }
+        public Type ElementType { get; }
 
         /// <summary>
         /// Gets the child nodes built from the SysML owned element hierarchy.
@@ -102,15 +89,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             get => this.isExpanded;
             set => this.RaiseAndSetIfChanged(ref this.isExpanded, value);
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the node is selected.
-        /// </summary>
-        public bool IsSelected
-        {
-            get => this.isSelected;
-            set => this.RaiseAndSetIfChanged(ref this.isSelected, value);
         }
 
         /// <summary>

@@ -13,7 +13,9 @@
 
 @inject IJSRuntime JsRuntime
 
-<div class="@(this.GetCssClass())">
+<div @ref="this.rootReference"
+     id="@(this.TriggerContext?.TriggerId)"
+     class="@(this.GetCssClass())">
     <BbInputGroup Class="mb-search-input__control">
         <BbInputGroupAddon
             Align="BlazorBlueprint.Components.InputGroupAlign.InlineStart"
@@ -34,18 +36,34 @@
             }
         </BbInputGroupAddon>
 
+        @if (this.InlineContent is not null)
+        {
+            <CascadingValue
+                TValue="BlazorBlueprint.Primitives.Utilities.TriggerContext"
+                Value="@(default(BlazorBlueprint.Primitives.Utilities.TriggerContext))"
+                Name="TriggerContext"
+                IsFixed="true">
+                <div class="mb-search-input__inline-content">
+                    @(this.InlineContent)
+                </div>
+            </CascadingValue>
+        }
+
         <BbInputGroupInput
+            @ref="this.inputReference"
             @attributes="this.AdditionalAttributes"
             Id="@(this.FieldId)"
             Class="mb-search-input__field"
-            Type="BlazorBlueprint.Components.InputType.Search"
+            Type="@(this.InputType)"
             Value="@(this.Value)"
             ValueChanged="this.HandleValueChangedAsync"
             Placeholder="@(this.Placeholder)"
             Disabled="@(this.Disabled)"
             AriaLabel="@(this.GetAccessibleName())"
             UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate"
-            @onkeydown="this.HandleKeyDownAsync" />
+            @onkeydown="this.HandleKeyDownAsync"
+            @onfocus="this.GetFocusEventCallback()"
+            @onblur="this.HandleBlurAsync" />
 
         @if (this.ShouldShowShortcut())
         {

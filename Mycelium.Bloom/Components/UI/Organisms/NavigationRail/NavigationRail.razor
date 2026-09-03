@@ -30,22 +30,25 @@
 
                 @if (this.StartsNewGroup(itemIndex))
                 {
-                    @if (!this.IsVisuallyCollapsed && !string.IsNullOrWhiteSpace(item.GroupLabel))
-                    {
-                        <li @key="(item.Id, true)"
-                            class="mb-navigation-rail__group-heading"
-                            role="presentation">
-                            <span class="mb-navigation-rail__group-heading-label"
-                                  role="heading"
-                                  aria-level="2">@(item.GroupLabel)</span>
-                        </li>
-                    }
-                    else
-                    {
-                        <li @key="(item.Id, true)"
-                            class="mb-navigation-rail__divider"
-                            aria-hidden="true"></li>
-                    }
+                    var hasGroupLabel = !string.IsNullOrWhiteSpace(item.GroupLabel);
+
+                    <li @key="(item.Id, true)"
+                        class="@(hasGroupLabel
+                                   ? "mb-navigation-rail__section-marker mb-navigation-rail__section-marker--named"
+                                   : "mb-navigation-rail__section-marker")"
+                        role="presentation">
+                        <span class="mb-navigation-rail__divider" aria-hidden="true"></span>
+
+                        @if (hasGroupLabel)
+                        {
+                            <span class="mb-navigation-rail__group-heading"
+                                  aria-hidden="@(this.IsVisuallyCollapsed ? "true" : "false")">
+                                <span class="mb-navigation-rail__group-heading-label"
+                                      role="heading"
+                                      aria-level="2">@(item.GroupLabel)</span>
+                            </span>
+                        }
+                    </li>
                 }
 
                 <li @key="(item.Id, false)" class="mb-navigation-rail__item">
@@ -57,14 +60,18 @@
                               title="@(this.GetItemTitle(item))"
                               aria-current="@(this.GetAriaCurrent(item))"
                               OnClick="() => this.SelectItem(item)">
-                        <LucideIcon Name="@(item.IconName)"
-                                    Size="16"
-                                    StrokeWidth="1.75"
-                                    Class="mb-navigation-rail__icon"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                    focusable="false" />
-                        <span class="mb-navigation-rail__label">@(item.Label)</span>
+                        <span class="mb-navigation-rail__icon-slot" aria-hidden="true">
+                            <LucideIcon Name="@(item.IconName)"
+                                        Size="16"
+                                        StrokeWidth="1.75"
+                                        Class="mb-navigation-rail__icon"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+                        </span>
+                        <span class="mb-navigation-rail__label">
+                            <span class="mb-navigation-rail__label-text">@(item.Label)</span>
+                        </span>
                     </BbButton>
                 </li>
             }
@@ -91,7 +98,7 @@
                                        Offset="4"
                                        Strategy="PositioningStrategy.Fixed">
                     <div class="mb-navigation-rail__control-menu-content">
-                        <BbDropdownMenuLabel>Default state</BbDropdownMenuLabel>
+                        <BbDropdownMenuLabel>Sidebar control</BbDropdownMenuLabel>
 
                         @foreach (var mode in PresentationModes)
                         {
@@ -113,14 +120,6 @@
                                 </ChildContent>
                             </BbDropdownMenuItem>
                         }
-
-                        <BbDropdownMenuSeparator />
-                        <BbDropdownMenuCheckboxItem Class="mb-navigation-rail__control-option"
-                                                     Checked="@(this.RequiredViewModel.IsExpandOnHoverEnabled)"
-                                                     CheckedChanged="this.SetExpandOnHoverEnabled"
-                                                     CloseOnSelect="true">
-                            Expand on hover
-                        </BbDropdownMenuCheckboxItem>
                     </div>
                 </BbDropdownMenuContent>
             </BbDropdownMenu>

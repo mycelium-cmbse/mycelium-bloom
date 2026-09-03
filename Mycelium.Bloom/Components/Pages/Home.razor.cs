@@ -121,6 +121,7 @@ namespace Mycelium.Bloom.Components.Pages
                 {
                     NavigationRailPresentationMode.Expanded => false,
                     NavigationRailPresentationMode.Collapsed => true,
+                    NavigationRailPresentationMode.ExpandOnHover => true,
                     _ => throw CreateInvalidPresentationModeException(
                         this.NavigationViewModel.PresentationMode)
                 };

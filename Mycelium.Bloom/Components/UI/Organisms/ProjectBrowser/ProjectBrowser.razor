@@ -9,10 +9,12 @@
 
 @inherits BloomReactiveComponentBase<IProjectBrowserViewModel>
 
+@using BlazorBlueprint.Icons.Lucide.Components
+
 <div class="@(this.GetCssClass())" @attributes="this.AdditionalAttributes">
-    <div class="mb-project-browser__tree-viewport">
-        @if (this.ShouldShowLoadingState())
-        {
+    @if (this.ShouldShowLoadingState())
+    {
+        <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree">
                 <div class="mb-project-browser__state" role="status" aria-live="polite">
                     <strong class="mb-project-browser__state-title">
@@ -23,9 +25,11 @@
                     </p>
                 </div>
             </div>
-        }
-        else if (this.ShouldShowErrorState())
-        {
+        </div>
+    }
+    else if (this.ShouldShowErrorState())
+    {
+        <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree">
                 <div class="mb-project-browser__state mb-project-browser__state--error" role="alert" aria-live="assertive">
                     <strong class="mb-project-browser__state-title">
@@ -40,9 +44,175 @@
                     }
                 </div>
             </div>
-        }
-        else
-        {
+        </div>
+    }
+    else
+    {
+        var filterPresentation = this.RequiredViewModel.FilterPresentation;
+        var visibleRootNodes = this.GetVisibleRootNodes(filterPresentation);
+
+        var activeDrawerFilterCount = this.GetActiveDrawerFilterCount();
+
+        <div class="mb-project-browser__toolbar"
+             role="search"
+             aria-label="Project browser filters">
+            <div class="mb-project-browser__search">
+                <ProjectBrowserSearchAssistant
+                    CommittedFilterText="@(this.RequiredViewModel.FilterText)"
+                    SelectedElementTypes="@(this.RequiredViewModel.SelectedElementTypes)"
+                    ElementTypeOptions="@(this.RequiredViewModel.AvailableElementTypes)"
+                    IsOpen="@(this.isSearchAssistantOpen)"
+                    DraftResetVersion="@(this.searchAssistantDraftResetVersion)"
+                    IsOpenChanged="this.HandleSearchAssistantOpenChanged"
+                    ContainsCommitted="this.HandleContainsCommittedAsync"
+                    ContainsRemoved="this.HandleContainsRemovedAsync"
+                    ElementTypeToggled="this.HandleElementTypeFilterToggledAsync" />
+            </div>
+
+            <div class="mb-project-browser__filter-trigger-host">
+                <BbPopover Open="@(this.isFilterDrawerOpen)"
+                           OpenChanged="this.HandleFilterDrawerOpenChanged"
+                           RestoreFocusOnClose="true">
+                    <BbPopoverTrigger AsChild="true"
+                                      OnClick="this.HandleFilterDrawerTriggerClickAsync">
+                        <BbButton
+                            Class="mb-project-browser__filter-trigger"
+                            Type="BlazorBlueprint.Components.ButtonType.Button"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            title="Open project browser filters"
+                            aria-label="Open project browser filters"
+                            data-filter-active="@(activeDrawerFilterCount > 0 ? "true" : "false")">
+                            <LucideIcon Name="funnel"
+                                        Size="15"
+                                        StrokeWidth="1.75"
+                                        role="presentation"
+                                        aria-hidden="true"
+                                        focusable="false" />
+
+                            @if (activeDrawerFilterCount > 0)
+                            {
+                                <span class="mb-project-browser__filter-trigger-indicator"
+                                      aria-hidden="true"></span>
+                                <span class="sr-only">
+                                    @(activeDrawerFilterCount) type filters active
+                                </span>
+                            }
+                        </BbButton>
+                    </BbPopoverTrigger>
+
+                    <BbPopoverContent Class="mb-project-browser__filter-popover"
+                                      Side="BlazorBlueprint.Primitives.PopoverSide.Bottom"
+                                      Align="BlazorBlueprint.Primitives.PopoverAlign.End"
+                                      Offset="6"
+                                      MatchTriggerWidth="false"
+                                      CloseOnEscape="true"
+                                      CloseOnClickOutside="true"
+                                      OnContentReady="this.HandleFilterDrawerContentReadyAsync"
+                                      Role="dialog"
+                                      aria-labelledby="@(this.filterDrawerHeadingId)">
+                        <section @ref="this.filterDrawerReference"
+                                 class="mb-project-browser__filter-drawer"
+                                 tabindex="-1"
+                                 aria-labelledby="@(this.filterDrawerHeadingId)">
+                            <header class="mb-project-browser__filter-drawer-header">
+                                <span class="mb-project-browser__filter-heading-dot"
+                                      aria-hidden="true"></span>
+                                <h2 id="@(this.filterDrawerHeadingId)"
+                                    class="mb-project-browser__filter-drawer-title">
+                                    FILTERS
+                                </h2>
+
+                                <span class="mb-project-browser__filter-heading-spacer"></span>
+
+                                @if (activeDrawerFilterCount > 0)
+                                {
+                                    <span class="mb-project-browser__filter-active-count">
+                                        @(activeDrawerFilterCount) active
+                                    </span>
+                                }
+
+                                <BbButton
+                                    Class="mb-project-browser__filter-close"
+                                    Type="BlazorBlueprint.Components.ButtonType.Button"
+                                    Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                    Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                    OnClick="this.HandleFilterDrawerCloseAsync"
+                                    title="Close project browser filters"
+                                    aria-label="Close project browser filters">
+                                    <LucideIcon Name="x"
+                                                Size="14"
+                                                StrokeWidth="1.75"
+                                                role="presentation"
+                                                aria-hidden="true"
+                                                focusable="false" />
+                                </BbButton>
+                            </header>
+
+                            <div class="mb-project-browser__filter-view-label">
+                                BROWSER VIEW
+                            </div>
+
+                            <div class="mb-project-browser__filter-drawer-body">
+                                <section class="mb-project-browser__filter-section"
+                                         aria-labelledby="@(this.typeFilterHeadingId)">
+                                    <div class="mb-project-browser__filter-section-header">
+                                        <h3 id="@(this.typeFilterHeadingId)"
+                                            class="mb-project-browser__filter-section-title">
+                                            TYPE
+                                        </h3>
+                                        <span class="mb-project-browser__filter-section-count">
+                                            @(activeDrawerFilterCount) selected
+                                        </span>
+                                    </div>
+
+                                    <div class="mb-project-browser__type-chips">
+                                        @foreach (var elementType in this.RequiredViewModel.AvailableElementTypes)
+                                        {
+                                            var isSelected = this.IsElementTypeSelected(elementType);
+
+                                            <BbButton
+                                                @key="elementType"
+                                                Class="mb-project-browser__type-chip"
+                                                Type="BlazorBlueprint.Components.ButtonType.Button"
+                                                Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                                                Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                                OnClick="_ => this.HandleElementTypeFilterToggledAsync(elementType)"
+                                                aria-pressed="@(isSelected ? "true" : "false")">
+                                                @if (isSelected)
+                                                {
+                                                    <LucideIcon Name="check"
+                                                                Size="12"
+                                                                StrokeWidth="2"
+                                                                role="presentation"
+                                                                aria-hidden="true"
+                                                                focusable="false" />
+                                                }
+                                                <span>@(GetElementTypeLabel(elementType))</span>
+                                            </BbButton>
+                                        }
+                                    </div>
+                                </section>
+                            </div>
+
+                            <footer class="mb-project-browser__filter-drawer-footer">
+                                <BbButton
+                                    Class="mb-project-browser__clear-all"
+                                    Type="BlazorBlueprint.Components.ButtonType.Button"
+                                    Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                    Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                    Disabled="@(!filterPresentation.IsActive)"
+                                    OnClick="this.HandleClearFilterAsync">
+                                    Clear all
+                                </BbButton>
+                            </footer>
+                        </section>
+                    </BbPopoverContent>
+                </BbPopover>
+            </div>
+        </div>
+
+        <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
                 @if (this.RequiredViewModel.RootNodes.Count == 0)
                 {
@@ -50,17 +220,25 @@
                         No model elements available.
                     </div>
                 }
+                else if (filterPresentation.IsActive && visibleRootNodes.Count == 0)
+                {
+                    <div class="mb-project-browser__empty" role="status" aria-live="polite">
+                        No model elements match the current filters.
+                    </div>
+                }
                 else
                 {
-                    @foreach (var node in this.RequiredViewModel.RootNodes)
+                    @foreach (var node in visibleRootNodes)
                     {
                         <ProjectBrowserNode
                             ViewModel="node"
+                            SelectedNode="@(this.RequiredViewModel.SelectedNode)"
                             Depth="0"
+                            FilterPresentation="filterPresentation"
                             OnNodeSelected="this.HandleNodeSelectedAsync"/>
                     }
                 }
             </div>
-        }
-    </div>
+        </div>
+    }
 </div>

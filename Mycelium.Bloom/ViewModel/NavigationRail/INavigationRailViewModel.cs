@@ -34,10 +34,5 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// Gets or sets the configured rail presentation mode.
         /// </summary>
         NavigationRailPresentationMode PresentationMode { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether a persistently collapsed rail expands temporarily while hovered.
-        /// </summary>
-        bool IsExpandOnHoverEnabled { get; set; }
     }
 }

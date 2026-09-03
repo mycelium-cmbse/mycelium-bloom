@@ -24,6 +24,26 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }
 
         /// <summary>
+        /// Gets or sets the committed Contains criterion used to filter nodes by display name or qualified name.
+        /// </summary>
+        string FilterText { get; set; }
+
+        /// <summary>
+        /// Gets the distinct element types available in the currently loaded model.
+        /// </summary>
+        ReadOnlyObservableCollection<Type> AvailableElementTypes { get; }
+
+        /// <summary>
+        /// Gets the element types selected for filtering. An empty collection includes every type.
+        /// </summary>
+        ReadOnlyObservableCollection<Type> SelectedElementTypes { get; }
+
+        /// <summary>
+        /// Gets the current immutable visibility presentation over the canonical tree.
+        /// </summary>
+        ProjectBrowserFilterPresentation FilterPresentation { get; }
+
+        /// <summary>
         /// Gets the currently selected node, or <see langword="null" /> when no node is selected.
         /// </summary>
         [MaybeNull]
@@ -50,6 +70,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="cancellationToken">Cancels initialization.</param>
         /// <returns><see langword="true" /> when a new tree is loaded; otherwise, <see langword="false" />.</returns>
         Task<bool> InitializeAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Clears every active project browser filter criterion.
+        /// </summary>
+        void ClearFilter();
+
+        /// <summary>
+        /// Adds or removes an available model element type from the active filter.
+        /// </summary>
+        /// <param name="elementType">The runtime model element type to toggle.</param>
+        void ToggleElementTypeFilter(Type elementType);
 
         /// <summary>
         /// Toggles a project browser node.

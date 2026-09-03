@@ -9,6 +9,9 @@
 
 namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
 {
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Utilities;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.JSInterop;
@@ -27,6 +30,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         private readonly string shortcutRegistrationId = CreateGeneratedId("mb-search-shortcut");
 
         /// <summary>
+        /// The identifier that scopes JavaScript empty-Space cleanup to this component instance.
+        /// </summary>
+        private readonly string emptySpaceRegistrationId = CreateGeneratedId("mb-search-empty-space");
+
+        /// <summary>
         /// The JavaScript module used to manage the search shortcut.
         /// </summary>
         private IJSObjectReference module;
@@ -42,6 +50,31 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         private bool shortcutRegistered;
 
         /// <summary>
+        /// The input identifier currently protected from an empty Space key default action.
+        /// </summary>
+        private string registeredEmptySpaceInputId;
+
+        /// <summary>
+        /// A value indicating whether this component currently owns an empty-Space registration.
+        /// </summary>
+        private bool emptySpaceRegistered;
+
+        /// <summary>
+        /// The rendered Blueprint input used for focus restoration.
+        /// </summary>
+        private BbInputGroupInput inputReference;
+
+        /// <summary>
+        /// The outer unified input surface used to anchor a Blueprint overlay.
+        /// </summary>
+        private ElementReference rootReference;
+
+        /// <summary>
+        /// The trigger context most recently associated with the rendered anchor.
+        /// </summary>
+        private TriggerContext previousTriggerContext;
+
+        /// <summary>
         /// Gets or sets the current search value.
         /// </summary>
         [Parameter]
@@ -52,6 +85,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// </summary>
         [Parameter]
         public EventCallback<string> ValueChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets the native input type exposed through the Blueprint input.
+        /// </summary>
+        [Parameter]
+        public InputType InputType { get; set; } = InputType.Search;
 
         /// <summary>
         /// Gets or sets the placeholder text displayed when the search input is empty.
@@ -108,6 +147,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         public bool EnableShortcut { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether an unmodified Space key should be prevented while the input is empty.
+        /// </summary>
+        [Parameter]
+        public bool PreventEmptySpace { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether the search input should take the full available width.
         /// </summary>
         [Parameter]
@@ -120,10 +165,74 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         public RenderFragment StartIcon { get; set; }
 
         /// <summary>
+        /// Gets or sets optional content rendered between the leading icon and the editable input.
+        /// </summary>
+        [Parameter]
+        public RenderFragment InlineContent { get; set; }
+
+        /// <summary>
         /// Gets or sets the callback invoked when a key is pressed while the search input is focused.
         /// </summary>
         [Parameter]
         public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether key events should also be forwarded to an enclosing Blueprint trigger.
+        /// </summary>
+        [Parameter]
+        public bool ForwardTriggerKeyDown { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether focus should be forwarded to an enclosing Blueprint trigger.
+        /// </summary>
+        [Parameter]
+        public bool ForwardTriggerFocus { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the callback invoked when the native input loses focus.
+        /// </summary>
+        [Parameter]
+        public EventCallback<FocusEventArgs> OnBlur { get; set; }
+
+        /// <summary>
+        /// Gets the Blueprint trigger context when this input is used as an as-child overlay anchor.
+        /// </summary>
+        [CascadingParameter(Name = "TriggerContext")]
+        public TriggerContext TriggerContext { get; set; }
+
+        /// <summary>
+        /// Moves focus to the native search input.
+        /// </summary>
+        /// <returns>A value task representing the focus operation.</returns>
+        public ValueTask FocusAsync()
+        {
+            return this.inputReference is null
+                ? ValueTask.CompletedTask
+                : this.inputReference.FocusAsync();
+        }
+
+        /// <summary>
+        /// Clears the controlled value while preserving the rendered Blueprint input instance.
+        /// </summary>
+        /// <returns>A value task representing native value synchronization.</returns>
+        public async ValueTask ClearAsync()
+        {
+            const string clearedValue = "";
+            this.Value = clearedValue;
+
+            if (this.inputReference is null)
+            {
+                return;
+            }
+
+            this.module ??= await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+
+            await this.module.InvokeVoidAsync(
+                "clearSearchInputValue",
+                this.inputReference.Element);
+        }
 
         /// <summary>
         /// Releases asynchronous resources used by the search input component.
@@ -142,10 +251,21 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
             // The component owns no synchronous resources. JavaScript cleanup is handled by DisposeAsync.
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Synchronizes the rendered trigger element and optional keyboard shortcut.
+        /// </summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        /// <returns>A task representing the post-render synchronization.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
+
+            if (this.TriggerContext?.SetTriggerElement is not null
+                && (firstRender || !ReferenceEquals(this.TriggerContext, this.previousTriggerContext)))
+            {
+                this.TriggerContext.SetTriggerElement.Invoke(this.rootReference);
+                this.previousTriggerContext = this.TriggerContext;
+            }
 
             if (this.EnableShortcut)
             {
@@ -154,6 +274,15 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
             else
             {
                 await this.DisposeSearchShortcutAsync();
+            }
+
+            if (this.PreventEmptySpace)
+            {
+                await this.RegisterEmptySpaceGuardAsync();
+            }
+            else
+            {
+                await this.DisposeEmptySpaceGuardAsync();
             }
         }
 
@@ -210,7 +339,52 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleKeyDownAsync(KeyboardEventArgs args)
         {
+            if (this.ForwardTriggerKeyDown && this.TriggerContext?.OnKeyDown is not null)
+            {
+                await this.TriggerContext.OnKeyDown.Invoke(args);
+            }
+
             await this.OnKeyDown.InvokeAsync(args);
+        }
+
+        /// <summary>
+        /// Forwards native focus to Blueprint trigger behavior.
+        /// </summary>
+        /// <param name="_">The unused focus event arguments.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private Task HandleFocusAsync(FocusEventArgs _)
+        {
+            if (this.ForwardTriggerFocus)
+            {
+                this.TriggerContext?.OnFocus?.Invoke();
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Gets the native focus callback only when the enclosing Blueprint trigger has focus behavior to run.
+        /// </summary>
+        /// <returns>The Blueprint trigger focus callback, or an empty callback when focus is presentation-only.</returns>
+        private EventCallback<FocusEventArgs> GetFocusEventCallback()
+        {
+            if (!this.ForwardTriggerFocus || this.TriggerContext?.OnFocus is null)
+            {
+                return default;
+            }
+
+            return EventCallback.Factory.Create<FocusEventArgs>(this, this.HandleFocusAsync);
+        }
+
+        /// <summary>
+        /// Forwards native blur to Blueprint trigger behavior and the configured callback.
+        /// </summary>
+        /// <param name="args">The focus event arguments.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task HandleBlurAsync(FocusEventArgs args)
+        {
+            this.TriggerContext?.OnBlur?.Invoke();
+            await this.OnBlur.InvokeAsync(args);
         }
 
         /// <summary>
@@ -279,6 +453,48 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         }
 
         /// <summary>
+        /// Registers or refreshes the native empty-Space guard for the rendered input.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task RegisterEmptySpaceGuardAsync()
+        {
+            if (this.emptySpaceRegistered
+                && string.Equals(this.registeredEmptySpaceInputId, this.FieldId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            this.module ??= await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+
+            await this.module.InvokeVoidAsync(
+                "registerEmptySpaceGuard",
+                this.emptySpaceRegistrationId,
+                this.FieldId);
+
+            this.registeredEmptySpaceInputId = this.FieldId;
+            this.emptySpaceRegistered = true;
+        }
+
+        /// <summary>
+        /// Disposes only the native empty-Space guard owned by this component instance.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task DisposeEmptySpaceGuardAsync()
+        {
+            if (this.module is null || !this.emptySpaceRegistered)
+            {
+                return;
+            }
+
+            await this.module.InvokeVoidAsync("disposeEmptySpaceGuard", this.emptySpaceRegistrationId);
+
+            this.registeredEmptySpaceInputId = null;
+            this.emptySpaceRegistered = false;
+        }
+
+        /// <summary>
         /// Asynchronously disposes the JavaScript shortcut registration.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
@@ -289,6 +505,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                 try
                 {
                     await this.DisposeSearchShortcutAsync();
+                    await this.DisposeEmptySpaceGuardAsync();
                     await this.module.DisposeAsync();
                 }
                 catch (JSDisconnectedException)
@@ -300,6 +517,8 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                     this.module = null;
                     this.registeredShortcutSignature = null;
                     this.shortcutRegistered = false;
+                    this.registeredEmptySpaceInputId = null;
+                    this.emptySpaceRegistered = false;
                 }
             }
         }

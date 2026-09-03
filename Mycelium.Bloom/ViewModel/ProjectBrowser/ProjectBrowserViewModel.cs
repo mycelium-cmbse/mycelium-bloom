@@ -9,31 +9,40 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using System.Collections.Immutable;
     using System.Collections.ObjectModel;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
 
     using DynamicData;
+    using DynamicData.Binding;
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.Model.Enum;
 
     using ReactiveUI;
 
-    using SysML2.NET.Core.POCO.Core.Features;
-    using SysML2.NET.Core.POCO.Core.Types;
-    using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
-    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
 
     /// <summary>
-    /// Provides tree state and tree-building logic for the project browser.
+    /// Provides tree, filter, and local selection state for the project browser.
     /// </summary>
     public sealed class ProjectBrowserViewModel : BloomBaseViewModel, IProjectBrowserViewModel
     {
+        /// <summary>
+        /// Compares derived filter presentations by their visibility semantics.
+        /// </summary>
+        private static readonly IEqualityComparer<ProjectBrowserFilterPresentation> FilterPresentationComparer =
+            EqualityComparer<ProjectBrowserFilterPresentation>.Create(
+                static (current, next) => ReferenceEquals(current, next)
+                                          || (current is not null
+                                              && next is not null
+                                              && current.HasSameVisibilityAs(next)),
+                static presentation => presentation.IsActive.GetHashCode());
+
         /// <summary>
         /// The model loader service used to retrieve SysML models.
         /// </summary>
@@ -45,29 +54,54 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private readonly IElementSelectionService elementSelectionService;
 
         /// <summary>
-        /// The set of node identifiers assigned in the current project browser tree.
-        /// </summary>
-        private readonly HashSet<string> nodeIds = new(StringComparer.Ordinal);
-
-        /// <summary>
-        /// Owns the root node collection and publishes batched root changes.
+        /// Owns the currently materialized root nodes.
         /// </summary>
         private readonly SourceList<ProjectBrowserNodeViewModel> rootNodeSource = new();
 
         /// <summary>
-        /// The read-only root node collection bound from <see cref="rootNodeSource" />.
+        /// Owns the distinct non-relationship types present in the materialized model.
         /// </summary>
-        private readonly ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> rootNodes;
+        private readonly SourceCache<Type, Type> availableElementTypeSource = new(type => type);
 
         /// <summary>
-        /// Keeps the DynamicData binding alive until final disposal.
+        /// Owns the selected element types for this project browser instance.
         /// </summary>
-        private readonly IDisposable rootNodeBinding;
+        private readonly SourceCache<Type, Type> selectedElementTypeSource = new(type => type);
+
+        /// <summary>
+        /// Keeps DynamicData bindings and derived-state subscriptions alive.
+        /// </summary>
+        private readonly CompositeDisposable subscriptions = new();
 
         /// <summary>
         /// Cancels initialization when final ViewModel disposal begins.
         /// </summary>
         private readonly CancellationTokenSource lifetimeCancellation = new();
+
+        /// <summary>
+        /// The stable read-only root-node projection.
+        /// </summary>
+        private readonly ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> rootNodes;
+
+        /// <summary>
+        /// The stable read-only available-type projection.
+        /// </summary>
+        private readonly ReadOnlyObservableCollection<Type> availableElementTypes;
+
+        /// <summary>
+        /// The stable read-only selected-type projection.
+        /// </summary>
+        private readonly ReadOnlyObservableCollection<Type> selectedElementTypes;
+
+        /// <summary>
+        /// The committed Contains criterion.
+        /// </summary>
+        private string filterText = string.Empty;
+
+        /// <summary>
+        /// The current immutable visibility projection over the canonical tree.
+        /// </summary>
+        private readonly ObservableAsPropertyHelper<ProjectBrowserFilterPresentation> filterPresentation;
 
         /// <summary>
         /// The node selected locally in this project browser.
@@ -77,14 +111,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private ProjectBrowserNodeViewModel selectedNode;
 
         /// <summary>
-        /// A value indicating whether initialization is currently in progress.
+        /// Tracks whether initialization owns the current load operation.
         /// </summary>
-        private bool isInitializing;
+        private int initializationState;
 
         /// <summary>
-        /// A value indicating whether final ViewModel disposal has occurred.
+        /// Tracks whether final disposal has occurred.
         /// </summary>
-        private bool isDisposed;
+        private int disposalState;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserViewModel" /> class.
@@ -101,16 +135,84 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.modelLoaderService = modelLoaderService;
             this.elementSelectionService = elementSelectionService;
 
-            this.rootNodeBinding = System.ObservableExtensions.Subscribe(
-                this.rootNodeSource.Connect().Bind(out var boundRootNodes));
+            this.subscriptions.Add(System.ObservableExtensions.Subscribe(
+                this.availableElementTypeSource
+                    .Connect()
+                    .SortAndBind(
+                        out var boundAvailableElementTypes,
+                        SortExpressionComparer<Type>.Ascending(type => type.Name))));
+            this.availableElementTypes = boundAvailableElementTypes;
 
+            this.subscriptions.Add(System.ObservableExtensions.Subscribe(
+                this.selectedElementTypeSource
+                    .Connect()
+                    .SortAndBind(
+                        out var boundSelectedElementTypes,
+                        SortExpressionComparer<Type>.Ascending(type => type.Name))));
+            this.selectedElementTypes = boundSelectedElementTypes;
+
+            this.filterPresentation = Observable.CombineLatest(
+                    this.WhenAnyValue(viewModel => viewModel.FilterText),
+                    this.rootNodeSource
+                        .Connect()
+                        .ToCollection()
+                        .StartWith(Array.Empty<ProjectBrowserNodeViewModel>()),
+                    this.selectedElementTypeSource
+                        .Connect()
+                        .ToCollection()
+                        .StartWith(Array.Empty<Type>()),
+                    CreateFilterPresentation)
+                .DistinctUntilChanged(
+                    FilterPresentationComparer)
+                .ToProperty(
+                    this,
+                    viewModel => viewModel.FilterPresentation,
+                    ProjectBrowserFilterPresentation.Inactive);
+            this.subscriptions.Add(this.filterPresentation);
+
+            this.subscriptions.Add(System.ObservableExtensions.Subscribe(
+                this.rootNodeSource.Connect().Bind(out var boundRootNodes)));
             this.rootNodes = boundRootNodes;
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the root nodes displayed by the project browser.
+        /// </summary>
         public ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes => this.rootNodes;
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the distinct element types available in the currently loaded model.
+        /// </summary>
+        public ReadOnlyObservableCollection<Type> AvailableElementTypes => this.availableElementTypes;
+
+        /// <summary>
+        /// Gets or sets the committed Contains criterion.
+        /// </summary>
+        public string FilterText
+        {
+            get => this.filterText;
+            set
+            {
+                if (!this.IsDisposed)
+                {
+                    this.RaiseAndSetIfChanged(ref this.filterText, value ?? string.Empty);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the element types selected for filtering in this project browser.
+        /// </summary>
+        public ReadOnlyObservableCollection<Type> SelectedElementTypes => this.selectedElementTypes;
+
+        /// <summary>
+        /// Gets the current immutable visibility projection over the canonical tree.
+        /// </summary>
+        public ProjectBrowserFilterPresentation FilterPresentation => this.filterPresentation.Value;
+
+        /// <summary>
+        /// Gets the node selected locally in this project browser.
+        /// </summary>
         [AllowNull]
         [MaybeNull]
         public ProjectBrowserNodeViewModel SelectedNode
@@ -119,13 +221,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             private set => this.RaiseAndSetIfChanged(ref this.selectedNode, value);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes the project browser from the Quantities model.
+        /// </summary>
+        /// <param name="cancellationToken">Cancels initialization.</param>
+        /// <returns><see langword="true" /> when a new tree is loaded; otherwise, <see langword="false" />.</returns>
         public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
         {
-            if (this.isDisposed
+            if (this.IsDisposed
                 || cancellationToken.IsCancellationRequested
                 || this.IsLoaded
-                || this.isInitializing)
+                || Interlocked.CompareExchange(ref this.initializationState, 1, 0) != 0)
             {
                 return false;
             }
@@ -134,163 +240,221 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 cancellationToken,
                 this.lifetimeCancellation.Token);
             var initializationToken = linkedCancellation.Token;
-            this.isInitializing = true;
             this.StartLoading();
 
             try
             {
-                var loadingTask = Task.Run(
-                    this.modelLoaderService.LoadQuantitiesModel,
-                    CancellationToken.None);
-
-                var model = await loadingTask.WaitAsync(initializationToken);
+                var model = await Task.Run(
+                        this.modelLoaderService.LoadQuantitiesModel,
+                        CancellationToken.None)
+                    .WaitAsync(initializationToken);
 
                 initializationToken.ThrowIfCancellationRequested();
-                ArgumentNullException.ThrowIfNull(model);
+
+                if (model is null)
+                {
+                    this.HandleInitializationError("The Quantities model is unavailable.");
+
+                    return false;
+                }
 
                 var stagedNodeIds = new HashSet<string>(StringComparer.Ordinal);
+                var stagedAvailableElementTypes = new HashSet<Type>();
                 var rootNode = this.BuildNode(
                     model,
                     "root",
                     stagedNodeIds,
+                    stagedAvailableElementTypes,
                     initializationToken);
 
                 initializationToken.ThrowIfCancellationRequested();
 
                 return this.TryPublishTree(
                     rootNode,
-                    stagedNodeIds,
+                    stagedAvailableElementTypes,
                     initializationToken);
             }
-            catch (Exception) when (initializationToken.IsCancellationRequested || this.isDisposed)
+            catch (Exception) when (initializationToken.IsCancellationRequested || this.IsDisposed)
             {
                 return false;
             }
             catch (Exception exception)
             {
-                this.HandleInitializationError(exception);
+                this.HandleInitializationError(exception.Message);
 
                 return false;
             }
             finally
             {
-                if (!this.isDisposed)
+                Interlocked.Exchange(ref this.initializationState, 0);
+
+                if (!this.IsDisposed)
                 {
-                    this.isInitializing = false;
                     this.StopLoading();
                 }
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Toggles an expandable node while filtering is inactive.
+        /// </summary>
+        /// <param name="node">The node to expand or collapse.</param>
         public void ToggleNode(ProjectBrowserNodeViewModel node)
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            if (!this.isDisposed && node.HasChildren)
+            if (!this.IsDisposed && !this.FilterPresentation.IsActive && node.HasChildren)
             {
                 node.IsExpanded = !node.IsExpanded;
             }
         }
 
-        /// <inheritdoc />
-        public void SelectNode(ProjectBrowserNodeViewModel node)
+        /// <summary>
+        /// Clears the committed text and selected type criteria.
+        /// </summary>
+        public void ClearFilter()
         {
-            ArgumentNullException.ThrowIfNull(node);
-
-            if (!this.isDisposed)
-            {
-                this.ApplySelectedNode(node);
-                this.elementSelectionService.SelectedElement = node.SourceElement;
-            }
-        }
-
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            if (this.isDisposed)
+            if (this.IsDisposed)
             {
                 return;
             }
 
-            this.isDisposed = true;
+            this.FilterText = string.Empty;
+            this.selectedElementTypeSource.Clear();
+        }
+
+        /// <summary>
+        /// Adds or removes an available runtime model type from the active filter.
+        /// </summary>
+        /// <param name="elementType">The runtime model element type to toggle.</param>
+        public void ToggleElementTypeFilter(Type elementType)
+        {
+            ArgumentNullException.ThrowIfNull(elementType);
+
+            if (this.IsDisposed)
+            {
+                return;
+            }
+
+            if (typeof(IRelationship).IsAssignableFrom(elementType)
+                || !this.availableElementTypeSource.Lookup(elementType).HasValue)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(elementType),
+                    elementType,
+                    "The element type must be an available non-relationship model type.");
+            }
+
+            if (this.selectedElementTypeSource.Lookup(elementType).HasValue)
+            {
+                this.selectedElementTypeSource.RemoveKey(elementType);
+            }
+            else
+            {
+                this.selectedElementTypeSource.AddOrUpdate(elementType);
+            }
+        }
+
+        /// <summary>
+        /// Selects a local project browser node and updates the shared details context.
+        /// </summary>
+        /// <param name="node">The node to select.</param>
+        public void SelectNode(ProjectBrowserNodeViewModel node)
+        {
+            ArgumentNullException.ThrowIfNull(node);
+
+            if (!this.IsDisposed)
+            {
+                this.SelectedNode = node;
+                this.elementSelectionService.SelectedElement = node.SourceElement;
+            }
+        }
+
+        /// <summary>
+        /// Cancels loading and releases the reactive collections owned by this ViewModel.
+        /// </summary>
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref this.disposalState, 1) != 0)
+            {
+                return;
+            }
+
             this.lifetimeCancellation.Cancel();
-            this.rootNodeBinding.Dispose();
+            this.subscriptions.Dispose();
+            this.selectedElementTypeSource.Dispose();
+            this.availableElementTypeSource.Dispose();
             this.rootNodeSource.Dispose();
             this.lifetimeCancellation.Dispose();
         }
 
         /// <summary>
-        /// Publishes a completely staged project browser tree.
+        /// Gets a value indicating whether final disposal has occurred.
+        /// </summary>
+        private bool IsDisposed => Volatile.Read(ref this.disposalState) != 0;
+
+        /// <summary>
+        /// Publishes a fully staged tree and its available filter types.
         /// </summary>
         /// <param name="rootNode">The staged root node.</param>
-        /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
+        /// <param name="stagedElementTypes">The staged distinct non-relationship types.</param>
         /// <param name="cancellationToken">Cancels publication before staged state is exposed.</param>
         /// <returns><see langword="true" /> when the staged tree was published; otherwise, <see langword="false" />.</returns>
         private bool TryPublishTree(
             ProjectBrowserNodeViewModel rootNode,
-            HashSet<string> stagedNodeIds,
+            IReadOnlyCollection<Type> stagedElementTypes,
             CancellationToken cancellationToken)
         {
-            if (this.isDisposed || cancellationToken.IsCancellationRequested)
+            if (this.IsDisposed || cancellationToken.IsCancellationRequested)
             {
                 return false;
             }
 
-            this.ClearTreeIndexesAndLocalSelection();
-            this.nodeIds.UnionWith(stagedNodeIds);
+            this.SelectedNode = rootNode;
+            rootNode.IsExpanded = rootNode.HasChildren;
 
-            this.EditRootNodes(nodes =>
+            this.availableElementTypeSource.Edit(types =>
+            {
+                types.Clear();
+                types.AddOrUpdate(stagedElementTypes);
+            });
+
+            this.rootNodeSource.Edit(nodes =>
             {
                 nodes.Clear();
                 nodes.Add(rootNode);
             });
 
-            this.ApplyDefaultRootSelection();
             this.SetLoaded();
-            this.RaisePropertyChanged(nameof(this.RootNodes));
 
             return true;
         }
 
         /// <summary>
-        /// Applies the initial local selection after a complete root publication.
-        /// </summary>
-        private void ApplyDefaultRootSelection()
-        {
-            if (this.RootNodes.Count == 0)
-            {
-                this.ApplySelectedNode(null);
-
-                return;
-            }
-
-            var rootNode = this.RootNodes[0];
-            this.ApplySelectedNode(rootNode);
-
-            if (rootNode.HasChildren && !rootNode.IsExpanded)
-            {
-                rootNode.IsExpanded = true;
-            }
-        }
-
-        /// <summary>
-        /// Builds a project browser node from a SysML element without mutating published state.
+        /// Builds a project browser node without mutating published state.
         /// </summary>
         /// <param name="element">The SysML element represented by the node.</param>
         /// <param name="fallbackId">The fallback identifier used when the element has no identifier.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
+        /// <param name="stagedElementTypes">The distinct non-relationship types found while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <returns>The project browser node for the provided SysML element.</returns>
         private ProjectBrowserNodeViewModel BuildNode(
             IElement element,
             string fallbackId,
             HashSet<string> stagedNodeIds,
+            HashSet<Type> stagedElementTypes,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var runtimeTypeName = element.GetType().Name;
+            var elementType = element.GetType();
+
+            if (element is not IRelationship)
+            {
+                stagedElementTypes.Add(elementType);
+            }
+
             var elementId = element.ElementId.ToDisplayString();
             var nodeId = CreateUniqueNodeId(
                 stagedNodeIds,
@@ -299,115 +463,186 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 element,
                 nodeId,
                 stagedNodeIds,
+                stagedElementTypes,
                 cancellationToken);
-            var displayName = GetDisplayName(element, runtimeTypeName);
-            var qualifiedName = element.qualifiedName.ToDisplayString();
-            var elementKind = GetElementKind(element);
-
             var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
-                qualifiedName,
-                runtimeTypeName,
-                elementKind,
+                element.qualifiedName.ToDisplayString(),
                 element);
 
-            var node = new ProjectBrowserNodeViewModel(
+            return new ProjectBrowserNodeViewModel(
                 nodeId,
-                displayName,
+                GetDisplayName(element, elementType.Name),
                 metadata,
                 children);
-
-            return node;
         }
 
         /// <summary>
-        /// Applies the selected node to the visual tree projection.
+        /// Clears the materialized tree after an initialization failure.
         /// </summary>
-        /// <param name="node">The selected node, or <see langword="null" /> when no node is selected.</param>
-        private void ApplySelectedNode([AllowNull] ProjectBrowserNodeViewModel node)
+        private void ResetTree()
         {
-            if (ReferenceEquals(this.SelectedNode, node))
+            if (this.IsDisposed)
             {
                 return;
             }
 
-            if (this.SelectedNode != null)
-            {
-                this.SelectedNode.IsSelected = false;
-            }
-
-            if (node != null)
-            {
-                node.IsSelected = true;
-            }
-
-            this.SelectedNode = node;
+            this.SelectedNode = null;
+            this.rootNodeSource.Clear();
+            this.availableElementTypeSource.Clear();
+            this.selectedElementTypeSource.Clear();
         }
 
         /// <summary>
-        /// Clears the current tree and its local selection.
+        /// Resets materialized state and exposes an initialization failure.
         /// </summary>
-        private void ResetTree()
+        /// <param name="errorMessage">The initialization failure message.</param>
+        private void HandleInitializationError(string errorMessage)
         {
-            var rootsChanged = this.RootNodes.Count > 0;
-            this.ClearTreeIndexesAndLocalSelection();
-
-            if (rootsChanged)
-            {
-                this.EditRootNodes(nodes => nodes.Clear());
-            }
-
-            if (rootsChanged)
-            {
-                this.RaisePropertyChanged(nameof(this.RootNodes));
-            }
-        }
-
-        /// <summary>
-        /// Edits the root collection in one transaction.
-        /// </summary>
-        /// <param name="editAction">The batched root-node edit.</param>
-        private void EditRootNodes(Action<IExtendedList<ProjectBrowserNodeViewModel>> editAction)
-        {
-            this.rootNodeSource.Edit(editAction);
-        }
-
-        /// <summary>
-        /// Clears visual lookup indexes and the selection owned by this project browser.
-        /// </summary>
-        private void ClearTreeIndexesAndLocalSelection()
-        {
-            this.ApplySelectedNode(null);
-            this.nodeIds.Clear();
-        }
-
-        /// <summary>
-        /// Resets the tree and exposes a genuine initialization failure.
-        /// </summary>
-        /// <param name="exception">The initialization failure.</param>
-        private void HandleInitializationError(Exception exception)
-        {
-            if (this.isDisposed)
+            if (this.IsDisposed)
             {
                 return;
             }
 
             this.ResetTree();
-            this.SetError(exception.Message);
+            this.SetError(errorMessage);
         }
 
         /// <summary>
-        /// Builds child project browser nodes from the owned elements of a SysML element.
+        /// Creates a visibility projection from the current roots and criteria.
         /// </summary>
-        /// <param name="element">The SysML element whose owned elements should be mapped.</param>
-        /// <param name="parentNodeId">The identifier of the parent project browser node.</param>
+        /// <param name="filterText">The entered text criterion.</param>
+        /// <param name="rootNodes">The canonical root nodes.</param>
+        /// <param name="selectedElementTypes">The selected concrete element types.</param>
+        /// <returns>The immutable visibility presentation.</returns>
+        private static ProjectBrowserFilterPresentation CreateFilterPresentation(
+            string filterText,
+            IReadOnlyCollection<ProjectBrowserNodeViewModel> rootNodes,
+            IReadOnlyCollection<Type> selectedElementTypes)
+        {
+            var matchingText = (filterText ?? string.Empty).Trim();
+
+            if (matchingText.Length == 0 && selectedElementTypes.Count == 0)
+            {
+                return ProjectBrowserFilterPresentation.Inactive;
+            }
+
+            var visibleNodes = ImmutableHashSet.CreateBuilder<ProjectBrowserNodeViewModel>(
+                ReferenceEqualityComparer.Instance);
+
+            foreach (var rootNode in rootNodes)
+            {
+                IncludeVisibleNode(
+                    rootNode,
+                    matchingText,
+                    selectedElementTypes,
+                    visibleNodes,
+                    ancestorDisplayNameMatches: false);
+            }
+
+            return ProjectBrowserFilterPresentation.CreateActive(visibleNodes);
+        }
+
+        /// <summary>
+        /// Adds a matching node and its ancestor chain to a visibility projection.
+        /// </summary>
+        /// <param name="node">The canonical node being evaluated.</param>
+        /// <param name="matchingText">The trimmed text criterion.</param>
+        /// <param name="selectedElementTypes">The selected concrete element types.</param>
+        /// <param name="visibleNodes">The reference-identity visibility builder.</param>
+        /// <param name="ancestorDisplayNameMatches">
+        /// Whether an ancestor's display name already matches the text criterion.
+        /// </param>
+        /// <returns>Whether the node directly matches or owns a visible descendant.</returns>
+        private static bool IncludeVisibleNode(
+            ProjectBrowserNodeViewModel node,
+            string matchingText,
+            IReadOnlyCollection<Type> selectedElementTypes,
+            ImmutableHashSet<ProjectBrowserNodeViewModel>.Builder visibleNodes,
+            bool ancestorDisplayNameMatches)
+        {
+            var displayNameMatches = ContainsText(node.DisplayName, matchingText);
+            var hasVisibleDescendant = false;
+
+            foreach (var childNode in node.Children)
+            {
+                hasVisibleDescendant |= IncludeVisibleNode(
+                    childNode,
+                    matchingText,
+                    selectedElementTypes,
+                    visibleNodes,
+                    ancestorDisplayNameMatches || displayNameMatches);
+            }
+
+            if (!hasVisibleDescendant
+                && !DirectlyMatches(
+                    node,
+                    matchingText,
+                    selectedElementTypes,
+                    displayNameMatches,
+                    ancestorDisplayNameMatches))
+            {
+                return false;
+            }
+
+            visibleNodes.Add(node);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether a node satisfies every active criterion.
+        /// </summary>
+        /// <param name="node">The canonical node.</param>
+        /// <param name="matchingText">The trimmed text criterion.</param>
+        /// <param name="selectedElementTypes">The selected concrete element types.</param>
+        /// <param name="displayNameMatches">Whether the node's display name matches the text criterion.</param>
+        /// <param name="ancestorDisplayNameMatches">
+        /// Whether an ancestor's display name already matches the text criterion.
+        /// </param>
+        /// <returns>Whether every active criterion matches the node.</returns>
+        private static bool DirectlyMatches(
+            ProjectBrowserNodeViewModel node,
+            string matchingText,
+            IReadOnlyCollection<Type> selectedElementTypes,
+            bool displayNameMatches,
+            bool ancestorDisplayNameMatches)
+        {
+            var textMatches = matchingText.Length == 0
+                              || displayNameMatches
+                              || (!ancestorDisplayNameMatches
+                                  && ContainsText(node.QualifiedName, matchingText));
+
+            return textMatches
+                   && (selectedElementTypes.Count == 0 || selectedElementTypes.Contains(node.ElementType));
+        }
+
+        /// <summary>
+        /// Determines whether source text contains a non-empty criterion using ordinal-ignore-case comparison.
+        /// </summary>
+        /// <param name="source">The source text.</param>
+        /// <param name="matchingText">The trimmed text criterion.</param>
+        /// <returns>Whether the criterion occurs in the source text.</returns>
+        private static bool ContainsText(string source, string matchingText)
+        {
+            return matchingText.Length > 0
+                   && source?.Contains(matchingText, StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        /// <summary>
+        /// Builds child nodes from a SysML element's owned elements.
+        /// </summary>
+        /// <param name="element">The element whose owned elements are mapped.</param>
+        /// <param name="parentNodeId">The parent node identifier.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
+        /// <param name="stagedElementTypes">The distinct non-relationship types found while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
-        /// <returns>The child project browser nodes for the provided SysML element.</returns>
+        /// <returns>The child nodes for the provided element.</returns>
         private List<ProjectBrowserNodeViewModel> BuildChildren(
             IElement element,
             string parentNodeId,
             HashSet<string> stagedNodeIds,
+            HashSet<Type> stagedElementTypes,
             CancellationToken cancellationToken)
         {
             var children = new List<ProjectBrowserNodeViewModel>();
@@ -429,6 +664,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                         childElement,
                         string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}"),
                         stagedNodeIds,
+                        stagedElementTypes,
                         cancellationToken));
                 }
 
@@ -439,10 +675,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Creates an identifier that is unique within the staged project browser tree.
+        /// Creates an identifier that is unique within the staged tree.
         /// </summary>
-        /// <param name="stagedNodeIds">The identifiers already assigned while staging.</param>
-        /// <param name="preferredId">The preferred identifier for the node.</param>
+        /// <param name="stagedNodeIds">The identifiers already assigned.</param>
+        /// <param name="preferredId">The preferred node identifier.</param>
         /// <returns>A unique project browser node identifier.</returns>
         private static string CreateUniqueNodeId(HashSet<string> stagedNodeIds, string preferredId)
         {
@@ -467,7 +703,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the best available display name for a SysML element.
         /// </summary>
         /// <param name="element">The SysML element to describe.</param>
-        /// <param name="runtimeTypeName">The runtime type name used when the element has no display name.</param>
+        /// <param name="runtimeTypeName">The runtime type name used as a fallback.</param>
         /// <returns>The display name for the SysML element.</returns>
         private static string GetDisplayName(IElement element, string runtimeTypeName)
         {
@@ -487,36 +723,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             var qualifiedName = element.qualifiedName.ToDisplayString();
 
-            if (!string.IsNullOrWhiteSpace(qualifiedName))
-            {
-                return qualifiedName;
-            }
-
-            return runtimeTypeName;
-        }
-
-        /// <summary>
-        /// Gets the broad SysML model element kind for a SysML element.
-        /// </summary>
-        /// <param name="element">The SysML element.</param>
-        /// <returns>The inferred SysML model element kind.</returns>
-        private static SysmlModelElementKind GetElementKind(IElement element)
-        {
-            var elementKind = element switch
-            {
-                IDocumentation or IComment or IAnnotation or IAnnotatingElement => SysmlModelElementKind.Annotation,
-                IImport => SysmlModelElementKind.Import,
-                IMembership => SysmlModelElementKind.Membership,
-                IRelationship => SysmlModelElementKind.Relationship,
-                IDefinition => SysmlModelElementKind.Definition,
-                IUsage => SysmlModelElementKind.Usage,
-                IFeature => SysmlModelElementKind.Feature,
-                IType => SysmlModelElementKind.Type,
-                INamespace => SysmlModelElementKind.Namespace,
-                _ => SysmlModelElementKind.Unknown
-            };
-
-            return elementKind;
+            return string.IsNullOrWhiteSpace(qualifiedName)
+                ? runtimeTypeName
+                : qualifiedName;
         }
     }
 }

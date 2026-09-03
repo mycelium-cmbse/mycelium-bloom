@@ -75,6 +75,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         private static readonly string[] ExpectedPlaceholderTabIconNames = ["file-text", "file-text"];
 
         /// <summary>
+        /// The empty observable Type state used by strict Project Browser test doubles.
+        /// </summary>
+        private static readonly ReadOnlyObservableCollection<Type> EmptyElementTypes =
+            new(new ObservableCollection<Type>());
+
+        /// <summary>
         /// The Blueprint portal host that owns portalled add-tab menu content.
         /// </summary>
         private IRenderedComponent<BbPortalHost> portalHost;
@@ -127,6 +133,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(shell.Instance.FullApplication, Is.True);
                 Assert.That(shellRoot.GetAttribute("role"), Is.EqualTo("main"));
                 Assert.That(shellRoot.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
+                Assert.That(composition.Navigation.PresentationMode,
+                    Is.EqualTo(NavigationRailPresentationMode.ExpandOnHover));
                 Assert.That(shellRoot.GetAttribute("style"),
                     Does.Contain("--mb-workspace-right-panel-width: 380px;"));
                 Assert.That(navigation.Instance.ViewModel, Is.SameAs(composition.Navigation));
@@ -329,8 +337,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var group = composition.Editor.Groups[0];
             var firstTab = group.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
             var firstRenderedBrowser = component.FindComponent<ProjectBrowserComponent>().Instance;
+            composition.ProjectBrowsers[0].Object.FilterText = "first browser filter";
 
             await this.OpenProjectBrowserAsync(component, group.Id);
+            composition.ProjectBrowsers[1].Object.FilterText = "second browser filter";
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -368,6 +378,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(
                         GetRenderedProjectBrowserViewModel(component, firstTab.Id),
                         Is.SameAs(composition.ProjectBrowsers[0].Object));
+                    Assert.That(composition.ProjectBrowsers[0].Object.FilterText, Is.EqualTo("first browser filter"));
+                    Assert.That(composition.ProjectBrowsers[1].Object.FilterText, Is.EqualTo("second browser filter"));
                     Assert.That(component.FindComponent<ProjectBrowserComponent>().Instance,
                         Is.Not.SameAs(secondRenderedBrowser));
                 }
@@ -769,6 +781,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var sourceGroup = composition.Editor.Groups[0];
             var destinationGroup = composition.Editor.Groups[1];
             var projectBrowserTab = sourceGroup.Tabs.Single();
+            composition.ProjectBrowsers[0].Object.FilterText = "retained after move";
 
             Assert.That(
                 composition.Editor.MoveTab(sourceGroup.Id, projectBrowserTab.Id, destinationGroup.Id),
@@ -784,6 +797,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                     Assert.That(destinationGroup.Tabs.Any(tab => ReferenceEquals(tab, projectBrowserTab)), Is.True);
                     Assert.That(destinationGroup.ActiveTab, Is.SameAs(projectBrowserTab));
                     Assert.That(renderedBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowsers[0].Object));
+                    Assert.That(renderedBrowser.Instance.ViewModel.FilterText, Is.EqualTo("retained after move"));
                     Assert.That(component.Find("[data-testid='workspace-project-browser']")
                         .GetAttribute("data-tab-id"), Is.EqualTo(projectBrowserTab.Id.ToString()));
                 }
@@ -812,6 +826,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var splitAfterGroup = composition.Editor.Groups[1];
             var projectBrowserTab = sourceGroup.Tabs.Single(tab => tab.ViewTypeKey == "project-browser");
             var projectBrowserViewModel = composition.ProjectBrowsers[0].Object;
+            projectBrowserViewModel.FilterText = "retained after split";
 
             Assert.That(
                 composition.Editor.TryMoveTabToNewGroup(
@@ -831,6 +846,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                         GetRenderedProjectBrowserViewModel(component, projectBrowserTab.Id),
                         Is.SameAs(projectBrowserViewModel));
                     Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
+                    Assert.That(projectBrowserViewModel.FilterText, Is.EqualTo("retained after split"));
                 }
             });
         }
@@ -888,6 +904,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         [Test]
         public async Task VerifyClosingInitializingProjectBrowserDoesNotAffectAnotherInstance()
         {
+            using var filterPresentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                new ContextAwareService());
+            var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
             var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             ObservableCollection<ProjectBrowserNodeViewModel> initializingMutableRoots = [];
             var initializingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
@@ -901,9 +921,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var initializationToken = CancellationToken.None;
 
             initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
+            initializingViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
+            initializingViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+            initializingViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                .Returns(EmptyElementTypes);
+            initializingViewModel.SetupGet(viewModel => viewModel.SelectedNode)
+                .Returns((ProjectBrowserNodeViewModel)null);
+            initializingViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                .Returns(inactiveFilterPresentation);
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(false);
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
             initializingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
+            initializingViewModel.Setup(viewModel => viewModel.ClearFilter());
+            initializingViewModel.Setup(
+                viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
             initializingViewModel
                 .Setup(viewModel => viewModel.InitializeAsync(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(token =>
@@ -916,10 +947,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .Setup(viewModel => viewModel.Dispose())
                 .Callback(() => initialization.TrySetResult(false));
             survivingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(survivingRoots);
+            survivingViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
+            survivingViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+            survivingViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                .Returns(EmptyElementTypes);
+            survivingViewModel.SetupGet(viewModel => viewModel.SelectedNode).Returns(survivingNode);
+            survivingViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                .Returns(inactiveFilterPresentation);
             survivingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
             survivingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
             survivingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
             survivingViewModel.Setup(viewModel => viewModel.Dispose());
+            survivingViewModel.Setup(viewModel => viewModel.ClearFilter());
+            survivingViewModel.Setup(
+                viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
             var projectBrowserViewModels = new Queue<IProjectBrowserViewModel>(
                 [initializingViewModel.Object, survivingViewModel.Object]);
             var composition = this.RegisterWorkspaceServices(
@@ -1110,7 +1151,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
 
             await component.Find(".mb-navigation-rail__collapse-toggle").ClickAsync();
-            var expandedAction = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 2);
+            var expandedAction = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 3);
             await expandedAction.Single(item => item.TextContent.Trim().Contains("Expanded", StringComparison.Ordinal))
                 .ClickAsync();
 
@@ -1131,7 +1172,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
-            composition.Navigation.IsExpandOnHoverEnabled = true;
+            composition.Navigation.PresentationMode = NavigationRailPresentationMode.ExpandOnHover;
             using var component = this.Render<Home>();
             var shell = component.Find("section.mb-workspace-shell");
             var editorWorkspace = component.FindComponent<EditorWorkspaceComponent>().Instance;
@@ -1255,6 +1296,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 new NavigationRailItemProvider());
             var projectBrowserViewModels = new List<Mock<IProjectBrowserViewModel>>();
             var projectBrowserNodes = new List<ProjectBrowserNodeViewModel>();
+            using var filterPresentationOwner = new ProjectBrowserViewModel(
+                new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
+                context);
+            var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
 
             this.Services.AddTransient<IProjectBrowserViewModel>(_ =>
             {
@@ -1274,10 +1319,21 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
                 var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
+                projectBrowserViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                    .Returns(EmptyElementTypes);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedNode)
+                    .Returns(projectBrowserNode);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
+                    .Returns(inactiveFilterPresentation);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
                 projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
+                projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
+                projectBrowserViewModel.Setup(
+                    viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
                 projectBrowserViewModel
                     .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
                     .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);

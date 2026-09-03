@@ -1,9 +1,9 @@
 /*
-   Portal-safe SelectInput presentation for the Blueprint 3.15.0 Select
-   primitive. Every rule in this file belongs to SelectInput content rendered
-   outside the component's CSS-isolation boundary. The file remains unlayered
-   so these consumer-owned classes win over Tailwind's layered reset without
-   undocumented Blueprint selectors or priority hacks.
+   Portal-safe Bloom presentation for Blueprint 3.15.0 overlays. Every rule
+   in this file belongs to authored content rendered outside its component's
+   CSS-isolation boundary. The file remains unlayered so these consumer-owned
+   classes win over Tailwind's layered reset without undocumented Blueprint
+   selectors or priority hacks.
 */
 
 .mb-select-input__listbox {
@@ -69,8 +69,43 @@
     overflow-wrap: anywhere;
 }
 
+/*
+   ProjectBrowser owns this class, but Blueprint renders the Popover content
+   outside the component's CSS-isolation boundary. Keep only the portalled
+   content-shell reset here; the drawer itself remains component-scoped.
+*/
+.mb-project-browser__filter-popover {
+    z-index: 1050;
+    width: min(296px, calc(100vw - (2 * var(--mb-spacing-2))));
+    max-width: calc(100vw - (2 * var(--mb-spacing-2)));
+    max-height: min(676px, calc(100dvh - (2 * var(--mb-spacing-4))));
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/*
+   Blueprint portals the Project Browser search assistant beside the drawer.
+   Match its trigger width while resetting only the styled Popover shell; the
+   authored assistant surface remains component-scoped.
+*/
+.mb-project-browser__search-assistant-popover {
+    z-index: 1050;
+    max-width: calc(100vw - (2 * var(--mb-spacing-2)));
+    max-height: min(320px, calc(100dvh - (2 * var(--mb-spacing-6))));
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .mb-select-input__listbox {
+    .mb-select-input__listbox,
+    .mb-project-browser__filter-popover,
+    .mb-project-browser__search-assistant-popover {
         animation: none;
         transition: none;
     }
