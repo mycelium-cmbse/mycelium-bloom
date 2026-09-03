@@ -13,8 +13,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
 
-    using Mycelium.Bloom.Model.Enum;
-
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
     /// </summary>
@@ -31,9 +29,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         string FilterText { get; set; }
 
         /// <summary>
-        /// Gets the broad element kinds selected for filtering. An empty set includes every kind.
+        /// Gets the distinct element types available in the currently loaded model.
         /// </summary>
-        IReadOnlySet<SysmlModelElementKind> SelectedElementKinds { get; }
+        ReadOnlyObservableCollection<Type> AvailableElementTypes { get; }
+
+        /// <summary>
+        /// Gets the element types selected for filtering. An empty collection includes every type.
+        /// </summary>
+        ReadOnlyObservableCollection<Type> SelectedElementTypes { get; }
 
         /// <summary>
         /// Gets the current immutable visibility presentation over the canonical tree.
@@ -74,10 +77,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         void ClearFilter();
 
         /// <summary>
-        /// Adds or removes a broad element kind from the active filter.
+        /// Adds or removes an available model element type from the active filter.
         /// </summary>
-        /// <param name="elementKind">The element kind to toggle.</param>
-        void ToggleElementKindFilter(SysmlModelElementKind elementKind);
+        /// <param name="elementType">The runtime model element type to toggle.</param>
+        void ToggleElementTypeFilter(Type elementType);
 
         /// <summary>
         /// Toggles a project browser node.

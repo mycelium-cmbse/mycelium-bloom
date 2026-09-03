@@ -10,40 +10,43 @@
 @using BlazorBlueprint.Icons.Lucide.Components
 
 <div class="mb-project-browser-search-suggestion-list" role="presentation">
-    <BbCommandGroup Class="mb-project-browser-search-suggestion-list__group"
-                    Heading="SEARCH">
-        <BbCommandItem
-            Class="mb-project-browser-search-suggestion-list__item"
-            Value="@(ContainsSuggestionValue)"
-            SearchText="@(this.Query)"
-            OnSelect="this.ContainsAccepted">
-            <span class="mb-project-browser-search-suggestion-list__item-icon"
-                  aria-hidden="true">
-                <LucideIcon Name="search"
-                            Size="14"
-                            StrokeWidth="1.75"
-                            role="presentation"
-                            aria-hidden="true"
-                            focusable="false" />
-            </span>
-            <span class="mb-project-browser-search-suggestion-list__item-label">
-                Contains &quot;@(this.Query)&quot;
-            </span>
-        </BbCommandItem>
-    </BbCommandGroup>
+    @if (!string.IsNullOrWhiteSpace(this.Query))
+    {
+        <BbCommandGroup Class="mb-project-browser-search-suggestion-list__group"
+                        Heading="SEARCH">
+            <BbCommandItem
+                Class="mb-project-browser-search-suggestion-list__item"
+                Value="@(ContainsSuggestionValue)"
+                SearchText="@(this.Query)"
+                OnSelect="this.ContainsAccepted">
+                <span class="mb-project-browser-search-suggestion-list__item-icon"
+                      aria-hidden="true">
+                    <LucideIcon Name="search"
+                                Size="14"
+                                StrokeWidth="1.75"
+                                role="presentation"
+                                aria-hidden="true"
+                                focusable="false" />
+                </span>
+                <span class="mb-project-browser-search-suggestion-list__item-label">
+                    Contains &quot;@(this.Query)&quot;
+                </span>
+            </BbCommandItem>
+        </BbCommandGroup>
+    }
 
     <BbCommandGroup Class="mb-project-browser-search-suggestion-list__group"
                     Heading="TYPE">
-        @foreach (var elementKind in this.ElementKindOptions)
+        @foreach (var elementType in this.ElementTypeOptions)
         {
-            var isSelected = this.SelectedElementKinds.Contains(elementKind);
+            var isSelected = this.SelectedElementTypes.Contains(elementType);
 
             <BbCommandItem
-                @key="elementKind"
+                @key="elementType"
                 Class="@(GetTypeSuggestionCssClass(isSelected))"
-                Value="@(GetTypeSuggestionValue(elementKind))"
-                SearchText="@(GetElementKindSearchText(elementKind))"
-                OnSelect="() => this.ElementKindAccepted.InvokeAsync(elementKind)">
+                Value="@(GetTypeSuggestionValue(elementType))"
+                SearchText="@(GetElementTypeSearchText(elementType))"
+                OnSelect="() => this.ElementTypeAccepted.InvokeAsync(elementType)">
                 <span class="mb-project-browser-search-suggestion-list__item-icon"
                       data-filter-selected="@(isSelected ? "true" : "false")"
                       aria-hidden="true">
@@ -69,7 +72,7 @@
                 <span class="mb-project-browser-search-suggestion-list__item-label">
                     <span>Type:</span>
                     <span class="mb-project-browser-search-suggestion-list__kind-label">
-                        @(ProjectBrowser.GetElementKindLabel(elementKind))
+                        @(ProjectBrowser.GetElementTypeLabel(elementType))
                     </span>
                     @if (isSelected)
                     {

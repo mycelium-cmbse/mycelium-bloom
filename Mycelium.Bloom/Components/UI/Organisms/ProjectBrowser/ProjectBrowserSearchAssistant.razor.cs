@@ -13,8 +13,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.UI.Atoms.SearchInput;
-    using Mycelium.Bloom.Model.Enum;
-
     /// <summary>
     /// Composes Blueprint input, popover, and command components into Project Browser search refinements.
     /// </summary>
@@ -81,14 +79,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         [Parameter]
         [EditorRequired]
-        public IReadOnlySet<SysmlModelElementKind> SelectedElementKinds { get; set; } = new HashSet<SysmlModelElementKind>();
+        public IReadOnlyCollection<Type> SelectedElementTypes { get; set; } = Array.Empty<Type>();
 
         /// <summary>
-        /// Gets or sets the real element-kind choices supported by Project Browser filtering.
+        /// Gets or sets the concrete element types discovered in the loaded model.
         /// </summary>
         [Parameter]
         [EditorRequired]
-        public IReadOnlyList<SysmlModelElementKind> ElementKindOptions { get; set; } = [];
+        public IReadOnlyList<Type> ElementTypeOptions { get; set; } = [];
 
         /// <summary>
         /// Gets or sets a value indicating whether the transient assistant popover is open.
@@ -124,14 +122,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// Gets or sets the callback that toggles a ViewModel-owned Type criterion.
         /// </summary>
         [Parameter]
-        public EventCallback<SysmlModelElementKind> ElementKindToggled { get; set; }
+        public EventCallback<Type> ElementTypeToggled { get; set; }
 
         /// <summary>
         /// Gets the normalized draft used for display and suggestion matching.
         /// </summary>
         private string Query => this.draftSearchText.Trim();
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Applies a parent-requested reset to the transient draft state.
+        /// </summary>
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
@@ -145,7 +145,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.ResetDraftInteraction();
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Completes deferred command navigation and search-input focus work.
+        /// </summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        /// <returns>A task representing the deferred UI work.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
@@ -196,11 +200,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Updates the transient draft and opens only after a real edit produces useful content.
         /// </summary>
-        /// <param name="draftSearchText">The updated draft text.</param>
+        /// <param name="updatedDraftText">The updated draft text.</param>
         /// <returns>A task representing the callbacks.</returns>
-        private async Task HandleDraftSearchTextChangedAsync(string draftSearchText)
+        private async Task HandleDraftSearchTextChangedAsync(string updatedDraftText)
         {
-            this.draftSearchText = draftSearchText ?? string.Empty;
+            this.draftSearchText = updatedDraftText ?? string.Empty;
             this.hasEditedDraftInCurrentFocusSession = !string.IsNullOrWhiteSpace(this.Query);
             this.ResetSuggestionNavigation();
 
@@ -233,24 +237,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             switch (args.Key)
             {
+                case " " when IsUnmodifiedSpace(args) && this.draftSearchText.Length == 0:
+                    this.ResetSuggestionNavigation();
+                    await this.SetOpenAsync(true);
+                    break;
                 case "ArrowDown":
                     await this.MoveSuggestionFocusAsync(1);
                     break;
                 case "ArrowUp":
                     await this.MoveSuggestionFocusAsync(-1);
                     break;
+                case "Enter" when this.IsOpen
+                                       && this.hasNavigatedSuggestions
+                                       && this.suggestionListReference?.HasFocusedSuggestion == true:
+                    await this.suggestionListReference.SelectFocusedItemAsync();
+                    break;
                 case "Enter" when !string.IsNullOrWhiteSpace(this.Query):
-                    if (this.IsOpen
-                        && this.hasNavigatedSuggestions
-                        && this.suggestionListReference?.HasFocusedSuggestion == true)
-                    {
-                        await this.suggestionListReference.SelectFocusedItemAsync();
-                    }
-                    else
-                    {
-                        await this.CommitContainsAsync();
-                    }
-
+                    await this.CommitContainsAsync();
                     break;
                 case "Escape" when this.IsOpen:
                 case "Tab" when this.IsOpen:
@@ -267,7 +270,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the navigation operation.</returns>
         private async Task MoveSuggestionFocusAsync(int direction)
         {
-            if (string.IsNullOrWhiteSpace(this.Query))
+            if (string.IsNullOrWhiteSpace(this.Query) && !this.IsOpen)
             {
                 return;
             }
@@ -289,6 +292,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
+        /// Gets whether the keyboard event represents an unmodified Space key.
+        /// </summary>
+        /// <param name="args">The keyboard event arguments.</param>
+        /// <returns>True for an unmodified Space key; otherwise, false.</returns>
+        private static bool IsUnmodifiedSpace(KeyboardEventArgs args)
+        {
+            return !args.CtrlKey
+                   && !args.MetaKey
+                   && !args.AltKey
+                   && !args.ShiftKey;
+        }
+
+        /// <summary>
         /// Commits the current draft through the ViewModel owner.
         /// </summary>
         /// <returns>A task representing commitment, dismissal, and focus restoration.</returns>
@@ -300,13 +316,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Consumes the current text into the selected Type criterion.
         /// </summary>
-        /// <param name="elementKind">The accepted real element kind.</param>
+        /// <param name="elementType">The accepted concrete element type.</param>
         /// <returns>A task representing the selection and focus restoration.</returns>
-        private async Task HandleElementKindAcceptedAsync(SysmlModelElementKind elementKind)
+        private async Task HandleElementTypeAcceptedAsync(Type elementType)
         {
             await this.ResetDraftInteractionAsync();
             this.shouldRestoreSearchFocusAfterRender = true;
-            await this.ElementKindToggled.InvokeAsync(elementKind);
+            await this.ElementTypeToggled.InvokeAsync(elementType);
             await this.SetOpenAsync(false);
         }
 
@@ -323,11 +339,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Removes one committed Type criterion through the shared ViewModel toggle operation.
         /// </summary>
-        /// <param name="elementKind">The selected real element kind.</param>
+        /// <param name="elementType">The selected concrete element type.</param>
         /// <returns>A task representing removal and focus restoration.</returns>
-        private async Task HandleElementKindRemovedAsync(SysmlModelElementKind elementKind)
+        private async Task HandleElementTypeRemovedAsync(Type elementType)
         {
-            await this.ElementKindToggled.InvokeAsync(elementKind);
+            await this.ElementTypeToggled.InvokeAsync(elementType);
             await this.CompleteCriterionRemovalAsync();
         }
 
@@ -404,16 +420,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private bool HasCommittedCriteria()
         {
             return !string.IsNullOrWhiteSpace(this.CommittedFilterText)
-                   || this.SelectedElementKinds.Count > 0;
+                   || this.SelectedElementTypes.Count > 0;
         }
 
         /// <summary>
-        /// Enumerates selected real element kinds in the stable drawer order.
+        /// Enumerates selected element types in the stable drawer order.
         /// </summary>
-        /// <returns>The selected element kinds.</returns>
-        private IEnumerable<SysmlModelElementKind> GetSelectedElementKinds()
+        /// <returns>The selected element types.</returns>
+        private IEnumerable<Type> GetSelectedElementTypes()
         {
-            return this.ElementKindOptions.Where(this.SelectedElementKinds.Contains);
+            return this.ElementTypeOptions.Where(this.SelectedElementTypes.Contains);
         }
 
         /// <summary>
@@ -428,11 +444,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Gets the accessible removal label for one committed Type criterion.
         /// </summary>
-        /// <param name="elementKind">The selected real element kind.</param>
+        /// <param name="elementType">The selected concrete element type.</param>
         /// <returns>The removal label.</returns>
-        private static string GetElementKindRemovalLabel(SysmlModelElementKind elementKind)
+        private static string GetElementTypeRemovalLabel(Type elementType)
         {
-            return $"Remove Type {ProjectBrowser.GetElementKindLabel(elementKind)} search criterion";
+            return $"Remove Type {ProjectBrowser.GetElementTypeLabel(elementType)} search criterion";
         }
 
         /// <summary>

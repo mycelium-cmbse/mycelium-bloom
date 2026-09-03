@@ -26,6 +26,7 @@
                 AriaLabel="Filter project browser by name or qualified name"
                 EnableShortcut="false"
                 ShowShortcut="false"
+                PreventEmptySpace="true"
                 ForwardTriggerKeyDown="false"
                 ForwardTriggerFocus="false"
                 OnBlur="this.HandleSearchBlurAsync"
@@ -68,22 +69,22 @@
                                 </BbBadge>
                             }
 
-                            @foreach (var elementKind in this.GetSelectedElementKinds())
+                            @foreach (var elementType in this.GetSelectedElementTypes())
                             {
-                                <BbBadge @key="elementKind"
+                                <BbBadge @key="elementType"
                                          Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
                                          Class="mb-project-browser-search-assistant__criterion mb-project-browser-search-assistant__criterion--type">
                                     <span class="mb-project-browser-search-assistant__criterion-label">
-                                        Type @(ProjectBrowser.GetElementKindLabel(elementKind))
+                                        Type @(ProjectBrowser.GetElementTypeLabel(elementType))
                                     </span>
                                     <BbButton
                                         Class="mb-project-browser-search-assistant__criterion-remove"
                                         Type="BlazorBlueprint.Components.ButtonType.Button"
                                         Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                                         Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                        OnClick="_ => this.HandleElementKindRemovedAsync(elementKind)"
-                                        title="@(GetElementKindRemovalLabel(elementKind))"
-                                        aria-label="@(GetElementKindRemovalLabel(elementKind))">
+                                        OnClick="_ => this.HandleElementTypeRemovedAsync(elementType)"
+                                        title="@(GetElementTypeRemovalLabel(elementType))"
+                                        aria-label="@(GetElementTypeRemovalLabel(elementType))">
                                         <LucideIcon Name="x"
                                                     Size="12"
                                                     StrokeWidth="2"
@@ -123,11 +124,11 @@
                            aria-label="Search suggestions">
                     <ProjectBrowserSearchSuggestionList
                         @ref="this.suggestionListReference"
-                        SelectedElementKinds="@(this.SelectedElementKinds)"
+                        SelectedElementTypes="@(this.SelectedElementTypes)"
                         Query="@(this.Query)"
-                        ElementKindOptions="@(this.ElementKindOptions)"
+                        ElementTypeOptions="@(this.ElementTypeOptions)"
                         ContainsAccepted="this.HandleContainsAcceptedAsync"
-                        ElementKindAccepted="this.HandleElementKindAcceptedAsync" />
+                        ElementTypeAccepted="this.HandleElementTypeAcceptedAsync" />
                 </BbCommand>
             </section>
         </BbPopoverContent>

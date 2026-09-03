@@ -9,7 +9,9 @@
 
 namespace Mycelium.Bloom.Tests.Common
 {
-    using System.Linq;
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -17,17 +19,31 @@ namespace Mycelium.Bloom.Tests.Common
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.Parts;
 
     /// <summary>
     /// Creates Project Browser nodes for component tests.
     /// </summary>
     internal static class ProjectBrowserNodeTestFactory
     {
+        /// <summary>
+        /// The SDK containment property that stores an element's owned relationships.
+        /// </summary>
+        private static readonly PropertyInfo OwnedRelationshipProperty = GetRequiredProperty(
+            "SysML2.NET.Core.POCO.Root.Elements.IContainedElement",
+            "OwnedRelationship");
+
+        /// <summary>
+        /// The SDK containment property that stores a relationship's owned elements.
+        /// </summary>
+        private static readonly PropertyInfo OwnedRelatedElementProperty = GetRequiredProperty(
+            "SysML2.NET.Core.POCO.Root.Elements.IContainedRelationship",
+            "OwnedRelatedElement");
+
         /// <summary>
         /// Creates a namespace node with default metadata values derived from the node values.
         /// </summary>
@@ -70,9 +86,11 @@ namespace Mycelium.Bloom.Tests.Common
                 new ProjectBrowserNodeMetadata(
                     elementId,
                     qualifiedName,
-                    "Namespace",
-                    SysmlModelElementKind.Namespace,
-                    new Namespace()),
+                    new Namespace
+                    {
+                        ElementId = elementId,
+                        DeclaredName = displayName
+                    }),
                 children);
         }
 
@@ -82,13 +100,13 @@ namespace Mycelium.Bloom.Tests.Common
         /// <returns>The loaded real Project Browser ViewModel.</returns>
         internal static async Task<ProjectBrowserViewModel> CreateFilterTreeViewModelAsync()
         {
-            var hiddenDescendant = CreateNamespaceElement("hidden", "Hidden descendant");
-            var matchingElement = CreateNamespaceElement("needle", "Needle", hiddenDescendant.Object);
-            var matchingBranch = CreateNamespaceElement("branch", "Branch", matchingElement.Object);
-            var sibling = CreateNamespaceElement("sibling", "Sibling");
-            var root = CreateNamespaceElement("root", "Root", matchingBranch.Object, sibling.Object);
+            var hiddenDescendant = CreateElement<PartDefinition>("hidden", "Hidden descendant");
+            var matchingElement = CreateElement<PartUsage>("needle", "Needle", hiddenDescendant);
+            var matchingBranch = CreateElement<Namespace>("branch", "Branch", matchingElement);
+            var sibling = CreateElement<Namespace>("sibling", "Sibling");
+            var root = CreateElement<Namespace>("root", "Root", matchingBranch, sibling);
             var modelLoaderService = new Mock<IModelLoaderService>(MockBehavior.Strict);
-            modelLoaderService.Setup(x => x.LoadQuantitiesModel()).Returns(root.Object);
+            modelLoaderService.Setup(x => x.LoadQuantitiesModel()).Returns(root);
             var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
 
             await viewModel.InitializeAsync(CancellationToken.None);
@@ -97,23 +115,59 @@ namespace Mycelium.Bloom.Tests.Common
         }
 
         /// <summary>
-        /// Creates one SDK namespace element for a real Project Browser tree-building scenario.
+        /// Creates one concrete SDK element for a real Project Browser tree-building scenario.
         /// </summary>
+        /// <typeparam name="TElement">The concrete SDK element type.</typeparam>
         /// <param name="elementId">The source element identifier.</param>
         /// <param name="displayName">The source element display name.</param>
         /// <param name="children">The canonical owned elements.</param>
-        /// <returns>The configured SDK namespace mock.</returns>
-        private static Mock<INamespace> CreateNamespaceElement(
+        /// <returns>The configured SDK element.</returns>
+        internal static TElement CreateElement<TElement>(
             string elementId,
             string displayName,
             params IElement[] children)
+            where TElement : class, IElement, new()
         {
-            var element = new Mock<INamespace>();
-            element.SetupGet(x => x.ElementId).Returns(elementId);
-            element.SetupGet(x => x.DeclaredName).Returns(displayName);
-            element.SetupGet(x => x.ownedElement).Returns(children.ToList());
+            var element = new TElement
+            {
+                ElementId = elementId,
+                DeclaredName = displayName
+            };
+
+            foreach (var child in children)
+            {
+                AttachOwnedElement(element, child);
+            }
 
             return element;
+        }
+
+        /// <summary>
+        /// Adds an element through the SDK containment relationship that backs <see cref="IElement.ownedElement"/>.
+        /// </summary>
+        /// <param name="owner">The owning element.</param>
+        /// <param name="child">The owned element.</param>
+        private static void AttachOwnedElement(IElement owner, IElement child)
+        {
+            var membership = new OwningMembership();
+            var ownedElements = (ICollection<IElement>)OwnedRelatedElementProperty.GetValue(membership)!;
+            var ownedRelationships = (ICollection<IRelationship>)OwnedRelationshipProperty.GetValue(owner)!;
+            ownedElements.Add(child);
+            ownedRelationships.Add(membership);
+        }
+
+        /// <summary>
+        /// Resolves a required internal SDK containment property used to assemble test models.
+        /// </summary>
+        /// <param name="typeName">The declaring type's full name.</param>
+        /// <param name="propertyName">The property name.</param>
+        /// <returns>The required property.</returns>
+        private static PropertyInfo GetRequiredProperty(string typeName, string propertyName)
+        {
+            var declaringType = typeof(IElement).Assembly.GetType(typeName, throwOnError: true)!;
+
+            return declaringType.GetProperty(propertyName)
+                   ?? throw new InvalidOperationException($"Property '{typeName}.{propertyName}' was not found.");
         }
     }
 }

@@ -59,14 +59,14 @@
             <div class="mb-project-browser__search">
                 <ProjectBrowserSearchAssistant
                     CommittedFilterText="@(this.RequiredViewModel.FilterText)"
-                    SelectedElementKinds="@(this.RequiredViewModel.SelectedElementKinds)"
-                    ElementKindOptions="elementKindOptions"
+                    SelectedElementTypes="@(this.RequiredViewModel.SelectedElementTypes)"
+                    ElementTypeOptions="@(this.RequiredViewModel.AvailableElementTypes)"
                     IsOpen="@(this.isSearchAssistantOpen)"
                     DraftResetVersion="@(this.searchAssistantDraftResetVersion)"
                     IsOpenChanged="this.HandleSearchAssistantOpenChanged"
                     ContainsCommitted="this.HandleContainsCommittedAsync"
                     ContainsRemoved="this.HandleContainsRemovedAsync"
-                    ElementKindToggled="this.HandleElementKindFilterToggledAsync" />
+                    ElementTypeToggled="this.HandleElementTypeFilterToggledAsync" />
             </div>
 
             <div class="mb-project-browser__filter-trigger-host">
@@ -167,16 +167,17 @@
                                     </div>
 
                                     <div class="mb-project-browser__type-chips">
-                                        @foreach (var elementKind in elementKindOptions)
+                                        @foreach (var elementType in this.RequiredViewModel.AvailableElementTypes)
                                         {
-                                            var isSelected = this.IsElementKindSelected(elementKind);
+                                            var isSelected = this.IsElementTypeSelected(elementType);
 
                                             <BbButton
+                                                @key="elementType"
                                                 Class="mb-project-browser__type-chip"
                                                 Type="BlazorBlueprint.Components.ButtonType.Button"
                                                 Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                                OnClick="_ => this.HandleElementKindFilterToggledAsync(elementKind)"
+                                                OnClick="_ => this.HandleElementTypeFilterToggledAsync(elementType)"
                                                 aria-pressed="@(isSelected ? "true" : "false")">
                                                 @if (isSelected)
                                                 {
@@ -187,7 +188,7 @@
                                                                 aria-hidden="true"
                                                                 focusable="false" />
                                                 }
-                                                <span>@(GetElementKindLabel(elementKind))</span>
+                                                <span>@(GetElementTypeLabel(elementType))</span>
                                             </BbButton>
                                         }
                                     </div>
@@ -231,6 +232,7 @@
                     {
                         <ProjectBrowserNode
                             ViewModel="node"
+                            SelectedNode="@(this.RequiredViewModel.SelectedNode)"
                             Depth="0"
                             FilterPresentation="filterPresentation"
                             OnNodeSelected="this.HandleNodeSelectedAsync"/>

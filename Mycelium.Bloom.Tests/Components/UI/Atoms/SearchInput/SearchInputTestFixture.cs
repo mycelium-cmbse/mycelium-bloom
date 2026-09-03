@@ -137,6 +137,35 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
         }
 
         /// <summary>
+        /// Verifies the optional empty-Space guard is registered for the rendered input and released with its owner.
+        /// </summary>
+        [Test]
+        public async Task VerifyPreventEmptySpaceRegistersAndDisposesNativeGuard()
+        {
+            var module = this.JSInterop.SetupModule("./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+            var registerHandler = module.SetupVoid("registerEmptySpaceGuard", invocation => true);
+            var disposeHandler = module.SetupVoid("disposeEmptySpaceGuard", invocation => true);
+            registerHandler.SetVoidResult();
+            disposeHandler.SetVoidResult();
+
+            var component = this.Render<SearchInputComponent>(parameters => parameters
+                .Add(searchInput => searchInput.Id, "filter-search")
+                .Add(searchInput => searchInput.PreventEmptySpace, true));
+
+            await component.Instance.DisposeAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(registerHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(registerHandler.Invocations["registerEmptySpaceGuard"][0].Arguments[1],
+                    Is.EqualTo("filter-search"));
+                Assert.That(disposeHandler.Invocations, Has.Count.EqualTo(1));
+                Assert.That(disposeHandler.Invocations["disposeEmptySpaceGuard"][0].Arguments[0],
+                    Is.EqualTo(registerHandler.Invocations["registerEmptySpaceGuard"][0].Arguments[0]));
+            }
+        }
+
+        /// <summary>
         /// Verifies inline token actions cannot replace the unified search surface as an enclosing overlay anchor.
         /// </summary>
         [Test]

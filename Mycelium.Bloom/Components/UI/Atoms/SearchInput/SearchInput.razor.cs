@@ -30,6 +30,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         private readonly string shortcutRegistrationId = CreateGeneratedId("mb-search-shortcut");
 
         /// <summary>
+        /// The identifier that scopes JavaScript empty-Space cleanup to this component instance.
+        /// </summary>
+        private readonly string emptySpaceRegistrationId = CreateGeneratedId("mb-search-empty-space");
+
+        /// <summary>
         /// The JavaScript module used to manage the search shortcut.
         /// </summary>
         private IJSObjectReference module;
@@ -43,6 +48,16 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// A value indicating whether this component currently owns a shortcut registration.
         /// </summary>
         private bool shortcutRegistered;
+
+        /// <summary>
+        /// The input identifier currently protected from an empty Space key default action.
+        /// </summary>
+        private string registeredEmptySpaceInputId;
+
+        /// <summary>
+        /// A value indicating whether this component currently owns an empty-Space registration.
+        /// </summary>
+        private bool emptySpaceRegistered;
 
         /// <summary>
         /// The rendered Blueprint input used for focus restoration.
@@ -130,6 +145,12 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// </summary>
         [Parameter]
         public bool EnableShortcut { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether an unmodified Space key should be prevented while the input is empty.
+        /// </summary>
+        [Parameter]
+        public bool PreventEmptySpace { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the search input should take the full available width.
@@ -230,7 +251,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
             // The component owns no synchronous resources. JavaScript cleanup is handled by DisposeAsync.
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Synchronizes the rendered trigger element and optional keyboard shortcut.
+        /// </summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        /// <returns>A task representing the post-render synchronization.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
@@ -249,6 +274,15 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
             else
             {
                 await this.DisposeSearchShortcutAsync();
+            }
+
+            if (this.PreventEmptySpace)
+            {
+                await this.RegisterEmptySpaceGuardAsync();
+            }
+            else
+            {
+                await this.DisposeEmptySpaceGuardAsync();
             }
         }
 
@@ -316,7 +350,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         /// <summary>
         /// Forwards native focus to Blueprint trigger behavior.
         /// </summary>
-        /// <param name="args">The focus event arguments.</param>
+        /// <param name="_">The unused focus event arguments.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         private Task HandleFocusAsync(FocusEventArgs _)
         {
@@ -419,6 +453,48 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
         }
 
         /// <summary>
+        /// Registers or refreshes the native empty-Space guard for the rendered input.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task RegisterEmptySpaceGuardAsync()
+        {
+            if (this.emptySpaceRegistered
+                && string.Equals(this.registeredEmptySpaceInputId, this.FieldId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            this.module ??= await this.JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./Components/UI/Atoms/SearchInput/SearchInput.razor.js");
+
+            await this.module.InvokeVoidAsync(
+                "registerEmptySpaceGuard",
+                this.emptySpaceRegistrationId,
+                this.FieldId);
+
+            this.registeredEmptySpaceInputId = this.FieldId;
+            this.emptySpaceRegistered = true;
+        }
+
+        /// <summary>
+        /// Disposes only the native empty-Space guard owned by this component instance.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task DisposeEmptySpaceGuardAsync()
+        {
+            if (this.module is null || !this.emptySpaceRegistered)
+            {
+                return;
+            }
+
+            await this.module.InvokeVoidAsync("disposeEmptySpaceGuard", this.emptySpaceRegistrationId);
+
+            this.registeredEmptySpaceInputId = null;
+            this.emptySpaceRegistered = false;
+        }
+
+        /// <summary>
         /// Asynchronously disposes the JavaScript shortcut registration.
         /// </summary>
         /// <returns>A value task representing the asynchronous dispose operation.</returns>
@@ -429,6 +505,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                 try
                 {
                     await this.DisposeSearchShortcutAsync();
+                    await this.DisposeEmptySpaceGuardAsync();
                     await this.module.DisposeAsync();
                 }
                 catch (JSDisconnectedException)
@@ -440,6 +517,8 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SearchInput
                     this.module = null;
                     this.registeredShortcutSignature = null;
                     this.shortcutRegistered = false;
+                    this.registeredEmptySpaceInputId = null;
+                    this.emptySpaceRegistered = false;
                 }
             }
         }

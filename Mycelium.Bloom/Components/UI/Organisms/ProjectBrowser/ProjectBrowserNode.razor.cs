@@ -15,8 +15,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
+    using SysML2.NET.Core.POCO.Core.Features;
+    using SysML2.NET.Core.POCO.Core.Types;
+    using SysML2.NET.Core.POCO.Root.Annotations;
+    using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
 
     /// <summary>
     /// Renders one recursive node in the project browser tree.
@@ -39,6 +45,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         [Parameter]
         public int Depth { get; set; }
+
+        /// <summary>
+        /// Gets or sets the node selected by the owning project browser.
+        /// </summary>
+        [Parameter]
+        public ProjectBrowserNodeViewModel SelectedNode { get; set; }
 
         /// <summary>
         /// Gets or sets the immutable presentation that identifies visible canonical nodes.
@@ -77,7 +89,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             var cssClass = CssClassBuilder.Build(
                 "mb-project-browser-node__row",
-                CssClassBuilder.When("mb-project-browser-node__row--selected", this.RequiredViewModel.IsSelected));
+                CssClassBuilder.When(
+                    "mb-project-browser-node__row--selected",
+                    ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
 
             return cssClass;
         }
@@ -115,12 +129,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the design token color for the node element kind.
+        /// Gets the design token color for the represented SysML element.
         /// </summary>
-        /// <returns>The design token color for the node element kind.</returns>
+        /// <returns>The design token color for the represented element.</returns>
         private string GetElementColor()
         {
-            return this.RequiredViewModel.ElementKind.ToColorToken();
+            return this.RequiredViewModel.SourceElement switch
+            {
+                IDocumentation or IComment or IAnnotation or IAnnotatingElement => "var(--mb-color-info-500)",
+                IImport => "var(--mb-color-sysml-allocations-header)",
+                IMembership => "var(--mb-color-sysml-metadata-header)",
+                IRelationship => "var(--mb-color-sysml-connections-header)",
+                IDefinition => "var(--mb-color-sysml-attributes-header)",
+                IUsage => "var(--mb-color-sysml-behavior-header)",
+                IFeature => "var(--mb-color-sysml-requirements-header)",
+                IType => "var(--mb-color-sysml-verification-header)",
+                INamespace => "var(--mb-color-sysml-structure-header)",
+                _ => "var(--mb-color-neutral-600)"
+            };
         }
 
         /// <summary>
@@ -151,19 +177,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The most specific type label available for the node.</returns>
         private string GetTypeLabel()
         {
-            var viewModel = this.RequiredViewModel;
-
-            if (!string.IsNullOrWhiteSpace(viewModel.RuntimeTypeName))
-            {
-                return viewModel.RuntimeTypeName;
-            }
-
-            if (viewModel.ElementKind != SysmlModelElementKind.Unknown)
-            {
-                return viewModel.ElementKind.ToString();
-            }
-
-            return SysmlModelElementKind.Unknown.ToString();
+            return this.RequiredViewModel.ElementType.Name;
         }
 
         /// <summary>
@@ -213,7 +227,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The ARIA selected value for the node.</returns>
         private string GetAriaSelected()
         {
-            return this.RequiredViewModel.IsSelected.ToString().ToLowerInvariant();
+            return ReferenceEquals(this.RequiredViewModel, this.SelectedNode)
+                .ToString()
+                .ToLowerInvariant();
         }
     }
 }

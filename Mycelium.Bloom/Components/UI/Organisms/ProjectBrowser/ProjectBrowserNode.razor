@@ -57,6 +57,7 @@
                 {
                     <ProjectBrowserNode
                         ViewModel="child"
+                        SelectedNode="this.SelectedNode"
                         Depth="@(this.Depth + 1)"
                         FilterPresentation="this.FilterPresentation"
                         OnNodeSelected="this.OnNodeSelected"/>

@@ -26,14 +26,17 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using ReactiveUI;
 
+    using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.Parts;
+
+    using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
     /// <summary>
     /// Tests the <see cref="ProjectBrowserViewModel" />.
@@ -114,7 +117,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(initialized, Is.True);
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
                 Assert.That(viewModel.RootNodes[0].DisplayName, Is.Not.Empty);
-                Assert.That(viewModel.RootNodes[0].ElementKind, Is.EqualTo(SysmlModelElementKind.Namespace));
+                Assert.That(viewModel.RootNodes[0].ElementType, Is.EqualTo(typeof(Namespace)));
                 Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.IsLoading, Is.False);
@@ -162,7 +165,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(initialized, Is.True);
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
                 Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
                 Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
                 Assert.That(selectionService.SelectedElement, Is.Null);
@@ -262,6 +264,32 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies a missing root model becomes controlled Project Browser failure state.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncHandlesMissingRootModel()
+        {
+            var modelLoaderService = new Mock<IModelLoaderService>();
+            modelLoaderService
+                .Setup(x => x.LoadQuantitiesModel())
+                .Returns((INamespace)null);
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.False);
+                Assert.That(viewModel.RootNodes, Is.Empty);
+                Assert.That(viewModel.SelectedNode, Is.Null);
+                Assert.That(viewModel.IsLoaded, Is.False);
+                Assert.That(viewModel.IsLoading, Is.False);
+                Assert.That(viewModel.ErrorMessage, Is.EqualTo("The Quantities model is unavailable."));
+                modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
+            }
+        }
+
+        /// <summary>
         /// Verifies repeated initialization does not reload an already loaded browser.
         /// </summary>
         [Test]
@@ -344,7 +372,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
                 Assert.That(viewModel.SelectedNode, Is.SameAs(node));
-                Assert.That(node.IsSelected, Is.True);
             }
         }
 
@@ -388,9 +415,61 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
+                Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(Flatten(rootNode).All(viewModel.FilterPresentation.IsVisible), Is.True);
+            }
+        }
+
+        /// <summary>
+        /// Verifies available Type choices come from distinct concrete non-relationship elements in the loaded model.
+        /// </summary>
+        [Test]
+        public async Task VerifyInitializeAsyncDiscoversAvailableConcreteElementTypes()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateFilterModel()).Object,
+                new ContextAwareService());
+
+            Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    viewModel.AvailableElementTypes,
+                    Is.EquivalentTo(new[] { typeof(Namespace), typeof(PartDefinition), typeof(PartUsage) }));
+                Assert.That(
+                    viewModel.AvailableElementTypes.Count(type => type == typeof(PartDefinition)),
+                    Is.EqualTo(1));
+                Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Documentation)));
+                Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Membership)));
+                Assert.That(
+                    Flatten(viewModel.RootNodes[0]).Any(node => node.SourceElement is Membership),
+                    Is.True);
+                Assert.That(((IList<Type>)viewModel.AvailableElementTypes).IsReadOnly, Is.True);
+            }
+        }
+
+        /// <summary>
+        /// Verifies that the committed text criterion is exposed as ordinary reactive state.
+        /// </summary>
+        [Test]
+        public void VerifyFilterTextPublishesCurrentAndChangedValues()
+        {
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateFilterModel()).Object,
+                new ContextAwareService());
+            var observedValues = new List<string>();
+            using var subscription = System.ObservableExtensions.Subscribe(
+                viewModel.WhenAnyValue(owner => owner.FilterText),
+                observedValues.Add);
+
+            viewModel.FilterText = "Deep target";
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(observedValues, Is.EqualTo(new[] { string.Empty, "Deep target" }));
+                Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
             }
         }
 
@@ -457,7 +536,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyFilterTextMatchesQualifiedName()
         {
             using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
+                CreateModelLoader(CreateQualifiedNameModel()).Object,
                 new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
@@ -486,11 +565,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var rootNode = viewModel.RootNodes[0];
             var targetNode = FindNode(rootNode, "Deep target");
 
-            viewModel.FilterText = targetNode.RuntimeTypeName;
+            viewModel.FilterText = targetNode.ElementType.Name;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(targetNode.RuntimeTypeName, Is.Not.Empty);
+                Assert.That(targetNode.ElementType.Name, Is.Not.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.False);
                 Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.False);
@@ -498,68 +577,68 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies element-kind filtering uses multi-select OR semantics and an empty all-kinds state.
+        /// Verifies element-type filtering uses multi-select OR semantics and an empty all-types state.
         /// </summary>
         [Test]
-        public async Task VerifyElementKindFiltersSupportMultipleSelectionsAndEmptyAllKinds()
+        public async Task VerifyElementTypeFiltersSupportMultipleSelectionsAndEmptyAllTypes()
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
                 new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
-            var unknownNode = FindNode(rootNode, "Mystery element");
+            var partDefinitionNode = FindNode(rootNode, "Mystery element");
             var namespaceSibling = FindNode(rootNode, "Sibling branch");
 
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
+            viewModel.ToggleElementTypeFilter(typeof(Namespace));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(namespaceSibling), Is.True);
-                Assert.That(viewModel.FilterPresentation.IsVisible(unknownNode), Is.False);
+                Assert.That(viewModel.FilterPresentation.IsVisible(partDefinitionNode), Is.False);
             }
 
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+            viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
-                Assert.That(viewModel.FilterPresentation.IsVisible(unknownNode), Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(partDefinitionNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(namespaceSibling), Is.True);
                 Assert.That(
-                    viewModel.SelectedElementKinds,
-                    Is.EquivalentTo(new[] { SysmlModelElementKind.Namespace, SysmlModelElementKind.Unknown }));
+                    viewModel.SelectedElementTypes,
+                    Is.EquivalentTo(new[] { typeof(Namespace), typeof(PartDefinition) }));
             }
 
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
+            viewModel.ToggleElementTypeFilter(typeof(Namespace));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
-                Assert.That(viewModel.FilterPresentation.IsVisible(unknownNode), Is.True);
+                Assert.That(viewModel.FilterPresentation.IsVisible(partDefinitionNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(namespaceSibling), Is.False);
-                Assert.That(viewModel.SelectedElementKinds, Is.EquivalentTo(new[] { SysmlModelElementKind.Unknown }));
+                Assert.That(viewModel.SelectedElementTypes, Is.EquivalentTo(new[] { typeof(PartDefinition) }));
             }
 
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+            viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
-                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
+                Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                 Assert.That(Flatten(rootNode).All(viewModel.FilterPresentation.IsVisible), Is.True);
             }
         }
 
         /// <summary>
-        /// Verifies text and element-kind criteria use AND semantics.
+        /// Verifies text and element-type criteria use AND semantics.
         /// </summary>
         [Test]
-        public async Task VerifyTextAndElementKindFiltersUseAndSemantics()
+        public async Task VerifyTextAndElementTypeFiltersUseAndSemantics()
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
@@ -569,7 +648,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var targetNode = FindNode(rootNode, "Deep target");
 
             viewModel.FilterText = "Deep target";
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
+            viewModel.ToggleElementTypeFilter(typeof(Namespace));
 
             using (Assert.EnterMultipleScope())
             {
@@ -578,7 +657,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.False);
             }
 
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+            viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
 
             using (Assert.EnterMultipleScope())
             {
@@ -591,9 +670,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.SelectedElementKinds, Has.Count.EqualTo(2));
-                Assert.That(viewModel.SelectedElementKinds, Does.Contain(SysmlModelElementKind.Namespace));
-                Assert.That(viewModel.SelectedElementKinds, Does.Contain(SysmlModelElementKind.Unknown));
+                Assert.That(viewModel.SelectedElementTypes, Has.Count.EqualTo(2));
+                Assert.That(viewModel.SelectedElementTypes, Does.Contain(typeof(Namespace)));
+                Assert.That(viewModel.SelectedElementTypes, Does.Contain(typeof(PartDefinition)));
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True);
@@ -706,7 +785,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
+                Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(rootNode.IsExpanded, Is.False);
                 Assert.That(branchNode.IsExpanded, Is.True);
@@ -715,49 +794,51 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies clear publishes settled criteria and presentation state without intermediate changed values.
+        /// Verifies clear resets reactive criteria and repeated clears are no-ops.
         /// </summary>
         [Test]
-        public async Task VerifyClearFilterPublishesOneCoherentStateAndIsIdempotent()
+        public async Task VerifyClearFilterResetsReactiveCriteriaAndIsIdempotent()
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
                 new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Deep target";
-            viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+            viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
             var changedProperties = new List<string>();
-            var everyChangedNotificationWasCoherent = true;
-
-            PropertyChangedEventHandler propertyHandler = (_, args) =>
-            {
-                changedProperties.Add(args.PropertyName);
-                everyChangedNotificationWasCoherent &= viewModel.FilterText == string.Empty
-                                                        && viewModel.SelectedElementKinds.Count == 0
-                                                        && !viewModel.FilterPresentation.IsActive;
-            };
+            var selectedTypeChanges = 0;
+            PropertyChangedEventHandler propertyHandler = (_, args) => changedProperties.Add(args.PropertyName);
+            NotifyCollectionChangedEventHandler selectedTypeHandler = (_, _) => selectedTypeChanges++;
             viewModel.PropertyChanged += propertyHandler;
+            ((INotifyCollectionChanged)viewModel.SelectedElementTypes).CollectionChanged += selectedTypeHandler;
 
             try
             {
                 viewModel.ClearFilter();
+                var changedPropertyCount = changedProperties.Count;
+                var selectedTypeChangeCount = selectedTypeChanges;
                 viewModel.ClearFilter();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(changedProperties, Has.Count.EqualTo(changedPropertyCount));
+                    Assert.That(selectedTypeChanges, Is.EqualTo(selectedTypeChangeCount));
+                }
             }
             finally
             {
                 viewModel.PropertyChanged -= propertyHandler;
+                ((INotifyCollectionChanged)viewModel.SelectedElementTypes).CollectionChanged -= selectedTypeHandler;
             }
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(everyChangedNotificationWasCoherent, Is.True);
+                Assert.That(viewModel.FilterText, Is.Empty);
+                Assert.That(viewModel.SelectedElementTypes, Is.Empty);
+                Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(changedProperties.Count(name => name == nameof(viewModel.FilterText)), Is.EqualTo(1));
-                Assert.That(
-                    changedProperties.Count(name => name == nameof(viewModel.SelectedElementKinds)),
-                    Is.EqualTo(1));
-                Assert.That(
-                    changedProperties.Count(name => name == nameof(viewModel.FilterPresentation)),
-                    Is.EqualTo(1));
+                Assert.That(selectedTypeChanges, Is.EqualTo(1));
+                Assert.That(changedProperties, Does.Not.Contain(nameof(viewModel.SelectedElementTypes)));
             }
         }
 
@@ -922,7 +1003,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(viewModel.FilterPresentation.IsVisible(hiddenNode), Is.False);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(hiddenNode));
-                Assert.That(hiddenNode.IsSelected, Is.True);
                 Assert.That(selectionService.SelectedElement, Is.SameAs(hiddenNode.SourceElement));
             }
 
@@ -931,8 +1011,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.SelectedNode, Is.SameAs(visibleNode));
-                Assert.That(visibleNode.IsSelected, Is.True);
-                Assert.That(hiddenNode.IsSelected, Is.False);
                 Assert.That(selectionService.SelectedElement, Is.SameAs(visibleNode.SourceElement));
             }
         }
@@ -955,16 +1033,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             await secondViewModel.InitializeAsync(CancellationToken.None);
 
             firstViewModel.FilterText = "Deep target";
-            secondViewModel.ToggleElementKindFilter(SysmlModelElementKind.Namespace);
+            secondViewModel.ToggleElementTypeFilter(typeof(Namespace));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(firstViewModel.FilterText, Is.EqualTo("Deep target"));
-                Assert.That(firstViewModel.SelectedElementKinds, Is.Empty);
+                Assert.That(firstViewModel.SelectedElementTypes, Is.Empty);
                 Assert.That(secondViewModel.FilterText, Is.Empty);
                 Assert.That(
-                    secondViewModel.SelectedElementKinds,
-                    Is.EquivalentTo(new[] { SysmlModelElementKind.Namespace }));
+                    secondViewModel.SelectedElementTypes,
+                    Is.EquivalentTo(new[] { typeof(Namespace) }));
                 Assert.That(firstViewModel.FilterPresentation, Is.Not.SameAs(secondViewModel.FilterPresentation));
             }
         }
@@ -996,24 +1074,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             for (var iteration = 0; iteration < iterationCount; iteration++)
             {
                 viewModel.FilterText = "Deep target";
-                viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+                viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
 
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(viewModel.FilterPresentation.IsActive, Is.True, $"active commit at {iteration}");
                     Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True, $"visible target at {iteration}");
-                    Assert.That(viewModel.SelectedElementKinds, Has.Count.EqualTo(1), $"single Type at {iteration}");
+                    Assert.That(viewModel.SelectedElementTypes, Has.Count.EqualTo(1), $"single Type at {iteration}");
                 }
 
                 viewModel.FilterText = string.Empty;
-                viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+                viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
                 viewModel.ClearFilter();
                 viewModel.ClearFilter();
 
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(viewModel.FilterText, Is.Empty, $"cleared Contains at {iteration}");
-                    Assert.That(viewModel.SelectedElementKinds, Is.Empty, $"cleared Types at {iteration}");
+                    Assert.That(viewModel.SelectedElementTypes, Is.Empty, $"cleared Types at {iteration}");
                     Assert.That(viewModel.FilterPresentation.IsActive, Is.False, $"inactive presentation at {iteration}");
                     Assert.That(Flatten(rootNode), Is.EqualTo(canonicalNodes), $"canonical nodes at {iteration}");
                     Assert.That(
@@ -1023,7 +1101,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     Assert.That(rootNode.IsExpanded, Is.False, $"root expansion at {iteration}");
                     Assert.That(branchNode.IsExpanded, Is.True, $"branch expansion at {iteration}");
                     Assert.That(viewModel.SelectedNode, Is.SameAs(targetNode), $"local selection at {iteration}");
-                    Assert.That(targetNode.IsSelected, Is.True, $"selection presentation at {iteration}");
                     Assert.That(selectionService.SelectedElement, Is.SameAs(targetNode.SourceElement), $"shared context at {iteration}");
                 }
             }
@@ -1058,11 +1135,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     {
                         var viewModel = viewModels[browserIndex];
                         var criterion = $"browser-{browserIndex}-iteration-{iteration}";
-                        var selectedKind = browserIndex % 2 == 0
-                            ? SysmlModelElementKind.Unknown
-                            : SysmlModelElementKind.Namespace;
+                        var selectedType = browserIndex % 2 == 0
+                            ? typeof(PartDefinition)
+                            : typeof(Namespace);
                         viewModel.FilterText = criterion;
-                        viewModel.ToggleElementKindFilter(selectedKind);
+                        viewModel.ToggleElementTypeFilter(selectedType);
                         expectedFilterTexts[browserIndex] = criterion;
 
                         Assert.That(
@@ -1099,7 +1176,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                         using (Assert.EnterMultipleScope())
                         {
                             Assert.That(viewModel.FilterText, Is.Empty);
-                            Assert.That(viewModel.SelectedElementKinds, Is.Empty);
+                            Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                             Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                         }
                     }
@@ -1131,7 +1208,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             try
             {
                 viewModel.FilterText = "Deep target";
-                viewModel.ToggleElementKindFilter(SysmlModelElementKind.Unknown);
+                viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
                 viewModel.ClearFilter();
             }
             finally
@@ -1142,7 +1219,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.FilterText, Is.Empty);
-                Assert.That(viewModel.SelectedElementKinds, Is.Empty);
+                Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.False);
                 Assert.That(propertyNotifications, Is.Empty);
             }
@@ -1166,18 +1243,26 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies Type filter state cannot contain undefined element-kind values.
+        /// Verifies Type filter state accepts only available non-relationship element types.
         /// </summary>
         [Test]
-        public void VerifyToggleElementKindFilterRejectsUndefinedValues()
+        public async Task VerifyToggleElementTypeFilterRejectsUnavailableTypes()
         {
             using var viewModel = new ProjectBrowserViewModel(
-                new Mock<IModelLoaderService>().Object,
+                CreateModelLoader(CreateFilterModel()).Object,
                 new ContextAwareService());
+            await viewModel.InitializeAsync(CancellationToken.None);
 
-            Assert.That(
-                () => viewModel.ToggleElementKindFilter((SysmlModelElementKind)int.MaxValue),
-                Throws.TypeOf<ArgumentOutOfRangeException>());
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(() => viewModel.ToggleElementTypeFilter(null), Throws.ArgumentNullException);
+                Assert.That(
+                    () => viewModel.ToggleElementTypeFilter(typeof(Documentation)),
+                    Throws.TypeOf<ArgumentOutOfRangeException>());
+                Assert.That(
+                    () => viewModel.ToggleElementTypeFilter(typeof(Membership)),
+                    Throws.TypeOf<ArgumentOutOfRangeException>());
+            }
         }
 
         /// <summary>
@@ -1200,8 +1285,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(selectionService.SelectedElement, Is.SameAs(node.SourceElement));
                 Assert.That(viewModel.SelectedNode, Is.SameAs(rootNode));
-                Assert.That(rootNode.IsSelected, Is.True);
-                Assert.That(node.IsSelected, Is.False);
             }
         }
 
@@ -1225,8 +1308,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(selectionService.SelectedElement, Is.Null);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(node));
-                Assert.That(node.IsSelected, Is.True);
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.False);
             }
         }
 
@@ -1252,7 +1333,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(selectionService.SelectedElement, Is.SameAs(externalElement));
                 Assert.That(viewModel.SelectedNode, Is.SameAs(node));
-                Assert.That(node.IsSelected, Is.True);
             }
         }
 
@@ -1287,11 +1367,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(firstTankNode, Is.Not.SameAs(secondTankNode));
                 Assert.That(firstThrusterNode.SourceElement, Is.SameAs(secondThrusterNode.SourceElement));
                 Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstThrusterNode));
-                Assert.That(firstThrusterNode.IsSelected, Is.True);
                 Assert.That(selectionService.SelectedElement, Is.SameAs(firstThrusterNode.SourceElement));
                 Assert.That(secondViewModel.SelectedNode, Is.SameAs(secondRootNode));
-                Assert.That(secondRootNode.IsSelected, Is.True);
-                Assert.That(secondThrusterNode.IsSelected, Is.False);
             }
 
             secondViewModel.SelectNode(secondTankNode);
@@ -1299,11 +1376,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(secondViewModel.SelectedNode, Is.SameAs(secondTankNode));
-                Assert.That(secondTankNode.IsSelected, Is.True);
                 Assert.That(selectionService.SelectedElement, Is.SameAs(secondTankNode.SourceElement));
                 Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstThrusterNode));
-                Assert.That(firstThrusterNode.IsSelected, Is.True);
-                Assert.That(firstTankNode.IsSelected, Is.False);
             }
         }
 
@@ -1330,7 +1404,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(selectionService.SelectedElement, Is.SameAs(externalElement));
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
                 Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
                 Assert.That(viewModel.IsLoaded, Is.True);
             }
@@ -1356,10 +1429,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(initialized, Is.True);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
-                Assert.That(viewModel.RootNodes[0].IsSelected, Is.True);
                 Assert.That(viewModel.RootNodes[0].IsExpanded, Is.True);
-                Assert.That(viewModel.RootNodes[0].Children.Single(node => node.DisplayName == "Thruster").IsSelected,
-                    Is.False);
                 Assert.That(selectionService.SelectedElement, Is.SameAs(thrusterElement));
             }
         }
@@ -1414,18 +1484,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 releaseLoad.Set();
                 var backgroundInitialized = await backgroundInitialization;
                 var backgroundRootNode = backgroundViewModel.RootNodes[0];
-                var backgroundThrusterNode = backgroundRootNode.Children
-                    .Single(node => node.DisplayName == "Thruster");
-
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(backgroundInitialized, Is.True);
                     Assert.That(selectionService.SelectedElement, Is.SameAs(foregroundThrusterNode.SourceElement));
                     Assert.That(foregroundViewModel.SelectedNode, Is.SameAs(foregroundThrusterNode));
-                    Assert.That(foregroundThrusterNode.IsSelected, Is.True);
                     Assert.That(backgroundViewModel.SelectedNode, Is.SameAs(backgroundRootNode));
-                    Assert.That(backgroundRootNode.IsSelected, Is.True);
-                    Assert.That(backgroundThrusterNode.IsSelected, Is.False);
                 }
             }
             finally
@@ -1460,7 +1524,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies SourceList publication retains its native contract and raises top-level root invalidation.
+        /// Verifies SourceList publication uses collection changes without replacing or notifying the root property.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncPublishesRootCollectionChanges()
@@ -1495,10 +1559,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(
                     exposedRoots[0].Children.Select(node => node.DisplayName),
                     Is.EqualTo(ExpectedRootChildDisplayNames));
-                Assert.That(
-                    rootPropertyChanges.Count(propertyName =>
-                        propertyName == nameof(ProjectBrowserViewModel.RootNodes)),
-                    Is.EqualTo(1));
+                Assert.That(rootPropertyChanges, Does.Not.Contain(nameof(ProjectBrowserViewModel.RootNodes)));
             }
         }
 
@@ -1750,6 +1811,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
+        /// <summary>
+        /// Verifies root collection publication observes an already coherent local selection.
+        /// </summary>
         [Test]
         public async Task VerifyRootPublicationNotifiesOnlyAfterLocalSelectionIsCoherent()
         {
@@ -1761,16 +1825,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             };
             using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
             var coherentPublicationObserved = false;
-            viewModel.PropertyChanged += (_, args) =>
+            ((INotifyCollectionChanged)viewModel.RootNodes).CollectionChanged += (_, _) =>
             {
-                if (args.PropertyName == nameof(viewModel.RootNodes))
-                {
-                    coherentPublicationObserved = viewModel.RootNodes.Count == 1
-                                                  && ReferenceEquals(
-                                                      viewModel.SelectedNode,
-                                                      viewModel.RootNodes[0])
-                                                  && viewModel.RootNodes[0].IsSelected;
-                }
+                coherentPublicationObserved = viewModel.RootNodes.Count == 1
+                                              && ReferenceEquals(
+                                                  viewModel.SelectedNode,
+                                                  viewModel.RootNodes[0]);
             };
 
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
@@ -1804,22 +1864,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// <returns>The selection-focused namespace model.</returns>
         private static INamespace CreateSelectionModel()
         {
-            var thruster = new Mock<INamespace>();
-            thruster.SetupGet(element => element.ElementId).Returns("thruster");
-            thruster.SetupGet(element => element.DeclaredName).Returns("Thruster");
-            thruster.SetupGet(element => element.ownedElement).Returns([]);
+            var thruster = CreateElement<PartDefinition>("thruster", "Thruster");
+            var tank = CreateElement<PartUsage>("tank", "Tank");
 
-            var tank = new Mock<INamespace>();
-            tank.SetupGet(element => element.ElementId).Returns("tank");
-            tank.SetupGet(element => element.DeclaredName).Returns("Tank");
-            tank.SetupGet(element => element.ownedElement).Returns([]);
-
-            var root = new Mock<INamespace>();
-            root.SetupGet(element => element.ElementId).Returns("root");
-            root.SetupGet(element => element.DeclaredName).Returns("Root");
-            root.SetupGet(element => element.ownedElement).Returns([thruster.Object, tank.Object]);
-
-            return root.Object;
+            return CreateElement<Namespace>("root", "Root", thruster, tank);
         }
 
         /// <summary>
@@ -1828,92 +1876,70 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// <returns>The minimal namespace model.</returns>
         private static INamespace CreateMinimalModel()
         {
-            var firstChild = new Mock<INamespace>();
-            firstChild.SetupGet(x => x.ElementId).Returns("first-child");
-            firstChild.SetupGet(x => x.DeclaredName).Returns("First child");
-            firstChild.SetupGet(x => x.ownedElement).Returns([]);
+            var firstChild = CreateElement<PartDefinition>("first-child", "First child");
+            var secondChild = CreateElement<PartUsage>("second-child", "Second child");
 
-            var secondChild = new Mock<INamespace>();
-            secondChild.SetupGet(x => x.ElementId).Returns("second-child");
-            secondChild.SetupGet(x => x.DeclaredName).Returns("Second child");
-            secondChild.SetupGet(x => x.ownedElement).Returns([]);
-
-            var root = new Mock<INamespace>();
-            root.SetupGet(x => x.ElementId).Returns("root");
-            root.SetupGet(x => x.DeclaredName).Returns("Root");
-            root.SetupGet(x => x.ownedElement).Returns([firstChild.Object, secondChild.Object]);
-
-            return root.Object;
+            return CreateElement<Namespace>("root", "Root", firstChild, secondChild);
         }
 
         /// <summary>
-        /// Creates a canonical hierarchy with deep, sibling, qualified-name-only, and Unknown-kind matches.
+        /// Creates a canonical hierarchy with concrete definition, usage, namespace, and relationship nodes.
         /// </summary>
         /// <returns>The filter-focused namespace model.</returns>
         private static INamespace CreateFilterModel()
         {
-            var deepTarget = CreateElement<IElement>(
+            var deepTarget = CreateElement<PartDefinition>(
                 "deep-target",
-                "Deep target",
-                "Model::Architecture::Target",
-                []);
-            var unrelatedLeaf = CreateElement<IElement>(
+                "Deep target");
+            var unrelatedLeaf = CreateElement<PartUsage>(
                 "unrelated-leaf",
-                "Unrelated leaf",
-                "Model::Architecture::Other",
-                []);
-            var matchingBranch = CreateElement<INamespace>(
+                "Unrelated leaf");
+            var matchingBranch = CreateElement<Namespace>(
                 "matching-branch",
                 "Subsystem alpha",
-                "Model::Architecture",
-                [deepTarget.Object, unrelatedLeaf.Object]);
-            var siblingBranch = CreateElement<INamespace>(
+                deepTarget,
+                unrelatedLeaf);
+            var siblingBranch = CreateElement<Namespace>(
                 "sibling-branch",
-                "Sibling branch",
-                "Model::Sibling",
-                []);
-            var qualifiedNameOnly = CreateElement<IElement>(
-                "qualified-name-only",
-                "Friendly label",
-                "Model::QualifiedNeedle",
-                []);
-            var unknownKind = CreateElement<IElement>(
-                "unknown-kind",
-                "Mystery element",
-                "Model::Mystery",
-                []);
-            var root = CreateElement<INamespace>(
+                "Sibling branch");
+            var duplicateDefinition = CreateElement<PartDefinition>(
+                "duplicate-definition",
+                "Mystery element");
+            var relationship = CreateElement<Membership>(
+                "membership",
+                "Owned membership");
+
+            return CreateElement<Namespace>(
                 "filter-root",
                 "Root project",
-                "Model",
-                [matchingBranch.Object, siblingBranch.Object, qualifiedNameOnly.Object, unknownKind.Object]);
-
-            return root.Object;
+                matchingBranch,
+                siblingBranch,
+                duplicateDefinition,
+                relationship);
         }
 
         /// <summary>
-        /// Creates a SysML element mock with deterministic tree metadata.
+        /// Creates a model whose child matches only through qualified-name metadata.
         /// </summary>
-        /// <typeparam name="TElement">The SysML element interface.</typeparam>
-        /// <param name="elementId">The element identifier.</param>
-        /// <param name="displayName">The declared display name.</param>
-        /// <param name="qualifiedName">The qualified name.</param>
-        /// <param name="ownedElements">The owned child elements.</param>
-        /// <returns>The configured element mock.</returns>
-        private static Mock<TElement> CreateElement<TElement>(
-            string elementId,
-            string displayName,
-            string qualifiedName,
-            List<IElement> ownedElements)
-            where TElement : class, IElement
+        /// <returns>The qualified-name-focused namespace model.</returns>
+        private static INamespace CreateQualifiedNameModel()
         {
-            var element = new Mock<TElement>();
-            element.SetupGet(x => x.ElementId).Returns(elementId);
-            element.SetupGet(x => x.DeclaredName).Returns(displayName);
-            element.SetupGet(x => x.qualifiedName).Returns(qualifiedName);
-            element.SetupGet(x => x.ownedElement).Returns(ownedElements);
+            var qualifiedNameOnly = CreateElement<QualifiedNamePartDefinition>(
+                "qualified-name-only",
+                "Friendly label");
 
-            return element;
+            return CreateElement<Namespace>("qualified-root", "Root project", qualifiedNameOnly);
+        }
+
+        /// <summary>
+        /// Provides deterministic qualified-name metadata while retaining SDK containment behavior.
+        /// </summary>
+        private sealed class QualifiedNamePartDefinition : PartDefinition, IElement
+        {
+            /// <summary>
+            /// Gets the qualified name used by the qualified-name-only filter scenario.
+            /// </summary>
+            string IElement.qualifiedName => "Model::QualifiedNeedle";
         }
 
         /// <summary>

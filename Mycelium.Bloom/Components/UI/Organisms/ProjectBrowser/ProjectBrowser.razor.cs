@@ -9,10 +9,15 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
+    using System.Reactive;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
+
+    using DynamicData.Binding;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
@@ -20,12 +25,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// </summary>
     public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
     {
-        /// <summary>
-        /// The complete set of broad element-kind filter choices.
-        /// </summary>
-        private static readonly IReadOnlyList<SysmlModelElementKind> elementKindOptions =
-            Enum.GetValues<SysmlModelElementKind>();
-
         /// <summary>
         /// The unique identifier of the filter drawer heading.
         /// </summary>
@@ -35,6 +34,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// The unique identifier of the Type filter section heading.
         /// </summary>
         private readonly string typeFilterHeadingId = $"mb-project-browser-type-filter-heading-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// Replaces the collection-change subscription when the caller supplies another ViewModel.
+        /// </summary>
+        private readonly SerialDisposable collectionChangesSubscription = new();
 
         /// <summary>
         /// The focus target inside the portalled filter drawer.
@@ -62,6 +66,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private bool isSearchAssistantOpen;
 
         /// <summary>
+        /// The ViewModel whose observable collections currently drive rendering.
+        /// </summary>
+        private IProjectBrowserViewModel observedViewModel;
+
+        /// <summary>
         /// Gets the caller-supplied ViewModel required by this component.
         /// </summary>
         /// <exception cref="InvalidOperationException">
@@ -77,6 +86,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> SelectedNodeChanged { get; set; }
+
+        /// <summary>
+        /// Connects rendering to the observable collections exposed by the current ViewModel.
+        /// </summary>
+        protected override void OnParametersSet()
+        {
+            base.OnParametersSet();
+
+            if (ReferenceEquals(this.observedViewModel, this.ViewModel))
+            {
+                return;
+            }
+
+            this.observedViewModel = this.ViewModel;
+            this.collectionChangesSubscription.Disposable = this.ViewModel is null
+                ? Disposable.Empty
+                : Observable.Merge(
+                        this.ViewModel.RootNodes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
+                        this.ViewModel.AvailableElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
+                        this.ViewModel.SelectedElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default))
+                    .Select(_ => Observable.FromAsync(() => this.InvokeAsync(this.StateHasChanged)))
+                    .Concat()
+                    .Subscribe();
+        }
 
         /// <summary>
         /// Initializes the configured project browser ViewModel.
@@ -124,6 +157,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.isDisposed = true;
             this.isFilterDrawerOpen = false;
             this.isSearchAssistantOpen = false;
+            this.collectionChangesSubscription.Dispose();
 
             base.Dispose(disposing);
         }
@@ -181,30 +215,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Gets the number of active selectable values represented in the filter drawer.
         /// </summary>
-        /// <returns>The number of selected element kinds.</returns>
+        /// <returns>The number of selected element types.</returns>
         private int GetActiveDrawerFilterCount()
         {
-            return this.RequiredViewModel.SelectedElementKinds.Count;
+            return this.RequiredViewModel.SelectedElementTypes.Count;
         }
 
         /// <summary>
-        /// Gets the Figma-aligned notation for a broad element kind.
+        /// Gets the Figma-aligned notation for a concrete model element type.
         /// </summary>
-        /// <param name="elementKind">The broad element kind.</param>
-        /// <returns>The element-kind chip label.</returns>
-        internal static string GetElementKindLabel(SysmlModelElementKind elementKind)
+        /// <param name="elementType">The concrete model element type.</param>
+        /// <returns>The element-type chip label.</returns>
+        internal static string GetElementTypeLabel(Type elementType)
         {
-            return $"«{elementKind.ToString().ToLowerInvariant()}»";
+            ArgumentNullException.ThrowIfNull(elementType);
+
+            return $"«{elementType.Name.ToLowerInvariant()}»";
         }
 
         /// <summary>
-        /// Gets a value indicating whether an element kind is selected in the owning ViewModel.
+        /// Gets a value indicating whether an element type is selected in the owning ViewModel.
         /// </summary>
-        /// <param name="elementKind">The element kind to inspect.</param>
-        /// <returns><see langword="true" /> when the kind is selected; otherwise, <see langword="false" />.</returns>
-        private bool IsElementKindSelected(SysmlModelElementKind elementKind)
+        /// <param name="elementType">The element type to inspect.</param>
+        /// <returns><see langword="true" /> when the type is selected; otherwise, <see langword="false" />.</returns>
+        private bool IsElementTypeSelected(Type elementType)
         {
-            return this.RequiredViewModel.SelectedElementKinds.Contains(elementKind);
+            return this.RequiredViewModel.SelectedElementTypes.Contains(elementType);
         }
 
         /// <summary>
@@ -312,16 +348,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Toggles one selected element-kind value through the owning ViewModel.
+        /// Toggles one selected element type through the owning ViewModel.
         /// </summary>
-        /// <param name="elementKind">The element kind requested by the chip.</param>
+        /// <param name="elementType">The element type requested by the chip.</param>
         /// <returns>A completed task.</returns>
-        private Task HandleElementKindFilterToggledAsync(SysmlModelElementKind elementKind)
+        private Task HandleElementTypeFilterToggledAsync(Type elementType)
         {
             if (!this.isDisposed)
             {
                 this.isSearchAssistantOpen = false;
-                this.RequiredViewModel.ToggleElementKindFilter(elementKind);
+                this.RequiredViewModel.ToggleElementTypeFilter(elementType);
             }
 
             return Task.CompletedTask;

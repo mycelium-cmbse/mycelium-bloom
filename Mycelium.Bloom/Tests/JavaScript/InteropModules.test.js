@@ -9,7 +9,9 @@ import {
 } from "../../Components/Pages/DesignSystem.razor.js";
 import {
     clearSearchInputValue,
+    disposeEmptySpaceGuard,
     disposeSearchShortcut,
+    registerEmptySpaceGuard,
     registerSearchShortcut
 } from "../../Components/UI/Atoms/SearchInput/SearchInput.razor.js";
 import {
@@ -29,6 +31,7 @@ let animationFrameQueue;
 let nextAnimationFrameId;
 
 const searchRegistrationIds = new Set();
+const emptySpaceRegistrationIds = new Set();
 const selectRegistrationIds = new Set();
 const themeOwnerIds = new Set();
 const workspaceGuardIds = new Set();
@@ -56,6 +59,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    for (const registrationId of emptySpaceRegistrationIds) {
+        disposeEmptySpaceGuard(registrationId);
+    }
+
     for (const registrationId of searchRegistrationIds) {
         disposeSearchShortcut(registrationId);
     }
@@ -72,6 +79,7 @@ afterEach(() => {
         unregisterKeydownGuards(workspaceId);
     }
 
+    emptySpaceRegistrationIds.clear();
     searchRegistrationIds.clear();
     selectRegistrationIds.clear();
     themeOwnerIds.clear();
@@ -207,6 +215,32 @@ test("search input synchronization clears stale text and emits one input mutatio
         bubbles: true,
         inputType: "deleteContentBackward"
     }]);
+});
+
+test("empty search Space guard prevents only an unmodified leading Space and detaches independently", () => {
+    document.body.innerHTML = `
+        <input id="first-search">
+        <input id="second-search">
+    `;
+    const firstInput = document.getElementById("first-search");
+    const secondInput = document.getElementById("second-search");
+
+    registerEmptySpace("first-registration", "first-search");
+
+    assert.equal(dispatchKey(firstInput, " ").defaultPrevented, true);
+    assert.equal(dispatchKey(secondInput, " ").defaultPrevented, false);
+    assert.equal(dispatchKey(firstInput, " ", { ctrlKey: true }).defaultPrevented, false);
+    assert.equal(dispatchKey(firstInput, "a").defaultPrevented, false);
+
+    firstInput.value = "multi word";
+    assert.equal(dispatchKey(firstInput, " ").defaultPrevented, false);
+
+    firstInput.value = "";
+    registerEmptySpace("second-registration", "second-search");
+    disposeEmptySpace("first-registration");
+
+    assert.equal(dispatchKey(firstInput, " ").defaultPrevented, false);
+    assert.equal(dispatchKey(secondInput, " ").defaultPrevented, true);
 });
 
 test("search shortcuts honor custom modifiers and detach after disposal", () => {
@@ -529,6 +563,16 @@ function registerSearch(registrationId, inputId, shortcut) {
 function disposeSearch(registrationId) {
     disposeSearchShortcut(registrationId);
     searchRegistrationIds.delete(registrationId);
+}
+
+function registerEmptySpace(registrationId, inputId) {
+    emptySpaceRegistrationIds.add(registrationId);
+    registerEmptySpaceGuard(registrationId, inputId);
+}
+
+function disposeEmptySpace(registrationId) {
+    disposeEmptySpaceGuard(registrationId);
+    emptySpaceRegistrationIds.delete(registrationId);
 }
 
 function registerSelect(registrationId, triggerId) {

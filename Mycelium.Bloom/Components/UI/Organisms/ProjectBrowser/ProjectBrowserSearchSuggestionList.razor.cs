@@ -13,8 +13,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Model.Enum;
-
     /// <summary>
     /// Renders Project Browser-specific refinements inside Blueprint's command context.
     /// </summary>
@@ -41,7 +39,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         [Parameter]
         [EditorRequired]
-        public IReadOnlySet<SysmlModelElementKind> SelectedElementKinds { get; set; } = new HashSet<SysmlModelElementKind>();
+        public IReadOnlyCollection<Type> SelectedElementTypes { get; set; } = Array.Empty<Type>();
 
         /// <summary>
         /// Gets or sets the normalized draft text query.
@@ -50,11 +48,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public string Query { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the real element-kind choices supported by Project Browser filtering.
+        /// Gets or sets the concrete element types discovered in the loaded model.
         /// </summary>
         [Parameter]
         [EditorRequired]
-        public IReadOnlyList<SysmlModelElementKind> ElementKindOptions { get; set; } = [];
+        public IReadOnlyList<Type> ElementTypeOptions { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the callback that accepts the current free-text interpretation.
@@ -66,7 +64,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// Gets or sets the callback that consumes text into a ViewModel-owned Type criterion.
         /// </summary>
         [Parameter]
-        public EventCallback<SysmlModelElementKind> ElementKindAccepted { get; set; }
+        public EventCallback<Type> ElementTypeAccepted { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether Blueprint keyboard navigation has an active suggestion.
@@ -110,23 +108,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Creates a stable command value for one real element kind.
+        /// Creates a stable command value for one concrete element type.
         /// </summary>
-        /// <param name="elementKind">The real element kind.</param>
+        /// <param name="elementType">The concrete element type.</param>
         /// <returns>The stable command value.</returns>
-        private static string GetTypeSuggestionValue(SysmlModelElementKind elementKind)
+        private static string GetTypeSuggestionValue(Type elementType)
         {
-            return $"{TypeSuggestionValuePrefix}{elementKind}";
+            return $"{TypeSuggestionValuePrefix}{elementType.FullName ?? elementType.Name}";
         }
 
         /// <summary>
-        /// Creates searchable Type text from the shared real-kind presentation mapping.
+        /// Creates searchable text from the concrete type and its shared presentation label.
         /// </summary>
-        /// <param name="elementKind">The real element kind.</param>
-        /// <returns>The searchable element-kind text.</returns>
-        private static string GetElementKindSearchText(SysmlModelElementKind elementKind)
+        /// <param name="elementType">The concrete element type.</param>
+        /// <returns>The searchable element-type text.</returns>
+        private static string GetElementTypeSearchText(Type elementType)
         {
-            return $"{elementKind} {ProjectBrowser.GetElementKindLabel(elementKind)}";
+            return $"{elementType.Name} {ProjectBrowser.GetElementTypeLabel(elementType)}";
         }
 
         /// <summary>

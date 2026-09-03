@@ -11,7 +11,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.IO;
@@ -74,6 +73,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
         /// The editor-type icon names expected for the default placeholder tabs.
         /// </summary>
         private static readonly string[] ExpectedPlaceholderTabIconNames = ["file-text", "file-text"];
+
+        /// <summary>
+        /// The empty observable Type state used by strict Project Browser test doubles.
+        /// </summary>
+        private static readonly ReadOnlyObservableCollection<Type> EmptyElementTypes =
+            new(new ObservableCollection<Type>());
 
         /// <summary>
         /// The Blueprint portal host that owns portalled add-tab menu content.
@@ -916,9 +921,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             var initializationToken = CancellationToken.None;
 
             initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
+            initializingViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
             initializingViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
-            initializingViewModel.SetupGet(viewModel => viewModel.SelectedElementKinds)
-                .Returns(ImmutableHashSet<SysmlModelElementKind>.Empty);
+            initializingViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                .Returns(EmptyElementTypes);
+            initializingViewModel.SetupGet(viewModel => viewModel.SelectedNode)
+                .Returns((ProjectBrowserNodeViewModel)null);
             initializingViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
                 .Returns(inactiveFilterPresentation);
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(false);
@@ -926,7 +934,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             initializingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
             initializingViewModel.Setup(viewModel => viewModel.ClearFilter());
             initializingViewModel.Setup(
-                viewModel => viewModel.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()));
+                viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
             initializingViewModel
                 .Setup(viewModel => viewModel.InitializeAsync(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(token =>
@@ -939,9 +947,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 .Setup(viewModel => viewModel.Dispose())
                 .Callback(() => initialization.TrySetResult(false));
             survivingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(survivingRoots);
+            survivingViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
             survivingViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
-            survivingViewModel.SetupGet(viewModel => viewModel.SelectedElementKinds)
-                .Returns(ImmutableHashSet<SysmlModelElementKind>.Empty);
+            survivingViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                .Returns(EmptyElementTypes);
+            survivingViewModel.SetupGet(viewModel => viewModel.SelectedNode).Returns(survivingNode);
             survivingViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
                 .Returns(inactiveFilterPresentation);
             survivingViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
@@ -950,7 +960,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             survivingViewModel.Setup(viewModel => viewModel.Dispose());
             survivingViewModel.Setup(viewModel => viewModel.ClearFilter());
             survivingViewModel.Setup(
-                viewModel => viewModel.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()));
+                viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
             var projectBrowserViewModels = new Queue<IProjectBrowserViewModel>(
                 [initializingViewModel.Object, survivingViewModel.Object]);
             var composition = this.RegisterWorkspaceServices(
@@ -1309,9 +1319,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
                 var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes).Returns(EmptyElementTypes);
                 projectBrowserViewModel.SetupProperty(viewModel => viewModel.FilterText, string.Empty);
-                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedElementKinds)
-                    .Returns(ImmutableHashSet<SysmlModelElementKind>.Empty);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedElementTypes)
+                    .Returns(EmptyElementTypes);
+                projectBrowserViewModel.SetupGet(viewModel => viewModel.SelectedNode)
+                    .Returns(projectBrowserNode);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.FilterPresentation)
                     .Returns(inactiveFilterPresentation);
                 projectBrowserViewModel.SetupGet(viewModel => viewModel.IsLoaded).Returns(true);
@@ -1320,7 +1333,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
                 projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
                 projectBrowserViewModel.Setup(
-                    viewModel => viewModel.ToggleElementKindFilter(It.IsAny<SysmlModelElementKind>()));
+                    viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
                 projectBrowserViewModel
                     .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
                     .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);

@@ -15,7 +15,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Bunit;
 
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -56,8 +55,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 new ProjectBrowserNodeMetadata(
                     "quantities",
                     "Quantities",
-                    "LibraryPackage",
-                    SysmlModelElementKind.Unknown,
                     new LibraryPackage()),
                 []);
 
@@ -168,17 +165,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(node.IsExpanded, Is.False);
-                Assert.That(node.IsSelected, Is.False);
                 Assert.That(selectedNode, Is.SameAs(node));
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("false"));
                 Assert.That(component.Markup, Does.Not.Contain("Length"));
             }
         }
 
         /// <summary>
-        /// Verifies that changing the reactive selection state rerenders the node.
+        /// Verifies that owner-published selection state rerenders the node.
         /// </summary>
         [Test]
-        public void VerifyIsSelectedChangeRerendersNode()
+        public void VerifySelectedNodeParameterChangeRerendersNode()
         {
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
@@ -192,7 +189,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Is.False);
             }
 
-            node.IsSelected = true;
+            component.Render(parameters => parameters
+                .Add(projectBrowserNode => projectBrowserNode.ViewModel, node)
+                .Add(projectBrowserNode => projectBrowserNode.SelectedNode, node));
 
             component.WaitForAssertion(() =>
             {
