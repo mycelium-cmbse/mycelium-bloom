@@ -260,12 +260,15 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
             await component.WaitForAssertionAsync(() =>
             {
+                var applyDarkModeInvocations = this.themeModule.Invocations["applyDarkMode"];
+                var saveThemeInvocations = this.themeModule.Invocations["saveTheme"];
+
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(themeService.IsDarkMode, Is.True);
                     Assert.That(component.Find("button[aria-label='Switch to light mode']"), Is.Not.Null);
-                    Assert.That(this.themeModule.Invocations["applyDarkMode"].Last().Arguments[0], Is.EqualTo(true));
-                    Assert.That(this.themeModule.Invocations["saveTheme"].Last().Arguments[0], Is.EqualTo(true));
+                    Assert.That(applyDarkModeInvocations[^1].Arguments[0], Is.True);
+                    Assert.That(saveThemeInvocations[^1].Arguments[0], Is.True);
                 }
             });
 

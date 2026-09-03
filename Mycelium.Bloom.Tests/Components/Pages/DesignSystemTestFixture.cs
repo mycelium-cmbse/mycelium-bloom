@@ -317,40 +317,43 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             {
                 Assert.That(themeService.IsDarkMode, Is.False);
                 Assert.That(this.themeModule.Invocations["applyTheme"], Has.Count.EqualTo(1));
-                Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[0], Is.EqualTo(false));
+                Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[0], Is.False);
                 Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[3], Is.EqualTo(0.375d));
             }
 
-            await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+            var themeButtons = component.FindAll("[role='group'][aria-label='Preview color theme'] button");
+            await themeButtons
                 .Single(button => button.TextContent.Trim() == "Dark")
                 .ClickAsync();
+            themeButtons = component.FindAll("[role='group'][aria-label='Preview color theme'] button");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(themeService.IsDarkMode, Is.True);
                 Assert.That(this.applyDarkModeHandler.Invocations, Has.Count.EqualTo(1));
-                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][0].Arguments[0], Is.EqualTo(true));
-                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][0].Arguments[0], Is.True);
+                Assert.That(themeButtons
                     .Single(button => button.TextContent.Trim() == "Dark")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
-                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                Assert.That(themeButtons
                     .Single(button => button.TextContent.Trim() == "Light")
                     .GetAttribute("aria-pressed"), Is.EqualTo("false"));
             }
 
-            await component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+            await themeButtons
                 .Single(button => button.TextContent.Trim() == "Light")
                 .ClickAsync();
+            themeButtons = component.FindAll("[role='group'][aria-label='Preview color theme'] button");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(themeService.IsDarkMode, Is.False);
                 Assert.That(this.applyDarkModeHandler.Invocations, Has.Count.EqualTo(2));
-                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][1].Arguments[0], Is.EqualTo(false));
-                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][1].Arguments[0], Is.False);
+                Assert.That(themeButtons
                     .Single(button => button.TextContent.Trim() == "Light")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
-                Assert.That(component.FindAll("[role='group'][aria-label='Preview color theme'] button")
+                Assert.That(themeButtons
                     .Single(button => button.TextContent.Trim() == "Dark")
                     .GetAttribute("aria-pressed"), Is.EqualTo("false"));
             }
@@ -412,7 +415,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(applyDarkModeInvocations[applyDarkModeInvocations.Count - 1].Arguments[0], Is.EqualTo(true));
+                Assert.That(applyDarkModeInvocations[^1].Arguments[0], Is.True);
                 Assert.That(menuRendered, Is.True);
                 Assert.That(listbox.ClassList, Does.Contain("mb-select-input__listbox"));
             }
