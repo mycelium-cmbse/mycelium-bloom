@@ -78,32 +78,56 @@ namespace Mycelium.Bloom.Core.ModelLoading
                     continue;
                 }
 
-                var elementId = element.ElementId;
-
-                if (!string.IsNullOrWhiteSpace(elementId) && !duplicateIds.Contains(elementId))
-                {
-                    if (!elements.TryAdd(elementId, element))
-                    {
-                        elements.Remove(elementId);
-                        duplicateIds.Add(elementId);
-                    }
-                }
-
-                if (element.ownedElement is null)
-                {
-                    continue;
-                }
-
-                foreach (var ownedElement in element.ownedElement)
-                {
-                    if (ownedElement is not null)
-                    {
-                        pendingElements.Push(ownedElement);
-                    }
-                }
+                IndexElement(element, elements, duplicateIds);
+                PushOwnedElements(element, pendingElements);
             }
 
             return elements;
+        }
+
+        /// <summary>
+        /// Queues the current element's non-null owned elements for traversal.
+        /// </summary>
+        /// <param name="element">The element whose owned elements are queued.</param>
+        /// <param name="pendingElements">The traversal stack receiving owned elements.</param>
+        private static void PushOwnedElements(IElement element, Stack<IElement> pendingElements)
+        {
+            if (element.ownedElement is null)
+            {
+                return;
+            }
+
+            foreach (var ownedElement in element.ownedElement.OfType<IElement>())
+            {
+                pendingElements.Push(ownedElement);
+            }
+        }
+
+        /// <summary>
+        /// Adds one exact identifier while ensuring every duplicate remains unresolved.
+        /// </summary>
+        /// <param name="element">The canonical model element to index.</param>
+        /// <param name="elements">The unique identifiers resolved so far.</param>
+        /// <param name="duplicateIds">The identifiers already found to be ambiguous.</param>
+        private static void IndexElement(
+            IElement element,
+            IDictionary<string, IElement> elements,
+            ISet<string> duplicateIds)
+        {
+            var elementId = element.ElementId;
+
+            if (string.IsNullOrWhiteSpace(elementId) || duplicateIds.Contains(elementId))
+            {
+                return;
+            }
+
+            if (elements.TryAdd(elementId, element))
+            {
+                return;
+            }
+
+            elements.Remove(elementId);
+            duplicateIds.Add(elementId);
         }
     }
 }

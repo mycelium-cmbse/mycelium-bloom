@@ -444,51 +444,39 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 return Array.Empty<ProjectBrowserNodeViewModel>();
             }
 
-            foreach (var rootNode in rootNodes)
-            {
-                var path = new List<ProjectBrowserNodeViewModel>();
-
-                if (TryAddFocusPath(rootNode, element, path))
-                {
-                    return path;
-                }
-            }
-
-            return Array.Empty<ProjectBrowserNodeViewModel>();
+            return rootNodes
+                       .Select(rootNode => FindFocusPath(rootNode, element))
+                       .FirstOrDefault(path => path.Count > 0)
+                   ?? Array.Empty<ProjectBrowserNodeViewModel>();
         }
 
         /// <summary>
-        /// Adds one depth-first canonical node path when it contains the requested model identity.
+        /// Finds the first depth-first canonical path containing the requested model identity.
         /// </summary>
         /// <param name="node">The current canonical node.</param>
         /// <param name="element">The model identity to locate.</param>
-        /// <param name="path">The mutable candidate ancestor path.</param>
-        /// <returns><see langword="true" /> when the current subtree contains the target.</returns>
-        private static bool TryAddFocusPath(
+        /// <returns>The path from the current node to the target, or an empty path when unresolved.</returns>
+        private static IReadOnlyList<ProjectBrowserNodeViewModel> FindFocusPath(
             ProjectBrowserNodeViewModel node,
-            IElement element,
-            ICollection<ProjectBrowserNodeViewModel> path)
+            IElement element)
         {
-            path.Add(node);
-
             if (ReferenceEquals(node.SourceElement, element)
                 || (!string.IsNullOrWhiteSpace(element.ElementId)
                     && string.Equals(node.ElementId, element.ElementId, StringComparison.Ordinal)))
             {
-                return true;
+                return [node];
             }
 
-            foreach (var childNode in node.Children)
+            var childPath = node.Children
+                .Select(childNode => FindFocusPath(childNode, element))
+                .FirstOrDefault(path => path.Count > 0);
+
+            if (childPath is null)
             {
-                if (TryAddFocusPath(childNode, element, path))
-                {
-                    return true;
-                }
+                return Array.Empty<ProjectBrowserNodeViewModel>();
             }
 
-            path.Remove(node);
-
-            return false;
+            return [node, .. childPath];
         }
 
         /// <summary>

@@ -239,11 +239,22 @@ namespace Mycelium.Bloom.Core.Context
                 var element = await this.elementIdResolver.ResolveAsync(
                     parsedLocation.ElementId,
                     cancellationToken);
-                var canonicalUri = element is null
-                    ? this.GetUriWithSelectedElement(parsedLocation.Location, null)
-                    : parsedLocation.RequiresCanonicalization
-                        ? this.GetUriWithSelectedElement(parsedLocation.Location, parsedLocation.ElementId)
-                        : null;
+                string canonicalUri;
+
+                if (element is null)
+                {
+                    canonicalUri = this.GetUriWithSelectedElement(parsedLocation.Location, null);
+                }
+                else if (parsedLocation.RequiresCanonicalization)
+                {
+                    canonicalUri = this.GetUriWithSelectedElement(
+                        parsedLocation.Location,
+                        parsedLocation.ElementId);
+                }
+                else
+                {
+                    canonicalUri = null;
+                }
 
                 return new WorkspaceUrlContextRestoration(
                     element,
