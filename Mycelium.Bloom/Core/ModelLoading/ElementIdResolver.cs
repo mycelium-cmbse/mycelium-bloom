@@ -111,8 +111,8 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// <param name="duplicateIds">The identifiers already found to be ambiguous.</param>
         private static void IndexElement(
             IElement element,
-            IDictionary<string, IElement> elements,
-            ISet<string> duplicateIds)
+            Dictionary<string, IElement> elements,
+            HashSet<string> duplicateIds)
         {
             var elementId = element.ElementId;
 

@@ -446,7 +446,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             return rootNodes
                        .Select(rootNode => FindFocusPath(rootNode, element))
-                       .FirstOrDefault(path => path.Count > 0)
+                       .FirstOrDefault(path => path.Length > 0)
                    ?? Array.Empty<ProjectBrowserNodeViewModel>();
         }
 
@@ -456,7 +456,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="node">The current canonical node.</param>
         /// <param name="element">The model identity to locate.</param>
         /// <returns>The path from the current node to the target, or an empty path when unresolved.</returns>
-        private static IReadOnlyList<ProjectBrowserNodeViewModel> FindFocusPath(
+        private static ProjectBrowserNodeViewModel[] FindFocusPath(
             ProjectBrowserNodeViewModel node,
             IElement element)
         {
@@ -469,7 +469,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             var childPath = node.Children
                 .Select(childNode => FindFocusPath(childNode, element))
-                .FirstOrDefault(path => path.Count > 0);
+                .FirstOrDefault(path => path.Length > 0);
 
             if (childPath is null)
             {
