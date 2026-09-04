@@ -52,7 +52,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         private static readonly ReadOnlyCollection<NavigationRailItem> NavigationItems =
             Array.AsReadOnly<NavigationRailItem>(
             [
-                new() { Id = "modelling", Label = "Modelling", IconName = "list-tree", GroupKey = ModellingGroupKey },
+                new() { Id = "modelling", Label = "Modelling", IconName = "list-tree", Href = "/workspace/modeling", GroupKey = ModellingGroupKey },
                 new() { Id = "part-browser", Label = "Part Browser", IconName = "panels-top-left", GroupKey = ModellingGroupKey },
                 new() { Id = "glossary", Label = "Glossary", IconName = "book-open", GroupKey = ModellingGroupKey },
                 new() { Id = "reference-data", Label = "Reference data", IconName = "database", GroupKey = ModellingGroupKey },
@@ -66,7 +66,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
                 new() { Id = "version-history", Label = "Version History", IconName = "history", GroupKey = ProcessGroupKey, GroupLabel = "PROCESS" },
                 new() { Id = "reviews", Label = "Reviews", IconName = "eye", GroupKey = ProcessGroupKey },
                 new() { Id = "publication", Label = "Publication", IconName = "upload", GroupKey = ProcessGroupKey },
-                new() { Id = "dashboard", Label = "Dashboard", IconName = "layout-dashboard", GroupKey = UtilityGroupKey },
+                new() { Id = "dashboard", Label = "Dashboard", IconName = "layout-dashboard", Href = "/workspace/dashboard", GroupKey = UtilityGroupKey },
                 new() { Id = "settings", Label = "Settings", IconName = "settings", GroupKey = UtilityGroupKey }
             ]);
 

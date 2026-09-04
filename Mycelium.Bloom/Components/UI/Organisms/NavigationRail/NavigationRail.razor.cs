@@ -232,15 +232,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         }
 
         /// <summary>
-        /// Assigns the selected destination through the ViewModel contract.
-        /// </summary>
-        /// <param name="item">The destination selected by the user.</param>
-        private void SelectItem(NavigationRailItem item)
-        {
-            this.RequiredViewModel.SelectedItem = item;
-        }
-
-        /// <summary>
         /// Reconciles menu dismissal and keyboard-open requests from Blueprint.
         /// </summary>
         /// <param name="isOpen">Whether the sidebar control menu should be open.</param>

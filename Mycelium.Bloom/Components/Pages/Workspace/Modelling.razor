@@ -1,0 +1,94 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Modelling.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@page "/"
+@page "/workspace/modeling"
+@layout WorkspaceLayout
+@using BlazorBlueprint.Icons.Lucide.Components
+@using Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
+
+<PageTitle>Mycelium - Bloom</PageTitle>
+
+<div class="mb-main-workspace" data-testid="main-workspace">
+    <h1 class="sr-only">Modelling</h1>
+
+    <EditorWorkspace ViewModel="this.WorkspaceEditorViewModel"
+                     InitialGroupWeights="this.initialGroupWeights"
+                     TabClosed="this.HandleTabClosed"
+                     AriaLabel="Workspace editors">
+        <TabLeadingContent Context="tab">
+            @if (GetEditorTabIconName(tab) is { Length: > 0 } iconName)
+            {
+                <span data-testid="workspace-editor-tab-icon"
+                      data-tab-id="@(tab.Id)"
+                      data-icon-name="@(iconName)">
+                    <LucideIcon Name="@(iconName)"
+                                Size="14"
+                                StrokeWidth="1.75"
+                                role="presentation"
+                                aria-hidden="true"
+                                focusable="false" />
+                </span>
+            }
+        </TabLeadingContent>
+
+        <AddTabControl Context="groupId">
+            <ActionMenu Class="mb-editor-workspace__add-tab-menu"
+                        Items="@(CreateAddTabActions())"
+                        TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
+                        TriggerTitle="Add tab"
+                        TriggerClass="mb-editor-workspace__add-tab"
+                        Alignment="ActionMenuAlignment.Start"
+                        ItemSelected="item => this.HandleAddTabActionSelected(groupId, item)"
+                        data-group-id="@(groupId)"
+                        data-testid="editor-workspace-add-tab-menu">
+                <TriggerContent>
+                    <LucideIcon Name="plus"
+                                Size="14"
+                                StrokeWidth="1.16667"
+                                role="presentation"
+                                aria-hidden="true"
+                                focusable="false" />
+                </TriggerContent>
+            </ActionMenu>
+        </AddTabControl>
+
+        <EditorContent Context="tab">
+            @if (IsProjectBrowserTab(tab))
+            {
+                @if (this.TryGetProjectBrowserViewModel(tab, out var projectBrowserViewModel))
+                {
+                    <ProjectBrowser @key="tab.Id"
+                                    ViewModel="projectBrowserViewModel"
+                                    data-testid="workspace-project-browser"
+                                    data-tab-id="@(tab.Id)" />
+                }
+                else
+                {
+                    <div class="mb-main-workspace__editor-placeholder"
+                         role="status"
+                         data-testid="workspace-project-browser-unavailable"
+                         data-tab-id="@(tab.Id)">
+                        <strong>Project Browser unavailable</strong>
+                        <span>This editor instance could not be composed.</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="mb-main-workspace__editor-placeholder"
+                     data-testid="workspace-editor-placeholder"
+                     data-tab-id="@(tab.Id)">
+                    <strong>@(tab.Title)</strong>
+                    <span>Feature content will be composed here.</span>
+                </div>
+            }
+        </EditorContent>
+    </EditorWorkspace>
+</div>

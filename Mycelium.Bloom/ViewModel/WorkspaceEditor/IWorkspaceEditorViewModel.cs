@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceEditor
     /// <summary>
     /// Defines rendering-independent editor-group and tab state for one workspace.
     /// </summary>
-    public interface IWorkspaceEditorViewModel : INotifyPropertyChanged
+    public interface IWorkspaceEditorViewModel : IDisposable, INotifyPropertyChanged
     {
         /// <summary>
         /// Gets the application-configured maximum number of editor groups supported by the workspace.

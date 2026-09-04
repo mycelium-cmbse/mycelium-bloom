@@ -13,8 +13,24 @@
 }
 
 .mb-details-panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--mb-spacing-2);
     padding-bottom: var(--mb-spacing-3);
     border-bottom: 1px solid var(--mb-color-border-subtle);
+}
+
+.mb-details-panel__heading-content {
+    min-width: 0;
+}
+
+.mb-details-panel ::deep .mb-details-panel__close {
+    flex: 0 0 auto;
+    width: var(--mb-control-height-xs);
+    height: var(--mb-control-height-xs);
+    min-height: var(--mb-control-height-xs);
+    padding: 0;
 }
 
 .mb-details-panel__title {

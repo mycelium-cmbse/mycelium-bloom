@@ -87,7 +87,6 @@ jobs:
           const lcov = readFileSync("lcov.info", "utf8");
           const xml = readFileSync("sonar-js-coverage.xml", "utf8");
           const requiredSources = [
-              "Mycelium.Bloom/Components/Pages/DesignSystem.razor.js",
               "Mycelium.Bloom/Components/UI/Atoms/SearchInput/SearchInput.razor.js",
               "Mycelium.Bloom/Components/UI/Atoms/SelectInput/SelectInput.razor.js"
           ];

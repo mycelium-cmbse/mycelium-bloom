@@ -15,11 +15,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
     using Bunit;
 
+    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
 
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Tests.Common;
 
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -75,6 +77,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// </summary>
         public DetailsPanelTestFixture()
         {
+            BlueprintTestSetup.Configure(this);
+
             this.selectionService = new Mock<IElementSelectionService>();
             this.selectionService.SetupGet(service => service.SelectedElement)
                 .Returns(() => this.selectedElement);
@@ -106,11 +110,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                     Is.EqualTo("Select an element to display its details."));
                 Assert.That(component.FindAll(".mb-details-panel__element-name"), Is.Empty);
                 Assert.That(component.FindAll("dl"), Is.Empty);
+                Assert.That(component.FindAll("button[aria-label='Close details panel']"), Is.Empty);
             }
         }
 
         /// <summary>
-        /// Verifies all required labels and values render in issue order.
+        /// Verifies all required labels and values render in the configured order.
         /// </summary>
         [Test]
         public void VerifyPropertiesRenderInRequiredOrder()
@@ -131,6 +136,30 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(labels, Is.EqualTo(ExpectedPropertyLabels));
                 Assert.That(values, Is.EqualTo(ExpectedPropertyValues));
             }
+        }
+
+        /// <summary>
+        /// Verifies the optional close control exposes an accessible action and emits close intent.
+        /// </summary>
+        [Test]
+        public async Task VerifyCloseActionEmitsIntent()
+        {
+            var closeCount = 0;
+            var component = this.Render<DetailsPanelComponent>(parameters => parameters
+                .Add(panel => panel.CloseRequested,
+                    EventCallback.Factory.Create(this, () => closeCount++)));
+            var closeButton = component.Find("button[aria-label='Close details panel']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(closeButton.GetAttribute("type"), Is.EqualTo("button"));
+                Assert.That(closeButton.GetAttribute("title"), Is.EqualTo("Close details panel"));
+                Assert.That(closeButton.QuerySelector("svg").GetAttribute("aria-hidden"), Is.EqualTo("true"));
+            }
+
+            await closeButton.ClickAsync();
+
+            Assert.That(closeCount, Is.EqualTo(1));
         }
 
         /// <summary>

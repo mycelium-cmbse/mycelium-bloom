@@ -10,9 +10,11 @@
 namespace Mycelium.Bloom.Components.Pages
 {
     using System.Globalization;
+
+    using BlazorBlueprint.Components;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.Options;
-    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
@@ -29,30 +31,20 @@ namespace Mycelium.Bloom.Components.Pages
     public partial class DesignSystem : ComponentBase, IAsyncDisposable
     {
         /// <summary>
-        /// Identifies this page instance as the current owner of the document theme preview.
-        /// </summary>
-        private readonly string themeOwnerId = $"mb-design-system-theme-{Guid.NewGuid():N}";
-
-        /// <summary>
         /// Publishes context changes for the page-owned navigation-rail preview.
         /// </summary>
         private ContextAwareService navigationRailPreviewContext;
 
         /// <summary>
-        /// References the page-scoped theme module after interactive rendering begins.
-        /// </summary>
-        private IJSObjectReference themeModule;
-
-        /// <summary>
-        /// Gets or sets the JavaScript runtime used to apply the preview theme to the document root.
+        /// Gets or sets the shared application theme service.
         /// </summary>
         [Inject]
-        private IJSRuntime JsRuntime { get; set; }
+        private ThemeService ThemeService { get; set; }
 
         /// <summary>
-        /// Gets or sets the active page-level preview theme.
+        /// Gets the active application theme name.
         /// </summary>
-        private string ThemeName { get; set; } = "light";
+        private string ThemeName => this.ThemeService.IsDarkMode ? "dark" : "light";
 
         /// <summary>
         /// Gets the local select options used by the form examples.
@@ -483,16 +475,13 @@ namespace Mycelium.Bloom.Components.Pages
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (!firstRender)
+            if (!firstRender || this.ThemeService.IsInitialized)
             {
                 return;
             }
 
-            this.themeModule = await this.JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./Components/Pages/DesignSystem.razor.js");
-
-            await this.ApplyThemeAsync();
+            await this.ThemeService.InitializeAsync();
+            this.StateHasChanged();
         }
 
         /// <summary>
@@ -508,23 +497,7 @@ namespace Mycelium.Bloom.Components.Pages
                 throw new ArgumentOutOfRangeException(nameof(themeName), themeName, "Only light and dark preview themes are supported.");
             }
 
-            this.ThemeName = themeName;
-            await this.ApplyThemeAsync();
-        }
-
-        /// <summary>
-        /// Applies the selected preview theme to the document root when the module is ready.
-        /// </summary>
-        /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task ApplyThemeAsync()
-        {
-            if (this.themeModule is not null)
-            {
-                await this.themeModule.InvokeVoidAsync(
-                    "applyTheme",
-                    this.themeOwnerId,
-                    this.ThemeName);
-            }
+            await this.ThemeService.SetDarkModeAsync(string.Equals(themeName, "dark", StringComparison.Ordinal));
         }
 
         /// <summary>
@@ -1024,7 +997,7 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <inheritdoc />
-        public async ValueTask DisposeAsync()
+        public ValueTask DisposeAsync()
         {
             if (this.NavigationRailPreviewViewModel is not null)
             {
@@ -1034,27 +1007,8 @@ namespace Mycelium.Bloom.Components.Pages
             this.EditorWorkspacePreviewViewModel?.Dispose();
             this.CompactEditorWorkspacePreviewViewModel?.Dispose();
 
-            var module = this.themeModule;
-            this.themeModule = null;
-
-            if (module is not null)
-            {
-                try
-                {
-                    await module.InvokeVoidAsync("releaseTheme", this.themeOwnerId);
-                    await module.DisposeAsync();
-                }
-                catch (JSDisconnectedException)
-                {
-                    // The circuit has already ended, so the browser no longer accepts cleanup calls.
-                }
-                catch (ObjectDisposedException)
-                {
-                    // The renderer disposed the JavaScript module before component cleanup completed.
-                }
-            }
-
             GC.SuppressFinalize(this);
+            return ValueTask.CompletedTask;
         }
 
         /// <summary>

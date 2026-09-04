@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
+    using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Core.Selection;
@@ -24,6 +26,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// The stable identifier of the panel heading.
         /// </summary>
         private readonly string headingId = $"mb-details-panel-title-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// Gets or sets the callback invoked when the panel requests to close.
+        /// </summary>
+        [Parameter]
+        public EventCallback CloseRequested { get; set; }
 
         /// <summary>
         /// Gets the injected selection service required by this component.
@@ -48,6 +56,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         private string GetCssClass()
         {
             return this.BuildRootCssClass("mb-details-panel");
+        }
+
+        /// <summary>
+        /// Emits the panel close intent.
+        /// </summary>
+        /// <returns>A task representing the callback.</returns>
+        private Task RequestCloseAsync()
+        {
+            return this.CloseRequested.InvokeAsync();
         }
 
         /// <summary>

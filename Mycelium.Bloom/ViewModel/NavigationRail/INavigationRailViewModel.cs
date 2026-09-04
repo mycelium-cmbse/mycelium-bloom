@@ -34,5 +34,11 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// Gets or sets the configured rail presentation mode.
         /// </summary>
         NavigationRailPresentationMode PresentationMode { get; set; }
+
+        /// <summary>
+        /// Reconciles the selected destination with the current normalized application route.
+        /// </summary>
+        /// <param name="route">The normalized application-relative route.</param>
+        void ReconcileSelection(string route);
     }
 }

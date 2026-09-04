@@ -8,6 +8,17 @@
     color: var(--mb-color-text-primary);
 }
 
+.mb-workspace-layout ::deep .mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body {
+    --mb-workspace-left-panel-width: fit-content;
+}
+
+.mb-workspace-layout__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--mb-workspace-left-panel-collapsed-width) - (2 * var(--mb-spacing-2)));
+}
+
 .mb-workspace-layout__error {
     position: fixed;
     z-index: 50;

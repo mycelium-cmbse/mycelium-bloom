@@ -74,10 +74,13 @@ namespace Mycelium.Bloom.Extensions
                 serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
             services.AddScoped<IElementSelectionService>(
                 serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
-            services.AddTransient<IProjectBrowserViewModel, ProjectBrowserViewModel>();
+            services.AddScoped<Func<IProjectBrowserViewModel>>(serviceProvider =>
+                () => ActivatorUtilities.CreateInstance<ProjectBrowserViewModel>(serviceProvider));
             services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
-            services.AddTransient<INavigationRailViewModel, NavigationRailViewModel>();
-            services.AddTransient<IWorkspaceEditorViewModel, WorkspaceEditorViewModel>();
+            services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
+                () => ActivatorUtilities.CreateInstance<NavigationRailViewModel>(serviceProvider));
+            services.AddScoped<Func<IWorkspaceEditorViewModel>>(serviceProvider =>
+                () => ActivatorUtilities.CreateInstance<WorkspaceEditorViewModel>(serviceProvider));
 
             return services;
         }
