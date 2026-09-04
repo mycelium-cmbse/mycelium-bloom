@@ -69,6 +69,7 @@ namespace Mycelium.Bloom.Extensions
             ArgumentNullException.ThrowIfNull(services);
 
             services.AddScoped<IModelLoaderService, ModelLoaderService>();
+            services.AddScoped<IElementIdResolver, ElementIdResolver>();
             services.AddScoped<ContextAwareService>();
             services.AddScoped<IContextAwareService>(
                 serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
@@ -79,6 +80,8 @@ namespace Mycelium.Bloom.Extensions
             services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
             services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
                 () => ActivatorUtilities.CreateInstance<NavigationRailViewModel>(serviceProvider));
+            services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
+                () => ActivatorUtilities.CreateInstance<WorkspaceUrlContextService>(serviceProvider));
             services.AddScoped<Func<IWorkspaceEditorViewModel>>(serviceProvider =>
                 () => ActivatorUtilities.CreateInstance<WorkspaceEditorViewModel>(serviceProvider));
 

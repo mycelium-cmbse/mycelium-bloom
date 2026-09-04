@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Reactive.Subjects;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -26,6 +27,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
     using Microsoft.AspNetCore.Components.Web;
 
@@ -37,6 +39,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -53,6 +56,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
+
+    using SysML2Element = SysML2.NET.Core.POCO.Root.Elements.IElement;
 
     /// <summary>
     /// Tests the <see cref="Modelling" /> workspace composition.
@@ -1142,6 +1147,219 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         /// <summary>
+        /// Verifies URL restoration targets the active Project Browser in the focused editor group only.
+        /// </summary>
+        [Test]
+        public async Task VerifyUrlRestorationTargetsActiveProjectBrowserInFocusedGroup()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+            var focusedGroup = composition.Editor.Groups[2];
+            await this.OpenProjectBrowserAsync(component, focusedGroup.Id);
+            composition.ProjectBrowsers[0].Object.FilterText = "first filter";
+            composition.ProjectBrowsers[1].Object.FilterText = "target filter";
+            var restoredElement = new Namespace { ElementId = "restored" };
+
+            await component.InvokeAsync(() => restorations.OnNext(
+                new WorkspaceUrlContextRestoration(restoredElement, null, true)));
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                composition.ProjectBrowsers[1].Verify(
+                    viewModel => viewModel.FocusElement(restoredElement),
+                    Times.Once);
+                composition.ProjectBrowsers[0].Verify(
+                    viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()),
+                    Times.Never);
+            });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.Editor.FocusedGroup, Is.SameAs(focusedGroup));
+                Assert.That(focusedGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
+                Assert.That(composition.ProjectBrowsers[0].Object.FilterText, Is.EqualTo("first filter"));
+                Assert.That(composition.ProjectBrowsers[1].Object.FilterText, Is.EqualTo("target filter"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies URL restoration activates the first Project Browser in a focused group whose active tab differs.
+        /// </summary>
+        [Test]
+        public async Task VerifyUrlRestorationTargetsFirstProjectBrowserInFocusedGroup()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+            var focusedGroup = composition.Editor.Groups[2];
+            await this.OpenProjectBrowserAsync(component, focusedGroup.Id);
+            var projectBrowserTab = focusedGroup.ActiveTab;
+            await FindAddTabMenu(component, focusedGroup.Id).QuerySelector("button").ClickAsync();
+            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            var restoredElement = new Namespace { ElementId = "restored" };
+
+            await component.InvokeAsync(() => restorations.OnNext(
+                new WorkspaceUrlContextRestoration(restoredElement, null, true)));
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                composition.ProjectBrowsers[1].Verify(
+                    viewModel => viewModel.FocusElement(restoredElement),
+                    Times.Once);
+                Assert.That(focusedGroup.ActiveTab, Is.SameAs(projectBrowserTab));
+            });
+
+            composition.ProjectBrowsers[0].Verify(
+                viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()),
+                Times.Never);
+        }
+
+        /// <summary>
+        /// Verifies URL restoration falls back to the first active Project Browser in workspace order.
+        /// </summary>
+        [Test]
+        public async Task VerifyUrlRestorationTargetsFirstActiveProjectBrowserInWorkspaceOrder()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+            var projectBrowserGroup = composition.Editor.Groups[0];
+            var restoredElement = new Namespace { ElementId = "restored" };
+
+            await component.InvokeAsync(() => restorations.OnNext(
+                new WorkspaceUrlContextRestoration(restoredElement, null, true)));
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                composition.ProjectBrowsers[0].Verify(
+                    viewModel => viewModel.FocusElement(restoredElement),
+                    Times.Once);
+                Assert.That(composition.Editor.FocusedGroup, Is.SameAs(projectBrowserGroup));
+            });
+        }
+
+        /// <summary>
+        /// Verifies URL restoration falls back to the first inactive Project Browser in workspace order.
+        /// </summary>
+        [Test]
+        public async Task VerifyUrlRestorationTargetsFirstProjectBrowserInWorkspaceOrder()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+            var projectBrowserGroup = composition.Editor.Groups[0];
+            var projectBrowserTab = projectBrowserGroup.ActiveTab;
+            await FindAddTabMenu(component, projectBrowserGroup.Id).QuerySelector("button").ClickAsync();
+            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            Assert.That(composition.Editor.FocusGroup(composition.Editor.Groups[2].Id), Is.True);
+            var restoredElement = new Namespace { ElementId = "restored" };
+
+            await component.InvokeAsync(() => restorations.OnNext(
+                new WorkspaceUrlContextRestoration(restoredElement, null, true)));
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                composition.ProjectBrowsers[0].Verify(
+                    viewModel => viewModel.FocusElement(restoredElement),
+                    Times.Once);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(composition.Editor.FocusedGroup, Is.SameAs(projectBrowserGroup));
+                    Assert.That(projectBrowserGroup.ActiveTab, Is.SameAs(projectBrowserTab));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies URL restoration does not create Project Browser content when none exists.
+        /// </summary>
+        [Test]
+        public async Task VerifyUrlRestorationDoesNotCreateProjectBrowser()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            var initialGroup = composition.Editor.Groups[0];
+            Assert.That(
+                composition.Editor.TryOpenTab(initialGroup.Id, "Existing editor", "placeholder", out _),
+                Is.True);
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+
+            await component.InvokeAsync(() => restorations.OnNext(
+                new WorkspaceUrlContextRestoration(new Namespace { ElementId = "restored" }, null, true)));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.ProjectBrowsers, Is.Empty);
+                Assert.That(composition.Editor.Groups, Has.Count.EqualTo(1));
+                Assert.That(initialGroup.Tabs, Has.Count.EqualTo(1));
+                Assert.That(initialGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies application-originated URL reconciliation does not retarget any Project Browser.
+        /// </summary>
+        [Test]
+        public async Task VerifyApplicationUrlReconciliationDoesNotRetargetProjectBrowser()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+
+            await component.InvokeAsync(() => restorations.OnNext(
+                new WorkspaceUrlContextRestoration(
+                    new Namespace { ElementId = "application-selection" },
+                    null,
+                    false)));
+
+            composition.ProjectBrowsers[0].Verify(
+                viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()),
+                Times.Never);
+        }
+
+        /// <summary>
+        /// Verifies page disposal detaches URL restoration before caller-owned browser disposal completes.
+        /// </summary>
+        [Test]
+        public void VerifyDisposalStopsUrlRestorationFocus()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigationViewModel = composition.Navigation;
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            var urlContext = CreateUrlContext(restorations);
+            using var host = this.RenderModellingWithUrlContext(urlContext.Object);
+            var component = host.FindComponent<Modelling>();
+
+            component.Instance.Dispose();
+            restorations.OnNext(new WorkspaceUrlContextRestoration(
+                new Namespace { ElementId = "after-disposal" },
+                null, true));
+
+            composition.ProjectBrowsers[0].Verify(
+                viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()),
+                Times.Never);
+        }
+
+        /// <summary>
         /// Verifies the rail's persistent presentation controls the shell-owned navigation width state.
         /// </summary>
         [Test]
@@ -1237,6 +1455,40 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             };
 
             return this.Render<WorkspaceLayout>(parameters => parameters.Add(layout => layout.Body, body));
+        }
+
+        /// <summary>
+        /// Renders Modelling with an explicit layout-owned URL context for focus-policy tests.
+        /// </summary>
+        /// <param name="urlContext">The URL context to cascade.</param>
+        /// <returns>The rendered cascading host.</returns>
+        private IRenderedComponent<CascadingValue<IWorkspaceUrlContextService>> RenderModellingWithUrlContext(
+            IWorkspaceUrlContextService urlContext)
+        {
+            RenderFragment childContent = builder =>
+            {
+                builder.OpenComponent<Modelling>(0);
+                builder.CloseComponent();
+            };
+
+            return this.Render<CascadingValue<IWorkspaceUrlContextService>>(parameters => parameters
+                .Add(host => host.Value, urlContext)
+                .Add(host => host.IsFixed, true)
+                .Add(host => host.ChildContent, childContent));
+        }
+
+        /// <summary>
+        /// Creates strict URL context for page-level restoration tests.
+        /// </summary>
+        /// <param name="restorations">The controlled restoration stream.</param>
+        /// <returns>The strict URL context mock.</returns>
+        private static Mock<IWorkspaceUrlContextService> CreateUrlContext(
+            IObservable<WorkspaceUrlContextRestoration> restorations)
+        {
+            var urlContext = new Mock<IWorkspaceUrlContextService>(MockBehavior.Strict);
+            urlContext.SetupGet(service => service.Restorations).Returns(restorations);
+
+            return urlContext;
         }
 
         /// <summary>
@@ -1353,6 +1605,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
                     projectBrowserViewModel.Setup(
                         viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
+                    projectBrowserViewModel.Setup(viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()));
                     projectBrowserViewModel
                         .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
                         .Callback(() => context.SelectedElement = projectBrowserNode.SourceElement);
@@ -1366,6 +1619,26 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             this.Services.AddScoped<Func<INavigationRailViewModel>>(_ => () => navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
+            var elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            elementIdResolver
+                .Setup(resolver => resolver.ResolveAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns((string elementId, CancellationToken _) =>
+                    ValueTask.FromResult(
+                        string.Equals(
+                            context.SelectedElement?.ElementId,
+                            elementId,
+                            StringComparison.Ordinal)
+                            ? context.SelectedElement
+                            : null));
+            this.Services.AddSingleton(elementIdResolver.Object);
+            this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
+                () => new WorkspaceUrlContextService(
+                    serviceProvider.GetRequiredService<NavigationManager>(),
+                    elementIdResolver.Object,
+                    context,
+                    NullLogger<WorkspaceUrlContextService>.Instance));
             this.portalHost = this.Render<BbPortalHost>();
 
             return (

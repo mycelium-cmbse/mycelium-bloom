@@ -56,7 +56,7 @@
                               Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                               Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
                               Class="@(this.GetItemCssClass(item))"
-                              Href="@(item.Href)"
+                              Href="@(this.GetDestinationHref(item))"
                               Disabled="@(string.IsNullOrWhiteSpace(item.Href))"
                               AriaLabel="@(item.Label)"
                               title="@(this.GetItemTitle(item))"

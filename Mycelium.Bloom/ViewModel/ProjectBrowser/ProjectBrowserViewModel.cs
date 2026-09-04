@@ -111,6 +111,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private ProjectBrowserNodeViewModel selectedNode;
 
         /// <summary>
+        /// The model identity waiting to be reconciled with this browser's materialized tree.
+        /// </summary>
+        private IElement pendingFocusElement;
+
+        /// <summary>
         /// Tracks whether initialization owns the current load operation.
         /// </summary>
         private int initializationState;
@@ -173,6 +178,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.subscriptions.Add(System.ObservableExtensions.Subscribe(
                 this.rootNodeSource.Connect().Bind(out var boundRootNodes)));
             this.rootNodes = boundRootNodes;
+
+            this.subscriptions.Add(System.ObservableExtensions.Subscribe(
+                Observable.CombineLatest(
+                        this.WhenAnyValue(viewModel => viewModel.PendingFocusElement),
+                        this.rootNodeSource
+                            .Connect()
+                            .ToCollection()
+                            .StartWith(Array.Empty<ProjectBrowserNodeViewModel>()),
+                        CreateFocusPath)
+                    .Where(path => path.Count > 0),
+                this.ApplyFocusPath));
         }
 
         /// <summary>
@@ -219,6 +235,15 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             get => this.selectedNode;
             private set => this.RaiseAndSetIfChanged(ref this.selectedNode, value);
+        }
+
+        /// <summary>
+        /// Gets or sets model identity pending local tree-focus reconciliation.
+        /// </summary>
+        private IElement PendingFocusElement
+        {
+            get => this.pendingFocusElement;
+            set => this.RaiseAndSetIfChanged(ref this.pendingFocusElement, value);
         }
 
         /// <summary>
@@ -370,6 +395,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
         }
 
+        /// <inheritdoc />
+        public void FocusElement(IElement element)
+        {
+            ArgumentNullException.ThrowIfNull(element);
+
+            if (!this.IsDisposed)
+            {
+                this.PendingFocusElement = element;
+            }
+        }
+
         /// <summary>
         /// Cancels loading and releases the reactive collections owned by this ViewModel.
         /// </summary>
@@ -392,6 +428,76 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets a value indicating whether final disposal has occurred.
         /// </summary>
         private bool IsDisposed => Volatile.Read(ref this.disposalState) != 0;
+
+        /// <summary>
+        /// Locates the exact node and ancestor path for one pending model identity.
+        /// </summary>
+        /// <param name="element">The canonical model element awaiting focus.</param>
+        /// <param name="rootNodes">The currently materialized canonical roots.</param>
+        /// <returns>The ancestor path ending at the target node, or an empty path while unresolved.</returns>
+        private static IReadOnlyList<ProjectBrowserNodeViewModel> CreateFocusPath(
+            IElement element,
+            IReadOnlyCollection<ProjectBrowserNodeViewModel> rootNodes)
+        {
+            if (element is null)
+            {
+                return Array.Empty<ProjectBrowserNodeViewModel>();
+            }
+
+            return rootNodes
+                       .Select(rootNode => FindFocusPath(rootNode, element))
+                       .FirstOrDefault(path => path.Length > 0)
+                   ?? Array.Empty<ProjectBrowserNodeViewModel>();
+        }
+
+        /// <summary>
+        /// Finds the first depth-first canonical path containing the requested model identity.
+        /// </summary>
+        /// <param name="node">The current canonical node.</param>
+        /// <param name="element">The model identity to locate.</param>
+        /// <returns>The path from the current node to the target, or an empty path when unresolved.</returns>
+        private static ProjectBrowserNodeViewModel[] FindFocusPath(
+            ProjectBrowserNodeViewModel node,
+            IElement element)
+        {
+            if (ReferenceEquals(node.SourceElement, element)
+                || (!string.IsNullOrWhiteSpace(element.ElementId)
+                    && string.Equals(node.ElementId, element.ElementId, StringComparison.Ordinal)))
+            {
+                return [node];
+            }
+
+            var childPath = node.Children
+                .Select(childNode => FindFocusPath(childNode, element))
+                .FirstOrDefault(path => path.Length > 0);
+
+            if (childPath is null)
+            {
+                return Array.Empty<ProjectBrowserNodeViewModel>();
+            }
+
+            return [node, .. childPath];
+        }
+
+        /// <summary>
+        /// Applies one resolved local focus path without changing shared application selection.
+        /// </summary>
+        /// <param name="path">The ancestor path ending at the local target node.</param>
+        private void ApplyFocusPath(IReadOnlyList<ProjectBrowserNodeViewModel> path)
+        {
+            if (this.IsDisposed || path.Count == 0)
+            {
+                return;
+            }
+
+            for (var index = 0; index < path.Count - 1; index++)
+            {
+                path[index].IsExpanded = true;
+            }
+
+            this.SelectedNode = path[^1];
+            this.PendingFocusElement = null;
+        }
 
         /// <summary>
         /// Publishes a fully staged tree and its available filter types.

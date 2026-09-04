@@ -26,9 +26,9 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         ReadOnlyObservableCollection<NavigationRailItem> NavigationItems { get; }
 
         /// <summary>
-        /// Gets or sets the selected destination, or <see langword="null" /> when selection is cleared.
+        /// Gets the route-derived selected destination, or <see langword="null" /> when selection is cleared.
         /// </summary>
-        NavigationRailItem SelectedItem { get; set; }
+        NavigationRailItem SelectedItem { get; }
 
         /// <summary>
         /// Gets or sets the configured rail presentation mode.

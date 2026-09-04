@@ -140,13 +140,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         }
 
         [Test]
-        public void VerifyCombinedContextChangesUpdateInventoryAndSelection()
+        public void VerifyCombinedContextChangesUpdateInventoryAndRouteSelection()
         {
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
                 CreateNavigationRailItemProvider(SelectItemsByCombinedContext));
-            viewModel.SelectedItem = Review;
+            viewModel.ReconcileSelection("/review");
 
             contextService.LifecycleState = ProjectLifecycleState.Open;
             contextService.SelectedElement = new Namespace();
@@ -154,7 +154,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.NavigationItems, Is.EqualTo(ReviewItems));
-                Assert.That(viewModel.SelectedItem, Is.SameAs(Activity));
+                Assert.That(viewModel.SelectedItem, Is.Null);
             }
         }
 
@@ -166,7 +166,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 contextService,
                 CreateNavigationRailItemProvider(
                     static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
-            viewModel.SelectedItem = Review;
+            viewModel.ReconcileSelection("/review");
             NavigationRailItem[] publishedItems = null;
             NavigationRailItem publishedSelection = null;
             viewModel.PropertyChanged += (_, args) =>
@@ -199,8 +199,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             var changedProperties = new List<string>();
             viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
 
-            viewModel.SelectedItem = Review;
-            viewModel.SelectedItem = Review;
+            viewModel.ReconcileSelection("/review");
+            viewModel.ReconcileSelection("/review");
 
             using (Assert.EnterMultipleScope())
             {
@@ -210,7 +210,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         }
 
         [Test]
-        public void VerifySelectedItemCanBeClearedExplicitly()
+        public void VerifySelectedItemIsExternallyReadOnly()
+        {
+            var interfaceProperty = typeof(INavigationRailViewModel)
+                .GetProperty(nameof(INavigationRailViewModel.SelectedItem));
+            var implementationProperty = typeof(NavigationRailViewModel)
+                .GetProperty(nameof(NavigationRailViewModel.SelectedItem));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(interfaceProperty, Is.Not.Null);
+                Assert.That(interfaceProperty.CanWrite, Is.False);
+                Assert.That(implementationProperty, Is.Not.Null);
+                Assert.That(implementationProperty.SetMethod.IsAssembly, Is.True);
+            }
+        }
+
+        [Test]
+        public void VerifyUnknownRouteClearsSelectedItem()
         {
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
@@ -218,7 +235,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 CreateNavigationRailItemProvider(
                     static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
-            viewModel.SelectedItem = null;
+            viewModel.ReconcileSelection("/unknown");
 
             Assert.That(viewModel.SelectedItem, Is.Null);
         }
@@ -262,18 +279,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         }
 
         [Test]
-        public void VerifySelectionFallsBackWhenDestinationDisappears()
+        public void VerifyRouteSelectionClearsWhenDestinationDisappears()
         {
             var contextService = CreateContextService(ProjectLifecycleState.Preparation);
             using var viewModel = new NavigationRailViewModel(
                 contextService,
                 CreateNavigationRailItemProvider(
                     static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
-            viewModel.SelectedItem = Review;
+            viewModel.ReconcileSelection("/review");
 
             contextService.LifecycleState = ProjectLifecycleState.Review;
 
-            Assert.That(viewModel.SelectedItem, Is.SameAs(Activity));
+            Assert.That(viewModel.SelectedItem, Is.Null);
         }
 
         [Test]
@@ -284,7 +301,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 contextService,
                 CreateNavigationRailItemProvider(
                     static (lifecycleState, _) => SelectItemsWithEmptyReviewState(lifecycleState)));
-            viewModel.SelectedItem = Review;
+            viewModel.ReconcileSelection("/review");
 
             contextService.LifecycleState = ProjectLifecycleState.Review;
 
@@ -385,7 +402,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
                 CreateNavigationRailItemProvider(
                     static (lifecycleState, _) => SelectItemsByLifecycleState(lifecycleState)));
 
-            first.SelectedItem = Review;
+            first.ReconcileSelection("/review");
             first.PresentationMode = NavigationRailPresentationMode.Expanded;
             firstContextService.LifecycleState = ProjectLifecycleState.Open;
 

@@ -298,7 +298,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             using (Assert.EnterMultipleScope())
             {
-                viewModel.VerifySet(x => x.SelectedItem = It.IsAny<NavigationRailItem>(), Times.Never);
                 viewModel.VerifySet(x => x.PresentationMode = NavigationRailPresentationMode.Expanded, Times.Once);
             }
         }
@@ -314,7 +313,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                         lifecycleState,
                         Items,
                         ReplacementItems)));
-            viewModel.SelectedItem = Items[3];
+            viewModel.ReconcileSelection("/review");
             viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
@@ -329,9 +328,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                         .Select(link => link.GetAttribute("aria-label")),
                         Is.EqualTo(ExpectedReplacementLabels));
                     Assert.That(component.FindAll(".mb-navigation-rail__divider"), Has.Count.EqualTo(1));
-                    Assert.That(component.Find("a[aria-label='Activity']").GetAttribute("aria-current"),
-                        Is.EqualTo("page"));
-                    Assert.That(viewModel.SelectedItem, Is.SameAs(ReplacementItems[0]));
+                    Assert.That(component.Find("a[aria-label='Activity']").GetAttribute("aria-current"), Is.Null);
+                    Assert.That(viewModel.SelectedItem, Is.Null);
                 }
             });
         }
@@ -1048,7 +1046,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 new ObservableCollection<NavigationRailItem>(Items));
             var viewModel = new Mock<INavigationRailViewModel>(MockBehavior.Strict);
             viewModel.SetupGet(x => x.NavigationItems).Returns(navigationItems);
-            viewModel.SetupProperty(x => x.SelectedItem, Items[0]);
+            viewModel.SetupGet(x => x.SelectedItem).Returns(Items[0]);
             viewModel.SetupProperty(x => x.PresentationMode, NavigationRailPresentationMode.ExpandOnHover);
             viewModel.Setup(x => x.Dispose());
 
@@ -1062,7 +1060,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             var viewModel = new NavigationRailViewModel(
                 new ContextAwareService(),
                 CreateNavigationRailItemProvider((_, _) => Items));
-            viewModel.SelectedItem = Items.Single(item => item.Id == selectedItemId);
+            viewModel.ReconcileSelection(Items.Single(item => item.Id == selectedItemId).Href);
             viewModel.PresentationMode = mode;
 
             return viewModel;

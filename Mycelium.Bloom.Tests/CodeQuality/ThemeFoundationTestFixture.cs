@@ -110,7 +110,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 ["BlazorBlueprint.Primitives"] = "3.15.0",
                 ["DynamicData"] = "9.4.33",
                 ["HtmlSanitizer"] = "9.2.1039",
-                ["ReactiveUI.Blazor"] = "24.1.0"
+                ["ReactiveUI.Blazor"] = "24.2.0"
             };
 
         private static readonly string[] RequiredLucideIconNames =

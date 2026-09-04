@@ -9,8 +9,13 @@
 
 namespace Mycelium.Bloom.Components.Layout
 {
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
 
@@ -19,6 +24,11 @@ namespace Mycelium.Bloom.Components.Layout
     /// </summary>
     public sealed partial class WorkspaceLayout : LayoutComponentBase, IDisposable
     {
+        /// <summary>
+        /// Owns renderer-dispatched URL-context subscriptions for this layout instance.
+        /// </summary>
+        private readonly CompositeDisposable urlContextSubscriptions = new();
+
         /// <summary>
         /// A value indicating whether the shell currently reserves the collapsed navigation width.
         /// </summary>
@@ -41,15 +51,38 @@ namespace Mycelium.Bloom.Components.Layout
         private NavigationManager NavigationManager { get; set; }
 
         /// <summary>
+        /// Gets or sets the shared selected-element authority reconciled from browser locations.
+        /// </summary>
+        [Inject]
+        private IElementSelectionService ElementSelectionService { get; set; }
+
+        /// <summary>
+        /// Gets or sets the logger used for renderer-bound URL coordination failures.
+        /// </summary>
+        [Inject]
+        private ILogger<WorkspaceLayout> Logger { get; set; }
+
+        /// <summary>
         /// Gets or sets the factory that creates navigation state owned by this workspace-layout instance.
         /// </summary>
         [Inject]
         private Func<INavigationRailViewModel> NavigationViewModelFactory { get; set; }
 
         /// <summary>
+        /// Gets or sets the factory that creates URL context owned by this workspace-layout instance.
+        /// </summary>
+        [Inject]
+        private Func<IWorkspaceUrlContextService> UrlContextServiceFactory { get; set; }
+
+        /// <summary>
         /// Gets the navigation state owned by this workspace-layout instance.
         /// </summary>
         private INavigationRailViewModel NavigationViewModel { get; set; }
+
+        /// <summary>
+        /// Gets the URL context owned and cascaded by this workspace-layout instance.
+        /// </summary>
+        private IWorkspaceUrlContextService UrlContextService { get; set; }
 
         /// <summary>
         /// Creates the layout-owned navigation state and initializes its width reservation.
@@ -59,13 +92,20 @@ namespace Mycelium.Bloom.Components.Layout
             base.OnInitialized();
 
             ArgumentNullException.ThrowIfNull(this.NavigationManager);
+            ArgumentNullException.ThrowIfNull(this.ElementSelectionService);
+            ArgumentNullException.ThrowIfNull(this.Logger);
             ArgumentNullException.ThrowIfNull(this.NavigationViewModelFactory);
+            ArgumentNullException.ThrowIfNull(this.UrlContextServiceFactory);
 
             var navigationViewModel = this.NavigationViewModelFactory()
                 ?? throw new InvalidOperationException("The navigation ViewModel factory returned null.");
+            IWorkspaceUrlContextService urlContextService = null;
 
             try
             {
+                urlContextService = this.UrlContextServiceFactory()
+                                    ?? throw new InvalidOperationException(
+                                        "The URL context service factory returned null.");
                 this.isNavigationCollapsed = navigationViewModel.PresentationMode switch
                 {
                     NavigationRailPresentationMode.Expanded => false,
@@ -74,9 +114,13 @@ namespace Mycelium.Bloom.Components.Layout
                     _ => throw CreateInvalidPresentationModeException(navigationViewModel.PresentationMode)
                 };
                 this.NavigationViewModel = navigationViewModel;
+                this.UrlContextService = urlContextService;
+                this.ObserveUrlContext();
             }
             catch
             {
+                this.urlContextSubscriptions.Dispose();
+                urlContextService?.Dispose();
                 navigationViewModel.Dispose();
 
                 throw;
@@ -103,7 +147,76 @@ namespace Mycelium.Bloom.Components.Layout
             }
 
             this.isDisposed = true;
+            this.urlContextSubscriptions.Dispose();
+            this.UrlContextService?.Dispose();
             this.NavigationViewModel?.Dispose();
+        }
+
+        /// <summary>
+        /// Connects URL-derived state and navigation requests to the Blazor renderer boundary.
+        /// </summary>
+        private void ObserveUrlContext()
+        {
+            this.urlContextSubscriptions.Add(
+                this.UrlContextService.Restorations
+                    .Select(restoration => Observable.FromAsync(cancellationToken =>
+                        this.ApplyRestorationAsync(restoration, cancellationToken)))
+                    .Concat()
+                    .Subscribe(
+                        _ => { },
+                        exception => this.Logger.LogError(
+                            exception,
+                            "Workspace URL restoration stopped unexpectedly.")));
+
+            this.urlContextSubscriptions.Add(
+                this.UrlContextService.NavigationRequests
+                    .Select(uri =>
+                        Observable.FromAsync(cancellationToken =>
+                            this.ApplyNavigationRequestAsync(uri, cancellationToken)))
+                    .Concat()
+                    .Subscribe(
+                        _ => { },
+                        exception => this.Logger.LogError(
+                            exception,
+                            "Workspace URL navigation stopped unexpectedly.")));
+        }
+
+        /// <summary>
+        /// Applies one resolved browser selection through the renderer dispatcher.
+        /// </summary>
+        /// <param name="restoration">The resolved URL context.</param>
+        /// <param name="cancellationToken">Cancels work after subscription disposal.</param>
+        /// <returns>A task representing renderer dispatch.</returns>
+        private Task ApplyRestorationAsync(
+            WorkspaceUrlContextRestoration restoration,
+            CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync(() =>
+            {
+                if (!this.isDisposed && !cancellationToken.IsCancellationRequested)
+                {
+                    this.ElementSelectionService.SelectedElement = restoration.SelectedElement;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Applies one selected-element URI update without leaving Blazor client routing.
+        /// </summary>
+        /// <param name="uri">The absolute replacement URI.</param>
+        /// <param name="cancellationToken">Cancels work after subscription disposal.</param>
+        /// <returns>A task representing renderer dispatch.</returns>
+        private Task ApplyNavigationRequestAsync(string uri, CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync(() =>
+            {
+                if (!this.isDisposed
+                    && !cancellationToken.IsCancellationRequested
+                    && !string.Equals(uri, this.NavigationManager.Uri, StringComparison.Ordinal))
+                {
+                    this.NavigationManager.NavigateTo(uri, forceLoad: false, replace: true);
+                }
+            });
         }
 
         /// <summary>

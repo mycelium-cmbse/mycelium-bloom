@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -47,6 +48,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         /// The persistent layout collapse state most recently reported to the owning composition.
         /// </summary>
         private bool? reportedCollapsedState;
+
+        /// <summary>
+        /// Gets or sets the layout-owned URL context used only to derive rendered destination URIs.
+        /// </summary>
+        [CascadingParameter]
+        private IWorkspaceUrlContextService UrlContextService { get; set; }
 
         /// <summary>
         /// Gets the ViewModel required while rendering an assigned rail.
@@ -184,6 +191,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
         private string GetItemTitle(NavigationRailItem item)
         {
             return this.IsVisuallyCollapsed ? item.Label : null;
+        }
+
+        /// <summary>
+        /// Gets the canonical destination route with transferable selected-element context.
+        /// </summary>
+        /// <param name="item">The canonical navigation destination.</param>
+        /// <returns>The rendered destination URI.</returns>
+        private string GetDestinationHref(NavigationRailItem item)
+        {
+            return string.IsNullOrWhiteSpace(item.Href) || this.UrlContextService is null
+                ? item.Href
+                : this.UrlContextService.GetDestinationUri(item.Href);
         }
 
         /// <summary>

@@ -1800,6 +1800,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             viewModel.Dispose();
             viewModel.ToggleNode(rootNode);
             viewModel.SelectNode(childNode);
+            viewModel.FocusElement(childNode.SourceElement);
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
@@ -1840,6 +1841,87 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(coherentPublicationObserved, Is.True);
                 Assert.That(viewModel.SelectedNode, Is.SameAs(viewModel.RootNodes[0]));
                 Assert.That(selectionService.SelectedElement, Is.SameAs(workspaceElement));
+            }
+        }
+
+        /// <summary>
+        /// Verifies URL focus received before initialization resolves after the canonical tree is published.
+        /// </summary>
+        [Test]
+        public async Task VerifyFocusElementBeforeInitializationRestoresLocalSelectionAndAncestors()
+        {
+            var model = CreateFilterModel();
+            var matchingBranch = model.ownedElement.Single(element => element.ElementId == "matching-branch");
+            var deepTarget = matchingBranch.ownedElement.Single(element => element.ElementId == "deep-target");
+            var sharedSelection = new Namespace { ElementId = "shared-selection" };
+            var selectionService = new ContextAwareService { SelectedElement = sharedSelection };
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+
+            viewModel.FocusElement(deepTarget);
+            var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+            var rootNode = viewModel.RootNodes[0];
+            var branchNode = rootNode.Children.Single(node => node.ElementId == "matching-branch");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.True);
+                Assert.That(viewModel.SelectedNode.ElementId, Is.EqualTo("deep-target"));
+                Assert.That(rootNode.IsExpanded, Is.True);
+                Assert.That(branchNode.IsExpanded, Is.True);
+                Assert.That(selectionService.SelectedElement, Is.SameAs(sharedSelection));
+            }
+        }
+
+        /// <summary>
+        /// Verifies local URL focus does not mutate text, type, or visibility filter authority.
+        /// </summary>
+        [Test]
+        public async Task VerifyFocusElementPreservesActiveFilterState()
+        {
+            var model = CreateFilterModel();
+            var matchingBranch = model.ownedElement.Single(element => element.ElementId == "matching-branch");
+            var deepTarget = matchingBranch.ownedElement.Single(element => element.ElementId == "deep-target");
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+            viewModel.FilterText = "Sibling branch";
+            viewModel.ToggleElementTypeFilter(typeof(PartUsage));
+
+            viewModel.FocusElement(deepTarget);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.SelectedNode.ElementId, Is.EqualTo("deep-target"));
+                Assert.That(viewModel.FilterText, Is.EqualTo("Sibling branch"));
+                Assert.That(viewModel.SelectedElementTypes, Is.EqualTo(new[] { typeof(PartUsage) }));
+                Assert.That(viewModel.FilterPresentation.IsVisible(viewModel.SelectedNode), Is.False);
+                Assert.That(selectionService.SelectedElement, Is.Null);
+            }
+        }
+
+        /// <summary>
+        /// Verifies URL focus affects only the explicitly targeted local Project Browser instance.
+        /// </summary>
+        [Test]
+        public async Task VerifyFocusElementPreservesOtherBrowserLocalSelection()
+        {
+            var model = CreateSelectionModel();
+            var thruster = model.ownedElement.Single(element => element.ElementId == "thruster");
+            var sharedSelection = new ContextAwareService();
+            using var first = new ProjectBrowserViewModel(CreateModelLoader(model).Object, sharedSelection);
+            using var second = new ProjectBrowserViewModel(CreateModelLoader(model).Object, sharedSelection);
+            await first.InitializeAsync(CancellationToken.None);
+            await second.InitializeAsync(CancellationToken.None);
+            var secondTankNode = second.RootNodes[0].Children.Single(node => node.ElementId == "tank");
+            second.SelectNode(secondTankNode);
+
+            first.FocusElement(thruster);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.SelectedNode.ElementId, Is.EqualTo("thruster"));
+                Assert.That(second.SelectedNode, Is.SameAs(secondTankNode));
+                Assert.That(sharedSelection.SelectedElement, Is.SameAs(secondTankNode.SourceElement));
             }
         }
 

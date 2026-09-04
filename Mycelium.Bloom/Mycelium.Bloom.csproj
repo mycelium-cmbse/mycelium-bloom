@@ -60,7 +60,7 @@
         <PackageReference Include="OpenTelemetry" Version="1.18.0" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
-        <PackageReference Include="ReactiveUI.Blazor" Version="24.1.0" />
+        <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.23.0" />
     </ItemGroup>
 
