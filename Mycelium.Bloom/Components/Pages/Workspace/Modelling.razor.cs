@@ -9,8 +9,12 @@
 
 namespace Mycelium.Bloom.Components.Pages.Workspace
 {
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
+
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -61,6 +65,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         ];
 
         /// <summary>
+        /// Owns URL-restoration observation for this routed page instance.
+        /// </summary>
+        private readonly CompositeDisposable subscriptions = new();
+
+        /// <summary>
         /// The Project Browser ViewModels owned by their exact durable editor-tab identities.
         /// </summary>
         private readonly Dictionary<Guid, IProjectBrowserViewModel> projectBrowserViewModels = [];
@@ -93,6 +102,18 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private Func<IProjectBrowserViewModel> ProjectBrowserViewModelFactory { get; set; }
 
         /// <summary>
+        /// Gets or sets the logger used for renderer-bound focus failures.
+        /// </summary>
+        [Inject]
+        private ILogger<Modelling> Logger { get; set; }
+
+        /// <summary>
+        /// Gets or sets the layout-owned URL context when rendered in the workspace route hierarchy.
+        /// </summary>
+        [CascadingParameter]
+        private IWorkspaceUrlContextService UrlContextService { get; set; }
+
+        /// <summary>
         /// Gets the durable editor state owned by this routed editor page.
         /// </summary>
         private IWorkspaceEditorViewModel WorkspaceEditorViewModel { get; set; }
@@ -104,6 +125,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             ArgumentNullException.ThrowIfNull(this.WorkspaceEditorViewModelFactory);
             ArgumentNullException.ThrowIfNull(this.ProjectBrowserViewModelFactory);
+            ArgumentNullException.ThrowIfNull(this.Logger);
 
             this.WorkspaceEditorViewModel = this.WorkspaceEditorViewModelFactory()
                 ?? throw new InvalidOperationException("The Workspace Editor ViewModel factory returned null.");
@@ -112,6 +134,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             {
                 this.InitializeExistingProjectBrowserOwnership();
                 this.InitializePlaceholderWorkspace();
+                this.ObserveUrlRestorations();
             }
             catch
             {
@@ -132,8 +155,163 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             this.isDisposed = true;
+            this.subscriptions.Dispose();
             this.DisposeProjectBrowserViewModels();
             this.WorkspaceEditorViewModel?.Dispose();
+        }
+
+        /// <summary>
+        /// Observes URL restorations supplied by the containing workspace layout.
+        /// </summary>
+        private void ObserveUrlRestorations()
+        {
+            if (this.UrlContextService is null)
+            {
+                return;
+            }
+
+            this.subscriptions.Add(
+                this.UrlContextService.Restorations
+                    .Where(restoration => restoration.SelectedElement is not null
+                                          && restoration.ShouldFocusSelectedElement)
+                    .Select(restoration => Observable.FromAsync(cancellationToken => this.FocusRestoredElementAsync(
+                        restoration.SelectedElement,
+                        cancellationToken)))
+                    .Concat()
+                    .Subscribe(
+                        _ => { },
+                        exception => this.Logger.LogError(
+                            exception,
+                            "Project Browser URL focus stopped unexpectedly.")));
+        }
+
+        /// <summary>
+        /// Focuses the deterministic Project Browser target through the renderer dispatcher.
+        /// </summary>
+        /// <param name="element">The canonical URL-restored model element.</param>
+        /// <param name="cancellationToken">Cancels work after page disposal.</param>
+        /// <returns>A task representing renderer dispatch.</returns>
+        private Task FocusRestoredElementAsync(
+            SysML2.NET.Core.POCO.Root.Elements.IElement element,
+            CancellationToken cancellationToken)
+        {
+            return this.InvokeAsync(() =>
+            {
+                if (this.isDisposed
+                    || cancellationToken.IsCancellationRequested
+                    || !this.TryGetRestorationTarget(out var group, out var tab, out var viewModel))
+                {
+                    return;
+                }
+
+                _ = this.WorkspaceEditorViewModel.ActivateTab(group.Id, tab.Id);
+                viewModel.FocusElement(element);
+            });
+        }
+
+        /// <summary>
+        /// Selects exactly one Project Browser according to focused, active, and workspace ordering.
+        /// </summary>
+        /// <param name="group">The group that owns the selected browser tab.</param>
+        /// <param name="tab">The selected browser tab.</param>
+        /// <param name="viewModel">The exact ViewModel owned by the selected tab.</param>
+        /// <returns><see langword="true" /> when a Project Browser target exists.</returns>
+        private bool TryGetRestorationTarget(
+            out EditorGroupViewModel group,
+            out EditorTabItem tab,
+            out IProjectBrowserViewModel viewModel)
+        {
+            var focusedGroup = this.WorkspaceEditorViewModel.FocusedGroup;
+
+            if (focusedGroup is not null
+                && (this.TryGetActiveProjectBrowser(focusedGroup, out tab, out viewModel)
+                    || this.TryGetFirstProjectBrowser(focusedGroup, out tab, out viewModel)))
+            {
+                group = focusedGroup;
+
+                return true;
+            }
+
+            foreach (var candidateGroup in this.WorkspaceEditorViewModel.Groups)
+            {
+                if (this.TryGetActiveProjectBrowser(candidateGroup, out tab, out viewModel))
+                {
+                    group = candidateGroup;
+
+                    return true;
+                }
+            }
+
+            foreach (var candidateGroup in this.WorkspaceEditorViewModel.Groups)
+            {
+                if (this.TryGetFirstProjectBrowser(candidateGroup, out tab, out viewModel))
+                {
+                    group = candidateGroup;
+
+                    return true;
+                }
+            }
+
+            group = null;
+            tab = null;
+            viewModel = null;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Retrieves the active Project Browser in one group when its exact ViewModel is owned here.
+        /// </summary>
+        /// <param name="group">The candidate editor group.</param>
+        /// <param name="tab">The active Project Browser tab.</param>
+        /// <param name="viewModel">The exact ViewModel owned by the tab.</param>
+        /// <returns><see langword="true" /> when the active tab is an owned Project Browser.</returns>
+        private bool TryGetActiveProjectBrowser(
+            EditorGroupViewModel group,
+            out EditorTabItem tab,
+            out IProjectBrowserViewModel viewModel)
+        {
+            tab = group.ActiveTab;
+
+            if (tab is not null
+                && IsProjectBrowserTab(tab)
+                && this.projectBrowserViewModels.TryGetValue(tab.Id, out viewModel))
+            {
+                return true;
+            }
+
+            viewModel = null;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Retrieves the first Project Browser in one group with an exact owned ViewModel.
+        /// </summary>
+        /// <param name="group">The candidate editor group.</param>
+        /// <param name="tab">The first owned Project Browser tab.</param>
+        /// <param name="viewModel">The exact ViewModel owned by the tab.</param>
+        /// <returns><see langword="true" /> when an owned Project Browser exists in the group.</returns>
+        private bool TryGetFirstProjectBrowser(
+            EditorGroupViewModel group,
+            out EditorTabItem tab,
+            out IProjectBrowserViewModel viewModel)
+        {
+            foreach (var candidateTab in group.Tabs)
+            {
+                if (IsProjectBrowserTab(candidateTab)
+                    && this.projectBrowserViewModels.TryGetValue(candidateTab.Id, out viewModel))
+                {
+                    tab = candidateTab;
+
+                    return true;
+                }
+            }
+
+            tab = null;
+            viewModel = null;
+
+            return false;
         }
 
         /// <summary>

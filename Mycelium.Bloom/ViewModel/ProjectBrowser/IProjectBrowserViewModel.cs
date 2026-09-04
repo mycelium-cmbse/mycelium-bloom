@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
+    using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
     /// Defines the state and operations required by the project browser tree.
@@ -93,5 +94,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         /// <param name="node">The node to select.</param>
         void SelectNode(ProjectBrowserNodeViewModel node);
+
+        /// <summary>
+        /// Restores local logical focus from canonical model identity without publishing shared selection.
+        /// </summary>
+        /// <param name="element">The canonical model element to focus.</param>
+        void FocusElement(IElement element);
     }
 }

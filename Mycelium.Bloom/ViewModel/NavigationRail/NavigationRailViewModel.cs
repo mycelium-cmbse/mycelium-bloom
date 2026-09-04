@@ -95,7 +95,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         public NavigationRailItem SelectedItem
         {
             get;
-            set => this.RaiseAndSetIfChanged(ref field, value);
+            internal set => this.RaiseAndSetIfChanged(ref field, value);
         }
 
         /// <inheritdoc />
