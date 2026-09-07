@@ -18,7 +18,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using System.Threading;
     using System.Threading.Tasks;
 
-    using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
@@ -31,10 +30,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using ReactiveUI;
 
+    using SysML2.NET.Dal;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Parts;
+    using SysML2.NET.Serializer.Json;
 
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
@@ -2066,10 +2067,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var hostEnvironment = new Mock<IHostEnvironment>();
             hostEnvironment.Setup(x => x.ContentRootPath).Returns(applicationPath);
 
-            using var memoryCache = new MemoryCache(new MemoryCacheOptions());
             using var loggerFactory = LoggerFactory.Create(_ => { });
 
-            var modelLoaderService = new ModelLoaderService(hostEnvironment.Object, loggerFactory, memoryCache);
+            var modelLoaderService = new ModelLoaderService(
+                hostEnvironment.Object,
+                new DeSerializer(loggerFactory),
+                new Assembler(loggerFactory),
+                loggerFactory.CreateLogger<ModelLoaderService>());
 
             return modelLoaderService.LoadQuantitiesModel();
         }

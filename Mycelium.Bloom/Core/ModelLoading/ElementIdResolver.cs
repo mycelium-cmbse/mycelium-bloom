@@ -9,17 +9,18 @@
 
 namespace Mycelium.Bloom.Core.ModelLoading
 {
+    using SysML2.NET.Dal;
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
-    /// Resolves stable element identifiers from the cached Quantities model object graph.
+    /// Resolves stable element identifiers against the canonical SDK assembler cache.
     /// </summary>
     public sealed class ElementIdResolver : IElementIdResolver
     {
         /// <summary>
-        /// Lazily builds the immutable lookup without coupling URL resolution to a rendered tree.
+        /// The SDK assembler that owns canonical model identity.
         /// </summary>
-        private readonly Lazy<Task<IReadOnlyDictionary<string, IElement>>> elementIndex;
+        private readonly IAssembler assembler;
 
         /// <summary>
         /// The model loader that owns the cached model root.
@@ -29,105 +30,58 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// <summary>
         /// Initializes a new instance of the <see cref="ElementIdResolver" /> class.
         /// </summary>
-        /// <param name="modelLoaderService">The service that provides the cached model root.</param>
-        public ElementIdResolver(IModelLoaderService modelLoaderService)
+        /// <param name="modelLoaderService">The service that ensures the model session has been loaded.</param>
+        /// <param name="assembler">The SDK assembler that owns the canonical model cache.</param>
+        public ElementIdResolver(
+            IModelLoaderService modelLoaderService,
+            IAssembler assembler)
         {
             ArgumentNullException.ThrowIfNull(modelLoaderService);
+            ArgumentNullException.ThrowIfNull(assembler);
 
             this.modelLoaderService = modelLoaderService;
-            this.elementIndex =
-                new Lazy<Task<IReadOnlyDictionary<string, IElement>>>(() => Task.Run(this.BuildElementIndex));
+            this.assembler = assembler;
         }
 
-        /// <inheritdoc />
-        public async ValueTask<IElement> ResolveAsync(
+        /// <summary>
+        /// Resolves an exact stable identifier to the canonical POCO currently owned by the SDK assembler.
+        /// </summary>
+        /// <param name="elementId">The stable SysML element identifier.</param>
+        /// <param name="cancellationToken">Cancels model-cache inspection.</param>
+        /// <returns>The unique canonical element, or <see langword="null" /> when the identifier is absent or ambiguous.</returns>
+        public ValueTask<IElement> ResolveAsync(
             string elementId,
             CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(elementId))
             {
-                return null;
+                return ValueTask.FromResult<IElement>(null);
             }
 
-            var index = await this.elementIndex.Value.WaitAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            this.modelLoaderService.LoadQuantitiesModel();
 
-            return index.TryGetValue(elementId, out var element) ? element : null;
-        }
+            IElement resolvedElement = null;
 
-        /// <summary>
-        /// Builds an exact identifier lookup while rejecting ambiguous duplicate identifiers.
-        /// </summary>
-        /// <returns>The canonical elements indexed by stable identifier.</returns>
-        private IReadOnlyDictionary<string, IElement> BuildElementIndex()
-        {
-            var elements = new Dictionary<string, IElement>(StringComparer.Ordinal);
-            var duplicateIds = new HashSet<string>(StringComparer.Ordinal);
-            var visitedElements = new HashSet<IElement>(ReferenceEqualityComparer.Instance);
-            var pendingElements = new Stack<IElement>();
-            var root = this.modelLoaderService.LoadQuantitiesModel();
-
-            if (root is not null)
+            foreach (var cachedElement in this.assembler.Cache.Values)
             {
-                pendingElements.Push(root);
-            }
+                cancellationToken.ThrowIfCancellationRequested();
+                var candidate = cachedElement.Value;
 
-            while (pendingElements.TryPop(out var element))
-            {
-                if (!visitedElements.Add(element))
+                if (!string.Equals(candidate.ElementId, elementId, StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                IndexElement(element, elements, duplicateIds);
-                PushOwnedElements(element, pendingElements);
+                if (resolvedElement is not null)
+                {
+                    return ValueTask.FromResult<IElement>(null);
+                }
+
+                resolvedElement = candidate;
             }
 
-            return elements;
-        }
-
-        /// <summary>
-        /// Queues the current element's non-null owned elements for traversal.
-        /// </summary>
-        /// <param name="element">The element whose owned elements are queued.</param>
-        /// <param name="pendingElements">The traversal stack receiving owned elements.</param>
-        private static void PushOwnedElements(IElement element, Stack<IElement> pendingElements)
-        {
-            if (element.ownedElement is null)
-            {
-                return;
-            }
-
-            foreach (var ownedElement in element.ownedElement.OfType<IElement>())
-            {
-                pendingElements.Push(ownedElement);
-            }
-        }
-
-        /// <summary>
-        /// Adds one exact identifier while ensuring every duplicate remains unresolved.
-        /// </summary>
-        /// <param name="element">The canonical model element to index.</param>
-        /// <param name="elements">The unique identifiers resolved so far.</param>
-        /// <param name="duplicateIds">The identifiers already found to be ambiguous.</param>
-        private static void IndexElement(
-            IElement element,
-            Dictionary<string, IElement> elements,
-            HashSet<string> duplicateIds)
-        {
-            var elementId = element.ElementId;
-
-            if (string.IsNullOrWhiteSpace(elementId) || duplicateIds.Contains(elementId))
-            {
-                return;
-            }
-
-            if (elements.TryAdd(elementId, element))
-            {
-                return;
-            }
-
-            elements.Remove(elementId);
-            duplicateIds.Add(elementId);
+            return ValueTask.FromResult(resolvedElement);
         }
     }
 }

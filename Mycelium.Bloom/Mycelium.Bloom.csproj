@@ -20,7 +20,7 @@
         <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     </PropertyGroup>
     <ItemGroup>
-        <Content Include="Resources\**\*">
+        <Content Update="Resources\**\*.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </Content>
@@ -61,7 +61,8 @@
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
-        <PackageReference Include="SysML2.NET.Serializer.Xmi" Version="0.23.0" />
+        <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
+        <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
     </ItemGroup>
 
 </Project>

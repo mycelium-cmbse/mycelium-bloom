@@ -124,13 +124,21 @@ namespace Mycelium.Bloom.Core.Context
             this.restorationConnection = restorations.Connect();
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets replayed workspace restorations derived from authoritative browser locations.
+        /// </summary>
         public IObservable<WorkspaceUrlContextRestoration> Restorations { get; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets replacement navigation requests derived from shared selection and URL canonicalization.
+        /// </summary>
         public IObservable<string> NavigationRequests { get; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Adds the current stable element selection to a canonical workspace destination.
+        /// </summary>
+        /// <param name="canonicalHref">The canonical destination route.</param>
+        /// <returns>The destination URI carrying the transferable selected-element context.</returns>
         public string GetDestinationUri(string canonicalHref)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(canonicalHref);
@@ -142,7 +150,9 @@ namespace Mycelium.Bloom.Core.Context
                 : QueryHelpers.AddQueryString(canonicalHref, SelectedElementParameterName, elementId);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Stops URL-context publication and releases the replay connection.
+        /// </summary>
         public void Dispose()
         {
             if (this.isDisposed)

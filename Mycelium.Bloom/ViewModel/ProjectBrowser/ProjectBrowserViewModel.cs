@@ -395,7 +395,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Queues a canonical model identity for local focus once its browser path is available.
+        /// </summary>
+        /// <param name="element">The canonical model element to focus.</param>
         public void FocusElement(IElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
@@ -441,42 +444,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             if (element is null)
             {
-                return Array.Empty<ProjectBrowserNodeViewModel>();
+                return [];
             }
 
             return rootNodes
-                       .Select(rootNode => FindFocusPath(rootNode, element))
-                       .FirstOrDefault(path => path.Length > 0)
-                   ?? Array.Empty<ProjectBrowserNodeViewModel>();
-        }
-
-        /// <summary>
-        /// Finds the first depth-first canonical path containing the requested model identity.
-        /// </summary>
-        /// <param name="node">The current canonical node.</param>
-        /// <param name="element">The model identity to locate.</param>
-        /// <returns>The path from the current node to the target, or an empty path when unresolved.</returns>
-        private static ProjectBrowserNodeViewModel[] FindFocusPath(
-            ProjectBrowserNodeViewModel node,
-            IElement element)
-        {
-            if (ReferenceEquals(node.SourceElement, element)
-                || (!string.IsNullOrWhiteSpace(element.ElementId)
-                    && string.Equals(node.ElementId, element.ElementId, StringComparison.Ordinal)))
-            {
-                return [node];
-            }
-
-            var childPath = node.Children
-                .Select(childNode => FindFocusPath(childNode, element))
-                .FirstOrDefault(path => path.Length > 0);
-
-            if (childPath is null)
-            {
-                return Array.Empty<ProjectBrowserNodeViewModel>();
-            }
-
-            return [node, .. childPath];
+                       .Select(rootNode => rootNode.FindPathTo(element))
+                       .FirstOrDefault(path => path.Count > 0)
+                   ?? [];
         }
 
         /// <summary>

@@ -20,6 +20,9 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
+    using SysML2.NET.Dal;
+    using SysML2.NET.Serializer.Json;
+
     /// <summary>
     /// Provides dependency-injection registration extensions for Mycelium Bloom application services.
     /// </summary>
@@ -68,6 +71,8 @@ namespace Mycelium.Bloom.Extensions
         {
             ArgumentNullException.ThrowIfNull(services);
 
+            services.AddScoped<IAssembler, Assembler>();
+            services.AddScoped<IDeSerializer, DeSerializer>();
             services.AddScoped<IModelLoaderService, ModelLoaderService>();
             services.AddScoped<IElementIdResolver, ElementIdResolver>();
             services.AddScoped<ContextAwareService>();
