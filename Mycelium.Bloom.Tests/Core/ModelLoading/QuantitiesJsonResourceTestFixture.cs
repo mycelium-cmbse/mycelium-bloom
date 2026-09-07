@@ -130,7 +130,7 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
         /// Gets the SDK-provided concrete POCO-to-DTO conversions keyed by their source type.
         /// </summary>
         /// <returns>The available SDK conversion methods.</returns>
-        private static IReadOnlyDictionary<Type, MethodInfo> GetDtoConversionMethods()
+        private static Dictionary<Type, MethodInfo> GetDtoConversionMethods()
         {
             return typeof(IAssembler).Assembly
                 .GetTypes()
@@ -162,7 +162,7 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
         /// <returns>The corresponding PSM DTO.</returns>
         private static DtoElement ConvertToDto(
             PocoElement element,
-            IReadOnlyDictionary<Type, MethodInfo> conversionMethods)
+            Dictionary<Type, MethodInfo> conversionMethods)
         {
             if (!conversionMethods.TryGetValue(element.GetType(), out var conversionMethod))
             {
@@ -253,9 +253,9 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
         /// <param name="canonicalRoot">The root produced by JSON deserialization and assembly.</param>
         /// <param name="assembler">The assembler that owns the target POCO identities.</param>
         private static void AssertEquivalentModel(
-            IReadOnlyCollection<PocoElement> sourceElements,
+            List<PocoElement> sourceElements,
             PocoNamespace canonicalRoot,
-            IAssembler assembler)
+            Assembler assembler)
         {
             var canonicalElements = EnumerateContainment([canonicalRoot]).ToDictionary(element => element.Id);
 
@@ -308,7 +308,7 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
         /// Verifies the supporting SDK element that supplies the inherited QUDV dimensions name is canonical.
         /// </summary>
         /// <param name="assembler">The assembler owning the synchronized model.</param>
-        private static void AssertExternalRedefinitionIsCanonical(IAssembler assembler)
+        private static void AssertExternalRedefinitionIsCanonical(Assembler assembler)
         {
             var redefiningFeatureId = Guid.Parse("334779bf-6357-5adf-a7c5-ffb32c2ffd17");
             var redefinedFeatureId = Guid.Parse("b81e8170-64bd-590e-869f-6de1ad059600");
