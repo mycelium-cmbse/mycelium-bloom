@@ -49,7 +49,7 @@ namespace Mycelium.Bloom.Extensions
             ArgumentNullException.ThrowIfNull(configuration);
 
             var knownProxyValue = configuration["ReverseProxy:KnownProxy"];
-            IPAddress.TryParse(knownProxyValue, out var knownProxy);
+            var isKnownProxyValid = IPAddress.TryParse(knownProxyValue, out var knownProxy);
 
             services.AddOptions<ForwardedHeadersOptions>()
                 .Configure(options =>
@@ -57,13 +57,13 @@ namespace Mycelium.Bloom.Extensions
                     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
                     options.RequireHeaderSymmetry = true;
 
-                    if (knownProxy is not null)
+                    if (isKnownProxyValid)
                     {
                         options.KnownProxies.Add(knownProxy);
                     }
                 })
                 .Validate(
-                    _ => string.IsNullOrWhiteSpace(knownProxyValue) || knownProxy is not null,
+                    _ => string.IsNullOrWhiteSpace(knownProxyValue) || isKnownProxyValid,
                     "ReverseProxy:KnownProxy must be a valid IP address.")
                 .ValidateOnStart();
 
