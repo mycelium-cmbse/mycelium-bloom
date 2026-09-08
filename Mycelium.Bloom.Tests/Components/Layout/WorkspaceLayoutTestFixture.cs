@@ -13,18 +13,25 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
+    using Bunit.TestDoubles;
 
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging.Abstractions;
+
+    using Moq;
 
     using Mycelium.Bloom.Components.Layout;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
@@ -47,6 +54,8 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
         private readonly ContextAwareService context;
 
+        private readonly Mock<IElementIdResolver> elementIdResolver;
+
         private int navigationViewModelCreationCount;
 
         /// <summary>
@@ -59,6 +68,14 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             this.context = new ContextAwareService();
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            this.Services.AddSingleton(this.elementIdResolver.Object);
+            this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
+                () => new WorkspaceUrlContextService(
+                    serviceProvider.GetRequiredService<NavigationManager>(),
+                    this.elementIdResolver.Object,
+                    this.context,
+                    NullLogger<WorkspaceUrlContextService>.Instance));
             this.Services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
             this.Services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
                 () =>
@@ -210,6 +227,121 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(component.FindAll(".mb-navigation-rail__link[aria-current='page']"),
                     Has.Count.EqualTo(1));
                 Assert.That(this.navigationViewModelCreationCount, Is.EqualTo(1));
+            }
+        }
+
+        /// <summary>
+        /// Verifies direct URL context restores shared selection and is carried only onto canonical destinations.
+        /// </summary>
+        [Test]
+        public async Task VerifyDirectUrlRestoresSelectionAndDerivesNavigationDestinations()
+        {
+            var element = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace
+            {
+                ElementId = "part/alpha value"
+            };
+            this.elementIdResolver
+                .Setup(resolver => resolver.ResolveAsync(
+                    "part/alpha value",
+                    It.IsAny<CancellationToken>()))
+                .Returns(() => ValueTask.FromResult<SysML2.NET.Core.POCO.Root.Elements.IElement>(element));
+            this.Services.GetRequiredService<NavigationManager>().NavigateTo(
+                "/workspace/dashboard?selectedElement=part%2Falpha%20value&panel=summary#target");
+            using var component = this.RenderLayout(CreateBody("Dashboard content", "Dashboard"));
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(this.context.SelectedElement, Is.SameAs(element));
+                    Assert.That(
+                        component.Find("a[aria-label='Modelling']").GetAttribute("href"),
+                        Is.EqualTo("/workspace/modeling?selectedElement=part%2Falpha%20value"));
+                    Assert.That(
+                        component.Find("a[aria-label='Dashboard']").GetAttribute("aria-current"),
+                        Is.EqualTo("page"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies shared selection updates only its query parameter using replacement history semantics.
+        /// </summary>
+        [Test]
+        public async Task VerifySelectionUpdatesPreserveUriAndReplaceHistory()
+        {
+            var first = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "first/value" };
+            var equivalentFirst = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace
+            {
+                ElementId = "first/value"
+            };
+            var second = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "second value" };
+            this.elementIdResolver
+                .Setup(resolver => resolver.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string elementId, CancellationToken _) =>
+                    ValueTask.FromResult<SysML2.NET.Core.POCO.Root.Elements.IElement>(
+                        elementId switch
+                        {
+                            "first/value" => first,
+                            "second value" => second,
+                            _ => null
+                        }));
+            var navigation = (BunitNavigationManager)this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/?panel=summary#target");
+            using var component = this.RenderLayout(CreateBody("Editor content", "Modelling"));
+
+            await component.InvokeAsync(() => this.context.SelectedElement = first);
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=first%2Fvalue")));
+            var historyCountAfterFirstSelection = navigation.History.Count;
+
+            await component.InvokeAsync(() => this.context.SelectedElement = equivalentFirst);
+
+            Assert.That(navigation.History, Has.Count.EqualTo(historyCountAfterFirstSelection));
+
+            await component.InvokeAsync(() => this.context.SelectedElement = second);
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=second%20value")));
+
+            await component.InvokeAsync(() => this.context.SelectedElement = null);
+            await component.WaitForAssertionAsync(() =>
+            {
+                var absoluteUri = navigation.ToAbsoluteUri(navigation.Uri);
+                var query = QueryHelpers.ParseQuery(absoluteUri.Query);
+                var latestHistory = navigation.History.First();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(absoluteUri.AbsolutePath, Is.EqualTo("/"));
+                    Assert.That(absoluteUri.Fragment, Is.EqualTo("#target"));
+                    Assert.That(query["panel"][0], Is.EqualTo("summary"));
+                    Assert.That(
+                        query.ContainsKey(WorkspaceUrlContextService.SelectedElementParameterName),
+                        Is.False);
+                    Assert.That(latestHistory.Options.ReplaceHistoryEntry, Is.True);
+                    Assert.That(latestHistory.Options.ForceLoad, Is.False);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies final layout disposal stops both URL observation and selection-driven navigation.
+        /// </summary>
+        [Test]
+        public async Task VerifyDisposalStopsUrlContextNavigation()
+        {
+            var navigation = (BunitNavigationManager)this.Services.GetRequiredService<NavigationManager>();
+            using var component = this.RenderLayout(CreateBody("Editor content", "Modelling"));
+            var historyCount = navigation.History.Count;
+
+            component.Instance.Dispose();
+            await component.InvokeAsync(() => this.context.SelectedElement =
+                new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "after-disposal" });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(navigation.History, Has.Count.EqualTo(historyCount));
+                Assert.That(navigation.Uri, Does.Not.Contain("selectedElement"));
             }
         }
 

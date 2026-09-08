@@ -14,12 +14,14 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
 
     using Moq;
@@ -36,10 +38,14 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
+    using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
+
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
+    using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
 
@@ -57,6 +63,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         private readonly List<Mock<IProjectBrowserViewModel>> projectBrowserViewModels = [];
         private readonly List<INavigationRailViewModel> navigationViewModels = [];
         private readonly ContextAwareService context;
+        private readonly Mock<IElementIdResolver> elementIdResolver;
         private readonly ProjectBrowserFilterPresentation inactiveFilterPresentation;
 
         /// <summary>
@@ -67,6 +74,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             BlueprintTestSetup.Configure(this);
 
             this.context = new ContextAwareService();
+            this.elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
             var editorOptions = Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 3 });
             using var filterPresentationOwner = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
@@ -75,6 +83,13 @@ namespace Mycelium.Bloom.Tests.Components.Routing
 
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.Services.AddSingleton(this.elementIdResolver.Object);
+            this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
+                () => new WorkspaceUrlContextService(
+                    serviceProvider.GetRequiredService<NavigationManager>(),
+                    this.elementIdResolver.Object,
+                    this.context,
+                    NullLogger<WorkspaceUrlContextService>.Instance));
             this.Services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
             this.Services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
                 () =>
@@ -180,6 +195,124 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                 Assert.That(this.editorViewModels, Is.Empty);
                 Assert.That(this.projectBrowserViewModels, Is.Empty);
             }
+        }
+
+        /// <summary>
+        /// Verifies direct workspace URLs restore shared model identity and the matching route destination.
+        /// </summary>
+        /// <param name="route">The direct workspace route.</param>
+        /// <param name="expectedDestinationId">The canonical NavigationRail destination.</param>
+        /// <param name="expectsProjectBrowser">Whether the route composes modeling content.</param>
+        [TestCase("/?selectedElement=part%2Falpha%20value", "modelling", true)]
+        [TestCase("/workspace/modeling?selectedElement=part%2Falpha%20value", "modelling", true)]
+        [TestCase("/workspace/dashboard?selectedElement=part%2Falpha%20value", "dashboard", false)]
+        public void VerifyDirectWorkspaceUrlRestoresSelectedElement(
+            string route,
+            string expectedDestinationId,
+            bool expectsProjectBrowser)
+        {
+            var element = new Namespace { ElementId = "part/alpha value" };
+            this.elementIdResolver
+                .Setup(resolver => resolver.ResolveAsync(
+                    "part/alpha value",
+                    It.IsAny<CancellationToken>()))
+                .Returns(() => ValueTask.FromResult<IElement>(element));
+            this.Services.GetRequiredService<NavigationManager>().NavigateTo(route);
+
+            using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
+
+            routes.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(this.context.SelectedElement, Is.SameAs(element));
+                    Assert.That(
+                        routes.FindComponent<NavigationRailComponent>().Instance.ViewModel.SelectedItem.Id,
+                        Is.EqualTo(expectedDestinationId));
+                    Assert.That(
+                        routes.FindComponents<ProjectBrowserComponent>(),
+                        Has.Count.EqualTo(expectsProjectBrowser ? 1 : 0));
+                }
+            });
+
+            if (expectsProjectBrowser)
+            {
+                this.projectBrowserViewModels[0].Verify(
+                    viewModel => viewModel.FocusElement(element),
+                    Times.Once);
+            }
+        }
+
+        /// <summary>
+        /// Verifies a selected element survives destination changes without carrying unrelated route context.
+        /// </summary>
+        [Test]
+        public async Task VerifyNavigationRailDestinationPreservesOnlySelectedElementContext()
+        {
+            var element = new Namespace { ElementId = "part/alpha value" };
+            this.elementIdResolver
+                .Setup(resolver => resolver.ResolveAsync(
+                    "part/alpha value",
+                    It.IsAny<CancellationToken>()))
+                .Returns(() => ValueTask.FromResult<IElement>(element));
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling?panel=editor#old");
+            using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
+
+            await routes.InvokeAsync(() => this.context.SelectedElement = element);
+            await routes.WaitForAssertionAsync(() =>
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=part%2Falpha%20value")));
+            var dashboardHref = routes.Find("a[aria-label='Dashboard']").GetAttribute("href");
+
+            Assert.That(
+                dashboardHref,
+                Is.EqualTo("/workspace/dashboard?selectedElement=part%2Falpha%20value"));
+
+            navigation.NavigateTo(dashboardHref);
+
+            routes.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(routes.FindComponents<Dashboard>(), Has.Count.EqualTo(1));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(element));
+                    Assert.That(
+                        routes.FindComponent<NavigationRailComponent>().Instance.ViewModel.SelectedItem.Id,
+                        Is.EqualTo("dashboard"));
+                }
+            });
+        }
+
+        /// <summary>
+        /// Verifies a selected-element-only location update preserves the existing editor and browser instances.
+        /// </summary>
+        [Test]
+        public void VerifyQueryOnlySelectionUpdateDoesNotRemountModellingState()
+        {
+            var element = new Namespace { ElementId = "restored" };
+            this.elementIdResolver
+                .Setup(resolver => resolver.ResolveAsync("restored", It.IsAny<CancellationToken>()))
+                .Returns(() => ValueTask.FromResult<IElement>(element));
+            using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
+            var layout = routes.FindComponent<WorkspaceLayout>().Instance;
+            var editor = routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel;
+            var browser = this.projectBrowserViewModels[0];
+
+            this.Services.GetRequiredService<NavigationManager>()
+                .NavigateTo("/workspace/modeling?selectedElement=restored");
+
+            routes.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
+                    Assert.That(routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel, Is.SameAs(editor));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(element));
+                }
+            });
+
+            browser.Verify(viewModel => viewModel.Dispose(), Times.Never);
+            browser.Verify(viewModel => viewModel.FocusElement(element), Times.Once);
         }
 
         /// <summary>
@@ -336,6 +469,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             viewModel.SetupGet(candidate => candidate.ErrorMessage).Returns(string.Empty);
             viewModel.Setup(candidate => candidate.ClearFilter());
             viewModel.Setup(candidate => candidate.ToggleElementTypeFilter(It.IsAny<Type>()));
+            viewModel.Setup(candidate => candidate.FocusElement(It.IsAny<IElement>()));
             viewModel.Setup(candidate => candidate.Dispose());
             this.projectBrowserViewModels.Add(viewModel);
 

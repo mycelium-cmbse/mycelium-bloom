@@ -95,5 +95,30 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets a value indicating whether the node has child nodes.
         /// </summary>
         public bool HasChildren => this.Children.Count > 0;
+
+        /// <summary>
+        /// Finds the first depth-first path from this node to a canonical model identity in its subtree.
+        /// </summary>
+        /// <param name="element">The canonical model element to locate.</param>
+        /// <returns>The path from this node to the target, or an empty path when the identity is absent.</returns>
+        public IReadOnlyList<ProjectBrowserNodeViewModel> FindPathTo(IElement element)
+        {
+            ArgumentNullException.ThrowIfNull(element);
+
+            if (ReferenceEquals(this.SourceElement, element)
+                || (!string.IsNullOrWhiteSpace(element.ElementId)
+                    && string.Equals(this.ElementId, element.ElementId, StringComparison.Ordinal)))
+            {
+                return [this];
+            }
+
+            var childPath = this.Children
+                .Select(childNode => childNode.FindPathTo(element))
+                .FirstOrDefault(path => path.Count > 0);
+
+            return childPath is null
+                ? Array.Empty<ProjectBrowserNodeViewModel>()
+                : [this, .. childPath];
+        }
     }
 }

@@ -105,12 +105,12 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             new Dictionary<string, string>
             {
                 ["AngleSharp"] = "1.7.2",
-                ["BlazorBlueprint.Components"] = "3.15.0",
+                ["BlazorBlueprint.Components"] = "3.16.0",
                 ["BlazorBlueprint.Icons.Lucide"] = "2.0.2",
-                ["BlazorBlueprint.Primitives"] = "3.15.0",
+                ["BlazorBlueprint.Primitives"] = "3.16.0",
                 ["DynamicData"] = "9.4.33",
                 ["HtmlSanitizer"] = "9.2.1039",
-                ["ReactiveUI.Blazor"] = "24.1.0"
+                ["ReactiveUI.Blazor"] = "24.2.0"
             };
 
         private static readonly string[] RequiredLucideIconNames =
@@ -384,7 +384,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                     Does.Match(
                         @"AddBlazorBlueprintComponents\(\s*configureTheme:\s*options\s*=>\s*\{\s*options\.DetectSystemPreference\s*=\s*false;\s*options\.DefaultRadius\s*=\s*0\.375d;\s*\}\)\s*\.AddApplicationServices\(\);"));
                 Assert.That(program, Does.Not.Contain("AddBlazorBlueprintPrimitives();"));
-                Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.15.0\""));
+                Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.16.0\""));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Icons.Lucide\" Version=\"2.0.2\""));
                 Assert.That(project, Does.Not.Contain("<PackageReference Include=\"BlazorBlueprint.Primitives\""));
                 Assert.That(project, Does.Contain("HtmlSanitizer\" Version=\"9.2.1039\""));

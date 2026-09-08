@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Extensions
 {
     using System;
+    using System.Linq;
 
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
@@ -25,6 +26,9 @@ namespace Mycelium.Bloom.Tests.Extensions
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     using Moq;
+
+    using SysML2.NET.Dal;
+    using SysML2.NET.Serializer.Json;
 
     [TestFixture]
     public sealed class ServiceCollectionExtensionsTestFixture
@@ -45,6 +49,30 @@ namespace Mycelium.Bloom.Tests.Extensions
             var services = new ServiceCollection();
 
             Assert.That(services.AddApplicationServices(), Is.SameAs(services));
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersUrlContextResolutionBoundaries()
+        {
+            var services = new ServiceCollection();
+            services.AddApplicationServices();
+            var assembler = services.Single(descriptor => descriptor.ServiceType == typeof(IAssembler));
+            var deSerializer = services.Single(descriptor => descriptor.ServiceType == typeof(IDeSerializer));
+            var elementResolver = services.Single(descriptor => descriptor.ServiceType == typeof(IElementIdResolver));
+            var urlContextFactory = services.Single(descriptor =>
+                descriptor.ServiceType == typeof(Func<IWorkspaceUrlContextService>));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(assembler.Lifetime, Is.EqualTo(ServiceLifetime.Scoped));
+                Assert.That(assembler.ImplementationType, Is.EqualTo(typeof(Assembler)));
+                Assert.That(deSerializer.Lifetime, Is.EqualTo(ServiceLifetime.Scoped));
+                Assert.That(deSerializer.ImplementationType, Is.EqualTo(typeof(DeSerializer)));
+                Assert.That(elementResolver.Lifetime, Is.EqualTo(ServiceLifetime.Scoped));
+                Assert.That(elementResolver.ImplementationType, Is.EqualTo(typeof(ElementIdResolver)));
+                Assert.That(urlContextFactory.Lifetime, Is.EqualTo(ServiceLifetime.Scoped));
+                Assert.That(urlContextFactory.ImplementationFactory, Is.Not.Null);
+            }
         }
 
         [Test]

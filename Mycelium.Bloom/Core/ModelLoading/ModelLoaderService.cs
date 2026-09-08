@@ -11,10 +11,12 @@ namespace Mycelium.Bloom.Core.ModelLoading
 {
     using System.Diagnostics;
 
-    using Microsoft.Extensions.Caching.Memory;
-
+    using SysML2.NET.Dal;
     using SysML2.NET.Core.POCO.Root.Namespaces;
-    using SysML2.NET.Serializer.Xmi;
+    using SysML2.NET.Serializer.Json;
+
+    using DtoElement = SysML2.NET.Core.DTO.Root.Elements.IElement;
+    using DtoNamespace = SysML2.NET.Core.DTO.Root.Namespaces.INamespace;
 
     /// <summary>
     /// Provides operations to load SysML model files.
@@ -22,9 +24,19 @@ namespace Mycelium.Bloom.Core.ModelLoading
     public sealed class ModelLoaderService : IModelLoaderService
     {
         /// <summary>
-        /// The cache key used for the loaded Quantities standard library model.
+        /// The file name of the local SysML v2 API-shaped Quantities payload.
         /// </summary>
-        private const string QuantitiesModelCacheKey = "SysML2.QuantitiesModel";
+        private const string QuantitiesModelFileName = "Quantities.json";
+
+        /// <summary>
+        /// The SDK assembler that owns canonical POCO identity for this model session.
+        /// </summary>
+        private readonly IAssembler assembler;
+
+        /// <summary>
+        /// The SDK deserializer that reads SysML v2 API-shaped JSON payloads.
+        /// </summary>
+        private readonly IDeSerializer deSerializer;
 
         /// <summary>
         /// The host environment used to resolve application content paths.
@@ -37,43 +49,78 @@ namespace Mycelium.Bloom.Core.ModelLoading
         private readonly ILogger<ModelLoaderService> logger;
 
         /// <summary>
-        /// The logger factory passed to the SysML XMI deserializer.
+        /// The lazily loaded Quantities model for this model session.
         /// </summary>
-        private readonly ILoggerFactory loggerFactory;
-
-        /// <summary>
-        /// The memory cache used to cache loaded standard library models.
-        /// </summary>
-        private readonly IMemoryCache memoryCache;
+        private readonly Lazy<INamespace> quantitiesModel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModelLoaderService" /> class.
         /// </summary>
         /// <param name="hostEnvironment">The web host environment used to resolve application paths.</param>
-        /// <param name="loggerFactory">The logger factory used by the service and the SysML XMI deserializer.</param>
-        /// <param name="memoryCache">The memory cache used to cache loaded standard library models.</param>
+        /// <param name="deSerializer">The SDK JSON deserializer used to read PSM DTOs.</param>
+        /// <param name="assembler">The SDK assembler that owns the canonical POCO graph.</param>
+        /// <param name="logger">The logger used to write model loading messages.</param>
         public ModelLoaderService(
             IHostEnvironment hostEnvironment,
-            ILoggerFactory loggerFactory,
-            IMemoryCache memoryCache)
+            IDeSerializer deSerializer,
+            IAssembler assembler,
+            ILogger<ModelLoaderService> logger)
         {
-            this.hostEnvironment = hostEnvironment;
-            this.loggerFactory = loggerFactory;
-            this.logger = loggerFactory.CreateLogger<ModelLoaderService>();
-            this.memoryCache = memoryCache;
+            this.hostEnvironment = hostEnvironment ?? throw new ArgumentNullException(nameof(hostEnvironment));
+            this.deSerializer = deSerializer ?? throw new ArgumentNullException(nameof(deSerializer));
+            this.assembler = assembler ?? throw new ArgumentNullException(nameof(assembler));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            this.quantitiesModel = new Lazy<INamespace>(this.LoadQuantitiesModelResource);
         }
 
         /// <summary>
-        /// Loads a SysML model from the provided file URI.
+        /// Loads a SysML v2 API-shaped JSON payload and synchronizes it into the canonical SDK model.
         /// </summary>
         /// <param name="modelUri">The URI of the SysML model file to load.</param>
-        /// <returns>The loaded SysML model.</returns>
+        /// <returns>The canonical root namespace assembled from the payload DTOs.</returns>
         public INamespace LoadModel(Uri modelUri)
         {
+            ArgumentNullException.ThrowIfNull(modelUri);
+
+            var filePath = modelUri.LocalPath;
+
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException("The SysML JSON model file could not be found.", filePath);
+            }
+
             var stopwatch = Stopwatch.StartNew();
 
-            var deSerializer = new DeSerializer(this.loggerFactory);
-            var readResult = deSerializer.DeSerialize(modelUri);
+            using var stream = File.OpenRead(filePath);
+
+            var data = this.deSerializer
+                .DeSerialize(stream, SerializationModeKind.JSON, SerializationTargetKind.PSM, false)
+                .ToList();
+            var elements = data.OfType<DtoElement>().ToList();
+
+            if (elements.Count != data.Count)
+            {
+                throw new InvalidDataException("The SysML JSON model must contain only PSM element DTOs.");
+            }
+
+            var rootNamespaces = elements
+                .OfType<DtoNamespace>()
+                .Where(element => !element.OwningRelationship.HasValue)
+                .ToList();
+
+            if (rootNamespaces.Count != 1)
+            {
+                throw new InvalidDataException("The SysML JSON model must contain exactly one root namespace DTO.");
+            }
+
+            this.assembler.Synchronize(elements);
+
+            if (!this.assembler.Cache.TryGetValue(rootNamespaces[0].Id, out var rootElement)
+                || rootElement.Value is not INamespace rootNamespace)
+            {
+                throw new InvalidDataException("The SDK assembler did not produce the requested root namespace.");
+            }
+
             stopwatch.Stop();
 
             if (this.logger.IsEnabled(LogLevel.Information))
@@ -84,7 +131,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
                     stopwatch.ElapsedMilliseconds);
             }
 
-            return readResult.RootNamespace;
+            return rootNamespace;
         }
 
         /// <summary>
@@ -93,30 +140,23 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// <returns>The loaded SysML Quantities model.</returns>
         public INamespace LoadQuantitiesModel()
         {
-            var model = this.memoryCache.GetOrCreate(
-                QuantitiesModelCacheKey,
-                entry =>
-                {
-                    entry.Priority = CacheItemPriority.NeverRemove;
+            return this.quantitiesModel.Value;
+        }
 
-                    var filePath = Path.Combine(
-                        this.hostEnvironment.ContentRootPath,
-                        "Resources",
-                        "Domain Libraries",
-                        "Quantities and Units",
-                        "Quantities.sysmlx");
+        /// <summary>
+        /// Loads the local Quantities payload through the same JSON DTO boundary used by the SDK REST client.
+        /// </summary>
+        /// <returns>The canonical Quantities root namespace.</returns>
+        private INamespace LoadQuantitiesModelResource()
+        {
+            var filePath = Path.Combine(
+                this.hostEnvironment.ContentRootPath,
+                "Resources",
+                "Domain Libraries",
+                "Quantities and Units",
+                QuantitiesModelFileName);
 
-                    if (!File.Exists(filePath))
-                    {
-                        throw new FileNotFoundException(
-                            "The Quantities.sysmlx file could not be found.",
-                            filePath);
-                    }
-
-                    return this.LoadModel(new Uri(filePath));
-                });
-
-            return model;
+            return this.LoadModel(new Uri(filePath));
         }
     }
 }
