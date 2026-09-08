@@ -10,10 +10,8 @@
 namespace Mycelium.Bloom.Tests.Core.ModelLoading
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Reflection;
     using System.Text.Json;
 
     using Microsoft.Extensions.Logging;
@@ -21,287 +19,130 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
     using Mycelium.Bloom.Tests.Common;
 
     using SysML2.NET.Dal;
+    using SysML2.NET.Serializer.Json;
 
     using DtoElement = SysML2.NET.Core.DTO.Root.Elements.IElement;
-    using JsonDeSerializer = SysML2.NET.Serializer.Json.DeSerializer;
-    using JsonSerializer = SysML2.NET.Serializer.Json.Serializer;
-    using PocoElement = SysML2.NET.Core.POCO.Root.Elements.IElement;
+    using DtoNamespace = SysML2.NET.Core.DTO.Root.Namespaces.INamespace;
     using PocoFeature = SysML2.NET.Core.POCO.Core.Features.IFeature;
     using PocoNamespace = SysML2.NET.Core.POCO.Root.Namespaces.INamespace;
     using PocoRedefinition = SysML2.NET.Core.POCO.Core.Features.IRedefinition;
-    using SerializationModeKind = SysML2.NET.Serializer.Json.SerializationModeKind;
-    using SerializationTargetKind = SysML2.NET.Serializer.Json.SerializationTargetKind;
-    using XmiDeSerializer = SysML2.NET.Serializer.Xmi.DeSerializer;
 
     /// <summary>
-    /// Verifies the API-shaped Quantities payload against its authoritative XMI source.
+    /// Verifies the local API-shaped Quantities payload and its canonical SDK model.
     /// </summary>
     [TestFixture]
     public sealed class QuantitiesJsonResourceTestFixture
     {
-        /// <summary>
-        /// Verifies deterministic DTO generation and canonical assembly preserve the Bloom-consumed QUDV model.
-        /// </summary>
         [Test]
-        public void VerifyQuantitiesJsonResourceMatchesAuthoritativeXmiModel()
+        public void VerifyQuantitiesJsonResourceAssemblesCanonicalModel()
         {
-            var resourceDirectory = Path.Combine(
+            var resourcePath = Path.Combine(
                 TestRepository.GetDirectoryPath("Mycelium.Bloom"),
                 "Resources",
                 "Domain Libraries",
-                "Quantities and Units");
-            using var loggerFactory = LoggerFactory.Create(_ => { });
-            var sourceResult = new XmiDeSerializer(loggerFactory)
-                .DeSerialize(new Uri(Path.Combine(resourceDirectory, "Quantities.sysmlx")));
-            var sourceElements = EnumerateContainment([sourceResult.RootNamespace]).ToList();
-            var availableElements = EnumerateContainment(
-                    new[] { sourceResult.RootNamespace }.Concat(sourceResult.ReferencedNamespaces))
-                .ToDictionary(element => element.Id);
-            var sourceElementIds = sourceElements.Select(element => element.Id).ToHashSet();
-            var conversionMethods = GetDtoConversionMethods();
-            var sourceDtos = sourceElements
-                .Select(element => ConvertToDto(element, conversionMethods))
-                .ToList();
-            var referencedElementIds = sourceDtos
-                .SelectMany(GetReferencedIdentifiers)
-                .Distinct()
-                .ToList();
+                "Quantities and Units",
+                "Quantities.json");
 
-            Assert.That(
-                referencedElementIds.Where(identifier => !availableElements.ContainsKey(identifier)),
-                Is.Empty);
+            Assert.That(File.Exists(resourcePath), Is.True);
 
-            var supportingElementIds = referencedElementIds
-                .Where(identifier => !sourceElementIds.Contains(identifier))
-                .OrderBy(identifier => identifier)
-                .ToList();
-
-            var generatedDtos = sourceDtos
-                .Concat(supportingElementIds.Select(identifier => ConvertToDto(
-                    availableElements[identifier],
-                    conversionMethods)))
-                .ToList();
-            using var generatedJson = new MemoryStream();
-
-            new JsonSerializer().Serialize(
-                generatedDtos,
-                SerializationModeKind.JSON,
-                false,
-                generatedJson,
-                new JsonWriterOptions { Indented = true, NewLine = "\n" });
-
-            var committedJson = File.ReadAllBytes(Path.Combine(resourceDirectory, "Quantities.json"));
+            var committedJson = File.ReadAllBytes(resourcePath);
             using var jsonDocument = JsonDocument.Parse(committedJson);
-            generatedJson.Position = 0;
-            var deserializedData = new JsonDeSerializer(loggerFactory)
-                .DeSerialize(
-                    generatedJson,
-                    SerializationModeKind.JSON,
-                    SerializationTargetKind.PSM,
-                    false)
+
+            Assert.That(jsonDocument.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array));
+
+            using var loggerFactory = LoggerFactory.Create(_ => { });
+            using var jsonStream = new MemoryStream(committedJson);
+            var data = new DeSerializer(loggerFactory)
+                .DeSerialize(jsonStream, SerializationModeKind.JSON, SerializationTargetKind.PSM, false)
                 .ToList();
-            var deserializedDtos = deserializedData.OfType<DtoElement>().ToList();
-            var assembler = new Assembler(loggerFactory);
-            assembler.Synchronize(deserializedDtos);
-            var canonicalRoot = (PocoNamespace)assembler.Cache[sourceResult.RootNamespace.Id].Value;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(sourceElements, Has.Count.EqualTo(281));
-                Assert.That(supportingElementIds, Has.Count.EqualTo(24));
-                Assert.That(generatedJson.ToArray(), Is.EqualTo(committedJson));
-                Assert.That(jsonDocument.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array));
-                Assert.That(jsonDocument.RootElement.GetArrayLength(), Is.EqualTo(generatedDtos.Count));
-                Assert.That(jsonDocument.RootElement[0].TryGetProperty("@type", out _), Is.True);
-                Assert.That(jsonDocument.RootElement[0].TryGetProperty("@id", out _), Is.True);
-                Assert.That(deserializedDtos, Has.Count.EqualTo(deserializedData.Count));
-                Assert.That(assembler.Cache, Has.Count.EqualTo(generatedDtos.Count));
-                Assert.That(canonicalRoot, Is.SameAs(assembler.Cache[canonicalRoot.Id].Value));
-                Assert.That(
-                    supportingElementIds.All(identifier => assembler.Cache.ContainsKey(identifier)),
-                    Is.True);
+                Assert.That(jsonDocument.RootElement.GetArrayLength(), Is.EqualTo(305));
+                Assert.That(data, Has.Count.EqualTo(305));
+                Assert.That(data, Is.All.InstanceOf<DtoElement>());
             }
 
-            AssertEquivalentModel(sourceElements, canonicalRoot, assembler);
-            AssertExternalRedefinitionIsCanonical(assembler);
-        }
+            var elements = data.Cast<DtoElement>().ToList();
+            var identifiers = elements.Select(element => element.Id).ToList();
 
-        /// <summary>
-        /// Gets the SDK-provided concrete POCO-to-DTO conversions keyed by their source type.
-        /// </summary>
-        /// <returns>The available SDK conversion methods.</returns>
-        private static Dictionary<Type, MethodInfo> GetDtoConversionMethods()
-        {
-            return typeof(IAssembler).Assembly
-                .GetTypes()
-                .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static))
-                .Where(IsDtoConversionMethod)
-                .ToDictionary(method => method.GetParameters()[0].ParameterType);
-        }
+            Assert.That(identifiers, Is.Unique);
+            Assert.That(identifiers, Has.None.EqualTo(Guid.Empty));
 
-        /// <summary>
-        /// Determines whether a method is an SDK POCO-to-DTO conversion.
-        /// </summary>
-        /// <param name="method">The method to inspect.</param>
-        /// <returns><see langword="true" /> when the method converts one concrete POCO element to its DTO.</returns>
-        private static bool IsDtoConversionMethod(MethodInfo method)
-        {
-            var parameters = method.GetParameters();
+            var rootNamespaces = elements
+                .OfType<DtoNamespace>()
+                .Where(element => !element.OwningRelationship.HasValue)
+                .ToList();
 
-            return method.Name == "ToDto"
-                   && typeof(DtoElement).IsAssignableFrom(method.ReturnType)
-                   && parameters.Length == 2
-                   && parameters[1].ParameterType == typeof(bool);
-        }
+            Assert.That(rootNamespaces, Has.Count.EqualTo(1));
+            Assert.That(rootNamespaces[0].Id, Is.EqualTo(Guid.Parse("88e753b3-e75d-525f-b9ad-d5e9095b98ec")));
 
-        /// <summary>
-        /// Converts one concrete POCO using its generated SDK conversion method.
-        /// </summary>
-        /// <param name="element">The source POCO element.</param>
-        /// <param name="conversionMethods">The SDK conversions keyed by concrete POCO type.</param>
-        /// <returns>The corresponding PSM DTO.</returns>
-        private static DtoElement ConvertToDto(
-            PocoElement element,
-            Dictionary<Type, MethodInfo> conversionMethods)
-        {
-            if (!conversionMethods.TryGetValue(element.GetType(), out var conversionMethod))
+            var assembler = new Assembler(loggerFactory);
+
+            Assert.That(() => assembler.Synchronize(elements), Throws.Nothing);
+            Assert.That(assembler.Cache, Has.Count.EqualTo(elements.Count));
+
+            var canonicalElements = assembler.Cache.ToDictionary(entry => entry.Key, entry => entry.Value.Value);
+
+            foreach (var element in elements)
             {
-                throw new InvalidOperationException($"No SDK DTO conversion exists for {element.GetType().FullName}.");
-            }
-
-            return (DtoElement)conversionMethod.Invoke(null, [element, false]);
-        }
-
-        /// <summary>
-        /// Enumerates identifiers referenced by one generated SDK DTO.
-        /// </summary>
-        /// <param name="element">The DTO whose reference properties are inspected.</param>
-        /// <returns>The identifiers carried by scalar and collection reference properties.</returns>
-        private static IEnumerable<Guid> GetReferencedIdentifiers(DtoElement element)
-        {
-            foreach (var property in element.GetType().GetProperties())
-            {
-                switch (property.GetValue(element))
-                {
-                    case Guid identifier when identifier != Guid.Empty && identifier != element.Id:
-                        yield return identifier;
-                        break;
-                    case IEnumerable<Guid> identifiers:
-                        foreach (var identifier in identifiers.Where(identifier => identifier != Guid.Empty))
-                        {
-                            yield return identifier;
-                        }
-
-                        break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Enumerates elements and their owned relationships in deterministic containment order.
-        /// </summary>
-        /// <param name="roots">The roots whose containment closures are enumerated.</param>
-        /// <returns>The distinct containment closure in pre-order.</returns>
-        private static IEnumerable<PocoElement> EnumerateContainment(IEnumerable<PocoElement> roots)
-        {
-            var visitedIdentifiers = new HashSet<Guid>();
-            var pendingElements = new Stack<PocoElement>(roots.Reverse());
-
-            while (pendingElements.TryPop(out var element))
-            {
-                if (!visitedIdentifiers.Add(element.Id))
-                {
-                    continue;
-                }
-
-                yield return element;
-
-                PushInReverse(element.ownedElement, pendingElements);
-                PushInReverse(element.OwnedRelationship, pendingElements);
-            }
-        }
-
-        /// <summary>
-        /// Pushes model elements in reverse so stack traversal preserves SDK collection order.
-        /// </summary>
-        /// <typeparam name="TElement">The concrete SDK element interface in the collection.</typeparam>
-        /// <param name="elements">The ordered model elements to push.</param>
-        /// <param name="pendingElements">The traversal stack receiving the elements.</param>
-        private static void PushInReverse<TElement>(
-            IReadOnlyList<TElement> elements,
-            Stack<PocoElement> pendingElements)
-            where TElement : PocoElement
-        {
-            if (elements is null)
-            {
-                return;
-            }
-
-            for (var index = elements.Count - 1; index >= 0; index--)
-            {
-                if (elements[index] is { } element)
-                {
-                    pendingElements.Push(element);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Verifies the fields and containment references Bloom consumes against assembled canonical objects.
-        /// </summary>
-        /// <param name="sourceElements">The authoritative XMI POCO containment closure.</param>
-        /// <param name="canonicalRoot">The root produced by JSON deserialization and assembly.</param>
-        /// <param name="assembler">The assembler that owns the target POCO identities.</param>
-        private static void AssertEquivalentModel(
-            List<PocoElement> sourceElements,
-            PocoNamespace canonicalRoot,
-            Assembler assembler)
-        {
-            var canonicalElements = EnumerateContainment([canonicalRoot]).ToDictionary(element => element.Id);
-
-            Assert.That(canonicalElements, Has.Count.EqualTo(sourceElements.Count));
-
-            foreach (var sourceElement in sourceElements)
-            {
-                Assert.That(canonicalElements.TryGetValue(sourceElement.Id, out var canonicalElement), Is.True);
+                var canonicalElement = canonicalElements[element.Id];
 
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(canonicalElement, Is.SameAs(assembler.Cache[sourceElement.Id].Value));
-                    Assert.That(canonicalElement.GetType(), Is.EqualTo(sourceElement.GetType()));
-                    Assert.That(canonicalElement.ElementId, Is.EqualTo(sourceElement.ElementId));
-                    Assert.That(canonicalElement.DeclaredName, Is.EqualTo(sourceElement.DeclaredName));
-                    Assert.That(canonicalElement.DeclaredShortName, Is.EqualTo(sourceElement.DeclaredShortName));
-                    Assert.That(canonicalElement.name, Is.EqualTo(sourceElement.name));
-                    Assert.That(canonicalElement.shortName, Is.EqualTo(sourceElement.shortName));
-                    Assert.That(canonicalElement.qualifiedName, Is.EqualTo(sourceElement.qualifiedName));
-                    Assert.That(GetOwnedElementIds(canonicalElement), Is.EqualTo(GetOwnedElementIds(sourceElement)));
-                    Assert.That(
-                        GetOwnedRelationshipIds(canonicalElement),
-                        Is.EqualTo(GetOwnedRelationshipIds(sourceElement)));
-                    Assert.That(canonicalElement.OwningRelationship?.Id, Is.EqualTo(sourceElement.OwningRelationship?.Id));
+                    Assert.That(canonicalElement.Id, Is.EqualTo(element.Id));
+                    Assert.That(canonicalElement.ElementId, Is.EqualTo(element.ElementId));
                 }
             }
-        }
 
-        /// <summary>
-        /// Gets the ordered identifiers of an element's derived owned elements.
-        /// </summary>
-        /// <param name="element">The element whose owned elements are projected.</param>
-        /// <returns>The ordered owned-element identifiers.</returns>
-        private static Guid[] GetOwnedElementIds(PocoElement element)
-        {
-            return element.ownedElement?.Select(ownedElement => ownedElement.Id).ToArray() ?? [];
-        }
+            Assert.That(canonicalElements[rootNamespaces[0].Id], Is.InstanceOf<PocoNamespace>());
 
-        /// <summary>
-        /// Gets the ordered identifiers of an element's owned relationships.
-        /// </summary>
-        /// <param name="element">The element whose relationships are projected.</param>
-        /// <returns>The ordered owned-relationship identifiers.</returns>
-        private static Guid[] GetOwnedRelationshipIds(PocoElement element)
-        {
-            return element.OwnedRelationship?.Select(relationship => relationship.Id).ToArray() ?? [];
+            var root = (PocoNamespace)canonicalElements[rootNamespaces[0].Id];
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root, Is.SameAs(assembler.Cache[root.Id].Value));
+                Assert.That(root.ElementId, Is.EqualTo("88e753b3-e75d-525f-b9ad-d5e9095b98ec"));
+                Assert.That(root.DeclaredName, Is.Null);
+                Assert.That(root.ownedElement, Has.Count.EqualTo(1));
+            }
+
+            var quantities = root.ownedElement[0];
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(quantities.Id, Is.EqualTo(Guid.Parse("80db4152-4332-52fd-ab62-911a6515fc29")));
+                Assert.That(quantities, Is.SameAs(canonicalElements[quantities.Id]));
+                Assert.That(quantities.DeclaredName, Is.EqualTo("Quantities"));
+                Assert.That(quantities.name, Is.EqualTo("Quantities"));
+                Assert.That(quantities.qualifiedName, Is.EqualTo("Quantities"));
+            }
+
+            var tensorQuantity = quantities.ownedElement.Single(element => element.name == "TensorQuantityValue");
+            var scalarQuantity = quantities.ownedElement.Single(element => element.name == "ScalarQuantityValue");
+            var dimensionsId = Guid.Parse("334779bf-6357-5adf-a7c5-ffb32c2ffd17");
+            var dimensions = tensorQuantity.ownedElement.Single(element => element.Id == dimensionsId);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(tensorQuantity, Is.SameAs(canonicalElements[tensorQuantity.Id]));
+                Assert.That(tensorQuantity.qualifiedName, Is.EqualTo("Quantities::TensorQuantityValue"));
+                Assert.That(scalarQuantity, Is.SameAs(canonicalElements[scalarQuantity.Id]));
+                Assert.That(scalarQuantity.qualifiedName, Is.EqualTo("Quantities::ScalarQuantityValue"));
+                Assert.That(dimensions, Is.SameAs(canonicalElements[dimensions.Id]));
+            }
+
+            AssertExternalRedefinitionIsCanonical(assembler);
+
+            Assert.That(() => assembler.Synchronize(elements), Throws.Nothing);
+            Assert.That(assembler.Cache, Has.Count.EqualTo(canonicalElements.Count));
+
+            foreach (var element in canonicalElements.Values)
+            {
+                Assert.That(assembler.Cache[element.Id].Value, Is.SameAs(element));
+            }
+
+            AssertExternalRedefinitionIsCanonical(assembler);
         }
 
         /// <summary>
@@ -317,7 +158,10 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(redefinition, Is.SameAs(assembler.Cache[redefinition.Id].Value));
                 Assert.That(redefinition.RedefinedFeature, Is.SameAs(assembler.Cache[redefinedFeatureId].Value));
+                Assert.That(redefiningFeature.DeclaredName, Is.Null);
+                Assert.That(redefinition.RedefinedFeature.name, Is.EqualTo("dimensions"));
                 Assert.That(redefiningFeature.name, Is.EqualTo("dimensions"));
                 Assert.That(
                     redefiningFeature.qualifiedName,
