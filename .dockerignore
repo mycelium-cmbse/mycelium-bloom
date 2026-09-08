@@ -1,10 +1,35 @@
+**/.local/
 **/bin/
 **/obj/
 **/node_modules/
+**/artifacts/
+**/TestResults/
+**/test-results/
+**/coverage/
+**/CodeCoverage/
+**/coverage.*
+**/*.coverage
+**/*.coveragexml
+**/*.trx
+**/lcov.info
+**/sonar-js-coverage.xml
+**/pnpm-debug.log
+**/.DS_Store
+**/.scannerwork/
+**/.sonarqube/
+**/*.local.md
 
 .git/
+.github/
 .vs/
 .idea/
 .vscode/
+.tools/
 
-**/pnpm-debug.log
+**/*.suo
+**/*.user
+
+AGENTS.md
+Mycelium.Bloom.Tests/
+Mycelium.Bloom/Tests/
+Mycelium.Bloom/wwwroot/css/app.css

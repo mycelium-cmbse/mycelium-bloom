@@ -9,6 +9,10 @@
 
 namespace Mycelium.Bloom.Extensions
 {
+    using System.Net;
+
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
@@ -34,6 +38,38 @@ namespace Mycelium.Bloom.Extensions
     /// <param name="services">The service collection to configure.</param>
     extension(IServiceCollection services)
     {
+        /// <summary>
+        /// Configures forwarded headers from the optional trusted reverse proxy and validates its address at startup.
+        /// </summary>
+        /// <param name="configuration">The application configuration containing the reverse proxy address.</param>
+        /// <returns>The original service collection for continued registration chaining.</returns>
+        public IServiceCollection AddReverseProxyOptions(IConfiguration configuration)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            var knownProxyValue = configuration["ReverseProxy:KnownProxy"];
+            var isKnownProxyValid = IPAddress.TryParse(knownProxyValue, out var knownProxy);
+
+            services.AddOptions<ForwardedHeadersOptions>()
+                .Configure(options =>
+                {
+                    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                    options.RequireHeaderSymmetry = true;
+
+                    if (isKnownProxyValid)
+                    {
+                        options.KnownProxies.Add(knownProxy);
+                    }
+                })
+                .Validate(
+                    _ => string.IsNullOrWhiteSpace(knownProxyValue) || isKnownProxyValid,
+                    "ReverseProxy:KnownProxy must be a valid IP address.")
+                .ValidateOnStart();
+
+            return services;
+        }
+
         /// <summary>
         /// Adds, binds, and validates the Workspace Editor options required during application startup.
         /// </summary>

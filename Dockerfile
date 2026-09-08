@@ -1,44 +1,44 @@
-# ---------- Build stage ----------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-
-WORKDIR /src
-
-# Install Node.js + pnpm for Tailwind build
-RUN apt-get update \
-    && apt-get install -y curl ca-certificates gnupg \
-    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && corepack enable \
-    && corepack prepare pnpm@10.33.0 --activate \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy project files first for better Docker cache
-COPY Mycelium.Bloom/Mycelium.Bloom.csproj ./Mycelium.Bloom/
-COPY Mycelium.Bloom/package.json ./Mycelium.Bloom/
-COPY Mycelium.Bloom/pnpm-lock.yaml* ./Mycelium.Bloom/
+FROM node:24.20.0-bookworm-slim AS frontend
 
 WORKDIR /src/Mycelium.Bloom
 
-# Install Tailwind dependencies
+RUN corepack enable \
+    && corepack prepare pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e --activate
+
+COPY Mycelium.Bloom/package.json ./
+COPY Mycelium.Bloom/pnpm-lock.yaml ./
+
 RUN pnpm config set node-linker hoisted \
-    && pnpm install
+    && pnpm install --frozen-lockfile --ignore-scripts
 
-# Copy the rest of the source code
-WORKDIR /src
-COPY Mycelium.Bloom/ ./Mycelium.Bloom/
+COPY Mycelium.Bloom/ ./
 
-WORKDIR /src/Mycelium.Bloom
-
-
-# Build Tailwind into wwwroot/css/app.css
 RUN pnpm run css:build
 
-# Publish the .NET app
-RUN dotnet publish Mycelium.Bloom.csproj -c Release -o /app/publish /p:UseAppHost=false
+FROM mcr.microsoft.com/dotnet/sdk:10.0.400-noble AS build
 
+WORKDIR /src
 
-# ---------- Runtime stage ----------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+COPY NOTICE Nuget.Config ./
+COPY Mycelium.Bloom/ ./Mycelium.Bloom/
+COPY --from=frontend /src/Mycelium.Bloom/wwwroot/css/app.css ./Mycelium.Bloom/wwwroot/css/app.css
+
+WORKDIR /src/Mycelium.Bloom
+
+RUN dotnet restore Mycelium.Bloom.csproj
+
+RUN dotnet publish Mycelium.Bloom.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish \
+    /p:UseAppHost=false
+
+RUN test -s /app/publish/wwwroot/css/app.css.gz
+RUN grep -q "css/app.css" /app/publish/Mycelium.Bloom.staticwebassets.endpoints.json
+RUN test -s /app/publish/wwwroot/_framework/blazor.web.js
+RUN test -s "/app/publish/Resources/Domain Libraries/Quantities and Units/Quantities.json"
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble AS final
 
 WORKDIR /app
 
@@ -47,5 +47,7 @@ COPY --from=build /app/publish .
 EXPOSE 8080
 
 ENV ASPNETCORE_URLS=http://+:8080
+
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "Mycelium.Bloom.dll"]
