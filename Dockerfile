@@ -1,4 +1,4 @@
-FROM node:24.20.0-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS frontend
+FROM node:24.20.0-bookworm-slim AS frontend
 
 WORKDIR /src/Mycelium.Bloom
 
@@ -15,7 +15,7 @@ COPY Mycelium.Bloom/ ./
 
 RUN pnpm run css:build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.400-noble@sha256:4beef5b8919dcaa2dc924233bd069257e883cc7a061e09088a97d152d6a48510 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.400-noble AS build
 
 WORKDIR /src
 
@@ -38,7 +38,7 @@ RUN grep -q "css/app.css" /app/publish/Mycelium.Bloom.staticwebassets.endpoints.
 RUN test -s /app/publish/wwwroot/_framework/blazor.web.js
 RUN test -s "/app/publish/Resources/Domain Libraries/Quantities and Units/Quantities.json"
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble@sha256:011bb5f30180717b1c8b65822ff2c99bcb96bc65af0164589751b83c7b4949f7 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble AS final
 
 WORKDIR /app
 
