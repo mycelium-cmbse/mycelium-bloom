@@ -5,7 +5,17 @@ services:
       dockerfile: Dockerfile
     container_name: mycelium-bloom
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__KnownProxy: ${BLOOM_REVERSE_PROXY_IP:-172.30.0.1}
+    networks:
+      - bloom
+    restart: unless-stopped
+
+networks:
+  bloom:
+    ipam:
+      config:
+        - subnet: ${BLOOM_DOCKER_SUBNET:-172.30.0.0/24}

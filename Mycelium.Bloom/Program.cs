@@ -40,12 +40,14 @@ namespace Mycelium.Bloom
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
+            builder.Services.AddReverseProxyOptions(builder.Configuration);
 
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))
                 .WithLogging();
 
             builder.Services.AddMemoryCache();
+            builder.Services.AddHealthChecks();
 
             // Add services to the container.
             builder.Services.AddRazorComponents()
@@ -60,6 +62,8 @@ namespace Mycelium.Bloom
 
             var app = builder.Build();
 
+            app.UseForwardedHeaders();
+
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
@@ -73,6 +77,8 @@ namespace Mycelium.Bloom
             app.UseAntiforgery();
 
             app.MapStaticAssets();
+            app.MapHealthChecks("/healthz");
+            app.MapHealthChecks("/ready");
 
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
