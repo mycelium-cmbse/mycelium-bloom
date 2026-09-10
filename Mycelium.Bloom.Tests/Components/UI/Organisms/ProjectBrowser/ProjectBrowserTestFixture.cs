@@ -252,7 +252,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-project-browser__tree-viewport\s*\{[^}]*overflow:\s*auto;[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*var\(--mb-project-browser-scrollbar-thumb\)\s+transparent;"));
+                        @"(?s)\.mb-project-browser__tree-viewport\s*\{[^}]*overflow:\s*auto;[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*var\(--project-browser-scrollbar-thumb\)\s+transparent;"));
                 Assert.That(
                     style,
                     Does.Contain("background-attachment: local, local, local, local, scroll, scroll, scroll, scroll;"));
@@ -268,7 +268,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(
                     overlayStyle,
                     Does.Match(
-                        @"(?s)\.mb-project-browser__filter-popover\s*\{[^}]*width:\s*min\(296px,\s*calc\(100vw\s*-\s*\(2\s*\*\s*var\(--mb-spacing-2\)\)\)\);"));
+                        @"(?s)\.mb-project-browser__filter-popover\s*\{[^}]*width:\s*min\(296px,\s*calc\(100vw\s*-\s*\(2\s*\*\s*var\(--spacing-8\)\)\)\);"));
                 Assert.That(
                     style,
                     Does.Match(

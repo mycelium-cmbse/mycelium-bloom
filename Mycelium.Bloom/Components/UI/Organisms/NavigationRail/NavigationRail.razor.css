@@ -1,26 +1,26 @@
 .mb-navigation-rail {
-    --mb-navigation-rail-target-size: var(--mb-control-height-md);
-    --mb-navigation-rail-active-size: 32px;
-    --mb-navigation-rail-icon-size: 16px;
-    --mb-navigation-rail-icon-column-width: var(--mb-navigation-rail-target-size);
-    --mb-navigation-rail-divider-height: 22px;
-    --mb-navigation-rail-divider-width: var(--mb-spacing-6);
-    --mb-navigation-rail-collapse-size: 32px;
-    --mb-navigation-rail-collapsed-width: 52px;
-    --mb-navigation-rail-scrollbar-size: 6px;
-    --mb-navigation-rail-scrollbar-thumb: color-mix(
+    --navigation-rail-target-size: var(--spacing-40);
+    --navigation-rail-active-size: var(--spacing-32);
+    --navigation-rail-icon-size: var(--spacing-16);
+    --navigation-rail-icon-column-width: var(--navigation-rail-target-size);
+    --navigation-rail-divider-height: var(--spacing-22);
+    --navigation-rail-divider-width: var(--spacing-24);
+    --navigation-rail-collapse-size: var(--spacing-32);
+    --navigation-rail-collapsed-width: var(--spacing-52);
+    --navigation-rail-scrollbar-size: var(--spacing-6);
+    --navigation-rail-scrollbar-thumb: color-mix(
         in srgb,
-        var(--mb-color-text-muted) 40%,
+        var(--muted-foreground) 40%,
         transparent
     );
-    --mb-navigation-rail-scrollbar-thumb-hover: color-mix(
+    --navigation-rail-scrollbar-thumb-hover: color-mix(
         in srgb,
-        var(--mb-color-text-muted) 64%,
+        var(--muted-foreground) 64%,
         transparent
     );
-    --mb-navigation-rail-scroll-shadow: color-mix(
+    --navigation-rail-scroll-shadow: color-mix(
         in srgb,
-        var(--mb-color-text-muted) 28%,
+        var(--muted-foreground) 28%,
         transparent
     );
 
@@ -35,13 +35,13 @@
     min-height: 0;
     padding: 16px 6px;
     overflow: hidden;
-    border-right: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-background);
-    color: var(--mb-color-text-muted);
+    border-right: var(--border-width-default) solid var(--border-subtle);
+    background: var(--background);
+    color: var(--muted-foreground);
 }
 
 .mb-navigation-rail--collapsed {
-    width: var(--mb-navigation-rail-collapsed-width);
+    width: var(--navigation-rail-collapsed-width);
 }
 
 .mb-navigation-rail--hover-overlay {
@@ -49,11 +49,11 @@
     z-index: 2;
     inset: 0 auto 0 0;
     width: max-content;
-    max-width: calc(100vw - var(--mb-spacing-4));
+    max-width: calc(100vw - var(--spacing-16));
 }
 
 .mb-navigation-rail--overlay-expanded {
-    box-shadow: 2px 0 8px color-mix(in srgb, var(--mb-color-text-muted) 20%, transparent);
+    box-shadow: 2px 0 8px color-mix(in srgb, var(--muted-foreground) 20%, transparent);
 }
 
 .mb-navigation-rail__items {
@@ -62,9 +62,9 @@
     flex: 1 1 auto;
     flex-direction: column;
     align-items: stretch;
-    gap: var(--mb-spacing-1);
+    gap: var(--spacing-4);
     width: 100%;
-    min-width: var(--mb-navigation-rail-target-size);
+    min-width: var(--navigation-rail-target-size);
     min-height: 0;
     margin: 0;
     padding: 0;
@@ -72,13 +72,13 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: var(--mb-navigation-rail-scrollbar-thumb) transparent;
-    background-color: var(--mb-color-background);
+    scrollbar-color: var(--navigation-rail-scrollbar-thumb) transparent;
+    background-color: var(--background);
     background-image:
-        linear-gradient(to bottom, var(--mb-color-background) 30%, transparent),
-        linear-gradient(to top, var(--mb-color-background) 30%, transparent),
-        radial-gradient(farthest-side at 50% 0, var(--mb-navigation-rail-scroll-shadow), transparent),
-        radial-gradient(farthest-side at 50% 100%, var(--mb-navigation-rail-scroll-shadow), transparent);
+        linear-gradient(to bottom, var(--background) 30%, transparent),
+        linear-gradient(to top, var(--background) 30%, transparent),
+        radial-gradient(farthest-side at 50% 0, var(--navigation-rail-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 50% 100%, var(--navigation-rail-scroll-shadow), transparent);
     background-position:
         center top,
         center bottom,
@@ -95,8 +95,8 @@
 }
 
 .mb-navigation-rail__items::-webkit-scrollbar {
-    width: var(--mb-navigation-rail-scrollbar-size);
-    height: var(--mb-navigation-rail-scrollbar-size);
+    width: var(--navigation-rail-scrollbar-size);
+    height: var(--navigation-rail-scrollbar-size);
 }
 
 .mb-navigation-rail__items::-webkit-scrollbar-track,
@@ -106,13 +106,13 @@
 
 .mb-navigation-rail__items::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
-    border-radius: var(--mb-radius-full);
-    background: var(--mb-navigation-rail-scrollbar-thumb);
+    border-radius: var(--radius-full);
+    background: var(--navigation-rail-scrollbar-thumb);
     background-clip: padding-box;
 }
 
 .mb-navigation-rail__items::-webkit-scrollbar-thumb:hover {
-    background: var(--mb-navigation-rail-scrollbar-thumb-hover);
+    background: var(--navigation-rail-scrollbar-thumb-hover);
 }
 
 .mb-navigation-rail__items::-webkit-scrollbar-button {
@@ -163,22 +163,22 @@
 .mb-navigation-rail ::deep .mb-navigation-rail__link {
     position: relative;
     display: grid;
-    grid-template-columns: var(--mb-navigation-rail-icon-column-width) auto;
+    grid-template-columns: var(--navigation-rail-icon-column-width) auto;
     align-items: center;
     justify-content: start;
     gap: 0;
     width: 100%;
-    min-width: var(--mb-navigation-rail-icon-column-width);
-    height: var(--mb-navigation-rail-target-size);
+    min-width: var(--navigation-rail-icon-column-width);
+    height: var(--navigation-rail-target-size);
     padding: 0;
     overflow: hidden;
-    border-radius: var(--mb-radius-md);
+    border-radius: var(--radius-lg);
     background: transparent;
-    color: var(--mb-color-text-muted);
+    color: var(--muted-foreground);
     transition:
-        background-color var(--mb-transition-fast),
-        color var(--mb-transition-fast),
-        outline-color var(--mb-transition-fast);
+        background-color var(--motion-duration-fast) var(--motion-easing-standard),
+        color var(--motion-duration-fast) var(--motion-easing-standard),
+        outline-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link::before {
@@ -186,53 +186,53 @@
     z-index: 0;
     top: 50%;
     inset-inline-start: calc(
-        (var(--mb-navigation-rail-target-size) - var(--mb-navigation-rail-active-size)) / 2
+        (var(--navigation-rail-target-size) - var(--navigation-rail-active-size)) / 2
     );
-    width: var(--mb-navigation-rail-active-size);
-    height: var(--mb-navigation-rail-active-size);
-    border-radius: var(--mb-radius-control);
+    width: var(--navigation-rail-active-size);
+    height: var(--navigation-rail-active-size);
+    border-radius: var(--radius-md);
     background: transparent;
     content: "";
     transform: translateY(-50%);
-    transition: background-color var(--mb-transition-fast);
+    transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link:hover {
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link--active,
 .mb-navigation-rail ::deep .mb-navigation-rail__link--active:hover {
-    color: var(--mb-color-action-primary);
+    color: var(--primary);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link--active::before,
 .mb-navigation-rail ::deep .mb-navigation-rail__link--active:hover::before {
-    background: var(--mb-color-action-primary-soft);
+    background: var(--accent);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link:focus-visible {
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
-    outline: 2px solid var(--mb-color-focus-ring);
+    background: var(--muted);
+    color: var(--foreground);
+    outline: 2px solid var(--ring);
     outline-offset: -2px;
     box-shadow: none;
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link--active:focus-visible {
-    color: var(--mb-color-action-primary);
+    color: var(--primary);
 }
 
 .mb-navigation-rail:not(.mb-navigation-rail--collapsed) ::deep .mb-navigation-rail__link--active,
 .mb-navigation-rail:not(.mb-navigation-rail--collapsed) ::deep .mb-navigation-rail__link--active:hover,
 .mb-navigation-rail:not(.mb-navigation-rail--collapsed) ::deep .mb-navigation-rail__link--active:focus-visible {
-    background: var(--mb-color-action-primary-soft);
+    background: var(--accent);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__icon {
-    width: var(--mb-navigation-rail-icon-size);
-    height: var(--mb-navigation-rail-icon-size);
+    width: var(--navigation-rail-icon-size);
+    height: var(--navigation-rail-icon-size);
 }
 
 .mb-navigation-rail__icon-slot {
@@ -240,8 +240,8 @@
     z-index: 1;
     display: grid;
     place-items: center;
-    width: var(--mb-navigation-rail-icon-column-width);
-    height: var(--mb-navigation-rail-target-size);
+    width: var(--navigation-rail-icon-column-width);
+    height: var(--navigation-rail-target-size);
 }
 
 .mb-navigation-rail__label {
@@ -256,11 +256,11 @@
 .mb-navigation-rail__label-text {
     display: block;
     width: max-content;
-    padding-inline-start: var(--mb-spacing-3);
-    padding-inline-end: var(--mb-spacing-2);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
-    font-weight: var(--mb-font-weight-body-sm);
+    padding-inline-start: var(--spacing-12);
+    padding-inline-end: var(--spacing-8);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
+    font-weight: var(--typography-typography-body-sm-font-weight);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -270,7 +270,7 @@
     align-self: stretch;
     flex: none;
     width: 100%;
-    height: var(--mb-navigation-rail-divider-height);
+    height: var(--navigation-rail-divider-height);
     min-width: 0;
     overflow: hidden;
 }
@@ -278,7 +278,7 @@
 .mb-navigation-rail:not(.mb-navigation-rail--collapsed)
     .mb-navigation-rail__section-marker--named {
     height: calc(
-        var(--mb-line-height-label-xs) + var(--mb-spacing-3) + var(--mb-spacing-1)
+        var(--typography-typography-label-xs-line-height) + var(--spacing-12) + var(--spacing-4)
     );
 }
 
@@ -286,19 +286,19 @@
     position: absolute;
     inset: 0;
     opacity: 1;
-    transition: opacity var(--mb-transition-fast);
+    transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-navigation-rail__divider::before {
     position: absolute;
     top: 50%;
-    inset-inline-start: var(--mb-spacing-2);
+    inset-inline-start: var(--spacing-8);
     width: max(
-        var(--mb-navigation-rail-divider-width),
-        calc(100% - (2 * var(--mb-spacing-2)))
+        var(--navigation-rail-divider-width),
+        calc(100% - (2 * var(--spacing-8)))
     );
     height: 1px;
-    background: var(--mb-color-border-subtle);
+    background: var(--border-subtle);
     content: "";
     transform: translateY(-50%);
 }
@@ -315,12 +315,12 @@
     box-sizing: border-box;
     display: block;
     width: max-content;
-    padding: var(--mb-spacing-3) var(--mb-spacing-2) var(--mb-spacing-1) var(--mb-spacing-3);
+    padding: var(--spacing-12) var(--spacing-8) var(--spacing-4) var(--spacing-12);
     overflow: hidden;
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-xs);
-    line-height: var(--mb-line-height-label-xs);
-    font-weight: var(--mb-font-weight-label-xs);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-xs-font-size);
+    line-height: var(--typography-typography-label-xs-line-height);
+    font-weight: var(--typography-typography-label-xs-font-weight);
     letter-spacing: 0.08em;
     pointer-events: none;
     text-align: start;
@@ -340,8 +340,8 @@
     display: flex;
     flex: none;
     justify-content: center;
-    width: var(--mb-navigation-rail-target-size);
-    margin-top: var(--mb-spacing-1);
+    width: var(--navigation-rail-target-size);
+    margin-top: var(--spacing-4);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__collapse-toggle {
@@ -349,22 +349,22 @@
     align-items: center;
     justify-content: center;
     flex: none;
-    width: var(--mb-navigation-rail-collapse-size);
-    height: var(--mb-navigation-rail-collapse-size);
+    width: var(--navigation-rail-collapse-size);
+    height: var(--navigation-rail-collapse-size);
     margin: 0;
     padding: 0;
-    border-radius: var(--mb-radius-control);
-    color: var(--mb-color-action-primary);
+    border-radius: var(--radius-md);
+    color: var(--primary);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__collapse-toggle:hover {
     background: transparent;
-    color: var(--mb-color-action-primary-hover);
+    color: var(--primary-strong);
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__collapse-toggle:focus-visible {
     background: transparent;
-    outline: 2px solid var(--mb-color-focus-ring);
+    outline: 2px solid var(--ring);
     outline-offset: 1px;
     box-shadow: none;
 }
@@ -378,23 +378,23 @@
 }
 
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option:not([aria-disabled="true"]):hover {
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option:focus {
     background: transparent;
-    color: var(--mb-color-text-primary);
-    outline: 2px solid var(--mb-color-focus-ring);
+    color: var(--foreground);
+    outline: 2px solid var(--ring);
     outline-offset: -2px;
 }
 
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected,
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected:hover,
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected:focus {
-    background: var(--mb-color-action-primary-soft);
-    color: var(--mb-color-action-primary);
-    font-weight: var(--mb-font-weight-label-xs);
+    background: var(--accent);
+    color: var(--primary);
+    font-weight: var(--typography-typography-label-xs-font-weight);
 }
 
 .mb-navigation-rail--collapsed .mb-navigation-rail__label {
@@ -411,24 +411,24 @@
     }
 
     .mb-navigation-rail:not(.mb-navigation-rail--hover-overlay) {
-        transition: width var(--mb-transition-fast);
+        transition: width var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail__section-marker {
-        transition: height var(--mb-transition-fast);
+        transition: height var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail ::deep .mb-navigation-rail__link {
         transition:
-            background-color var(--mb-transition-fast),
-            color var(--mb-transition-fast),
-            outline-color var(--mb-transition-fast);
+            background-color var(--motion-duration-fast) var(--motion-easing-standard),
+            color var(--motion-duration-fast) var(--motion-easing-standard),
+            outline-color var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail__label {
         display: block;
         opacity: 1;
-        transition: opacity var(--mb-transition-fast);
+        transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail--collapsed .mb-navigation-rail__label {
@@ -438,8 +438,8 @@
 
     .mb-navigation-rail--hover-overlay .mb-navigation-rail__label {
         transition:
-            width var(--mb-transition-fast),
-            opacity var(--mb-transition-fast);
+            width var(--motion-duration-fast) var(--motion-easing-standard),
+            opacity var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail--hover-overlay.mb-navigation-rail--collapsed
@@ -449,7 +449,7 @@
 
     .mb-navigation-rail__group-heading {
         display: block;
-        transition: opacity var(--mb-transition-fast);
+        transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail--collapsed .mb-navigation-rail__group-heading {
@@ -459,8 +459,8 @@
 
     .mb-navigation-rail--hover-overlay .mb-navigation-rail__group-heading {
         transition:
-            width var(--mb-transition-fast),
-            opacity var(--mb-transition-fast);
+            width var(--motion-duration-fast) var(--motion-easing-standard),
+            opacity var(--motion-duration-fast) var(--motion-easing-standard);
     }
 
     .mb-navigation-rail--hover-overlay.mb-navigation-rail--collapsed

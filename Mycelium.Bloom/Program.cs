@@ -56,7 +56,6 @@ namespace Mycelium.Bloom
                     configureTheme: options =>
                     {
                         options.DetectSystemPreference = false;
-                        options.DefaultRadius = 0.375d;
                     })
                 .AddApplicationServices();
 

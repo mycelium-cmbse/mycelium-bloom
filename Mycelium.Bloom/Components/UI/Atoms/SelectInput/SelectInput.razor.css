@@ -9,18 +9,18 @@
     align-items: center;
     width: 100%;
     min-width: 0;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
     padding-block: 0;
-    padding-inline: var(--mb-spacing-3) var(--mb-spacing-2);
+    padding-inline: var(--spacing-12) var(--spacing-8);
     appearance: none;
     text-align: start;
     cursor: pointer;
 }
 
 .mb-select-input__control ::deep .mb-select-input__trigger:focus-visible {
-    border-color: var(--mb-color-focus-ring);
+    border-color: var(--ring);
     outline: 0;
-    box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--mb-color-focus-ring) 28%, transparent);
+    box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--ring) 28%, transparent);
 }
 
 .mb-select-input__control ::deep .mb-select-input__value {
@@ -32,12 +32,12 @@
 }
 
 .mb-select-input__control ::deep .mb-select-input__value--placeholder {
-    color: var(--mb-color-component-icon);
+    color: var(--muted-foreground);
 }
 
 .mb-select-input__control ::deep .mb-select-input__chevron {
-    color: var(--mb-color-component-icon);
-    transition: transform var(--mb-transition-fast);
+    color: var(--muted-foreground);
+    transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-select-input--open ::deep .mb-select-input__chevron {
@@ -45,7 +45,7 @@
 }
 
 .mb-select-input--disabled ::deep .mb-select-input__trigger {
-    background: var(--mb-color-component-soft);
+    background: var(--muted);
     cursor: not-allowed;
 }
 

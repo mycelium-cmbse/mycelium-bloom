@@ -1,24 +1,24 @@
 .mb-app-header {
-    --mb-app-header-min-height: 3.5rem;
-    --mb-app-header-center-max-width: 26.25rem;
+    --app-header-min-height: 3.5rem;
+    --app-header-center-max-width: 26.25rem;
 
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--mb-spacing-4);
+    gap: var(--spacing-16);
     width: 100%;
     min-width: 0;
-    min-height: var(--mb-app-header-min-height);
-    padding: 0 var(--mb-spacing-4);
-    border-bottom: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-surface);
-    color: var(--mb-color-component-text);
+    min-height: var(--app-header-min-height);
+    padding: 0 var(--spacing-16);
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    background: var(--card);
+    color: var(--foreground);
 }
 
 .mb-app-header--compact {
-    min-height: var(--mb-control-height-md);
-    gap: var(--mb-spacing-2);
-    padding-inline: var(--mb-spacing-2);
+    min-height: var(--spacing-40);
+    gap: var(--spacing-8);
+    padding-inline: var(--spacing-8);
 }
 
 .mb-app-header__brand,
@@ -31,7 +31,7 @@
     display: inline-flex;
     align-items: center;
     min-width: 0;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
 }
 
 .mb-app-header__brand,
@@ -52,7 +52,7 @@
 .mb-app-header__center {
     flex: 1 1 16rem;
     justify-content: center;
-    max-width: var(--mb-app-header-center-max-width);
+    max-width: var(--app-header-center-max-width);
     margin-inline: auto;
 }
 
@@ -61,7 +61,7 @@
 }
 
 .mb-app-header__brand {
-    color: var(--mb-color-text-primary);
+    color: var(--foreground);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -73,7 +73,7 @@
         justify-content: stretch;
         max-width: none;
         margin-inline: 0;
-        padding-bottom: var(--mb-spacing-2);
+        padding-bottom: var(--spacing-8);
     }
 
     .mb-app-header__center ::deep > * {

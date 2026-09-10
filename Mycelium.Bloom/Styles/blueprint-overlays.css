@@ -1,26 +1,18 @@
-/*
-   Portal-safe Bloom presentation for Blueprint 3.15.0 overlays. Every rule
-   in this file belongs to authored content rendered outside its component's
-   CSS-isolation boundary. The file remains unlayered so these consumer-owned
-   classes win over Tailwind's layered reset without undocumented Blueprint
-   selectors or priority hacks.
-*/
-
 .mb-select-input__listbox {
     z-index: 1050;
     display: flex;
     flex-direction: column;
-    min-width: min(11.5rem, calc(100vw - (2 * var(--mb-spacing-4))));
-    max-width: min(24rem, calc(100vw - (2 * var(--mb-spacing-4))));
-    max-height: min(20rem, calc(100dvh - (2 * var(--mb-spacing-6))));
-    padding: var(--mb-spacing-1);
+    min-width: min(11.5rem, calc(100vw - (2 * var(--spacing-16))));
+    max-width: min(24rem, calc(100vw - (2 * var(--spacing-16))));
+    max-height: min(20rem, calc(100dvh - (2 * var(--spacing-24))));
+    padding: var(--spacing-4);
     overflow-x: hidden;
     overflow-y: auto;
-    border: 1px solid var(--mb-color-border);
-    border-radius: var(--mb-radius-control);
-    background: var(--mb-color-popover);
-    box-shadow: var(--mb-shadow-md);
-    color: var(--mb-color-component-text);
+    border: var(--border-width-default) solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--popover);
+    box-shadow: var(--shadow-menu);
+    color: var(--foreground);
 }
 
 .mb-select-input__listbox:focus-visible {
@@ -32,12 +24,12 @@
     min-width: 0;
     min-height: 2.25rem;
     border: 0;
-    border-radius: var(--mb-radius-sm);
+    border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--mb-color-component-text);
-    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
     text-align: start;
     display: flex;
     align-items: center;
@@ -48,18 +40,18 @@
 .mb-select-input__option:focus-visible,
 .mb-select-input__option[data-focused="true"]:not([aria-disabled="true"]) {
     outline: none;
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-select-input__option[aria-selected="true"] {
-    background: var(--mb-color-surface-selected);
-    color: var(--mb-color-action-primary);
+    background: var(--accent);
+    color: var(--primary);
     font-weight: 600;
 }
 
 .mb-select-input__option[aria-disabled="true"] {
-    color: var(--mb-color-text-disabled);
+    color: var(--muted-foreground);
     cursor: not-allowed;
     opacity: 0.65;
 }
@@ -69,16 +61,11 @@
     overflow-wrap: anywhere;
 }
 
-/*
-   ProjectBrowser owns this class, but Blueprint renders the Popover content
-   outside the component's CSS-isolation boundary. Keep only the portalled
-   content-shell reset here; the drawer itself remains component-scoped.
-*/
 .mb-project-browser__filter-popover {
     z-index: 1050;
-    width: min(296px, calc(100vw - (2 * var(--mb-spacing-2))));
-    max-width: calc(100vw - (2 * var(--mb-spacing-2)));
-    max-height: min(676px, calc(100dvh - (2 * var(--mb-spacing-4))));
+    width: min(296px, calc(100vw - (2 * var(--spacing-8))));
+    max-width: calc(100vw - (2 * var(--spacing-8)));
+    max-height: min(676px, calc(100dvh - (2 * var(--spacing-16))));
     padding: 0;
     overflow: visible;
     border: 0;
@@ -86,15 +73,10 @@
     box-shadow: none;
 }
 
-/*
-   Blueprint portals the Project Browser search assistant beside the drawer.
-   Match its trigger width while resetting only the styled Popover shell; the
-   authored assistant surface remains component-scoped.
-*/
 .mb-project-browser__search-assistant-popover {
     z-index: 1050;
-    max-width: calc(100vw - (2 * var(--mb-spacing-2)));
-    max-height: min(320px, calc(100dvh - (2 * var(--mb-spacing-6))));
+    max-width: calc(100vw - (2 * var(--spacing-8)));
+    max-height: min(320px, calc(100dvh - (2 * var(--spacing-24))));
     padding: 0;
     overflow: visible;
     border: 0;

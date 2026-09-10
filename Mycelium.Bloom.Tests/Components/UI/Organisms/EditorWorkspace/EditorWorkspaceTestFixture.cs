@@ -282,7 +282,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__splitter-line\s*\{[^}]*width:\s*var\(--mb-border-width-sm\);[^}]*height:\s*100%;"));
+                        @"(?s)\.mb-editor-workspace__splitter-line\s*\{[^}]*width:\s*var\(--border-width-default\);[^}]*height:\s*100%;"));
                 Assert.That(style, Does.Contain("@container mb-editor-workspace (max-width: 45rem)"));
                 Assert.That(
                     style,
@@ -303,23 +303,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-drop-marker\s*\{[^}]*width:\s*var\(--mb-spacing-4\);[^}]*pointer-events:\s*none;[^}]*transform:\s*scaleX\(0\);"));
+                        @"(?s)\.mb-editor-workspace__tab-drop-marker\s*\{[^}]*width:\s*var\(--spacing-16\);[^}]*pointer-events:\s*none;[^}]*transform:\s*scaleX\(0\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-drop-marker--before\s*\{[^}]*left:\s*0;[^}]*border-left:\s*var\(--mb-border-width-sm\)\s+solid\s+var\(--mb-color-border-selected\);[^}]*transform-origin:\s*left\s+center;"));
+                        @"(?s)\.mb-editor-workspace__tab-drop-marker--before\s*\{[^}]*left:\s*0;[^}]*border-left:\s*var\(--border-width-default\)\s+solid\s+var\(--primary\);[^}]*transform-origin:\s*left\s+center;"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-drop-marker--end\s*\{[^}]*right:\s*0;[^}]*border-right:\s*var\(--mb-border-width-sm\)\s+solid\s+var\(--mb-color-border-selected\);[^}]*transform-origin:\s*right\s+center;"));
+                        @"(?s)\.mb-editor-workspace__tab-drop-marker--end\s*\{[^}]*right:\s*0;[^}]*border-right:\s*var\(--border-width-default\)\s+solid\s+var\(--primary\);[^}]*transform-origin:\s*right\s+center;"));
                 Assert.That(
                     style,
                     Does.Match(
                         @"(?s)\.mb-editor-workspace__tab-drop-marker--active\s*\{[^}]*opacity:\s*1;[^}]*transform:\s*scaleX\(1\);"));
                 Assert.That(style, Does.Contain("mb-editor-workspace__split-add-host"));
                 Assert.That(style, Does.Contain("mb-editor-workspace__right-edge-split-add-host"));
-                Assert.That(style, Does.Contain("--mb-editor-split-add-visible-size: clamp(32px, 2cqi, 40px);"));
-                Assert.That(style, Does.Contain("--mb-editor-split-add-hit-size: clamp(48px, 3cqi, 64px);"));
+                Assert.That(style, Does.Contain("--editor-workspace-split-add-visible-size: clamp(var(--spacing-32), 2cqi, var(--spacing-40));"));
+                Assert.That(style, Does.Contain("--editor-workspace-split-add-hit-size: clamp(var(--spacing-48), 3cqi, var(--spacing-64));"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -327,7 +327,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*5;[^}]*top:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*50%;[^}]*border-left:\s*var\(--mb-border-width-sm\)\s+solid\s+var\(--mb-color-border-selected\);[^}]*pointer-events:\s*none;"));
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*5;[^}]*top:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*50%;[^}]*border-left:\s*var\(--border-width-default\)\s+solid\s+var\(--primary\);[^}]*pointer-events:\s*none;"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -2805,7 +2805,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 group => Guid.Parse(group.GetAttribute("data-group-id")),
                 group =>
                 {
-                    const string propertyName = "--mb-editor-group-weight:";
+                    const string propertyName = "--editor-workspace-group-weight:";
                     var style = group.GetAttribute("style");
                     var propertyIndex = style.IndexOf(propertyName, StringComparison.Ordinal);
                     Assert.That(propertyIndex, Is.GreaterThanOrEqualTo(0));

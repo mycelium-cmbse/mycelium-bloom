@@ -843,28 +843,28 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(style, Does.Contain("--mb-navigation-rail-target-size: var(--mb-control-height-md);"));
-                Assert.That(style, Does.Contain("--mb-navigation-rail-active-size: 32px;"));
-                Assert.That(style, Does.Contain("--mb-navigation-rail-icon-size: 16px;"));
+                Assert.That(style, Does.Contain("--navigation-rail-target-size: var(--spacing-40);"));
+                Assert.That(style, Does.Contain("--navigation-rail-active-size: var(--spacing-32);"));
+                Assert.That(style, Does.Contain("--navigation-rail-icon-size: var(--spacing-16);"));
                 Assert.That(style, Does.Contain(
-                    "--mb-navigation-rail-icon-column-width: var(--mb-navigation-rail-target-size);"));
-                Assert.That(style, Does.Contain("--mb-navigation-rail-divider-height: 22px;"));
-                Assert.That(style, Does.Contain("--mb-navigation-rail-divider-width: var(--mb-spacing-6);"));
+                    "--navigation-rail-icon-column-width: var(--navigation-rail-target-size);"));
+                Assert.That(style, Does.Contain("--navigation-rail-divider-height: var(--spacing-22);"));
+                Assert.That(style, Does.Contain("--navigation-rail-divider-width: var(--spacing-24);"));
                 Assert.That(style, Does.Contain("padding: 16px 6px;"));
-                Assert.That(style, Does.Contain("border-right: 1px solid var(--mb-color-border-subtle);"));
-                Assert.That(style, Does.Contain("background: var(--mb-color-action-primary-soft);"));
+                Assert.That(style, Does.Contain("border-right: var(--border-width-default) solid var(--border-subtle);"));
+                Assert.That(style, Does.Contain("background: var(--accent);"));
                 Assert.That(style, Does.Contain("overflow-y: auto;"));
                 Assert.That(style, Does.Contain("scrollbar-width: thin;"));
-                Assert.That(style, Does.Contain("scrollbar-color: var(--mb-navigation-rail-scrollbar-thumb) transparent;"));
+                Assert.That(style, Does.Contain("scrollbar-color: var(--navigation-rail-scrollbar-thumb) transparent;"));
                 Assert.That(style, Does.Contain("background-attachment: local, local, scroll, scroll;"));
                 Assert.That(style, Does.Contain("@supports (scrollbar-width: none)"));
                 Assert.That(style, Does.Contain("scrollbar-width: none;"));
                 Assert.That(style, Does.Contain("@media (forced-colors: active)"));
                 Assert.That(style, Does.Contain("scrollbar-color: ButtonText Canvas;"));
                 Assert.That(style, Does.Contain(".mb-navigation-rail__items::-webkit-scrollbar-button"));
-                Assert.That(style, Does.Contain("--mb-navigation-rail-collapsed-width: 52px;"));
-                Assert.That(style, Does.Not.Contain("--mb-navigation-rail-expanded-max-width:"));
-                Assert.That(style, Does.Not.Contain("--mb-navigation-rail-expanded-width:"));
+                Assert.That(style, Does.Contain("--navigation-rail-collapsed-width: var(--spacing-52);"));
+                Assert.That(style, Does.Not.Contain("--navigation-rail-expanded-max-width:"));
+                Assert.That(style, Does.Not.Contain("--navigation-rail-expanded-width:"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -872,7 +872,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail--collapsed\s*\{[^}]*width:\s*var\(--mb-navigation-rail-collapsed-width\);"));
+                        @"(?s)\.mb-navigation-rail--collapsed\s*\{[^}]*width:\s*var\(--navigation-rail-collapsed-width\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -880,7 +880,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail--hover-overlay\s*\{[^}]*width:\s*max-content;[^}]*max-width:\s*calc\(100vw\s*-\s*var\(--mb-spacing-4\)\);"));
+                        @"(?s)\.mb-navigation-rail--hover-overlay\s*\{[^}]*width:\s*max-content;[^}]*max-width:\s*calc\(100vw\s*-\s*var\(--spacing-16\)\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -892,36 +892,36 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__link\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*var\(--mb-navigation-rail-icon-column-width\)\s+auto;[^}]*justify-content:\s*start;[^}]*gap:\s*0;[^}]*padding:\s*0;"));
+                        @"(?s)\.mb-navigation-rail__link\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*var\(--navigation-rail-icon-column-width\)\s+auto;[^}]*justify-content:\s*start;[^}]*gap:\s*0;[^}]*padding:\s*0;"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__icon-slot\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;[^}]*width:\s*var\(--mb-navigation-rail-icon-column-width\);"));
+                        @"(?s)\.mb-navigation-rail__icon-slot\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;[^}]*width:\s*var\(--navigation-rail-icon-column-width\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__label-text\s*\{[^}]*width:\s*max-content;[^}]*padding-inline-start:\s*var\(--mb-spacing-3\);[^}]*padding-inline-end:\s*var\(--mb-spacing-2\);"));
+                        @"(?s)\.mb-navigation-rail__label-text\s*\{[^}]*width:\s*max-content;[^}]*padding-inline-start:\s*var\(--spacing-12\);[^}]*padding-inline-end:\s*var\(--spacing-8\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__link:hover\s*\{[^}]*background:\s*var\(--mb-color-surface-hover\);"));
+                        @"(?s)\.mb-navigation-rail__link:hover\s*\{[^}]*background:\s*var\(--muted\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__link:focus-visible\s*\{[^}]*background:\s*var\(--mb-color-surface-hover\);[^}]*box-shadow:\s*none;"));
+                        @"(?s)\.mb-navigation-rail__link:focus-visible\s*\{[^}]*background:\s*var\(--muted\);[^}]*box-shadow:\s*none;"));
                 Assert.That(style, Does.Not.Contain(".mb-navigation-rail__link:hover::before"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__link::before\s*\{[^}]*inset-inline-start:\s*calc\(\s*\(var\(--mb-navigation-rail-target-size\)\s*-\s*var\(--mb-navigation-rail-active-size\)\)\s*/\s*2\s*\);"));
+                        @"(?s)\.mb-navigation-rail__link::before\s*\{[^}]*inset-inline-start:\s*calc\(\s*\(var\(--navigation-rail-target-size\)\s*-\s*var\(--navigation-rail-active-size\)\)\s*/\s*2\s*\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--collapsed\).*?\.mb-navigation-rail__link--active:focus-visible\s*\{[^}]*background:\s*var\(--mb-color-action-primary-soft\);"));
+                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--collapsed\).*?\.mb-navigation-rail__link--active:focus-visible\s*\{[^}]*background:\s*var\(--accent\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__sidebar-control\s*\{[^}]*justify-content:\s*center;[^}]*width:\s*var\(--mb-navigation-rail-target-size\);"));
+                        @"(?s)\.mb-navigation-rail__sidebar-control\s*\{[^}]*justify-content:\s*center;[^}]*width:\s*var\(--navigation-rail-target-size\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -929,11 +929,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__collapse-toggle:hover\s*\{[^}]*background:\s*transparent;[^}]*color:\s*var\(--mb-color-action-primary-hover\);"));
+                        @"(?s)\.mb-navigation-rail__collapse-toggle:hover\s*\{[^}]*background:\s*transparent;[^}]*color:\s*var\(--primary-strong\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__collapse-toggle:focus-visible\s*\{[^}]*background:\s*transparent;[^}]*outline:\s*2px\s+solid\s+var\(--mb-color-focus-ring\);[^}]*box-shadow:\s*none;"));
+                        @"(?s)\.mb-navigation-rail__collapse-toggle:focus-visible\s*\{[^}]*background:\s*transparent;[^}]*outline:\s*2px\s+solid\s+var\(--ring\);[^}]*box-shadow:\s*none;"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -949,27 +949,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__control-option:not\(\[aria-disabled=""true""\]\):hover\s*\{[^}]*background:\s*var\(--mb-color-surface-hover\);[^}]*color:\s*var\(--mb-color-text-primary\);"));
+                        @"(?s)\.mb-navigation-rail__control-option:not\(\[aria-disabled=""true""\]\):hover\s*\{[^}]*background:\s*var\(--muted\);[^}]*color:\s*var\(--foreground\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__control-option:focus\s*\{[^}]*background:\s*transparent;[^}]*outline:\s*2px\s+solid\s+var\(--mb-color-focus-ring\);"));
+                        @"(?s)\.mb-navigation-rail__control-option:focus\s*\{[^}]*background:\s*transparent;[^}]*outline:\s*2px\s+solid\s+var\(--ring\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__control-option--selected:focus\s*\{[^}]*background:\s*var\(--mb-color-action-primary-soft\);[^}]*color:\s*var\(--mb-color-action-primary\);[^}]*font-weight:\s*var\(--mb-font-weight-label-xs\);"));
+                        @"(?s)\.mb-navigation-rail__control-option--selected:focus\s*\{[^}]*background:\s*var\(--accent\);[^}]*color:\s*var\(--primary\);[^}]*font-weight:\s*var\(--typography-typography-label-xs-font-weight\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__divider::before\s*\{[^}]*inset-inline-start:\s*var\(--mb-spacing-2\);[^}]*width:\s*max\(\s*var\(--mb-navigation-rail-divider-width\),\s*calc\(100%\s*-\s*\(2\s*\*\s*var\(--mb-spacing-2\)\)\)\s*\);"));
+                        @"(?s)\.mb-navigation-rail__divider::before\s*\{[^}]*inset-inline-start:\s*var\(--spacing-8\);[^}]*width:\s*max\(\s*var\(--navigation-rail-divider-width\),\s*calc\(100%\s*-\s*\(2\s*\*\s*var\(--spacing-8\)\)\)\s*\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__section-marker\s*\{[^}]*position:\s*relative;[^}]*align-self:\s*stretch;[^}]*height:\s*var\(--mb-navigation-rail-divider-height\);[^}]*overflow:\s*hidden;"));
+                        @"(?s)\.mb-navigation-rail__section-marker\s*\{[^}]*position:\s*relative;[^}]*align-self:\s*stretch;[^}]*height:\s*var\(--navigation-rail-divider-height\);[^}]*overflow:\s*hidden;"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__divider\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;[^}]*opacity:\s*1;[^}]*transition:\s*opacity\s+var\(--mb-transition-fast\);"));
+                        @"(?s)\.mb-navigation-rail__divider\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;[^}]*opacity:\s*1;[^}]*transition:\s*opacity\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -977,7 +977,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__group-heading-label\s*\{[^}]*width:\s*max-content;[^}]*padding:\s*var\(--mb-spacing-3\)\s+var\(--mb-spacing-2\)\s+var\(--mb-spacing-1\)\s+var\(--mb-spacing-3\);[^}]*letter-spacing:\s*0\.08em;[^}]*pointer-events:\s*none;[^}]*text-align:\s*start;[^}]*text-overflow:\s*ellipsis;"));
+                        @"(?s)\.mb-navigation-rail__group-heading-label\s*\{[^}]*width:\s*max-content;[^}]*padding:\s*var\(--spacing-12\)\s+var\(--spacing-8\)\s+var\(--spacing-4\)\s+var\(--spacing-12\);[^}]*letter-spacing:\s*0\.08em;[^}]*pointer-events:\s*none;[^}]*text-align:\s*start;[^}]*text-overflow:\s*ellipsis;"));
                 Assert.That(style, Does.Contain("@media (prefers-reduced-motion: reduce)"));
                 Assert.That(
                     style,
@@ -995,16 +995,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--hover-overlay\)\s*\{[^}]*transition:\s*width\s+var\(--mb-transition-fast\);"));
+                        @"(?s)\.mb-navigation-rail:not\(\.mb-navigation-rail--hover-overlay\)\s*\{[^}]*transition:\s*width\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__section-marker\s*\{[^}]*transition:\s*height\s+var\(--mb-transition-fast\);"));
-                Assert.That(style, Does.Not.Contain("gap var(--mb-transition-fast)"));
+                        @"(?s)\.mb-navigation-rail__section-marker\s*\{[^}]*transition:\s*height\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
+                Assert.That(style, Does.Not.Contain("gap var(--motion-duration-fast) var(--motion-easing-standard)"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__label\s*\{[^}]*display:\s*block;[^}]*opacity:\s*1;[^}]*transition:\s*opacity\s+var\(--mb-transition-fast\);"));
+                        @"(?s)\.mb-navigation-rail__label\s*\{[^}]*display:\s*block;[^}]*opacity:\s*1;[^}]*transition:\s*opacity\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -1012,7 +1012,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail--hover-overlay\s+\.mb-navigation-rail__label\s*\{[^}]*width\s+var\(--mb-transition-fast\),[^}]*opacity\s+var\(--mb-transition-fast\);"));
+                        @"(?s)\.mb-navigation-rail--hover-overlay\s+\.mb-navigation-rail__label\s*\{[^}]*width\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\),[^}]*opacity\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -1020,7 +1020,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail__group-heading\s*\{[^}]*display:\s*block;[^}]*transition:\s*opacity\s+var\(--mb-transition-fast\);"));
+                        @"(?s)\.mb-navigation-rail__group-heading\s*\{[^}]*display:\s*block;[^}]*transition:\s*opacity\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -1028,7 +1028,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-navigation-rail--hover-overlay\s+\.mb-navigation-rail__group-heading\s*\{[^}]*width\s+var\(--mb-transition-fast\),[^}]*opacity\s+var\(--mb-transition-fast\);"));
+                        @"(?s)\.mb-navigation-rail--hover-overlay\s+\.mb-navigation-rail__group-heading\s*\{[^}]*width\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\),[^}]*opacity\s+var\(--motion-duration-fast\)\s+var\(--motion-easing-standard\);"));
                 Assert.That(
                     style,
                     Does.Match(

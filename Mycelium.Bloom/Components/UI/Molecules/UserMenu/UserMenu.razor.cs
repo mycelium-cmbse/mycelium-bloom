@@ -119,8 +119,8 @@ namespace Mycelium.Bloom.Components.UI.Molecules.UserMenu
         private string GetAvatarStyle()
         {
             var style = CssStyleBuilder.Build(
-                ("--mb-user-avatar-background", this.AvatarBackgroundColor),
-                ("--mb-user-avatar-border", this.AvatarBorderColor));
+                ("--user-menu-avatar-background", this.AvatarBackgroundColor),
+                ("--user-menu-avatar-border", this.AvatarBorderColor));
 
             return string.IsNullOrWhiteSpace(style) ? null : style;
         }

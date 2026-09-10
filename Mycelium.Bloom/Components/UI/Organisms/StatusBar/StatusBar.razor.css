@@ -1,26 +1,26 @@
 .mb-status-bar {
-    --mb-status-bar-min-height: 2rem;
-    --mb-status-bar-compact-min-height: 1.75rem;
+    --status-bar-min-height: 2rem;
+    --status-bar-compact-min-height: 1.75rem;
 
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--mb-spacing-3);
+    gap: var(--spacing-12);
     width: 100%;
     min-width: 0;
-    min-height: var(--mb-status-bar-min-height);
-    padding: 0 var(--mb-spacing-3);
-    border-top: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-surface);
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-sm);
-    line-height: var(--mb-line-height-label-sm);
+    min-height: var(--status-bar-min-height);
+    padding: 0 var(--spacing-12);
+    border-top: var(--border-width-default) solid var(--border-subtle);
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-sm-font-size);
+    line-height: var(--typography-typography-label-sm-line-height);
 }
 
 .mb-status-bar--compact {
-    min-height: var(--mb-status-bar-compact-min-height);
-    gap: var(--mb-spacing-2);
-    padding-inline: var(--mb-spacing-2);
+    min-height: var(--status-bar-compact-min-height);
+    gap: var(--spacing-8);
+    padding-inline: var(--spacing-8);
 }
 
 .mb-status-bar__leading,
@@ -28,13 +28,13 @@
     display: inline-flex;
     align-items: center;
     min-width: 0;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
 }
 
 .mb-status-bar__content {
     min-width: 0;
     overflow: hidden;
-    color: var(--mb-color-text-primary);
+    color: var(--foreground);
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;

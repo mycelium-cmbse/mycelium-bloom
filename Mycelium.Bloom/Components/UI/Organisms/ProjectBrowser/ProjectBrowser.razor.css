@@ -1,18 +1,18 @@
 .mb-project-browser {
-    --mb-project-browser-scrollbar-size: 6px;
-    --mb-project-browser-scrollbar-thumb: color-mix(
+    --project-browser-scrollbar-size: var(--spacing-6);
+    --project-browser-scrollbar-thumb: color-mix(
         in srgb,
-        var(--mb-color-text-muted) 40%,
+        var(--muted-foreground) 40%,
         transparent
     );
-    --mb-project-browser-scrollbar-thumb-hover: color-mix(
+    --project-browser-scrollbar-thumb-hover: color-mix(
         in srgb,
-        var(--mb-color-text-muted) 64%,
+        var(--muted-foreground) 64%,
         transparent
     );
-    --mb-project-browser-scroll-shadow: color-mix(
+    --project-browser-scroll-shadow: color-mix(
         in srgb,
-        var(--mb-color-text-muted) 28%,
+        var(--muted-foreground) 28%,
         transparent
     );
 
@@ -24,19 +24,19 @@
     min-height: 0;
     max-height: 100%;
     overflow: hidden;
-    background: var(--mb-color-surface);
-    color: var(--mb-color-text-primary);
+    background: var(--card);
+    color: var(--foreground);
 }
 
 .mb-project-browser__toolbar {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
     min-width: 0;
-    padding: var(--mb-spacing-3) 14px;
-    border-bottom: 1px solid var(--mb-color-border);
-    background: var(--mb-color-surface);
+    padding: var(--spacing-12) 14px;
+    border-bottom: var(--border-width-default) solid var(--border);
+    background: var(--card);
 }
 
 .mb-project-browser__search {
@@ -55,23 +55,23 @@
     min-width: 32px;
     height: 32px;
     padding: 0;
-    border: 1px solid var(--mb-color-input-border);
-    border-radius: var(--mb-radius-control);
-    background: var(--mb-color-surface);
-    color: var(--mb-color-component-icon);
-    box-shadow: var(--mb-shadow-sm);
+    border: var(--border-width-default) solid var(--input);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    color: var(--muted-foreground);
+    box-shadow: var(--shadow-sm);
 }
 
 .mb-project-browser__filter-trigger-host ::deep .mb-project-browser__filter-trigger:hover {
-    border-color: var(--mb-color-border-strong);
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    border-color: var(--border-strong);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-project-browser__filter-trigger-host ::deep .mb-project-browser__filter-trigger[data-filter-active="true"] {
-    border-color: var(--mb-color-border-selected);
-    background: var(--mb-color-surface-selected);
-    color: var(--mb-color-action-primary);
+    border-color: var(--primary);
+    background: var(--accent);
+    color: var(--primary);
 }
 
 .mb-project-browser__filter-trigger-indicator {
@@ -80,53 +80,53 @@
     inset-inline-end: 5px;
     width: 5px;
     height: 5px;
-    border: 1px solid var(--mb-color-surface);
-    border-radius: var(--mb-radius-full);
-    background: var(--mb-color-action-primary);
+    border: var(--border-width-default) solid var(--card);
+    border-radius: var(--radius-full);
+    background: var(--primary);
 }
 
 .mb-project-browser__filter-drawer {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-height: min(676px, calc(100dvh - (2 * var(--mb-spacing-4))));
+    max-height: min(676px, calc(100dvh - (2 * var(--spacing-16))));
     overflow: hidden;
-    border: 1px solid var(--mb-color-border-subtle);
-    border-radius: var(--mb-radius-md);
-    background: var(--mb-color-popover);
+    border: var(--border-width-default) solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--popover);
     box-shadow: 0 6px 18px rgb(26 31 41 / 14%);
-    color: var(--mb-color-text-primary);
-    font-family: var(--mb-font-family-sans), system-ui, sans-serif;
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .mb-project-browser__filter-drawer-header {
     display: flex;
     flex: 0 0 44px;
     align-items: center;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
     min-width: 0;
     height: 44px;
     padding: 0 14px;
-    border-bottom: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-popover);
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    background: var(--popover);
 }
 
 .mb-project-browser__filter-heading-dot {
     flex: 0 0 auto;
     width: 6px;
     height: 6px;
-    border-radius: var(--mb-radius-full);
-    background: var(--mb-color-action-primary);
+    border-radius: var(--radius-full);
+    background: var(--primary);
 }
 
 .mb-project-browser__filter-drawer-title,
 .mb-project-browser__filter-section-title {
     margin: 0;
-    color: var(--mb-color-text-secondary);
-    font-size: var(--mb-font-size-label-xs);
-    font-weight: var(--mb-font-weight-label-xs);
-    line-height: var(--mb-line-height-label-xs);
-    letter-spacing: var(--mb-letter-spacing-label-xs);
+    color: var(--foreground-muted);
+    font-size: var(--typography-typography-label-xs-font-size);
+    font-weight: var(--typography-typography-label-xs-font-weight);
+    line-height: var(--typography-typography-label-xs-line-height);
+    letter-spacing: var(--typography-typography-label-xs-letter-spacing);
     text-transform: uppercase;
 }
 
@@ -138,13 +138,13 @@
 .mb-project-browser__filter-active-count {
     flex: 0 0 auto;
     padding: 2px 7px;
-    border: 1px solid var(--mb-color-border-selected);
-    border-radius: var(--mb-radius-full);
-    background: var(--mb-color-surface-selected);
-    color: var(--mb-color-action-primary);
-    font-size: var(--mb-font-size-label-xs);
+    border: var(--border-width-default) solid var(--primary);
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    color: var(--primary);
+    font-size: var(--typography-typography-label-xs-font-size);
     font-weight: 600;
-    line-height: var(--mb-line-height-label-xs);
+    line-height: var(--typography-typography-label-xs-line-height);
     white-space: nowrap;
 }
 
@@ -154,25 +154,25 @@
     min-width: 24px;
     height: 24px;
     padding: 0;
-    border-radius: var(--mb-radius-sm);
-    color: var(--mb-color-text-muted);
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
 }
 
 .mb-project-browser__filter-drawer ::deep .mb-project-browser__filter-close:hover {
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-project-browser__filter-view-label {
     flex: 0 0 auto;
-    padding: var(--mb-spacing-2) 14px;
-    border-bottom: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-surface-muted);
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-xs);
-    font-weight: var(--mb-font-weight-label-xs);
-    line-height: var(--mb-line-height-label-xs);
-    letter-spacing: var(--mb-letter-spacing-label-xs);
+    padding: var(--spacing-8) 14px;
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-xs-font-size);
+    font-weight: var(--typography-typography-label-xs-font-weight);
+    line-height: var(--typography-typography-label-xs-line-height);
+    letter-spacing: var(--typography-typography-label-xs-letter-spacing);
 }
 
 .mb-project-browser__filter-drawer-body {
@@ -183,22 +183,22 @@
 }
 
 .mb-project-browser__filter-section {
-    padding: var(--mb-spacing-3) 14px;
+    padding: var(--spacing-12) 14px;
 }
 
 .mb-project-browser__filter-section-header {
     display: flex;
     align-items: center;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
     margin-bottom: 10px;
 }
 
 .mb-project-browser__filter-section-count {
     margin-inline-start: auto;
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-xs);
-    font-weight: var(--mb-font-weight-label-sm);
-    line-height: var(--mb-line-height-label-xs);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-xs-font-size);
+    font-weight: var(--typography-typography-label-sm-font-weight);
+    line-height: var(--typography-typography-label-xs-line-height);
     white-space: nowrap;
 }
 
@@ -211,26 +211,26 @@
 .mb-project-browser__filter-drawer ::deep .mb-project-browser__type-chip {
     min-height: 26px;
     padding: 4px 8px;
-    gap: var(--mb-spacing-1);
-    border-color: var(--mb-color-border);
-    border-radius: var(--mb-radius-control);
-    background: var(--mb-color-surface);
-    color: var(--mb-color-text-secondary);
-    font-size: var(--mb-font-size-mono-xs);
+    gap: var(--spacing-4);
+    border-color: var(--border);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    color: var(--foreground-muted);
+    font-size: var(--typography-typography-mono-xs-font-size);
     font-weight: 400;
-    line-height: var(--mb-line-height-mono-xs);
+    line-height: var(--typography-typography-mono-xs-line-height);
 }
 
 .mb-project-browser__filter-drawer ::deep .mb-project-browser__type-chip:hover {
-    border-color: var(--mb-color-border-strong);
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    border-color: var(--border-strong);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-project-browser__filter-drawer ::deep .mb-project-browser__type-chip[aria-pressed="true"] {
-    border-color: var(--mb-color-border-selected);
-    background: var(--mb-color-surface-selected);
-    color: var(--mb-color-action-primary);
+    border-color: var(--primary);
+    background: var(--accent);
+    color: var(--primary);
     font-weight: 600;
 }
 
@@ -239,21 +239,21 @@
     flex: 0 0 auto;
     align-items: center;
     min-height: 44px;
-    padding: var(--mb-spacing-2) 14px;
-    border-top: 1px solid var(--mb-color-border-subtle);
-    background: var(--mb-color-popover);
+    padding: var(--spacing-8) 14px;
+    border-top: var(--border-width-default) solid var(--border-subtle);
+    background: var(--popover);
 }
 
 .mb-project-browser__filter-drawer ::deep .mb-project-browser__clear-all {
     min-height: 28px;
-    padding-inline: var(--mb-spacing-2);
-    color: var(--mb-color-action-primary);
-    font-size: var(--mb-font-size-body-sm);
+    padding-inline: var(--spacing-8);
+    color: var(--primary);
+    font-size: var(--typography-typography-body-sm-font-size);
     font-weight: 600;
 }
 
 .mb-project-browser__filter-drawer ::deep .mb-project-browser__clear-all:disabled {
-    color: var(--mb-color-text-disabled);
+    color: var(--muted-foreground);
     opacity: 0.65;
 }
 
@@ -266,17 +266,17 @@
     overflow: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: var(--mb-project-browser-scrollbar-thumb) transparent;
-    background-color: var(--mb-color-surface);
+    scrollbar-color: var(--project-browser-scrollbar-thumb) transparent;
+    background-color: var(--card);
     background-image:
-        linear-gradient(to bottom, var(--mb-color-surface) 30%, transparent),
-        linear-gradient(to top, var(--mb-color-surface) 30%, transparent),
-        linear-gradient(to right, var(--mb-color-surface) 30%, transparent),
-        linear-gradient(to left, var(--mb-color-surface) 30%, transparent),
-        radial-gradient(farthest-side at 50% 0, var(--mb-project-browser-scroll-shadow), transparent),
-        radial-gradient(farthest-side at 50% 100%, var(--mb-project-browser-scroll-shadow), transparent),
-        radial-gradient(farthest-side at 0 50%, var(--mb-project-browser-scroll-shadow), transparent),
-        radial-gradient(farthest-side at 100% 50%, var(--mb-project-browser-scroll-shadow), transparent);
+        linear-gradient(to bottom, var(--card) 30%, transparent),
+        linear-gradient(to top, var(--card) 30%, transparent),
+        linear-gradient(to right, var(--card) 30%, transparent),
+        linear-gradient(to left, var(--card) 30%, transparent),
+        radial-gradient(farthest-side at 50% 0, var(--project-browser-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 50% 100%, var(--project-browser-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 0 50%, var(--project-browser-scroll-shadow), transparent),
+        radial-gradient(farthest-side at 100% 50%, var(--project-browser-scroll-shadow), transparent);
     background-position:
         center top,
         center bottom,
@@ -300,8 +300,8 @@
 }
 
 .mb-project-browser__tree-viewport::-webkit-scrollbar {
-    width: var(--mb-project-browser-scrollbar-size);
-    height: var(--mb-project-browser-scrollbar-size);
+    width: var(--project-browser-scrollbar-size);
+    height: var(--project-browser-scrollbar-size);
 }
 
 .mb-project-browser__tree-viewport::-webkit-scrollbar-track,
@@ -311,13 +311,13 @@
 
 .mb-project-browser__tree-viewport::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
-    border-radius: var(--mb-radius-full);
-    background: var(--mb-project-browser-scrollbar-thumb);
+    border-radius: var(--radius-full);
+    background: var(--project-browser-scrollbar-thumb);
     background-clip: padding-box;
 }
 
 .mb-project-browser__tree-viewport::-webkit-scrollbar-thumb:hover {
-    background: var(--mb-project-browser-scrollbar-thumb-hover);
+    background: var(--project-browser-scrollbar-thumb-hover);
 }
 
 .mb-project-browser__tree-viewport::-webkit-scrollbar-button {
@@ -366,33 +366,33 @@
     width: max-content;
     min-width: 100%;
     min-height: 100%;
-    padding: var(--mb-spacing-3);
+    padding: var(--spacing-12);
     background: transparent;
 }
 
 .mb-project-browser__state,
 .mb-project-browser__empty {
-    padding: var(--mb-spacing-4);
-    color: var(--mb-color-text-muted);
-    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    padding: var(--spacing-16);
+    color: var(--muted-foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
 }
 
 .mb-project-browser__state {
-    border: 1px solid var(--mb-color-border);
-    border-radius: var(--mb-radius-md);
-    background: var(--mb-color-surface-muted);
+    border: var(--border-width-default) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--muted);
 }
 
 .mb-project-browser__state--error {
-    border-color: var(--mb-color-danger-border);
-    background: var(--mb-color-danger-surface);
+    border-color: var(--destructive-strong);
+    background: var(--destructive-subtle);
 }
 
 .mb-project-browser__state-title {
     display: block;
-    color: var(--mb-color-text-primary);
+    color: var(--foreground);
     font-weight: 600;
 }
 

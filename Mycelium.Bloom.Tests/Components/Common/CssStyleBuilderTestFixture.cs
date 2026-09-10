@@ -25,9 +25,9 @@ namespace Mycelium.Bloom.Tests.Components.Common
         {
             var style = CssStyleBuilder.Build(
                 ("width", "24px"),
-                ("--mb-component-color", "var(--mb-color-brand-500)"));
+                ("--test-color", "var(--primary)"));
 
-            Assert.That(style, Is.EqualTo("width: 24px; --mb-component-color: var(--mb-color-brand-500);"));
+            Assert.That(style, Is.EqualTo("width: 24px; --test-color: var(--primary);"));
         }
 
         /// <summary>

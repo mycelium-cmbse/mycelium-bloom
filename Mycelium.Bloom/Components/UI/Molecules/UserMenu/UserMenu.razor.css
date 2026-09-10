@@ -6,15 +6,15 @@
 .mb-user-menu ::deep .mb-user-menu__trigger {
     justify-content: flex-start;
     max-width: 240px;
-    min-height: var(--mb-control-height-sm);
-    padding: var(--mb-spacing-1) var(--mb-spacing-2);
-    border-color: var(--mb-color-component-border);
-    background: var(--mb-color-surface);
+    min-height: var(--spacing-34);
+    padding: var(--spacing-4) var(--spacing-8);
+    border-color: var(--input);
+    background: var(--card);
 }
 
 .mb-user-menu ::deep .mb-user-menu__trigger:hover:not(:disabled) {
-    border-color: var(--mb-color-component-border-strong);
-    background: var(--mb-color-component-soft);
+    border-color: var(--border-strong);
+    background: var(--muted);
 }
 
 .mb-user-menu__identity {
@@ -33,13 +33,13 @@
 .mb-user-menu__avatar-frame ::deep .mb-user-menu__avatar {
     width: 24px;
     height: 24px;
-    border: 1px solid var(--mb-user-avatar-border, transparent);
+    border: var(--border-width-default) solid var(--user-menu-avatar-border, transparent);
     font-size: 10px;
 }
 
 .mb-user-menu__avatar-frame ::deep .mb-user-menu__avatar-fallback {
-    background: var(--mb-user-avatar-background, var(--mb-color-action-primary));
-    color: var(--mb-color-action-primary-foreground);
+    background: var(--user-menu-avatar-background, var(--primary));
+    color: var(--primary-foreground);
 }
 
 .mb-user-menu__name,
@@ -50,21 +50,21 @@
 }
 
 .mb-user-menu__name {
-    color: var(--mb-color-component-text);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    color: var(--foreground);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
     font-weight: 600;
 }
 
 .mb-user-menu__subtitle {
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-xs);
-    line-height: var(--mb-line-height-label-xs);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-xs-font-size);
+    line-height: var(--typography-typography-label-xs-line-height);
 }
 
 .mb-user-menu--compact ::deep .mb-user-menu__trigger {
-    width: var(--mb-control-height-sm);
-    padding: var(--mb-spacing-1);
+    width: var(--spacing-34);
+    padding: var(--spacing-4);
 }
 
 .mb-user-menu--compact ::deep .mb-action-menu__chevron {

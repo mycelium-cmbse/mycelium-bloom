@@ -11,21 +11,21 @@
     align-items: center;
     justify-content: center;
     min-width: 0;
-    min-height: var(--mb-control-height-xs);
-    gap: var(--mb-spacing-2);
+    min-height: var(--spacing-28);
+    gap: var(--spacing-8);
     padding: 0.375rem 0.5rem;
-    border: 1px solid transparent;
-    border-radius: var(--mb-radius-control);
+    border: var(--border-width-default) solid transparent;
+    border-radius: var(--radius-md);
     background: transparent;
-    color: var(--mb-color-component-text);
-    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
 }
 
 .mb-action-menu ::deep .mb-action-menu__trigger:hover:not([aria-disabled="true"]),
 .mb-action-menu ::deep .mb-action-menu__trigger--open {
-    background: var(--mb-color-surface-hover);
+    background: var(--muted);
 }
 
 .mb-action-menu ::deep .mb-action-menu__trigger[aria-disabled="true"] {
@@ -37,12 +37,12 @@
     align-items: center;
     flex: 1 1 auto;
     min-width: 0;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
 }
 
 .mb-action-menu ::deep .mb-action-menu__trigger .mb-action-menu__chevron {
-    color: var(--mb-color-component-icon);
-    transition: transform var(--mb-transition-fast);
+    color: var(--muted-foreground);
+    transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-action-menu ::deep .mb-action-menu__trigger--open .mb-action-menu__chevron {
@@ -81,9 +81,9 @@
 }
 
 .mb-action-menu__item-description {
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-xs);
-    line-height: var(--mb-line-height-label-xs);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-xs-font-size);
+    line-height: var(--typography-typography-label-xs-line-height);
 }
 
 .mb-action-menu__selection {
@@ -91,6 +91,6 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    margin-inline-start: var(--mb-spacing-2);
-    color: var(--mb-color-action-primary);
+    margin-inline-start: var(--spacing-8);
+    color: var(--primary);
 }

@@ -65,4 +65,19 @@
         <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
     </ItemGroup>
 
+    <Target Name="BuildMyceliumStyles" BeforeTargets="PrepareForBuild"
+            Condition="'$(DesignTimeBuild)' != 'true' and '$(MyceliumCssPrebuilt)' != 'true'">
+        <Exec Command="node Scripts/build-css.mjs"
+              WorkingDirectory="$(MSBuildProjectDirectory)" />
+    </Target>
+
+    <Target Name="VerifyMyceliumStyles" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildMyceliumStyles"
+            Condition="'$(DesignTimeBuild)' != 'true'">
+        <Error Condition="!Exists('wwwroot/css/tokens.css') or !Exists('Styles/Generated/MyceliumTokens/theme.css') or !Exists('wwwroot/css/app.css')"
+               Text="Generated Bloom styles are missing. Restore the checked-in token artifacts and run pnpm css:build before using MyceliumCssPrebuilt." />
+        <ItemGroup>
+            <Content Include="wwwroot\css\tokens.css;wwwroot\css\app.css" Exclude="@(Content)" />
+        </ItemGroup>
+    </Target>
+
 </Project>

@@ -67,8 +67,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
             {
                 Assert.That(component.Find(".mb-user-menu__avatar-fallback").TextContent.Trim(), Is.EqualTo("AM"));
                 Assert.That(avatar.GetAttribute("title"), Is.EqualTo("Alex Morgan"));
-                Assert.That(avatar.GetAttribute("style"), Does.Contain("--mb-user-avatar-background: teal"));
-                Assert.That(avatar.GetAttribute("style"), Does.Contain("--mb-user-avatar-border: navy"));
+                Assert.That(avatar.GetAttribute("style"), Does.Contain("--user-menu-avatar-background: teal"));
+                Assert.That(avatar.GetAttribute("style"), Does.Contain("--user-menu-avatar-border: navy"));
                 Assert.That(component.Find(".mb-user-menu__name").TextContent, Is.EqualTo("Alex Morgan"));
                 Assert.That(component.Find(".mb-user-menu__subtitle").TextContent, Is.EqualTo("alex@example.test"));
                 Assert.That(component.Find("button").GetAttribute("aria-label"),
@@ -96,7 +96,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
                 }));
 
             await component.Find("button").ClickAsync();
-            var menuItems = this.portalHost.WaitForElements("[role='menuitem']", items.Length);
+            var menuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']", items.Length);
 
             using (Assert.EnterMultipleScope())
             {

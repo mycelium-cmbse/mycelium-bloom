@@ -22,7 +22,7 @@ namespace Mycelium.Bloom.Components.Pages
         /// Gets or sets the current HTTP context provided as a cascading parameter.
         /// </summary>
         [CascadingParameter]
-        private HttpContext HttpContext { get; set; } = default!;
+        private HttpContext HttpContext { get; set; } = default;
 
         /// <summary>
         /// Gets the request identifier associated with the current error.

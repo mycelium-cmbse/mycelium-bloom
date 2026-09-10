@@ -63,11 +63,12 @@ namespace Mycelium.Bloom.Core.ModelLoading
 
             IElement resolvedElement = null;
 
-            foreach (var cachedElement in this.assembler.Cache.Values)
+            foreach (var candidate in this.assembler.Cache.Values.Select(cachedElement =>
+                     {
+                         cancellationToken.ThrowIfCancellationRequested();
+                         return cachedElement.Value;
+                     }))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var candidate = cachedElement.Value;
-
                 if (!string.Equals(candidate.ElementId, elementId, StringComparison.Ordinal))
                 {
                     continue;

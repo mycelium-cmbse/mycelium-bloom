@@ -4,19 +4,19 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    background: var(--mb-color-background);
-    color: var(--mb-color-text-primary);
+    background: var(--background);
+    color: var(--foreground);
 }
 
 .mb-workspace-layout ::deep .mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body {
-    --mb-workspace-left-panel-width: fit-content;
+    --workspace-shell-left-panel-width: fit-content;
 }
 
 .mb-workspace-layout__brand {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: calc(var(--mb-workspace-left-panel-collapsed-width) - (2 * var(--mb-spacing-2)));
+    width: calc(var(--workspace-shell-left-panel-collapsed-width) - (2 * var(--spacing-8)));
 }
 
 .mb-workspace-layout__error {
@@ -26,27 +26,27 @@
     bottom: 0;
     left: 0;
     display: none;
-    padding: var(--mb-spacing-3) var(--mb-spacing-4);
-    border-top: 1px solid var(--mb-color-danger-text);
-    background: var(--mb-color-danger-surface);
-    box-shadow: var(--mb-shadow-lg);
-    color: var(--mb-color-danger-text);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    padding: var(--spacing-12) var(--spacing-16);
+    border-top: var(--border-width-default) solid var(--destructive-strong);
+    background: var(--destructive-subtle);
+    box-shadow: var(--shadow-modal);
+    color: var(--destructive-strong);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
 }
 
 .mb-workspace-layout__error a {
-    margin-inline-start: var(--mb-spacing-2);
+    margin-inline-start: var(--spacing-8);
     color: inherit;
     font-weight: 600;
     text-decoration: underline;
 }
 
 .mb-workspace-layout__error .dismiss {
-    margin-inline-start: var(--mb-spacing-4);
+    margin-inline-start: var(--spacing-16);
     padding: 0;
     border: 0;
-    border-radius: var(--mb-radius-sm);
+    border-radius: var(--radius-sm);
     background: transparent;
     color: inherit;
     cursor: pointer;
