@@ -26,7 +26,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
     /// Verifies the shared Bloom light/dark token foundation and Blueprint bridge.
     /// </summary>
     [TestFixture]
-    public sealed class ThemeFoundationTestFixture
+    public sealed partial class ThemeFoundationTestFixture
     {
         private static readonly string[] RequiredSemanticTokens =
         [
@@ -430,7 +430,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
 
         private static string GetTokenValue(string source, string tokenName)
         {
-            var tokens = Regex.Matches(source, @"(--[\w-]+)\s*:\s*([^;]+);")
+            var tokens = TokenDeclarationPattern().Matches(source)
                 .ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value.Trim());
             var visited = new HashSet<string>(StringComparer.Ordinal);
             var value = tokens[tokenName];
@@ -459,9 +459,15 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         }
 
 
+        [GeneratedRegex(@"(--[\w-]+)\s*:\s*([^;]+);")]
+        private static partial Regex TokenDeclarationPattern();
+
+        [GeneratedRegex(@"^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+) / [\d.]+\)$")]
+        private static partial Regex SrgbColorPattern();
+
         private static double GetRelativeLuminance(string color)
         {
-            var match = Regex.Match(color, @"^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+) / [\d.]+\)$");
+            var match = SrgbColorPattern().Match(color);
             Assert.That(match.Success, Is.True, "Expected a resolved shared sRGB color.");
 
             double LinearChannel(int index)
