@@ -1,0 +1,40 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ApplicationErrorState.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.ViewModel.ApplicationErrorState
+@inherits BloomReactiveComponentBase<ApplicationErrorStateViewModel>
+
+@if (this.ViewModel is { } viewModel)
+{
+    <div class="@(this.BuildRootCssClass("application-error-state"))" @attributes="this.AdditionalAttributes">
+        <section class="application-error-state__panel" aria-labelledby="application-error-title">
+            <h1 id="application-error-title">@viewModel.Title</h1>
+            <p class="application-error-state__description">@viewModel.Description</p>
+
+            @if (viewModel.HasReferenceId)
+            {
+                <dl class="application-error-state__reference">
+                    <dt>Reference ID</dt>
+                    <dd><code>@viewModel.ReferenceId</code></dd>
+                </dl>
+            }
+
+            <div class="application-error-state__actions">
+                <BbButton Type="ButtonType.Button"
+                          Href="@viewModel.PrimaryAction.Href"
+                          data-error-action="@viewModel.PrimaryAction.BrowserAction">@viewModel.PrimaryAction.Label</BbButton>
+                <BbButton Type="ButtonType.Button"
+                          Href="@viewModel.SecondaryAction.Href"
+                          data-error-action="@viewModel.SecondaryAction.BrowserAction"
+                          Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                          Class="mb-secondary">@viewModel.SecondaryAction.Label</BbButton>
+            </div>
+        </section>
+    </div>
+}
