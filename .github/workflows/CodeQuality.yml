@@ -28,29 +28,24 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d
-        with:
-          version: 10
-          
+      - name: Verify committed Tailwind CSS
+        working-directory: Mycelium.Bloom
+        run: dotnet msbuild Mycelium.Bloom.csproj -t:VerifyMyceliumStyles
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: Mycelium.Bloom/pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: Mycelium.Bloom/package-lock.json
 
-      - name: Install frontend dependencies
+      - name: Install JavaScript test dependencies
         working-directory: Mycelium.Bloom
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Build Tailwind CSS
-        working-directory: Mycelium.Bloom
-        run: pnpm run css:build
+        run: npm ci --ignore-scripts
 
       - name: Verify shared token consumption
         working-directory: Mycelium.Bloom
-        run: pnpm run test:tokens
+        run: npm run test:tokens
 
       - name: Restore dependencies
         run: dotnet restore Mycelium.Bloom.sln --configfile Nuget.Config
@@ -67,7 +62,7 @@ jobs:
 
       - name: Run JavaScript Tests and Compute Coverage Reports
         working-directory: Mycelium.Bloom
-        run: pnpm run test:coverage:sonar
+        run: npm run test:coverage:sonar
 
       - name: Build
         run: dotnet build --no-restore --no-incremental /p:ContinuousIntegrationBuild=true
@@ -91,7 +86,6 @@ jobs:
           const lcov = readFileSync("lcov.info", "utf8");
           const xml = readFileSync("sonar-js-coverage.xml", "utf8");
           const requiredSources = [
-              "Mycelium.Bloom/Scripts/build-css.mjs",
               "Mycelium.Bloom/Components/UI/Atoms/SearchInput/SearchInput.razor.js",
               "Mycelium.Bloom/Components/UI/Atoms/SelectInput/SelectInput.razor.js"
           ];

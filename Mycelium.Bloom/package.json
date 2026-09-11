@@ -7,21 +7,16 @@
   "scripts": {
     "test": "node --test Tests/JavaScript/InteropModules.test.js",
     "test:converter": "node --test Tests/JavaScript/ConvertLcovToSonar.test.js",
-    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-include=\"Mycelium.Bloom/Scripts/build-css.mjs\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js Mycelium.Bloom/Tests/JavaScript/DesignTokenConsumer.test.mjs",
+    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js Mycelium.Bloom/Tests/JavaScript/DesignTokenConsumer.test.mjs",
     "coverage:sonar": "cd .. && node Mycelium.Bloom/Tests/JavaScript/ConvertLcovToSonar.mjs lcov.info sonar-js-coverage.xml",
-    "test:coverage:sonar": "pnpm run test:converter && pnpm run test:coverage && pnpm run coverage:sonar",
-    "test:tokens": "node --test Tests/JavaScript/DesignTokenConsumer.test.mjs",
-    "css:build": "node Scripts/build-css.mjs",
-    "css:watch": "node Scripts/build-css.mjs --watch"
+    "test:coverage:sonar": "npm run test:converter && npm run test:coverage && npm run coverage:sonar",
+    "test:tokens": "node --test Tests/JavaScript/DesignTokenConsumer.test.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e",
+  "private": true,
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
-    "jsdom": "29.1.1",
-    "mri": "^1.2.0",
-    "tailwindcss": "^4.3.3"
+    "jsdom": "29.1.1"
   }
 }

@@ -1,20 +1,58 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { EventEmitter } from 'node:events';
-import { readFile, readdir } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, relative, resolve } from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import tailwind from '@tailwindcss/cli/package.json' with { type: 'json' };
-import { buildCss } from '../../Scripts/build-css.mjs';
 
 const projectDirectory = fileURLToPath(new URL('../../', import.meta.url));
-const runtimePath = join(projectDirectory, 'wwwroot/css/tokens.css');
-const themePath = join(projectDirectory, 'Styles/Generated/MyceliumTokens/theme.css');
-const artifactPaths = [runtimePath, themePath];
+const runtimeName = 'wwwroot/css/tokens.css';
+const themeName = 'Styles/Generated/MyceliumTokens/theme.css';
+const runtimePath = join(projectDirectory, runtimeName);
+const themePath = join(projectDirectory, themeName);
+const appName = 'wwwroot/css/app.css';
+const appPath = join(projectDirectory, appName);
+const tokenPaths = [runtimePath, themePath];
+const artifactPaths = [...tokenPaths, appPath];
+
+function msbuild(directory, ...args) {
+    return spawnSync('dotnet', ['msbuild', 'Mycelium.Bloom.csproj', '-nologo', ...args], {
+        cwd: directory, encoding: 'utf8', windowsHide: true, timeout: 120_000
+    });
+}
+
+function output(result) {
+    assert.ifError(result.error);
+    return result.stdout + result.stderr;
+}
+
+function properties(directory, ...args) {
+    const result = msbuild(directory, '-getProperty:TailwindVersion,TailwindFileName,TailwindExpectedSha256,TailwindExecutable,TailwindArguments', ...args);
+    assert.equal(result.status, 0, output(result));
+    return JSON.parse(result.stdout).Properties;
+}
+
+async function fixture(context, fullSource = false) {
+    const directory = await mkdtemp(join(tmpdir(), 'bloom-tailwind-test-'));
+    context.after(() => rm(directory, { recursive: true, force: true }));
+    if (fullSource) {
+        const excluded = new Set(['bin', 'obj', 'node_modules', 'TestResults', '.local']);
+        await cp(projectDirectory, directory, { recursive: true, filter: source => !excluded.has(relative(projectDirectory, source).split(/[\\/]/)[0]) });
+        return directory;
+    }
+    for (const name of ['Mycelium.Bloom.csproj', 'Build/Tailwind.targets', runtimeName, themeName, appName]) {
+        const destination = join(directory, name);
+        await mkdir(dirname(destination), { recursive: true });
+        await copyFile(join(projectDirectory, name), destination);
+    }
+    return directory;
+}
 
 test('checked-in runtime and theme artifacts have generated headers, LF bytes and separate roles', async () => {
-    const [runtime, theme] = await Promise.all(artifactPaths.map(path => readFile(path, 'utf8')));
+    const [runtime, theme] = await Promise.all(tokenPaths.map(path => readFile(path, 'utf8')));
     for (const content of [runtime, theme]) {
         assert.match(content, /^\/\*\n \* AUTO-GENERATED FROM MYCELIUM DTCG DESIGN TOKENS\.\n \* DO NOT EDIT MANUALLY\.\n \*\/\n\n/);
         assert.ok(!content.includes('\r'));
@@ -24,123 +62,223 @@ test('checked-in runtime and theme artifacts have generated headers, LF bytes an
     assert.doesNotMatch(runtime, /@theme/);
     assert.match(theme, /\n@theme inline \{/);
     assert.doesNotMatch(theme, /:root|\.dark/);
+    assert.match(await readFile(appPath, 'utf8'), /^\/\*! tailwindcss v4\.3\.3 \|/);
 });
 
-test('CSS compilation uses checked-in artifacts without an SDK or package discovery on PATH', async () => {
+test('explicit stale-output verification preserves all committed CSS bytes', async () => {
     const before = await Promise.all(artifactPaths.map(path => readFile(path)));
-    const result = spawnSync(process.execPath, ['Scripts/build-css.mjs'], {
-        cwd: projectDirectory,
-        env: { ...process.env, PATH: '' },
-        encoding: 'utf8'
-    });
-    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const modified = await Promise.all(artifactPaths.map(async path => (await stat(path)).mtimeMs));
+    const result = msbuild(projectDirectory, '-t:VerifyMyceliumStyles');
+    assert.equal(result.status, 0, output(result));
     assert.deepEqual(await Promise.all(artifactPaths.map(path => readFile(path))), before);
+    assert.deepEqual(await Promise.all(artifactPaths.map(async path => (await stat(path)).mtimeMs)), modified);
     const compiled = await readFile(join(projectDirectory, 'wwwroot/css/app.css'), 'utf8');
     assert.ok(compiled.length > 0);
     assert.doesNotMatch(compiled, /@theme inline/);
 });
 
-for (const missingArtifact of artifactPaths) {
-    for (const state of ['missing', 'empty']) {
-        const name = relative(projectDirectory, missingArtifact).replaceAll('\\', '/');
-        test(`CSS compilation rejects ${state} ${name} before invoking Tailwind`, async () => {
-            const messages = [];
-            let compilerStarted = false;
-            const exitCode = await buildCss([], {
-                readArtifact: async (url, encoding) => {
-                    assert.equal(encoding, 'utf8');
-                    if (fileURLToPath(url) !== missingArtifact) return readFile(url, encoding);
-                    if (state === 'missing') throw new Error('Artifact unavailable');
-                    return ' \r\n\t';
-                },
-                startCompiler: () => { compilerStarted = true; },
-                reportError: message => messages.push(message)
-            });
-            assert.equal(exitCode, 1);
-            assert.equal(compilerStarted, false);
-            assert.deepEqual(messages, [state === 'missing'
-                ? `Cannot read ${name}. Restore the checked-in generated artifact before building CSS.`
-                : `${name} is empty. Replace it with validated upstream output; do not edit token values manually.`]);
+for (const name of [runtimeName, themeName]) {
+    for (const state of ['missing', 'empty', 'whitespace']) {
+        test(`CSS compilation rejects ${state} ${name} before provisioning Tailwind`, async context => {
+            const directory = await fixture(context);
+            const artifact = join(directory, name);
+            if (state === 'missing') await rm(artifact);
+            else await writeFile(artifact, state === 'empty' ? '' : ' \r\n\t');
+            const result = msbuild(directory, '-t:RegenerateMyceliumStyles');
+            assert.notEqual(result.status, 0, output(result));
+            assert.ok(output(result).includes(state === 'missing'
+                ? `Cannot read ${name}. Restore the checked-in generated artifact before building Bloom.`
+                : `${name} is empty. Replace it with validated upstream output; do not edit token values manually.`));
+            await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+            assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
         });
     }
 }
 
-for (const argumentsToForward of [[], ['--watch'], ['--watch', '--watch']]) {
-    test(`CSS compilation resolves Tailwind and forwards ${JSON.stringify(argumentsToForward)}`, async () => {
-        const calls = [];
-        const exitCode = await buildCss(argumentsToForward, {
-            startCompiler: (...argumentsToSpawn) => {
-                calls.push(argumentsToSpawn);
-                const child = new EventEmitter();
-                queueMicrotask(() => child.emit('exit', 0));
-                return child;
-            }
-        });
-        const compiler = fileURLToPath(new URL(tailwind.bin.tailwindcss, import.meta.resolve('@tailwindcss/cli/package.json')));
-        assert.equal(exitCode, 0);
-        assert.deepEqual(calls, [[process.execPath, [
-            compiler, '-i', './Styles/tailwind.css', '-o', './wwwroot/css/app.css',
-            argumentsToForward.length === 0 ? '--minify' : '--watch'
-        ], { cwd: new URL('../../', import.meta.url), stdio: 'inherit', windowsHide: true }]]);
+for (const [watch, expected] of [['', '--minify'], ['false', '--minify'], ['true', '--watch=always']]) {
+    test(`TailwindWatch=${JSON.stringify(watch)} selects ${expected}`, () => {
+        assert.equal(properties(projectDirectory, `-p:TailwindWatch=${watch}`).TailwindArguments, expected);
     });
 }
 
-for (const argumentsToForward of [['--minify'], ['--watch=true'], ['--watch', 'unsupported']]) {
-    test(`CSS compilation rejects unsupported arguments ${JSON.stringify(argumentsToForward)} before reading artifacts`, async () => {
-        const operations = [];
-        const messages = [];
-        const exitCode = await buildCss(argumentsToForward, {
-            readArtifact: async () => { operations.push('read'); },
-            startCompiler: () => { operations.push('spawn'); },
-            reportError: message => messages.push(message)
-        });
-        assert.equal(exitCode, 1);
-        assert.deepEqual(operations, []);
-        assert.deepEqual(messages, ['The CSS build supports only the optional --watch argument.']);
+test('unsupported watch configuration fails before provisioning Tailwind', async context => {
+    const directory = await fixture(context);
+    const result = msbuild(directory, '-t:RegenerateMyceliumStyles', '-p:TailwindWatch=unsupported');
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /TailwindWatch must be true or false\./);
+    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+});
+
+for (const [platform, asset] of [
+    ['win-x64', 'windows-x64.exe'], ['linux-x64', 'linux-x64'], ['linux-arm64', 'linux-arm64'],
+    ['linux-musl-x64', 'linux-x64-musl'], ['linux-musl-arm64', 'linux-arm64-musl'],
+    ['osx-x64', 'macos-x64'], ['osx-arm64', 'macos-arm64']
+]) {
+    test(`SDK platform ${platform} selects a pinned standalone asset and SHA-256`, () => {
+        const settings = properties(projectDirectory, `-p:NETCoreSdkRuntimeIdentifier=${platform}`);
+        assert.equal(settings.TailwindVersion, '4.3.3');
+        assert.equal(settings.TailwindFileName, `tailwindcss-${asset}`);
+        assert.match(settings.TailwindExpectedSha256, /^[a-f0-9]{64}$/);
+        assert.ok(settings.TailwindExecutable.endsWith(settings.TailwindFileName));
     });
 }
 
-for (const childExitCode of [0, 7, null]) {
-    test(`CSS compilation propagates child exit code ${childExitCode}`, async () => {
-        const messages = [];
-        const exitCode = await buildCss([], {
-            startCompiler: () => {
-                const child = new EventEmitter();
-                queueMicrotask(() => child.emit('exit', childExitCode));
-                return child;
-            },
-            reportError: message => messages.push(message)
-        });
-        assert.equal(exitCode, childExitCode ?? 1);
-        assert.deepEqual(messages, []);
+test('unsupported SDK platforms fail before attempting a download', async context => {
+    const directory = await fixture(context);
+    const result = msbuild(directory, '-t:RegenerateMyceliumStyles', '-p:NETCoreSdkRuntimeIdentifier=unsupported');
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /No standalone Tailwind CLI asset is mapped for SDK platform unsupported\./);
+    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+});
+
+test('a cached executable with the wrong checksum is discarded without execution', async context => {
+    const directory = await fixture(context);
+    const executable = resolve(directory, properties(directory).TailwindExecutable);
+    await mkdir(dirname(executable), { recursive: true });
+    await writeFile(executable, 'This is not the verified Tailwind release.');
+    const result = msbuild(directory, '-t:RegenerateMyceliumStyles');
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /Tailwind CLI checksum mismatch/);
+    await assert.rejects(stat(executable), { code: 'ENOENT' });
+    assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
+});
+
+test('compiler errors propagate through the MSBuild entry point', async context => {
+    const directory = await fixture(context);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    await writeFile(join(directory, 'Styles/tailwind.css'), '@import "missing-stylesheet.css";\n');
+    const result = msbuild(directory, '-t:RegenerateMyceliumStyles', `-p:TailwindToolsDirectory=${dirname(executable)}`);
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /missing-stylesheet\.css/);
+    assert.match(output(result), /MSB3073/);
+    assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
+});
+
+test('watch mode rebuilds after a source change even when MSBuild closes compiler stdin', async context => {
+    const directory = await fixture(context);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const source = join(directory, 'Styles/tailwind.css');
+    const compiled = join(directory, 'wwwroot/css/app.css');
+    await writeFile(source, '@import "tailwindcss";\n@source inline("block");\n');
+    const child = spawn('dotnet', [
+        'msbuild', 'Mycelium.Bloom.csproj', '-nologo', '-tl:off', '-t:RegenerateMyceliumStyles',
+        '-p:TailwindWatch=true', `-p:TailwindToolsDirectory=${dirname(executable)}`
+    ], { cwd: directory, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, detached: process.platform !== 'win32' });
+    let errors = '';
+    child.stderr.on('data', chunk => { errors += chunk; });
+    const closed = once(child, 'close');
+    const lines = createInterface({ input: child.stdout, signal: AbortSignal.timeout(30_000) });
+    const iterator = lines[Symbol.asyncIterator]();
+    async function nextBuild() {
+        while (true) {
+            const { value, done } = await iterator.next();
+            assert.equal(done, false, `Compiler stopped before rebuilding: ${errors}`);
+            if (/Done in/.test(value)) return;
+        }
+    }
+    try {
+        await nextBuild();
+        assert.match(await readFile(compiled, 'utf8'), /display: block/);
+        await writeFile(source, '@import "tailwindcss";\n@source inline("hidden");\n');
+        await nextBuild();
+        assert.match(await readFile(compiled, 'utf8'), /display: none/);
+        assert.equal(child.exitCode, null);
+    } finally {
+        if (child.exitCode === null) {
+            if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
+            else process.kill(-child.pid, 'SIGTERM');
+        }
+        await closed;
+        lines.close();
+    }
+});
+
+test('IDE design-time builds do not provision Tailwind or require runtime artifacts', async context => {
+    const directory = await fixture(context);
+    await rm(join(directory, runtimeName));
+    const result = msbuild(directory, '-t:ValidateMyceliumStyles', '-p:DesignTimeBuild=true');
+    assert.equal(result.status, 0, output(result));
+    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+});
+
+test('normal build preparation consumes committed CSS without consulting a CLI or watch configuration', async context => {
+    const directory = await fixture(context);
+    const before = await Promise.all([runtimeName, themeName, appName].map(name => readFile(join(directory, name))));
+    const result = msbuild(directory, '-t:PrepareForBuild', '-p:NETCoreSdkRuntimeIdentifier=unsupported', '-p:TailwindFeedUrl=unavailable', '-p:TailwindWatch=unsupported');
+    assert.equal(result.status, 0, output(result));
+    assert.deepEqual(await Promise.all([runtimeName, themeName, appName].map(name => readFile(join(directory, name)))), before);
+    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+});
+
+for (const name of [runtimeName, themeName, appName]) {
+    test(`normal build preparation rejects missing committed ${name} without provisioning a CLI`, async context => {
+        const directory = await fixture(context);
+        await rm(join(directory, name));
+        const result = msbuild(directory, '-t:PrepareForBuild');
+        assert.notEqual(result.status, 0, output(result));
+        assert.ok(output(result).includes(name));
+        await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
     });
 }
 
-for (const failure of ['throw', 'error event']) {
-    test(`CSS compilation reports child-process ${failure} and fails`, async () => {
-        const messages = [];
-        const exitCode = await buildCss([], {
-            startCompiler: () => {
-                const error = new Error('Compiler could not start');
-                if (failure === 'throw') throw error;
-                const child = new EventEmitter();
-                queueMicrotask(() => child.emit('error', error));
-                return child;
-            },
-            reportError: message => messages.push(message)
-        });
-        assert.equal(exitCode, 1);
-        assert.deepEqual(messages, ['Compiler could not start']);
-    });
-}
+test('normal build preparation rejects an empty committed application stylesheet', async context => {
+    const directory = await fixture(context);
+    await writeFile(join(directory, appName), ' \r\n\t');
+    const result = msbuild(directory, '-t:PrepareForBuild');
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /Committed wwwroot\/css\/app\.css is empty/);
+    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+});
 
-test('the CSS CLI rejects unsupported arguments with a diagnostic and failure exit code', () => {
-    const result = spawnSync(process.execPath, ['Scripts/build-css.mjs', '--minify'], {
-        cwd: projectDirectory,
-        encoding: 'utf8'
-    });
-    assert.equal(result.status, 1);
-    assert.equal(result.stderr.trim(), 'The CSS build supports only the optional --watch argument.');
+test('explicit regeneration from the full source reproduces the committed application stylesheet', async context => {
+    const directory = await fixture(context, true);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const before = await Promise.all(tokenPaths.map(path => readFile(path)));
+    await rm(join(directory, appName));
+    const result = msbuild(directory, '-t:RegenerateMyceliumStyles', `-p:TailwindToolsDirectory=${dirname(executable)}`);
+    assert.equal(result.status, 0, output(result));
+    assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
+    assert.deepEqual(await Promise.all([runtimeName, themeName].map(name => readFile(join(directory, name)))), before);
+});
+
+test('stale verification detects a Razor utility change without overwriting CSS and regeneration repairs it', async context => {
+    const directory = await fixture(context);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const tools = `-p:TailwindToolsDirectory=${dirname(executable)}`;
+    await writeFile(join(directory, 'Styles/tailwind.css'), '@import "tailwindcss";\n@import "./Generated/MyceliumTokens/theme.css";\n');
+    await rm(join(directory, appName));
+    let result = msbuild(directory, '-t:RegenerateMyceliumStyles', tools);
+    assert.equal(result.status, 0, output(result));
+    const before = await readFile(join(directory, appName));
+    result = msbuild(directory, '-t:VerifyMyceliumStyles', tools, '-p:TailwindWatch=true');
+    assert.equal(result.status, 0, output(result));
+    await mkdir(join(directory, 'Components'));
+    const utility = 'z-[' + '123456' + ']';
+    await writeFile(join(directory, 'Components/Probe.razor'), `<div class="${utility}"></div>\n`);
+    result = msbuild(directory, '-t:VerifyMyceliumStyles', tools);
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /Committed app\.css is stale\. Run dotnet msbuild -t:RegenerateMyceliumStyles and commit wwwroot\/css\/app\.css\./);
+    assert.deepEqual(await readFile(join(directory, appName)), before);
+    result = msbuild(directory, '-t:RegenerateMyceliumStyles', tools);
+    assert.equal(result.status, 0, output(result));
+    assert.notDeepEqual(await readFile(join(directory, appName)), before);
+    result = msbuild(directory, '-t:VerifyMyceliumStyles', tools);
+    assert.equal(result.status, 0, output(result));
+    assert.deepEqual(await readFile(join(directory, runtimeName)), await readFile(runtimePath));
+    assert.deepEqual(await readFile(join(directory, themeName)), await readFile(themePath));
+});
+
+test('an unavailable CLI download fails without changing committed CSS', async context => {
+    const directory = await fixture(context);
+    const result = msbuild(directory, '-t:RegenerateMyceliumStyles', '-p:TailwindFeedUrl=unavailable');
+    assert.notEqual(result.status, 0, output(result));
+    assert.match(output(result), /DownloadFile|URI|MSB392/);
+    assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
+});
+
+test('a verified cached CLI works without contacting the configured feed', () => {
+    const result = msbuild(projectDirectory, '-t:VerifyMyceliumStyles', '-p:TailwindFeedUrl=unavailable');
+    assert.equal(result.status, 0, output(result));
 });
 
 test('canonical spacing preserves the consumer layout dimensions without compatibility aliases', async () => {
