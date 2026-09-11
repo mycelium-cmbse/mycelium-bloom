@@ -13,11 +13,19 @@ namespace Mycelium.Bloom.Components.Pages
 
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.ApplicationErrorState;
+
     /// <summary>
     /// Represents the default error page displayed when an unhandled exception occurs.
     /// </summary>
-    public partial class Error
+    public partial class Error : IDisposable
     {
+        /// <summary>
+        /// Gets the presentation state owned by this error page.
+        /// </summary>
+        private ApplicationErrorStateViewModel ViewModel { get; } = new(ApplicationErrorKind.ServerError);
+
         /// <summary>
         /// Gets or sets the current HTTP context provided as a cascading parameter.
         /// </summary>
@@ -25,21 +33,30 @@ namespace Mycelium.Bloom.Components.Pages
         private HttpContext HttpContext { get; set; } = default;
 
         /// <summary>
-        /// Gets the request identifier associated with the current error.
+        /// Gets or sets the request identifier preserved from the initial error response.
         /// </summary>
-        private string RequestId { get; set; }
-
-        /// <summary>
-        /// Gets a value indicating whether the request identifier should be displayed.
-        /// </summary>
-        private bool ShowRequestId => !string.IsNullOrEmpty(this.RequestId);
+        [PersistentState]
+        public string RequestId
+        {
+            get => this.ViewModel.ReferenceId;
+            set => this.ViewModel.ReferenceId = value;
+        }
 
         /// <summary>
         /// Initializes the component and resolves the request identifier for the current error request.
         /// </summary>
         protected override void OnInitialized()
         {
-            this.RequestId = Activity.Current?.Id ?? this.HttpContext.TraceIdentifier;
+            this.RequestId ??= Activity.Current?.Id ?? this.HttpContext?.TraceIdentifier;
+        }
+
+        /// <summary>
+        /// Releases the presentation state owned by this page.
+        /// </summary>
+        public void Dispose()
+        {
+            this.ViewModel.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }
