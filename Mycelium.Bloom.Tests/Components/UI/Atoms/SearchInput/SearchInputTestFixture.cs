@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // <copyright file="SearchInputTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -269,7 +269,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
             {
                 Assert.That(
                     style,
-                    Does.Match(@"(?s)\.mb-search-input:focus-within\s+::deep\s+\.mb-search-input__control\s*\{[^}]*border-color:\s*var\(--mb-color-focus-ring\);[^}]*box-shadow:"));
+                    Does.Match(@"(?s)\.mb-search-input:focus-within\s+::deep\s+\.mb-search-input__control\s*\{[^}]*border-color:\s*var\(--ring\);[^}]*box-shadow:"));
                 Assert.That(
                     style,
                     Does.Match(@"(?s)\.mb-search-input\s+::deep\s+\.mb-search-input__field:focus-visible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*none(?:\s*!important)?;"));
@@ -633,7 +633,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SearchInput
         {
             var property = instance.GetType().GetProperty(propertyName);
 
-            return property!.GetValue(instance);
+            return property.GetValue(instance);
         }
     }
 }

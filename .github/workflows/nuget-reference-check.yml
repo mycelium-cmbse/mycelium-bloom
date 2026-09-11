@@ -2,9 +2,26 @@ name: "nuget package reference check"
   
 on:
   push:
+    branches:
+      - development
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - edited
   schedule:
     - cron: '0 8 * * *'
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event_name == 'pull_request' &&
+      (github.event.action != 'edited' || github.event.changes.base != null) &&
+      github.ref || github.run_id }}
+  cancel-in-progress: true
   
 permissions:
   contents: read
@@ -12,6 +29,12 @@ permissions:
   
 jobs:
   nuget-package-check:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.draft == false &&
+        (github.event.action != 'edited' || github.event.changes.base != null)
+      )
     runs-on: ubuntu-latest
       
     steps:
@@ -26,7 +49,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore Mycelium.Bloom.sln
+        run: dotnet restore Mycelium.Bloom.sln --configfile Nuget.Config
 
       - name: Check for outdated packages
         id: outdated

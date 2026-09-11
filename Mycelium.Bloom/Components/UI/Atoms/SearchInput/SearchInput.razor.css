@@ -6,28 +6,28 @@
 
 .mb-search-input ::deep .mb-search-input__control {
     align-items: center;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
     width: 100%;
     height: 35px;
     padding-inline: 10px 6px;
-    border-color: var(--mb-color-input-border);
-    border-radius: var(--mb-radius-full);
-    background: var(--mb-color-component-soft);
-    color: var(--mb-color-component-icon);
+    border-color: var(--input);
+    border-radius: var(--radius-full);
+    background: var(--muted);
+    color: var(--muted-foreground);
     transition:
-        border-color var(--mb-transition-fast),
-        background-color var(--mb-transition-fast),
-        box-shadow var(--mb-transition-fast);
+        border-color var(--motion-duration-fast) var(--motion-easing-standard),
+        background-color var(--motion-duration-fast) var(--motion-easing-standard),
+        box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-search-input:hover ::deep .mb-search-input__control {
-    border-color: var(--mb-color-border-strong);
+    border-color: var(--border-strong);
 }
 
 .mb-search-input:focus-within ::deep .mb-search-input__control {
-    border-color: var(--mb-color-focus-ring);
-    background: var(--mb-color-surface);
-    box-shadow: 0 0 0 1px var(--mb-color-focus-ring);
+    border-color: var(--ring);
+    background: var(--card);
+    box-shadow: 0 0 0 1px var(--ring);
 }
 
 .mb-search-input--full-width {
@@ -47,7 +47,7 @@
     width: 14px;
     height: 100%;
     padding: 0;
-    color: var(--mb-color-component-icon);
+    color: var(--muted-foreground);
 }
 
 .mb-search-input ::deep .mb-search-input__icon > svg,
@@ -60,7 +60,7 @@
     flex: 1 0 4rem;
     min-width: 0;
     height: 100%;
-    padding: 0 var(--mb-spacing-2) 0 0;
+    padding: 0 var(--spacing-8) 0 0;
     font-size: 13px;
     line-height: 16px;
 }
@@ -101,15 +101,15 @@
     flex: 0 0 auto;
     min-height: 1.125rem;
     padding: 0.0625rem 0.3125rem;
-    border: 1px solid var(--mb-color-component-border);
-    border-radius: var(--mb-radius-sm);
-    background: var(--mb-color-surface);
-    color: var(--mb-color-component-icon);
+    border: var(--border-width-default) solid var(--input);
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 13px;
     font-weight: 500;
     white-space: nowrap;
-    box-shadow: 0 1px 1px color-mix(in srgb, var(--mb-color-component-text) 8%, transparent);
+    box-shadow: 0 1px 1px color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 
 @media (max-width: 640px) {

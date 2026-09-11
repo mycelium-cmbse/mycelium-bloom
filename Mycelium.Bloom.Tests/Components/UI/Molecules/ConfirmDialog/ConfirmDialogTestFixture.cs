@@ -65,7 +65,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
             var confirmationCount = 0;
             var changedState = true;
 
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Title, "Apply changes")
                 .Add(component => component.ConfirmText, "Apply")
@@ -91,7 +91,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
         {
             var openStateChangeCount = 0;
 
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.CloseOnConfirm, false)
                 .Add(component => component.IsOpenChanged, (bool _) => openStateChangeCount++));
@@ -110,7 +110,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
             var cancellationCount = 0;
             var changedState = true;
 
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Cancelled, () => cancellationCount++)
                 .Add(component => component.IsOpenChanged, (bool isOpen) => changedState = isOpen));
@@ -130,7 +130,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
         [Test]
         public void VerifyDescriptionRendersOnceAndDescribesDialog()
         {
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Description, "This action cannot be undone."));
 
@@ -197,7 +197,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
             var callbackStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var releaseCallback = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Confirmed, async () =>
                 {
@@ -207,7 +207,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
                 })
                 .Add(component => component.Cancelled, () => cancellationCount++));
 
-            var actions = this.portalHost.WaitForElements("[role='dialog'] button", 2);
+            var actions = await this.portalHost.WaitForElementsAsync("[role='dialog'] button", 2);
             var firstConfirmation = actions[1].ClickAsync();
 
             await callbackStarted.Task;
@@ -246,18 +246,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
             ConfirmDialogVariant variant,
             BlueprintButtonVariant expectedButtonVariant)
         {
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.Variant, variant));
 
             var buttons = this.portalHost.FindComponents<BbButton>();
-            var cancelButton = buttons.Single(button => button.Instance.Variant == BlueprintButtonVariant.Secondary);
-            var confirmButton = buttons.Single(button => button.Instance.Variant != BlueprintButtonVariant.Secondary);
+            var cancelButton = buttons.Single(button => button.Instance.Variant == BlueprintButtonVariant.Outline);
+            var confirmButton = buttons.Single(button => button.Instance.Variant != BlueprintButtonVariant.Outline);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(cancelButton.Instance.Type, Is.EqualTo(ButtonType.Button));
                 Assert.That(cancelButton.Instance.Size, Is.EqualTo(BlueprintButtonSize.Small));
+                Assert.That(cancelButton.Instance.Class, Does.Contain("mb-secondary"));
                 Assert.That(confirmButton.Instance.Type, Is.EqualTo(ButtonType.Button));
                 Assert.That(confirmButton.Instance.Size, Is.EqualTo(BlueprintButtonSize.Small));
                 Assert.That(confirmButton.Instance.Variant, Is.EqualTo(expectedButtonVariant));
@@ -270,13 +271,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ConfirmDialog
         [Test]
         public void VerifyConfirmingStateDisablesActions()
         {
-            var component = this.Render<ConfirmDialogComponent>(parameters => parameters
+            this.Render<ConfirmDialogComponent>(parameters => parameters
                 .Add(component => component.IsOpen, true)
                 .Add(component => component.IsConfirming, true));
 
             var buttons = this.portalHost.WaitForElements("[role='dialog'] button", 2);
             var confirmButton = this.portalHost.FindComponents<BbButton>()
-                .Single(button => button.Instance.Variant != BlueprintButtonVariant.Secondary);
+                .Single(button => button.Instance.Variant != BlueprintButtonVariant.Outline);
             var progressStatus = this.portalHost.Find("[role='status'][aria-label='Confirmation in progress']");
 
             using (Assert.EnterMultipleScope())

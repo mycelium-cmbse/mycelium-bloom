@@ -1,9 +1,9 @@
 .mb-zoom-controls {
-    --mb-zoom-controls-inset: 0.125rem;
-    --mb-zoom-controls-min-height: 2.125rem;
-    --mb-zoom-controls-action-size: 1.75rem;
-    --mb-zoom-controls-compact-min-height: 1.875rem;
-    --mb-zoom-controls-compact-action-size: 1.625rem;
+    --zoom-controls-inset: 0.125rem;
+    --zoom-controls-min-height: 2.125rem;
+    --zoom-controls-action-size: 1.75rem;
+    --zoom-controls-compact-min-height: 1.875rem;
+    --zoom-controls-compact-action-size: 1.625rem;
 
     display: inline-flex;
     align-items: center;
@@ -11,29 +11,29 @@
     width: auto;
     max-width: 100%;
     min-width: 0;
-    min-height: var(--mb-zoom-controls-min-height);
-    padding: var(--mb-zoom-controls-inset);
-    border: 1px solid var(--mb-color-border-subtle);
-    border-radius: var(--mb-radius-control);
-    background: var(--mb-color-toolbar-background);
-    color: var(--mb-color-component-text);
+    min-height: var(--zoom-controls-min-height);
+    padding: var(--zoom-controls-inset);
+    border: var(--border-width-default) solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--card);
+    color: var(--foreground);
     box-shadow: none;
 }
 
 .mb-zoom-controls ::deep .mb-zoom-controls__action {
-    width: var(--mb-zoom-controls-action-size);
-    height: var(--mb-zoom-controls-action-size);
+    width: var(--zoom-controls-action-size);
+    height: var(--zoom-controls-action-size);
     padding: 0;
-    border-radius: var(--mb-radius-sm);
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    border-radius: var(--radius-sm);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
     font-weight: 600;
 }
 
 .mb-zoom-controls ::deep .mb-zoom-controls__action:hover:not(:disabled) {
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-zoom-controls__value {
@@ -42,28 +42,28 @@
     justify-content: center;
     width: 3.25rem;
     min-width: 3.25rem;
-    height: var(--mb-zoom-controls-action-size);
-    padding-inline: var(--mb-spacing-1);
-    color: var(--mb-color-text-primary);
-    font-family: var(--mb-font-family-mono), monospace;
-    font-size: var(--mb-font-size-mono-xs);
-    line-height: var(--mb-line-height-mono-xs);
-    font-weight: var(--mb-font-weight-mono-xs);
+    height: var(--zoom-controls-action-size);
+    padding-inline: var(--spacing-4);
+    color: var(--foreground);
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: var(--typography-typography-mono-xs-font-size);
+    line-height: var(--typography-typography-mono-xs-line-height);
+    font-weight: var(--typography-typography-mono-xs-font-weight);
     white-space: nowrap;
 }
 
 .mb-zoom-controls--compact {
-    min-height: var(--mb-zoom-controls-compact-min-height);
+    min-height: var(--zoom-controls-compact-min-height);
     padding: 1px;
 }
 
 .mb-zoom-controls--compact ::deep .mb-zoom-controls__action {
-    width: var(--mb-zoom-controls-compact-action-size);
-    height: var(--mb-zoom-controls-compact-action-size);
+    width: var(--zoom-controls-compact-action-size);
+    height: var(--zoom-controls-compact-action-size);
 }
 
 .mb-zoom-controls--compact .mb-zoom-controls__value {
     width: 3.25rem;
     min-width: 3.25rem;
-    height: var(--mb-zoom-controls-compact-action-size);
+    height: var(--zoom-controls-compact-action-size);
 }

@@ -643,7 +643,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
         /// <returns>The inline custom-property declaration.</returns>
         private string GetGroupStyle(WorkspaceEditorGroupRenderState group)
         {
-            return $"--mb-editor-group-weight: {this.GetGroupWeight(group.Id).ToString("0.############", CultureInfo.InvariantCulture)};";
+            return $"--editor-workspace-group-weight: {this.GetGroupWeight(group.Id).ToString("0.############", CultureInfo.InvariantCulture)};";
         }
 
         /// <summary>
@@ -661,7 +661,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
                 position += this.GetGroupWeight(renderState.Groups[index].Id);
             }
 
-            return $"--mb-editor-splitter-position: {(position * 100d).ToString("0.######", CultureInfo.InvariantCulture)}%;";
+            return $"--editor-workspace-splitter-position: {(position * 100d).ToString("0.######", CultureInfo.InvariantCulture)}%;";
         }
 
         /// <summary>

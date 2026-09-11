@@ -318,7 +318,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages
                 Assert.That(themeService.IsDarkMode, Is.False);
                 Assert.That(this.themeModule.Invocations["applyTheme"], Has.Count.EqualTo(1));
                 Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[0], Is.False);
-                Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[3], Is.EqualTo(0.375d));
             }
 
             var themeButtons = component.FindAll("[role='group'][aria-label='Preview color theme'] button");

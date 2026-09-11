@@ -458,9 +458,9 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(rootRule, Does.Not.Contain("padding:"));
                 Assert.That(style, Does.Contain(
                     ".mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body"));
-                Assert.That(style, Does.Contain("--mb-workspace-left-panel-width: fit-content;"));
+                Assert.That(style, Does.Contain("--workspace-shell-left-panel-width: fit-content;"));
                 Assert.That(style, Does.Contain(
-                    "width: calc(var(--mb-workspace-left-panel-collapsed-width) - (2 * var(--mb-spacing-2)));"));
+                    "width: calc(var(--workspace-shell-left-panel-collapsed-width) - (2 * var(--spacing-8)));"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
             }
         }

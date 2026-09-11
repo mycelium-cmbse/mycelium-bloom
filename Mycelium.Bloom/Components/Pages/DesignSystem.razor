@@ -81,6 +81,29 @@
                     <p class="mb-design-system__type-body">Body text presents dense technical information without losing readability.</p>
                     <p class="mb-design-system__type-label">PROPERTY LABEL</p>
                     <code>part def Payload</code>
+                    <details data-curated-typography>
+                        <summary>All curated typography styles</summary>
+                        <p data-typography="display-2xl" class="text-typography-typography-display-2xl">display 2xl</p>
+                        <p data-typography="display-xl" class="text-typography-typography-display-xl">display xl</p>
+                        <p data-typography="display-lg" class="text-typography-typography-display-lg">display lg</p>
+                        <p data-typography="heading-md" class="text-typography-typography-heading-md">heading md</p>
+                        <p data-typography="heading-sm" class="text-typography-typography-heading-sm">heading sm</p>
+                        <p data-typography="heading-xs" class="text-typography-typography-heading-xs">heading xs</p>
+                        <p data-typography="body-lg" class="text-typography-typography-body-lg">body lg</p>
+                        <p data-typography="body-md" class="text-typography-typography-body-md">body md</p>
+                        <p data-typography="body-md-medium" class="text-typography-typography-body-md-medium">body md medium</p>
+                        <p data-typography="body-sm" class="text-typography-typography-body-sm">body sm</p>
+                        <p data-typography="body-sm-medium" class="text-typography-typography-body-sm-medium">body sm medium</p>
+                        <p data-typography="body-xs" class="text-typography-typography-body-xs">body xs</p>
+                        <p data-typography="body-prose-13" class="text-typography-typography-body-prose-13">body prose 13</p>
+                        <p data-typography="label-md" class="text-typography-typography-label-md">label md</p>
+                        <p data-typography="label-sm" class="text-typography-typography-label-sm">label sm</p>
+                        <p data-typography="label-xs" class="text-typography-typography-label-xs">label xs</p>
+                        <code data-typography="mono-md" class="text-typography-typography-mono-md block">mono md</code>
+                        <code data-typography="mono-sm" class="text-typography-typography-mono-sm block">mono sm</code>
+                        <code data-typography="mono-xs" class="text-typography-typography-mono-xs block">mono xs</code>
+                        <code data-typography="mono-code-11-5" class="text-typography-typography-mono-code-11-5 block">mono code 11 5</code>
+                    </details>
                 </div>
             </article>
 
@@ -133,7 +156,7 @@
 
                 <div class="mb-design-system__inline-group">
                     <span class="mb-design-system__avatar-frame"
-                          style="--mb-design-system-avatar-background: var(--mb-color-collaborator-c06)"
+                          style="--design-system-avatar-background: var(--collaborator-c06)"
                           title="Alex Lee">
                         <BbAvatar
                             Size="BlazorBlueprint.Components.AvatarSize.Small"
@@ -144,7 +167,7 @@
                         </BbAvatar>
                     </span>
                     <span class="mb-design-system__avatar-frame"
-                          style="--mb-design-system-avatar-background: var(--mb-color-collaborator-c08)"
+                          style="--design-system-avatar-background: var(--collaborator-c08)"
                           title="Morgan Ortiz">
                         <BbAvatar
                             Size="BlazorBlueprint.Components.AvatarSize.Small"
@@ -155,7 +178,7 @@
                         </BbAvatar>
                     </span>
                     <span class="mb-design-system__avatar-frame"
-                          style="--mb-design-system-avatar-background: var(--mb-color-collaborator-c10)"
+                          style="--design-system-avatar-background: var(--collaborator-c10)"
                           title="Sam Kim">
                         <BbAvatar
                             Size="BlazorBlueprint.Components.AvatarSize.Default"
@@ -187,7 +210,7 @@
                 <div class="mb-design-system__stack">
                     <div class="mb-design-system__inline-group">
                         <BbButton>Primary</BbButton>
-                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Secondary">Secondary</BbButton>
+                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Class="mb-secondary">Secondary</BbButton>
                         <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost">Ghost</BbButton>
                         <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Destructive">Danger</BbButton>
                     </div>
@@ -199,7 +222,7 @@
                         <BbButton Loading="true" LoadingText="Loading">Loading</BbButton>
                     </div>
                     <div class="mb-design-system__inline-group">
-                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Secondary">
+                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Class="mb-secondary">
                             <Icon>
                                 <LucideIcon Name="plus"
                                             Size="16"
@@ -262,7 +285,7 @@
                         Variant="BlazorBlueprint.Components.BadgeVariant.Secondary"
                         Class="mb-design-system__badge">
                         <span class="mb-design-system__badge-dot"
-                              style="background: var(--mb-color-ownership-aocs)"
+                              style="background: var(--ownership-aocs-base)"
                               aria-hidden="true"></span>
                         AOCS
                     </BbBadge>
@@ -270,7 +293,7 @@
                         Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
                         Class="mb-design-system__badge mb-design-system__badge--lifecycle">
                         <span class="mb-design-system__badge-dot"
-                              style="background: var(--mb-color-lifecycle-review)"
+                              style="background: var(--lifecycle-review)"
                               aria-hidden="true"></span>
                         In review
                     </BbBadge>
@@ -407,9 +430,9 @@
 
                         <BbButton
                             id="toggle-secondary-shortcut-search"
-                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
-                            Class="mb-design-system__shortcut-toggle"
+                            Class="mb-secondary mb-design-system__shortcut-toggle"
                             OnClick="this.ToggleSecondaryShortcutSearch">
                             @(this.SecondaryShortcutSearchVisible ? "Remove newest target" : "Restore newest target")
                         </BbButton>
@@ -567,10 +590,11 @@
                     </div>
                     <div class="mb-design-system__inline-group">
                         <BbButton
-                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
                             data-testid="set-primary-select-open"
-                            OnClick="this.SetPrimarySelectToOpen">
+                            OnClick="this.SetPrimarySelectToOpen"
+                            Class="mb-secondary">
                             Set primary to Open
                         </BbButton>
                         <BbButton
@@ -768,8 +792,9 @@
                         </BbTabs>
                         <div class="mb-design-system__tabs-controls">
                             <BbButton
-                                Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                Class="mb-secondary"
                                 OnClick='() => this.HandleTabChanged("overview")'>
                                 Select overview externally
                             </BbButton>
@@ -852,8 +877,9 @@
                         </BbTabs>
                         <div class="mb-design-system__tabs-controls">
                             <BbButton
-                                Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                Class="mb-secondary"
                                 OnClick='() => this.HandleReviewTabChanged("summary")'>
                                 Select summary externally
                             </BbButton>
@@ -905,8 +931,9 @@
                     <Icon><span aria-hidden="true">◇</span></Icon>
                     <ChildContent>
                         <BbButton
-                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
-                            Size="BlazorBlueprint.Components.ButtonSize.Small">
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            Class="mb-secondary">
                             Add relationship
                         </BbButton>
                     </ChildContent>
@@ -1047,7 +1074,7 @@
                             Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
                             Class="mb-design-system__badge mb-design-system__badge--lifecycle">
                             <span class="mb-design-system__badge-dot"
-                                  style="background: var(--mb-color-lifecycle-open)"
+                                  style="background: var(--lifecycle-open)"
                                   aria-hidden="true"></span>
                             Open
                         </BbBadge>
@@ -1055,8 +1082,9 @@
                     <div class="mb-design-system__toolbar-main">
                         <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small">Save</BbButton>
                         <BbButton
-                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
-                            Size="BlazorBlueprint.Components.ButtonSize.Small">
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                            Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            Class="mb-secondary">
                             Validate
                         </BbButton>
                         <BbButton
@@ -1299,9 +1327,10 @@
                                             focusable="false" />
                             </BbButton>
                             <BbButton
-                                Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                                Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                OnClick="this.HandleValidateWorkspace">
+                                OnClick="this.HandleValidateWorkspace"
+                                Class="mb-secondary">
                                 Validate
                             </BbButton>
                         </ActionsContent>
@@ -1374,8 +1403,9 @@
                                         focusable="false" />
                         </BbButton>
                         <BbButton
-                            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                            Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
+                            Class="mb-secondary"
                             OnClick='() => this.HandleCanvasToolbarAction("Connect")'>
                             Connect
                         </BbButton>
@@ -1504,16 +1534,18 @@
                 <div class="mb-design-system__inline-group">
                     <BbButton
                         id="toggle-workspace-left-panel"
-                        Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                         Size="BlazorBlueprint.Components.ButtonSize.Small"
-                        OnClick="this.ToggleWorkspaceLeftPanel">
+                        OnClick="this.ToggleWorkspaceLeftPanel"
+                        Class="mb-secondary">
                         @(this.WorkspaceLeftPanelVisible ? "Hide left panel" : "Show left panel")
                     </BbButton>
                     <BbButton
                         id="toggle-workspace-right-panel"
-                        Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                        Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                         Size="BlazorBlueprint.Components.ButtonSize.Small"
-                        OnClick="this.ToggleWorkspaceRightPanel">
+                        OnClick="this.ToggleWorkspaceRightPanel"
+                        Class="mb-secondary">
                         @(this.WorkspaceRightPanelVisible ? "Hide right panel" : "Show right panel")
                     </BbButton>
                 </div>
@@ -1745,9 +1777,10 @@
     </ChildContent>
     <FooterContent>
         <BbButton
-            Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+            Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
             Size="BlazorBlueprint.Components.ButtonSize.Small"
-            OnClick="this.CloseModal">
+            OnClick="this.CloseModal"
+            Class="mb-secondary">
             Close
         </BbButton>
         <BbButton

@@ -1,0 +1,111 @@
+<Project>
+    <PropertyGroup>
+        <TailwindVersion>4.3.3</TailwindVersion>
+        <TailwindFeedUrl Condition="'$(TailwindFeedUrl)' == ''">https://github.com/tailwindlabs/tailwindcss/releases/download</TailwindFeedUrl>
+        <TailwindToolsDirectory Condition="'$(TailwindToolsDirectory)' == ''">$(BaseIntermediateOutputPath)tailwind/$(TailwindVersion)/</TailwindToolsDirectory>
+        <TailwindArguments Condition="'$(TailwindWatch)' == 'true'">--watch=always</TailwindArguments>
+        <TailwindArguments Condition="'$(TailwindWatch)' != 'true'">--minify</TailwindArguments>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'win-x64'">
+        <TailwindFileName>tailwindcss-windows-x64.exe</TailwindFileName>
+        <TailwindExpectedSha256>e0e260ce048014e9268f6237ff18f8ccf02cef521cbd0ae04e82c2cdf7aa3955</TailwindExpectedSha256>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'linux-x64'">
+        <TailwindFileName>tailwindcss-linux-x64</TailwindFileName>
+        <TailwindExpectedSha256>dc61b3ac6b8c9ca874c0cc4c57b2409791a64c5540404ca5f5367360babc313a</TailwindExpectedSha256>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'linux-arm64'">
+        <TailwindFileName>tailwindcss-linux-arm64</TailwindFileName>
+        <TailwindExpectedSha256>55fd0b241214eff3de1e8ee4f22796662f2d2e7a49bcfca7477cfd0bac398195</TailwindExpectedSha256>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'linux-musl-x64'">
+        <TailwindFileName>tailwindcss-linux-x64-musl</TailwindFileName>
+        <TailwindExpectedSha256>a04d34ceacc8f52cbe8920ad846cdeb61d3d0021dba32db0d1f77c9d9fad7a6c</TailwindExpectedSha256>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'linux-musl-arm64'">
+        <TailwindFileName>tailwindcss-linux-arm64-musl</TailwindFileName>
+        <TailwindExpectedSha256>71ea4be79c9de9827545682df3e040053fb535d37c71ed2cfdedf9385a0868e0</TailwindExpectedSha256>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">
+        <TailwindFileName>tailwindcss-macos-x64</TailwindFileName>
+        <TailwindExpectedSha256>7922e0953f2110c05976e3bf58f14e643d90427575e766b7d433f5f80cbee7e1</TailwindExpectedSha256>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-arm64'">
+        <TailwindFileName>tailwindcss-macos-arm64</TailwindFileName>
+        <TailwindExpectedSha256>cdf646702987a743464dff4d9c60fd4480d1c1e73dd819a9a67f1078815dce9d</TailwindExpectedSha256>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <TailwindExecutable>$([System.IO.Path]::Combine('$(TailwindToolsDirectory)', '$(TailwindFileName)'))</TailwindExecutable>
+    </PropertyGroup>
+
+    <Target Name="ValidateMyceliumTokenArtifacts">
+        <Error Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/css/tokens.css')"
+               Text="Cannot read wwwroot/css/tokens.css. Restore the checked-in generated artifact before building Bloom." />
+        <Error Condition="!Exists('$(MSBuildProjectDirectory)/Styles/Generated/MyceliumTokens/theme.css')"
+               Text="Cannot read Styles/Generated/MyceliumTokens/theme.css. Restore the checked-in generated artifact before building Bloom." />
+        <ReadLinesFromFile File="$(MSBuildProjectDirectory)/wwwroot/css/tokens.css">
+            <Output TaskParameter="Lines" ItemName="_MyceliumRuntimeTokenLines" />
+        </ReadLinesFromFile>
+        <ReadLinesFromFile File="$(MSBuildProjectDirectory)/Styles/Generated/MyceliumTokens/theme.css">
+            <Output TaskParameter="Lines" ItemName="_MyceliumThemeTokenLines" />
+        </ReadLinesFromFile>
+        <Error Condition="'@(_MyceliumRuntimeTokenLines->Count())' == '0'"
+               Text="wwwroot/css/tokens.css is empty. Replace it with validated upstream output; do not edit token values manually." />
+        <Error Condition="'@(_MyceliumThemeTokenLines->Count())' == '0'"
+               Text="Styles/Generated/MyceliumTokens/theme.css is empty. Replace it with validated upstream output; do not edit token values manually." />
+    </Target>
+
+    <Target Name="RestoreTailwind" DependsOnTargets="ValidateMyceliumTokenArtifacts">
+        <Error Condition="'$(TailwindWatch)' != '' and '$(TailwindWatch)' != 'true' and '$(TailwindWatch)' != 'false'"
+               Text="TailwindWatch must be true or false." />
+        <Error Condition="'$(TailwindFileName)' == ''"
+               Text="No standalone Tailwind CLI asset is mapped for SDK platform $(NETCoreSdkRuntimeIdentifier)." />
+        <MakeDir Directories="$(TailwindToolsDirectory)" />
+        <DownloadFile SourceUrl="$(TailwindFeedUrl)/v$(TailwindVersion)/$(TailwindFileName)"
+                      DestinationFolder="$(TailwindToolsDirectory)" DestinationFileName="$(TailwindFileName)"
+                      Retries="3" Condition="!Exists('$(TailwindExecutable)')" />
+        <GetFileHash Files="$(TailwindExecutable)" Algorithm="SHA256">
+            <Output TaskParameter="Hash" PropertyName="_TailwindActualSha256" />
+        </GetFileHash>
+        <Delete Files="$(TailwindExecutable)" Condition="'$(_TailwindActualSha256)' != '$(TailwindExpectedSha256)'" />
+        <Error Condition="'$(_TailwindActualSha256)' != '$(TailwindExpectedSha256)'"
+               Text="Tailwind CLI checksum mismatch for $(TailwindFileName). The invalid executable was discarded." />
+        <Exec Command="chmod +x &quot;$(TailwindExecutable)&quot;" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    </Target>
+
+    <Target Name="RegenerateMyceliumStyles" DependsOnTargets="RestoreTailwind">
+        <Exec Command="&quot;$(TailwindExecutable)&quot; -i Styles/tailwind.css -o wwwroot/css/app.css $(TailwindArguments)"
+              WorkingDirectory="$(MSBuildProjectDirectory)" />
+    </Target>
+
+    <Target Name="ValidateMyceliumStyles" BeforeTargets="PrepareForBuild"
+            DependsOnTargets="ValidateMyceliumTokenArtifacts" Condition="'$(DesignTimeBuild)' != 'true'">
+        <Error Condition="!Exists('wwwroot/css/app.css')"
+               Text="Committed wwwroot/css/app.css is missing. Restore it from Git or run dotnet msbuild -t:RegenerateMyceliumStyles." />
+        <ReadLinesFromFile File="wwwroot/css/app.css">
+            <Output TaskParameter="Lines" ItemName="_MyceliumApplicationStyleLines" />
+        </ReadLinesFromFile>
+        <Error Condition="'@(_MyceliumApplicationStyleLines->Count())' == '0'"
+               Text="Committed wwwroot/css/app.css is empty. Run dotnet msbuild -t:RegenerateMyceliumStyles; do not edit generated CSS manually." />
+    </Target>
+
+    <Target Name="VerifyMyceliumStyles" DependsOnTargets="ValidateMyceliumStyles;RestoreTailwind">
+        <PropertyGroup>
+            <_MyceliumStylesVerificationDirectory>$(BaseIntermediateOutputPath)tailwind/verify/$(Configuration)/$(TargetFramework)/</_MyceliumStylesVerificationDirectory>
+            <_MyceliumStylesVerificationOutput>$(_MyceliumStylesVerificationDirectory)app.css</_MyceliumStylesVerificationOutput>
+        </PropertyGroup>
+        <MakeDir Directories="$(_MyceliumStylesVerificationDirectory)" />
+        <Exec Command="&quot;$(TailwindExecutable)&quot; -i Styles/tailwind.css -o &quot;$(_MyceliumStylesVerificationOutput)&quot; --minify"
+              WorkingDirectory="$(MSBuildProjectDirectory)" />
+        <GetFileHash Files="wwwroot/css/app.css" Algorithm="SHA256">
+            <Output TaskParameter="Hash" PropertyName="_MyceliumCommittedStylesHash" />
+        </GetFileHash>
+        <GetFileHash Files="$(_MyceliumStylesVerificationOutput)" Algorithm="SHA256">
+            <Output TaskParameter="Hash" PropertyName="_MyceliumVerifiedStylesHash" />
+        </GetFileHash>
+        <Error Condition="'$(_MyceliumCommittedStylesHash)' != '$(_MyceliumVerifiedStylesHash)'"
+               Text="Committed app.css is stale. Run dotnet msbuild -t:RegenerateMyceliumStyles and commit wwwroot/css/app.css." />
+    </Target>
+</Project>

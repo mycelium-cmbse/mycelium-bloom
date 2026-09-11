@@ -8,23 +8,23 @@
 
 .mb-project-browser-search-suggestion-list ::deep .mb-project-browser-search-suggestion-list__item {
     min-height: 34px;
-    gap: var(--mb-spacing-2);
+    gap: var(--spacing-8);
     padding: 7px 9px;
-    border-radius: var(--mb-radius-sm);
-    color: var(--mb-color-text-secondary);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    border-radius: var(--radius-sm);
+    color: var(--foreground-muted);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
 }
 
 .mb-project-browser-search-suggestion-list ::deep .mb-project-browser-search-suggestion-list__item:hover,
 .mb-project-browser-search-suggestion-list ::deep .mb-project-browser-search-suggestion-list__item[data-focused="true"] {
-    background: var(--mb-color-surface-hover);
-    color: var(--mb-color-text-primary);
+    background: var(--muted);
+    color: var(--foreground);
 }
 
 .mb-project-browser-search-suggestion-list ::deep .mb-project-browser-search-suggestion-list__item--selected {
-    background: var(--mb-color-surface-selected);
-    color: var(--mb-color-text-primary);
+    background: var(--accent);
+    color: var(--foreground);
     font-weight: 600;
 }
 
@@ -35,24 +35,24 @@
     justify-content: center;
     width: 14px;
     height: 14px;
-    color: var(--mb-color-component-icon);
+    color: var(--muted-foreground);
 }
 
 .mb-project-browser-search-suggestion-list__item-icon[data-filter-selected="true"] {
-    color: var(--mb-color-action-primary);
+    color: var(--primary);
 }
 
 .mb-project-browser-search-suggestion-list__item-label {
     display: inline-flex;
     min-width: 0;
     align-items: baseline;
-    gap: var(--mb-spacing-1);
+    gap: var(--spacing-4);
     overflow-wrap: anywhere;
 }
 
 .mb-project-browser-search-suggestion-list__kind-label {
-    color: var(--mb-color-action-primary);
-    font-family: var(--mb-font-family-mono), ui-monospace, monospace;
-    font-size: var(--mb-font-size-mono-xs);
-    line-height: var(--mb-line-height-mono-xs);
+    color: var(--primary);
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: var(--typography-typography-mono-xs-font-size);
+    line-height: var(--typography-typography-mono-xs-line-height);
 }

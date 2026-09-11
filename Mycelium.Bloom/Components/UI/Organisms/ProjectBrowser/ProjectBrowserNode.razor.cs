@@ -104,7 +104,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             return string.Create(
                 CultureInfo.InvariantCulture,
-                $"--mb-project-browser-node-element-color: {this.GetElementColor()};");
+                $"--project-browser-node-element-color: {this.GetElementColor()};");
         }
 
         /// <summary>
@@ -136,16 +136,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             return this.RequiredViewModel.SourceElement switch
             {
-                IDocumentation or IComment or IAnnotation or IAnnotatingElement => "var(--mb-color-info-500)",
-                IImport => "var(--mb-color-sysml-allocations-header)",
-                IMembership => "var(--mb-color-sysml-metadata-header)",
-                IRelationship => "var(--mb-color-sysml-connections-header)",
-                IDefinition => "var(--mb-color-sysml-attributes-header)",
-                IUsage => "var(--mb-color-sysml-behavior-header)",
-                IFeature => "var(--mb-color-sysml-requirements-header)",
-                IType => "var(--mb-color-sysml-verification-header)",
-                INamespace => "var(--mb-color-sysml-structure-header)",
-                _ => "var(--mb-color-neutral-600)"
+                IDocumentation or IComment or IAnnotation or IAnnotatingElement => "var(--info)",
+                IImport => "var(--sysml-allocations-header)",
+                IMembership => "var(--sysml-metadata-header)",
+                IRelationship => "var(--sysml-connections-header)",
+                IDefinition => "var(--sysml-attributes-header)",
+                IUsage => "var(--sysml-behavior-header)",
+                IFeature => "var(--sysml-requirements-header)",
+                IType => "var(--sysml-verification-header)",
+                INamespace => "var(--sysml-structure-header)",
+                _ => "var(--foreground-muted)"
             };
         }
 

@@ -1,24 +1,24 @@
 .mb-split-button {
-    --mb-split-button-height: var(--mb-control-height-sm);
+    --split-button-height: var(--spacing-34);
 
     display: inline-grid;
-    grid-template-columns: minmax(0, auto) var(--mb-split-button-height);
+    grid-template-columns: minmax(0, auto) var(--split-button-height);
     align-items: stretch;
     min-width: 0;
-    min-height: var(--mb-split-button-height);
+    min-height: var(--split-button-height);
 }
 
 .mb-split-button ::deep .mb-split-button__primary {
     position: relative;
     z-index: 1;
-    height: var(--mb-split-button-height);
-    min-height: var(--mb-split-button-height);
+    height: var(--split-button-height);
+    min-height: var(--split-button-height);
     border-start-end-radius: 0;
     border-end-end-radius: 0;
 }
 
 .mb-split-button ::deep .mb-split-button__actions {
-    height: var(--mb-split-button-height);
+    height: var(--split-button-height);
     margin-inline-start: -1px;
 }
 
@@ -26,14 +26,14 @@
     position: relative;
     z-index: 1;
     box-sizing: border-box;
-    width: var(--mb-split-button-height);
-    height: var(--mb-split-button-height);
-    min-height: var(--mb-split-button-height);
+    width: var(--split-button-height);
+    height: var(--split-button-height);
+    min-height: var(--split-button-height);
     padding: 0;
     border-start-start-radius: 0;
     border-end-start-radius: 0;
-    border-start-end-radius: var(--mb-radius-control);
-    border-end-end-radius: var(--mb-radius-control);
+    border-start-end-radius: var(--radius-md);
+    border-end-end-radius: var(--radius-md);
 }
 
 .mb-split-button ::deep .mb-split-button__primary:focus-visible,
@@ -42,45 +42,54 @@
 }
 
 .mb-split-button--small {
-    --mb-split-button-height: var(--mb-control-height-xs);
+    --split-button-height: var(--spacing-28);
 }
 
 .mb-split-button--large {
-    --mb-split-button-height: var(--mb-control-height-md);
+    --split-button-height: var(--spacing-40);
 }
 
 .mb-split-button--primary ::deep .mb-split-button__toggle {
-    border-color: var(--mb-color-brand-action);
-    border-inline-start-color: color-mix(in srgb, var(--mb-color-action-primary-foreground) 35%, transparent);
-    background: var(--mb-color-brand-action);
-    color: var(--mb-color-action-primary-foreground);
+    border-color: var(--primary);
+    border-inline-start-color: color-mix(in srgb, var(--primary-foreground) 35%, transparent);
+    background: var(--primary);
+    color: var(--primary-foreground);
 }
 
 .mb-split-button--primary ::deep .mb-split-button__toggle:hover:not(:disabled),
 .mb-split-button--primary ::deep .mb-split-button__toggle.mb-action-menu__trigger--open {
-    background: var(--mb-color-brand-action-hover);
+    background: var(--primary-strong);
 }
 
+.mb-split-button--secondary ::deep .mb-split-button__primary,
 .mb-split-button--secondary ::deep .mb-split-button__toggle {
-    border-color: var(--mb-color-component-border);
-    background: var(--mb-color-surface);
-    color: var(--mb-color-component-text);
+    border-color: var(--border);
+    background: var(--card);
+    color: var(--secondary-foreground);
+}
+
+.mb-split-button--secondary ::deep .mb-split-button__primary:hover:not(:disabled),
+.mb-split-button--secondary ::deep .mb-split-button__primary:active:not(:disabled),
+.mb-split-button--secondary ::deep .mb-split-button__toggle:hover:not([aria-disabled="true"]),
+.mb-split-button--secondary ::deep .mb-split-button__toggle:active:not([aria-disabled="true"]),
+.mb-split-button--secondary ::deep .mb-split-button__toggle.mb-action-menu__trigger--open {
+    background: var(--secondary);
 }
 
 .mb-split-button--ghost ::deep .mb-split-button__toggle {
     background: transparent;
-    color: var(--mb-color-component-icon);
+    color: var(--muted-foreground);
 }
 
 .mb-split-button--danger ::deep .mb-split-button__toggle {
-    border-color: var(--mb-color-danger-action);
-    border-inline-start-color: color-mix(in srgb, var(--mb-color-danger-action-foreground) 35%, transparent);
-    background: var(--mb-color-danger-action);
-    color: var(--mb-color-danger-action-foreground);
+    border-color: var(--destructive);
+    border-inline-start-color: color-mix(in srgb, var(--destructive-foreground) 35%, transparent);
+    background: var(--destructive);
+    color: var(--destructive-foreground);
 }
 
 .mb-split-button--danger ::deep .mb-split-button__toggle:hover:not(:disabled) {
-    background: var(--mb-color-danger-action-hover);
+    background: var(--destructive-strong);
 }
 
 .mb-split-button--disabled {

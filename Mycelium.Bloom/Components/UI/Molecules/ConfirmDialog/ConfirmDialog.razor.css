@@ -5,20 +5,20 @@
     flex: 0 0 auto;
     width: 28px;
     height: 28px;
-    border-radius: var(--mb-radius-md);
-    background: var(--mb-color-surface-muted);
-    color: var(--mb-color-text-secondary);
+    border-radius: var(--radius-lg);
+    background: var(--muted);
+    color: var(--foreground-muted);
     font-size: 14px;
     line-height: 1;
     font-weight: 700;
 }
 
 .mb-confirm-dialog__indicator--warning {
-    background: var(--mb-color-warning-surface);
-    color: var(--mb-color-warning-text);
+    background: var(--warning-subtle);
+    color: var(--warning-vivid);
 }
 
 .mb-confirm-dialog__indicator--danger {
-    background: var(--mb-color-danger-surface);
-    color: var(--mb-color-danger-text);
+    background: var(--destructive-subtle);
+    color: var(--destructive-strong);
 }

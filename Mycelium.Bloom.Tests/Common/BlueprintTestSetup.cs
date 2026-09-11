@@ -31,9 +31,7 @@ namespace Mycelium.Bloom.Tests.Common
             context.Services.AddBlazorBlueprintComponents(
                 configureTheme: options =>
                 {
-                    options.DetectSystemPreference = false;
-                    options.DefaultRadius = 0.375d;
-                });
+                    options.DetectSystemPreference = false;                });
             context.JSInterop.Mode = JSRuntimeMode.Loose;
         }
 

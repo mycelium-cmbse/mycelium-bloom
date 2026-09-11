@@ -33,10 +33,11 @@
 
     <FooterContent>
         <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
-                  Variant="BlazorBlueprint.Components.ButtonVariant.Secondary"
+                  Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                   Size="BlazorBlueprint.Components.ButtonSize.Small"
                   Disabled="@(this.IsActionInProgress())"
-                  OnClick="this.HandleCancelAsync">
+                  OnClick="this.HandleCancelAsync"
+                  Class="mb-secondary">
             @(this.CancelText)
         </BbButton>
 

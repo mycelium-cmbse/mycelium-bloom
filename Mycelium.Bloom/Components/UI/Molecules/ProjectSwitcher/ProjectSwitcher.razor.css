@@ -7,15 +7,15 @@
 .mb-project-switcher ::deep .mb-project-switcher__trigger {
     justify-content: flex-start;
     width: 100%;
-    min-height: var(--mb-control-height-md);
-    padding: var(--mb-spacing-1) var(--mb-spacing-2);
-    border-color: var(--mb-color-component-border);
-    background: var(--mb-color-surface);
+    min-height: var(--spacing-40);
+    padding: var(--spacing-4) var(--spacing-8);
+    border-color: var(--input);
+    background: var(--card);
 }
 
 .mb-project-switcher ::deep .mb-project-switcher__trigger:hover:not([aria-disabled="true"]) {
-    border-color: var(--mb-color-component-border-strong);
-    background: var(--mb-color-component-soft);
+    border-color: var(--border-strong);
+    background: var(--muted);
 }
 
 .mb-project-switcher__initial {
@@ -25,11 +25,11 @@
     flex: 0 0 auto;
     width: 24px;
     height: 24px;
-    border-radius: var(--mb-radius-control);
-    background: var(--mb-color-action-primary-soft);
-    color: var(--mb-color-action-primary);
-    font-size: var(--mb-font-size-label-sm);
-    line-height: var(--mb-line-height-label-sm);
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--primary);
+    font-size: var(--typography-typography-label-sm-font-size);
+    line-height: var(--typography-typography-label-sm-line-height);
     font-weight: 700;
 }
 
@@ -51,16 +51,16 @@
 
 .mb-project-switcher__name,
 .mb-project-switcher__placeholder {
-    color: var(--mb-color-component-text);
-    font-size: var(--mb-font-size-body-sm);
-    line-height: var(--mb-line-height-body-sm);
+    color: var(--foreground);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
     font-weight: 600;
 }
 
 .mb-project-switcher__description {
-    color: var(--mb-color-text-muted);
-    font-size: var(--mb-font-size-label-xs);
-    line-height: var(--mb-line-height-label-xs);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-label-xs-font-size);
+    line-height: var(--typography-typography-label-xs-line-height);
 }
 
 .mb-project-switcher--disabled {

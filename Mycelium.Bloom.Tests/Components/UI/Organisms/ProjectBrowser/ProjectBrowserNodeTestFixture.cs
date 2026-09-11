@@ -15,10 +15,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Bunit;
 
+    using Moq;
+
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
+    using SysML2.NET.Core.POCO.Core.Features;
+    using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Kernel.Packages;
+    using SysML2.NET.Core.POCO.Root.Annotations;
+    using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
 
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
 
@@ -68,6 +76,42 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Find("button").GetAttribute("title"), Does.Contain("LibraryPackage"));
                 Assert.That(component.Find("button").GetAttribute("title"), Does.Not.Contain("Unknown"));
             }
+        }
+
+        /// <summary>
+        /// Verifies each SysML category renders its canonical semantic color through the node component.
+        /// </summary>
+        /// <typeparam name="TElement">The represented SysML element category.</typeparam>
+        /// <param name="expectedColor">The canonical CSS color reference.</param>
+        [TestCase("var(--info)", TypeArgs = [typeof(IDocumentation)])]
+        [TestCase("var(--info)", TypeArgs = [typeof(IComment)])]
+        [TestCase("var(--info)", TypeArgs = [typeof(IAnnotation)])]
+        [TestCase("var(--info)", TypeArgs = [typeof(IAnnotatingElement)])]
+        [TestCase("var(--sysml-allocations-header)", TypeArgs = [typeof(IImport)])]
+        [TestCase("var(--sysml-metadata-header)", TypeArgs = [typeof(IMembership)])]
+        [TestCase("var(--sysml-connections-header)", TypeArgs = [typeof(IRelationship)])]
+        [TestCase("var(--sysml-attributes-header)", TypeArgs = [typeof(IDefinition)])]
+        [TestCase("var(--sysml-behavior-header)", TypeArgs = [typeof(IUsage)])]
+        [TestCase("var(--sysml-requirements-header)", TypeArgs = [typeof(IFeature)])]
+        [TestCase("var(--sysml-verification-header)", TypeArgs = [typeof(IType)])]
+        [TestCase("var(--sysml-structure-header)", TypeArgs = [typeof(INamespace)])]
+        [TestCase("var(--foreground-muted)", TypeArgs = [typeof(IElement)])]
+        public void VerifyRenderUsesCanonicalElementColor<TElement>(string expectedColor)
+            where TElement : class, IElement
+        {
+            var element = new Mock<TElement>(MockBehavior.Strict);
+            var node = new ProjectBrowserNodeViewModel(
+                "element",
+                "Element",
+                new ProjectBrowserNodeMetadata("element", "Element", element.Object),
+                []);
+
+            using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(projectBrowserNode => projectBrowserNode.ViewModel, node));
+
+            Assert.That(
+                component.Find("button.mb-project-browser-node__row").GetAttribute("style"),
+                Is.EqualTo($"--project-browser-node-element-color: {expectedColor};"));
         }
 
         /// <summary>

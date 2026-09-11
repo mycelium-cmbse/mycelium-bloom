@@ -5,7 +5,7 @@
 }
 
 .mb-project-browser-node__row {
-    --mb-project-browser-node-element-color: var(--mb-color-text-secondary);
+    --project-browser-node-element-color: var(--foreground-muted);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -15,24 +15,24 @@
     height: 32px;
     padding: 0 8px;
     border: 0;
-    border-radius: var(--mb-radius-sm);
+    border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--mb-color-text-primary);
+    color: var(--foreground);
     text-align: left;
-    transition: background-color var(--mb-transition-fast),
-    color var(--mb-transition-fast);
+    transition: background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-project-browser-node__row:hover {
-    background: var(--mb-color-model-tree-hover);
+    background: var(--muted);
 }
 
 .mb-project-browser-node__row--selected {
-    background: var(--mb-color-model-tree-selected);
+    background: var(--accent);
 }
 
 .mb-project-browser-node__row--selected .mb-project-browser-node__title {
-    color: var(--mb-color-action-primary);
+    color: var(--primary);
     font-weight: 500;
 }
 
@@ -49,7 +49,7 @@
     flex: 0 0 auto;
     width: 8px;
     height: 16px;
-    color: var(--mb-color-text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1;
 }
@@ -59,27 +59,27 @@
     width: 14px;
     height: 14px;
     border-radius: 3px;
-    background: var(--mb-project-browser-node-element-color);
+    background: var(--project-browser-node-element-color);
 }
 
 .mb-project-browser-node__stereotype {
     flex: 0 0 auto;
-    color: var(--mb-color-text-muted);
-    font-family: var(--mb-font-family-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: var(--mb-font-size-mono-xs);
-    line-height: var(--mb-line-height-mono-xs);
-    font-weight: var(--mb-font-weight-mono-xs);
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: var(--typography-typography-mono-xs-font-size);
+    line-height: var(--typography-typography-mono-xs-line-height);
+    font-weight: var(--typography-typography-mono-xs-font-weight);
     white-space: nowrap;
 }
 
 .mb-project-browser-node__title {
     flex: 0 0 auto;
     min-width: max-content;
-    color: var(--mb-color-text-primary);
-    font-family: var(--mb-font-family-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: var(--mb-font-size-body-md);
-    line-height: var(--mb-line-height-body-md);
-    font-weight: var(--mb-font-weight-body-md);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--typography-typography-body-md-font-size);
+    line-height: var(--typography-typography-body-md-line-height);
+    font-weight: var(--typography-typography-body-md-font-weight);
     white-space: nowrap;
 }
 

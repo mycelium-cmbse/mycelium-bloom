@@ -58,8 +58,7 @@ nunit-*.xml
 
 #Front End
 node_modules/
-.pnpm-store/
-pnpm-debug.log*
+npm-debug.log*
 lcov.info
 sonar-js-coverage.xml
 

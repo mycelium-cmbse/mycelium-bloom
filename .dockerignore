@@ -13,7 +13,7 @@
 **/*.trx
 **/lcov.info
 **/sonar-js-coverage.xml
-**/pnpm-debug.log
+**/npm-debug.log
 **/.DS_Store
 **/.scannerwork/
 **/.sonarqube/
@@ -32,4 +32,3 @@
 AGENTS.md
 Mycelium.Bloom.Tests/
 Mycelium.Bloom/Tests/
-Mycelium.Bloom/wwwroot/css/app.css

@@ -335,18 +335,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(embeddedRule, Does.Contain("--mb-workspace-left-panel-collapsed-width: 3.5rem;"));
+                Assert.That(embeddedRule, Does.Contain("--workspace-shell-left-panel-collapsed-width: 3.5rem;"));
                 Assert.That(embeddedRule, Does.Contain("min-width: 0;"));
                 Assert.That(embeddedRule, Does.Contain("min-height: 0;"));
                 Assert.That(embeddedRule, Does.Contain("overflow: hidden;"));
-                Assert.That(embeddedRule, Does.Contain("border: 1px solid var(--mb-color-border-subtle);"));
-                Assert.That(fullApplicationRule, Does.Contain("--mb-workspace-left-panel-collapsed-width: 52px;"));
+                Assert.That(embeddedRule, Does.Contain("border: var(--border-width-default) solid var(--border-subtle);"));
+                Assert.That(fullApplicationRule, Does.Contain("--workspace-shell-left-panel-collapsed-width: var(--spacing-52);"));
                 Assert.That(fullApplicationRule, Does.Contain("margin: 0;"));
                 Assert.That(fullApplicationRule, Does.Contain("padding: 0;"));
                 Assert.That(fullApplicationRule, Does.Contain("border: 0;"));
                 Assert.That(fullApplicationRule, Does.Contain("border-radius: 0;"));
                 Assert.That(collapsedRule,
-                    Does.Contain("--mb-workspace-left-panel-width: var(--mb-workspace-left-panel-collapsed-width);"));
+                    Does.Contain("--workspace-shell-left-panel-width: var(--workspace-shell-left-panel-collapsed-width);"));
                 Assert.That(fullApplicationRegionsRule, Does.Contain("overflow: hidden;"));
                 Assert.That(fullApplicationLeftPanelRule, Does.Contain("position: relative;"));
                 Assert.That(fullApplicationLeftPanelRule, Does.Contain("z-index: 7;"));

@@ -143,7 +143,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(composition.Navigation.PresentationMode,
                     Is.EqualTo(NavigationRailPresentationMode.ExpandOnHover));
                 Assert.That(shellRoot.GetAttribute("style"),
-                    Does.Contain("--mb-workspace-right-panel-width: 380px;"));
+                    Does.Contain("--workspace-shell-right-panel-width: 380px;"));
                 Assert.That(navigation.Instance.ViewModel, Is.SameAs(composition.Navigation));
                 Assert.That(navigationRoot.GetAttribute("style"), Is.Null);
                 Assert.That(editorWorkspace.Instance.ViewModel, Is.SameAs(composition.Editor));
@@ -1436,7 +1436,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(style, Does.Contain("overflow: hidden;"));
                 Assert.That(style, Does.Not.Contain("mb-workspace-shell"));
                 Assert.That(style, Does.Not.Contain("mb-main-workspace__brand"));
-                Assert.That(style, Does.Contain("var(--mb-color-workspace-background)"));
+                Assert.That(style, Does.Contain("var(--background)"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
                 Assert.That(style, Does.Not.Contain("border-radius"));
             }

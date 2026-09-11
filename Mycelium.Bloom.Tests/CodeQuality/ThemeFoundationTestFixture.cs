@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
     using System.IO;
     using System.Linq;
     using System.Text.Json;
+    using System.Text.RegularExpressions;
 
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Icons.Lucide.Data;
@@ -25,81 +26,69 @@ namespace Mycelium.Bloom.Tests.CodeQuality
     /// Verifies the shared Bloom light/dark token foundation and Blueprint bridge.
     /// </summary>
     [TestFixture]
-    public sealed class ThemeFoundationTestFixture
+    public sealed partial class ThemeFoundationTestFixture
     {
         private static readonly string[] RequiredSemanticTokens =
         [
-            "--mb-color-background:",
-            "--mb-color-workspace-background:",
-            "--mb-color-surface:",
-            "--mb-color-surface-elevated:",
-            "--mb-color-surface-muted:",
-            "--mb-color-popover:",
-            "--mb-color-input-border:",
-            "--mb-color-text-primary:",
-            "--mb-color-text-secondary:",
-            "--mb-color-text-muted:",
-            "--mb-color-text-disabled:",
-            "--mb-color-border-subtle:",
-            "--mb-color-border:",
-            "--mb-color-border-strong:",
-            "--mb-color-component-border:",
-            "--mb-color-action-primary:",
-            "--mb-color-action-primary-hover:",
-            "--mb-color-action-primary-active:",
-            "--mb-color-action-primary-foreground:",
-            "--mb-color-action-primary-soft:",
-            "--mb-color-surface-selected:",
-            "--mb-color-surface-hover:",
-            "--mb-color-border-selected:",
-            "--mb-color-focus-ring:",
-            "--mb-color-success-surface:",
-            "--mb-color-success-text:",
-            "--mb-color-success-border:",
-            "--mb-color-warning-surface:",
-            "--mb-color-warning-text:",
-            "--mb-color-warning-border:",
-            "--mb-color-danger-surface:",
-            "--mb-color-danger-text:",
-            "--mb-color-danger-border:",
-            "--mb-color-danger-action:",
-            "--mb-color-danger-action-foreground:",
-            "--mb-color-info-surface:",
-            "--mb-color-info-text:",
-            "--mb-color-info-border:",
-            "--mb-color-header-background:",
-            "--mb-color-footer-background:",
-            "--mb-color-panel-background:",
-            "--mb-color-canvas-background:",
-            "--mb-color-canvas-grid:",
-            "--mb-color-toolbar-background:",
-            "--mb-color-model-tree-hover:",
-            "--mb-color-model-tree-selected:",
-            "--mb-color-sysml-structure-header:",
-            "--mb-color-sysml-attributes-header:",
-            "--mb-color-sysml-connections-header:",
-            "--mb-color-sysml-behavior-header:",
-            "--mb-color-sysml-requirements-header:",
-            "--mb-color-sysml-verification-header:",
-            "--mb-color-sysml-allocations-header:",
-            "--mb-color-sysml-metadata-header:",
-            "--mb-color-overlay-scrim:",
-            "--mb-shadow-md:",
-            "--mb-shadow-lg:"
+            "--background:",
+            "--card:",
+            "--popover:",
+            "--muted:",
+            "--input:",
+            "--foreground:",
+            "--foreground-muted:",
+            "--muted-foreground:",
+            "--border-subtle:",
+            "--border:",
+            "--border-strong:",
+            "--primary:",
+            "--primary-strong:",
+            "--primary-deep:",
+            "--primary-foreground:",
+            "--accent:",
+            "--secondary:",
+            "--secondary-foreground:",
+            "--ring:",
+            "--success-subtle:",
+            "--success-strong:",
+            "--warning-subtle:",
+            "--warning-vivid:",
+            "--destructive-subtle:",
+            "--destructive-strong:",
+            "--destructive:",
+            "--destructive-foreground:",
+            "--info-subtle:",
+            "--info-strong:",
+            "--ownership-aocs-base:",
+            "--collaborator-c06:",
+            "--lifecycle-open:",
+            "--font-sans:",
+            "--font-mono:",
+            "--radius:",
+            "--sysml-structure-header:",
+            "--sysml-attributes-header:",
+            "--sysml-connections-header:",
+            "--sysml-behavior-header:",
+            "--sysml-requirements-header:",
+            "--sysml-verification-header:",
+            "--sysml-allocations-header:",
+            "--sysml-metadata-header:",
+            "--scrim-modal:",
+            "--shadow-popover:",
+            "--shadow-modal:"
         ];
 
-        private static readonly IReadOnlyDictionary<string, string> LightSysmlHeaderTokens =
-            new Dictionary<string, string>
-            {
-                ["--mb-color-sysml-structure-header"] = "#475569",
-                ["--mb-color-sysml-attributes-header"] = "#64748b",
-                ["--mb-color-sysml-connections-header"] = "#0d9488",
-                ["--mb-color-sysml-behavior-header"] = "#b45309",
-                ["--mb-color-sysml-requirements-header"] = "#1d4ed8",
-                ["--mb-color-sysml-verification-header"] = "#7c3aed",
-                ["--mb-color-sysml-allocations-header"] = "#4f46e5",
-                ["--mb-color-sysml-metadata-header"] = "#6b7280"
-            };
+        private static readonly string[] LightSysmlHeaderTokens =
+        [
+            "--sysml-structure-header",
+            "--sysml-attributes-header",
+            "--sysml-connections-header",
+            "--sysml-behavior-header",
+            "--sysml-requirements-header",
+            "--sysml-verification-header",
+            "--sysml-allocations-header",
+            "--sysml-metadata-header"
+        ];
 
         private static readonly IReadOnlyDictionary<string, string> RequiredPackageVersions =
             new Dictionary<string, string>
@@ -147,67 +136,43 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "x"
         ];
 
-        /// <summary>
-        /// Verifies the light root and dark override each define every required semantic concept.
-        /// </summary>
         [Test]
         public void VerifyLightAndDarkSemanticTokensExist()
         {
-            var variables = File.ReadAllText(GetProjectFile("Styles", "variables.css"));
-            var darkStart = variables.IndexOf("[data-theme=\"dark\"]", StringComparison.Ordinal);
-            var lightSource = variables[..darkStart];
-            var darkSource = variables[darkStart..];
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
+            var foundation = File.ReadAllText(GetProjectFile("Styles", "variables.css"));
+            var darkStart = runtime.IndexOf(".dark {", StringComparison.Ordinal);
+            Assert.That(darkStart, Is.GreaterThan(0));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(darkStart, Is.GreaterThan(0));
-                Assert.That(lightSource, Does.Contain("color-scheme: light"));
-                Assert.That(darkSource, Does.Contain("color-scheme: dark"));
-                Assert.That(darkSource, Does.Contain(":root.dark"));
-                Assert.That(RequiredSemanticTokens.All(lightSource.Contains), Is.True, "A required light token is missing.");
-                Assert.That(RequiredSemanticTokens.All(darkSource.Contains), Is.True, "A required dark token is missing.");
+                Assert.That(foundation, Does.Match(@"(?s):root\s*\{[^}]*color-scheme: light;"));
+                Assert.That(foundation, Does.Match(@"(?s)\.dark\s*\{[^}]*color-scheme: dark;"));
+                foreach (var token in RequiredSemanticTokens)
+                {
+                    Assert.That(GetTokenValue(runtime[..darkStart], token.TrimEnd(':')), Is.Not.Empty);
+                    Assert.That(GetTokenValue(runtime[darkStart..], token.TrimEnd(':')), Is.Not.Empty);
+                }
             }
         }
 
-        /// <summary>
-        /// Verifies Blueprint semantic aliases derive from Bloom tokens rather than copied color literals.
-        /// </summary>
         [Test]
-        public void VerifyBlueprintThemeBridgeUsesBloomTokens()
+        public void VerifyBlueprintThemeBridgeUsesCanonicalTokens()
         {
             var bridge = File.ReadAllText(GetProjectFile("Styles", "blueprint-theme.css"));
-            var expectedAliases = new[]
-            {
-                "--background:",
-                "--foreground:",
-                "--card:",
-                "--card-foreground:",
-                "--popover:",
-                "--popover-foreground:",
-                "--primary:",
-                "--primary-foreground:",
-                "--secondary:",
-                "--secondary-foreground:",
-                "--muted:",
-                "--muted-foreground:",
-                "--accent:",
-                "--accent-foreground:",
-                "--destructive:",
-                "--destructive-foreground:",
-                "--border:",
-                "--input:",
-                "--ring:",
-                "--radius:",
-                "--font-sans:",
-                "--font-mono:"
-            };
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(expectedAliases.All(bridge.Contains), Is.True);
                 Assert.That(bridge, Does.Not.Contain("#"));
-                Assert.That(bridge, Does.Not.Contain("rgb("));
-                Assert.That(bridge, Does.Contain("var(--mb-"));
+                Assert.That(bridge, Does.Contain("--radius: var(--radius-8) !important;"));
+                Assert.That(bridge, Does.Contain("background: var(--card);"));
+                Assert.That(bridge, Does.Contain("border-color: var(--border);"));
+                Assert.That(bridge, Does.Contain("background: var(--secondary);"));
+                Assert.That(bridge, Does.Contain("color: var(--secondary-foreground);"));
+                Assert.That(runtime, Does.Contain("--secondary: var(--muted);"));
+                Assert.That(runtime, Does.Contain("--secondary-foreground: var(--foreground);"));
+                Assert.That(runtime, Does.Not.Contain("--secondary: var(--accent)"));
             }
         }
 
@@ -229,75 +194,53 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-item--dragging\s*\{[^}]*var\(--mb-color-border-selected\)[^}]*var\(--mb-shadow-md\)"));
+                        @"(?s)\.mb-editor-workspace__tab-item--dragging\s*\{[^}]*var\(--primary\)[^}]*var\(--shadow-popover\)"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__group-drop-surface--empty\.mb-editor-workspace__group-drop-surface--active\s*\{[^}]*var\(--mb-color-surface-selected\)[^}]*var\(--mb-color-border-selected\)[^}]*var\(--mb-shadow-md\)"));
+                        @"(?s)\.mb-editor-workspace__group-drop-surface--empty\.mb-editor-workspace__group-drop-surface--active\s*\{[^}]*var\(--accent\)[^}]*var\(--primary\)[^}]*var\(--shadow-popover\)"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-split-drop-target--active\s*\{[^}]*var\(--mb-color-border-selected\)[^}]*var\(--mb-shadow-md\)"));
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target--active\s*\{[^}]*var\(--primary\)[^}]*var\(--shadow-popover\)"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-split-docking-plus\s*\{[^}]*box-shadow:\s*var\(--mb-shadow-md\)"));
+                        @"(?s)\.mb-editor-workspace__tab-split-docking-plus\s*\{[^}]*box-shadow:\s*var\(--shadow-popover\)"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
                 Assert.That(style, Does.Not.Contain("rgb("));
             }
         }
 
-        /// <summary>
-        /// Verifies the corrective dark palette retains its near-black foundation and accessible action colors.
-        /// </summary>
         [Test]
         public void VerifyDarkPaletteUsesNearBlackFoundation()
         {
-            var variables = File.ReadAllText(GetProjectFile("Styles", "variables.css"));
-            var darkStart = variables.IndexOf("[data-theme=\"dark\"]", StringComparison.Ordinal);
-            var darkSource = variables[darkStart..];
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
+            var darkSource = runtime[runtime.IndexOf(".dark {", StringComparison.Ordinal)..];
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(darkSource, Does.Contain("--mb-color-background: #0d1117;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-surface: #161b22;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-surface-muted: #21262d;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-border-subtle: #21262d;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-border: #30363d;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-border-strong: #484f58;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-action-primary: var(--mb-color-brand-400);"));
-                Assert.That(darkSource, Does.Contain("--mb-color-danger-action: #ef4444;"));
-                Assert.That(darkSource, Does.Contain("--mb-color-danger-action-foreground: #0d1117;"));
+                Assert.That(GetRelativeLuminance(GetTokenValue(darkSource, "--background")), Is.LessThan(0.02d));
+                Assert.That(GetRelativeLuminance(GetTokenValue(darkSource, "--card")), Is.LessThan(0.03d));
             }
         }
 
-        /// <summary>
-        /// Verifies that every dark SysML category marker meets the non-text contrast target without changing light tokens.
-        /// </summary>
         [Test]
         public void VerifyDarkSysmlHeaderTokensMeetNonTextContrast()
         {
-            var variables = File.ReadAllText(GetProjectFile("Styles", "variables.css"));
-            var darkStart = variables.IndexOf("[data-theme=\"dark\"]", StringComparison.Ordinal);
-            var lightSource = variables[..darkStart];
-            var darkSource = variables[darkStart..];
-            var darkSurface = GetTokenValue(darkSource, "--mb-color-surface");
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
+            var darkSource = runtime[runtime.IndexOf(".dark {", StringComparison.Ordinal)..];
+            var darkSurface = GetTokenValue(darkSource, "--card");
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(darkSurface, Is.EqualTo("#161b22"));
-
                 foreach (var token in LightSysmlHeaderTokens)
                 {
-                    var lightValue = GetTokenValue(lightSource, token.Key);
-                    var darkValue = GetTokenValue(darkSource, token.Key);
-                    var contrast = GetContrastRatio(darkValue, darkSurface);
-
-                    Assert.That(lightValue, Is.EqualTo(token.Value), $"{token.Key} changed in the light theme.");
+                    var value = GetTokenValue(darkSource, token);
                     Assert.That(
-                        contrast,
+                        GetContrastRatio(value, darkSurface),
                         Is.GreaterThanOrEqualTo(3d),
-                        $"{token.Key} ({darkValue}) has only {contrast:F2}:1 contrast against {darkSurface}.");
+                        $"{token} must retain non-text contrast against the shared card surface.");
                 }
             }
         }
@@ -324,7 +267,12 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(variablesIndex, Is.GreaterThanOrEqualTo(0));
                 Assert.That(bridgeIndex, Is.GreaterThan(variablesIndex));
                 Assert.That(overlaysIndex, Is.GreaterThan(bridgeIndex));
-                Assert.That(primitivesIndex, Is.GreaterThan(generatedAppIndex));
+                Assert.That(primitivesIndex, Is.GreaterThanOrEqualTo(0));
+                Assert.That(generatedAppIndex, Is.GreaterThan(componentsIndex));
+                var tokensIndex = app.IndexOf("css/tokens.css", StringComparison.Ordinal);
+                Assert.That(tokensIndex, Is.GreaterThan(componentsIndex));
+                Assert.That(generatedAppIndex, Is.GreaterThan(tokensIndex));
+                Assert.That(tailwind, Does.Contain("@import \"./Generated/MyceliumTokens/theme.css\";"));
                 Assert.That(componentsIndex, Is.GreaterThan(primitivesIndex));
                 Assert.That(scopedStylesIndex, Is.GreaterThan(componentsIndex));
             }
@@ -382,7 +330,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(
                     program,
                     Does.Match(
-                        @"AddBlazorBlueprintComponents\(\s*configureTheme:\s*options\s*=>\s*\{\s*options\.DetectSystemPreference\s*=\s*false;\s*options\.DefaultRadius\s*=\s*0\.375d;\s*\}\)\s*\.AddApplicationServices\(\);"));
+                        @"AddBlazorBlueprintComponents\(\s*configureTheme:\s*options\s*=>\s*\{\s*options\.DetectSystemPreference\s*=\s*false;\s*\}\)\s*\.AddApplicationServices\(\);"));
                 Assert.That(program, Does.Not.Contain("AddBlazorBlueprintPrimitives();"));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Components\" Version=\"3.16.0\""));
                 Assert.That(project, Does.Contain("BlazorBlueprint.Icons.Lucide\" Version=\"2.0.2\""));
@@ -479,25 +427,25 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Path.Combine(pathSegments));
         }
 
+
         private static string GetTokenValue(string source, string tokenName)
         {
-            var marker = $"{tokenName}:";
-            var valueStart = source.IndexOf(marker, StringComparison.Ordinal);
+            var tokens = TokenDeclarationPattern().Matches(source)
+                .ToDictionary(match => match.Groups[1].Value, match => match.Groups[2].Value.Trim());
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            var value = tokens[tokenName];
 
-            if (valueStart < 0)
+            while (value.StartsWith("var(", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"Token '{tokenName}' was not found.");
+                if (!visited.Add(tokenName))
+                {
+                    throw new InvalidOperationException($"A theme alias cycle contains '{tokenName}'.");
+                }
+                tokenName = value[4..^1];
+                value = tokens[tokenName];
             }
 
-            valueStart += marker.Length;
-            var valueEnd = source.IndexOf(';', valueStart);
-
-            if (valueEnd < 0)
-            {
-                throw new InvalidOperationException($"Token '{tokenName}' has no terminating semicolon.");
-            }
-
-            return source[valueStart..valueEnd].Trim();
+            return value;
         }
 
         private static double GetContrastRatio(string foreground, string background)
@@ -510,30 +458,27 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             return (lighter + 0.05d) / (darker + 0.05d);
         }
 
-        private static double GetRelativeLuminance(string hexadecimalColor)
+
+        [GeneratedRegex(@"(--[\w-]+)\s*:\s*([^;]+);")]
+        private static partial Regex TokenDeclarationPattern();
+
+        [GeneratedRegex(@"^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+) / [\d.]+\)$")]
+        private static partial Regex SrgbColorPattern();
+
+        private static double GetRelativeLuminance(string color)
         {
-            if (hexadecimalColor.Length != 7 || hexadecimalColor[0] != '#')
+            var match = SrgbColorPattern().Match(color);
+            Assert.That(match.Success, Is.True, "Expected a resolved shared sRGB color.");
+
+            double LinearChannel(int index)
             {
-                throw new InvalidOperationException($"Color '{hexadecimalColor}' is not a six-digit hexadecimal value.");
+                var channel = double.Parse(match.Groups[index].Value, CultureInfo.InvariantCulture);
+                return channel <= 0.04045d
+                    ? channel / 12.92d
+                    : Math.Pow((channel + 0.055d) / 1.055d, 2.4d);
             }
 
-            var red = ParseColorChannel(hexadecimalColor, 1);
-            var green = ParseColorChannel(hexadecimalColor, 3);
-            var blue = ParseColorChannel(hexadecimalColor, 5);
-
-            return (0.2126d * red) + (0.7152d * green) + (0.0722d * blue);
-        }
-
-        private static double ParseColorChannel(string hexadecimalColor, int startIndex)
-        {
-            var channel = int.Parse(
-                hexadecimalColor.AsSpan(startIndex, 2),
-                NumberStyles.HexNumber,
-                CultureInfo.InvariantCulture) / 255d;
-
-            return channel <= 0.04045d
-                ? channel / 12.92d
-                : Math.Pow((channel + 0.055d) / 1.055d, 2.4d);
+            return (0.2126d * LinearChannel(1)) + (0.7152d * LinearChannel(2)) + (0.0722d * LinearChannel(3));
         }
     }
 }
