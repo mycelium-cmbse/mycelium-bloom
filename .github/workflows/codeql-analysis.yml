@@ -2,9 +2,26 @@ name: "Code scanning - action"
 
 on:
   push:
+    branches:
+      - development
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - edited
   schedule:
     - cron: '0 18 * * 1'
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event_name == 'pull_request' &&
+      (github.event.action != 'edited' || github.event.changes.base != null) &&
+      github.ref || github.run_id }}
+  cancel-in-progress: true
       
 permissions:
   actions: read
@@ -13,6 +30,12 @@ permissions:
 
 jobs:
   CodeQL-Build:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.draft == false &&
+        (github.event.action != 'edited' || github.event.changes.base != null)
+      )
     runs-on: ubuntu-latest
 
     steps:

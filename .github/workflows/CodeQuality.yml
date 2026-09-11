@@ -2,15 +2,34 @@ name: Build & Test & SonarQube
 
 on:
   push:
+    branches:
+      - development
   pull_request:
-    types: [opened, synchronize, reopened]
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - edited
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event_name == 'pull_request' &&
+      github.event.action == 'edited' &&
+      github.event.changes.base == null &&
+      github.run_id || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.draft == false &&
+        (github.event.action != 'edited' || github.event.changes.base != null)
+      )
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -164,6 +183,12 @@ jobs:
         run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
   container-security:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (
+        github.event.pull_request.draft == false &&
+        (github.event.action != 'edited' || github.event.changes.base != null)
+      )
     name: Container security
     runs-on: ubuntu-latest
     timeout-minutes: 20
