@@ -24,6 +24,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ApplicationErrorState
     [TestFixture]
     public sealed class ApplicationErrorStateViewModelTestFixture
     {
+        private static readonly string[] ReferenceAndAvailabilityChanges =
+            [nameof(ApplicationErrorStateViewModel.ReferenceId), nameof(ApplicationErrorStateViewModel.HasReferenceId)];
+
+        private static readonly string[] ReferenceChanges = [nameof(ApplicationErrorStateViewModel.ReferenceId)];
+
+        private static readonly bool[] ReferenceAvailabilitySequence = [false, true, false];
+
         /// <summary>
         /// Verifies the missing-route presentation and browser-history recovery contract.
         /// </summary>
@@ -109,7 +116,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ApplicationErrorState
 
             viewModel.ReferenceId = "first-reference";
 
-            Assert.That(changes, Is.EquivalentTo(new[] { nameof(viewModel.ReferenceId), nameof(viewModel.HasReferenceId) }));
+            Assert.That(changes, Is.EquivalentTo(ReferenceAndAvailabilityChanges));
             changes.Clear();
 
             viewModel.ReferenceId = "first-reference";
@@ -118,12 +125,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ApplicationErrorState
 
             viewModel.ReferenceId = "second-reference";
 
-            Assert.That(changes, Is.EqualTo(new[] { nameof(viewModel.ReferenceId) }));
+            Assert.That(changes, Is.EqualTo(ReferenceChanges));
             changes.Clear();
 
             viewModel.ReferenceId = " ";
 
-            Assert.That(changes, Is.EquivalentTo(new[] { nameof(viewModel.ReferenceId), nameof(viewModel.HasReferenceId) }));
+            Assert.That(changes, Is.EquivalentTo(ReferenceAndAvailabilityChanges));
             changes.Clear();
 
             viewModel.ReferenceId = null;
@@ -131,7 +138,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ApplicationErrorState
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(changes, Is.Empty);
-                Assert.That(availability, Is.EqualTo(new[] { false, true, false }));
+                Assert.That(availability, Is.EqualTo(ReferenceAvailabilitySequence));
             }
         }
 

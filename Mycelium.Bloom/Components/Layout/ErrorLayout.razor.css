@@ -6,6 +6,10 @@
     background: var(--background);
 }
 
+.error-layout ::deep > header {
+    justify-content: center;
+}
+
 .error-layout__brand {
     display: inline-flex;
     align-items: center;

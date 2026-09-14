@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.Components.Pages
     /// <summary>
     /// Represents the default error page displayed when an unhandled exception occurs.
     /// </summary>
-    public partial class Error : IDisposable
+    public sealed partial class Error : IDisposable
     {
         /// <summary>
         /// Gets the presentation state owned by this error page.
@@ -56,7 +56,6 @@ namespace Mycelium.Bloom.Components.Pages
         public void Dispose()
         {
             this.ViewModel.Dispose();
-            GC.SuppressFinalize(this);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Mycelium.Bloom.Components.Pages
     /// <summary>
     /// Owns the presentation state for an unavailable route.
     /// </summary>
-    public partial class NotFound : IDisposable
+    public sealed partial class NotFound : IDisposable
     {
         /// <summary>
         /// Gets the presentation state owned by this page.
@@ -28,7 +28,6 @@ namespace Mycelium.Bloom.Components.Pages
         public void Dispose()
         {
             this.ViewModel.Dispose();
-            GC.SuppressFinalize(this);
         }
     }
 }
