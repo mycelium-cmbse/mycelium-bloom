@@ -49,7 +49,7 @@
           Bloom has no production Tooltip implementation because Escape dismissal and description relationships are
           incomplete. Reassess only these exceptions after upgrading Blueprint.
         -->
-        <PackageReference Include="BlazorBlueprint.Components" Version="3.16.0" />
+        <PackageReference Include="BlazorBlueprint.Components" Version="3.17.0" />
         <!--
           Intentionally direct: Bloom renders LucideIcon components in production markup and therefore compiles
           against this package's public API.

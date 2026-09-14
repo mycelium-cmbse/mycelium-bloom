@@ -1,0 +1,63 @@
+.application-error-state {
+    display: grid;
+    place-items: center;
+    width: 100%;
+}
+
+.application-error-state__panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 52rem;
+    padding: clamp(var(--spacing-24), 6vw, var(--spacing-64));
+    color: var(--foreground);
+    background: var(--card);
+    border: var(--border-width-default) solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.application-error-state h1 {
+    margin: 0;
+    font-size: var(--typography-typography-display-lg-font-size);
+    font-weight: var(--typography-typography-display-lg-font-weight);
+    line-height: var(--typography-typography-display-lg-line-height);
+    letter-spacing: var(--typography-typography-display-lg-letter-spacing);
+    overflow-wrap: anywhere;
+}
+
+.application-error-state__description {
+    margin-top: var(--spacing-12);
+    margin-bottom: 0;
+    color: var(--foreground-muted);
+    font-size: var(--typography-typography-body-md-font-size);
+    line-height: var(--typography-typography-body-md-line-height);
+}
+
+.application-error-state__reference {
+    margin-top: var(--spacing-24);
+    margin-bottom: 0;
+    padding-top: var(--spacing-16);
+    border-top: var(--border-width-default) solid var(--border-subtle);
+    color: var(--foreground-muted);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
+}
+
+.application-error-state__reference dd {
+    margin-top: var(--spacing-4);
+    margin-inline-start: 0;
+}
+
+.application-error-state__reference code {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: var(--typography-typography-mono-sm-font-size);
+    line-height: var(--typography-typography-mono-sm-line-height);
+    overflow-wrap: anywhere;
+}
+
+.application-error-state__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-8);
+    margin-top: var(--spacing-24);
+}
