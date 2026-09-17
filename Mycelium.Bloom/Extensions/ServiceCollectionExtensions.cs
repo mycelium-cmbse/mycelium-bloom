@@ -16,6 +16,7 @@ namespace Mycelium.Bloom.Extensions
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
+    using Mycelium.Bloom.Core.ChangeNotifications;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -111,6 +112,8 @@ namespace Mycelium.Bloom.Extensions
             services.AddScoped<IDeSerializer, DeSerializer>();
             services.AddScoped<IModelLoaderService, ModelLoaderService>();
             services.AddScoped<IElementIdResolver, ElementIdResolver>();
+            services.AddScoped<IModelRefreshCoordinator, ModelRefreshCoordinator>();
+            services.AddScoped<IChangeNotificationService, ChangeNotificationService>();
             services.AddScoped<ContextAwareService>();
             services.AddScoped<IContextAwareService>(
                 serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());

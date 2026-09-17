@@ -4,6 +4,8 @@
 @import "./blueprint-theme.css";
 @import "./blueprint-overlays.css";
 
+@source not "../Core";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {

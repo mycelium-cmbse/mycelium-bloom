@@ -11,10 +11,14 @@ namespace Mycelium.Bloom.Tests.Extensions
 {
     using System;
     using System.Linq;
+    using System.Reactive.Concurrency;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core.ChangeNotifications;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -49,6 +53,54 @@ namespace Mycelium.Bloom.Tests.Extensions
             var services = new ServiceCollection();
 
             Assert.That(services.AddApplicationServices(), Is.SameAs(services));
+        }
+
+        [Test]
+        public void VerifyAddApplicationServicesRegistersScopedChangeNotifications()
+        {
+            var services = new ServiceCollection();
+            services.AddApplicationServices();
+            var notifications = services.Single(descriptor => descriptor.ServiceType == typeof(IChangeNotificationService));
+            var refresh = services.Single(descriptor => descriptor.ServiceType == typeof(IModelRefreshCoordinator));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notifications.Lifetime, Is.EqualTo(ServiceLifetime.Scoped));
+                Assert.That(notifications.ImplementationType, Is.EqualTo(typeof(ChangeNotificationService)));
+                Assert.That(refresh.Lifetime, Is.EqualTo(ServiceLifetime.Scoped));
+                Assert.That(refresh.ImplementationType, Is.EqualTo(typeof(ModelRefreshCoordinator)));
+            }
+        }
+
+        [Test]
+        public async Task VerifyAddApplicationServicesSharesChangeNotificationsOnlyWithinScope()
+        {
+            var services = new ServiceCollection();
+            var scheduler = new HistoricalScheduler();
+            services.AddSingleton<IScheduler>(scheduler);
+            services.AddApplicationServices();
+            using var provider = services.BuildServiceProvider(validateScopes: true);
+            using var firstScope = provider.CreateScope();
+            using var secondScope = provider.CreateScope();
+            var firstService = firstScope.ServiceProvider.GetRequiredService<IChangeNotificationService>();
+            var secondService = secondScope.ServiceProvider.GetRequiredService<IChangeNotificationService>();
+            var firstRefresh = firstScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>();
+            var secondRefresh = secondScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>();
+            Assert.That(firstService, Is.SameAs(firstScope.ServiceProvider.GetRequiredService<IChangeNotificationService>()));
+            Assert.That(firstRefresh, Is.SameAs(firstScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>()));
+            Assert.That(secondService, Is.Not.SameAs(firstService));
+            Assert.That(secondRefresh, Is.Not.SameAs(firstRefresh));
+            var handler = new Mock<IModelRefreshHandler>(MockBehavior.Strict);
+            handler.Setup(x => x.ReloadAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+            using var registration = firstRefresh.Register(handler.Object);
+
+            await firstService.RequestRefresh();
+
+            handler.Verify(x => x.ReloadAsync(It.IsAny<CancellationToken>()), Times.Once);
+            Assert.That(Assert.ThrowsAsync<InvalidOperationException>(() => secondService.RequestRefresh()), Is.Not.Null);
+            firstScope.Dispose();
+            secondScope.Dispose();
+            scheduler.AdvanceBy(TimeSpan.FromMilliseconds(1));
         }
 
         [Test]
