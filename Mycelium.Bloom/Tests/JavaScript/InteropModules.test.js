@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, beforeEach, test } from "node:test";
+import { afterEach, before, beforeEach, test } from "node:test";
 
 import { JSDOM } from "jsdom";
 
@@ -25,11 +25,22 @@ import {
 let dom;
 let animationFrameQueue;
 let nextAnimationFrameId;
+let initializeErrorRecovery;
 
 const searchRegistrationIds = new Set();
 const emptySpaceRegistrationIds = new Set();
 const selectRegistrationIds = new Set();
 const workspaceGuardIds = new Set();
+
+before(async () => {
+    const bootstrap = new JSDOM("<!doctype html><html><body></body></html>");
+    globalThis.document = bootstrap.window.document;
+    globalThis.window = bootstrap.window;
+    ({ initializeErrorRecovery } = await import("../../Components/UI/Molecules/ApplicationErrorState/ApplicationErrorState.razor.js"));
+    bootstrap.window.close();
+    delete globalThis.document;
+    delete globalThis.window;
+});
 
 beforeEach(() => {
     dom = new JSDOM("<!doctype html><html><body></body></html>", {
@@ -85,6 +96,79 @@ afterEach(() => {
     delete globalThis.MutationObserver;
     delete globalThis.getComputedStyle;
     delete globalThis.requestAnimationFrame;
+});
+
+test("error recovery bootstrap leaves ordinary pages unchanged", async () => {
+    await initializeErrorRecovery(document, window);
+
+    assert.equal(document.documentElement.className, "");
+    assert.equal(document.body.childElementCount, 0);
+});
+
+test("error recovery handles controls inserted after initial page load", async () => {
+    let backCalls = 0;
+    await initializeErrorRecovery(document, {
+        Element,
+        history: { back: () => backCalls++ }
+    });
+
+    document.body.innerHTML = `
+        <section class="application-error-state">
+            <button type="button" data-error-action="back">Go back</button>
+        </section>`;
+    document.querySelector("button").click();
+
+    assert.equal(backCalls, 1);
+});
+
+test("error recovery handles nested button content without a Blazor circuit", async () => {
+    let backCalls = 0;
+    let reloadCalls = 0;
+    document.body.innerHTML = `
+        <div class="application-error-state">
+            <button type="button" data-error-action="back"><span>Go back</span></button>
+            <button type="button" data-error-action="reload"><span>Reload</span></button>
+            <button type="button" data-error-action="unknown">Unrelated</button>
+        </div>
+        <button data-error-action="reload">Outside the error state</button>`;
+
+    await initializeErrorRecovery(document, {
+        Element,
+        history: { back: () => backCalls++ },
+        location: { reload: () => reloadCalls++ }
+    }, async () => ({ loadTheme: () => null }));
+
+    document.querySelector('[data-error-action="back"] span').click();
+    document.querySelector('[data-error-action="reload"] span').click();
+    document.querySelector('[data-error-action="unknown"]').click();
+    document.body.lastElementChild.click();
+    document.dispatchEvent(new dom.window.Event("click"));
+
+    assert.equal(backCalls, 1);
+    assert.equal(reloadCalls, 1);
+});
+
+for (const isDarkMode of [false, true]) {
+    test(`static error recovery restores the Blueprint ${isDarkMode ? "dark" : "light"} preference`, async () => {
+        document.body.innerHTML = '<div class="application-error-state"></div>';
+        const applied = [];
+
+        await initializeErrorRecovery(document, window, async () => ({
+            loadTheme: () => ({ isDarkMode }),
+            applyDarkMode: value => applied.push(value)
+        }));
+
+        assert.deepEqual(applied, [isDarkMode]);
+    });
+}
+
+test("error recovery does not load theme tooling on ordinary pages", async () => {
+    let themeLoads = 0;
+
+    await initializeErrorRecovery(document, window, async () => themeLoads++);
+    document.body.click();
+
+    assert.equal(themeLoads, 0);
 });
 
 test("search shortcuts prefer the newest usable registration", () => {
