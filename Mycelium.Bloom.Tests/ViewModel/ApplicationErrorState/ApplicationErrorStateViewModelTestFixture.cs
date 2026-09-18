@@ -143,10 +143,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ApplicationErrorState
         }
 
         /// <summary>
-        /// Verifies page disposal prevents publication from an abandoned ViewModel.
+        /// Verifies repeated disposal is harmless and disposed state rejects further reference changes.
         /// </summary>
         [Test]
-        public void VerifyDispose()
+        public void VerifyDisposeIsIdempotentAndRejectsFurtherReferenceChanges()
         {
             var viewModel = new ApplicationErrorStateViewModel(ApplicationErrorKind.ServerError);
 

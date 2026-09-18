@@ -23,6 +23,7 @@ namespace Mycelium.Bloom.Tests.Hosting
     using Microsoft.Extensions.Hosting;
 
     using Moq;
+    using Moq.Protected;
 
     using Mycelium.Bloom.Components;
 
@@ -32,6 +33,30 @@ namespace Mycelium.Bloom.Tests.Hosting
     [TestFixture]
     public sealed class ErrorPipelineTestFixture
     {
+        private Mock<WebApplicationFactory<App>> application;
+
+        [SetUp]
+        public void SetUp()
+        {
+            var filter = new Mock<IStartupFilter>();
+            filter.Setup(value => value.Configure(It.IsAny<Action<IApplicationBuilder>>()))
+                .Returns<Action<IApplicationBuilder>>(ConfigureFailurePipeline);
+
+            this.application = new Mock<WebApplicationFactory<App>> { CallBase = true };
+            this.application.Protected()
+                .Setup("ConfigureWebHost", ItExpr.IsAny<IWebHostBuilder>())
+                .Callback<IWebHostBuilder>(builder => builder
+                    .UseEnvironment(Environments.Production)
+                    .UseSetting("https_port", "443")
+                    .ConfigureServices(services => services.AddSingleton(filter.Object)));
+        }
+
+        [TearDown]
+        public async Task TearDown()
+        {
+            await this.application.Object.DisposeAsync();
+        }
+
         /// <summary>
         /// Verifies that status-code re-execution preserves a real missing-route response.
         /// </summary>
@@ -40,8 +65,7 @@ namespace Mycelium.Bloom.Tests.Hosting
         [TestCase("/workspace/missing/nested?source=test")]
         public async Task VerifyUnknownRouteReturnsStyled404(string path)
         {
-            await using var application = new ErrorApplicationFactory();
-            using var client = application.CreateClient(new WebApplicationFactoryClientOptions
+            using var client = this.application.Object.CreateClient(new WebApplicationFactoryClientOptions
             {
                 BaseAddress = new Uri("https://localhost"),
                 AllowAutoRedirect = false
@@ -72,8 +96,7 @@ namespace Mycelium.Bloom.Tests.Hosting
         [Test]
         public async Task VerifyUnhandledExceptionReturnsStyled500()
         {
-            await using var application = new ErrorApplicationFactory();
-            using var client = application.CreateClient(new WebApplicationFactoryClientOptions
+            using var client = this.application.Object.CreateClient(new WebApplicationFactoryClientOptions
             {
                 BaseAddress = new Uri("https://localhost"),
                 AllowAutoRedirect = false
@@ -103,37 +126,33 @@ namespace Mycelium.Bloom.Tests.Hosting
         }
 
         /// <summary>
-        /// Hosts the unchanged application pipeline with a downstream test-only failure.
+        /// Appends the failure probe after the application's exception and status-code middleware.
         /// </summary>
-        internal sealed class ErrorApplicationFactory : WebApplicationFactory<App>
+        /// <param name="next">The application's pipeline configuration.</param>
+        /// <returns>The combined application and failure-probe configuration.</returns>
+        private static Action<IApplicationBuilder> ConfigureFailurePipeline(Action<IApplicationBuilder> next)
         {
-            /// <summary>
-            /// Configures production middleware and adds the isolated failure probe.
-            /// </summary>
-            /// <param name="builder">The test application builder.</param>
-            protected override void ConfigureWebHost(IWebHostBuilder builder)
+            return app =>
             {
-                builder.UseEnvironment(Environments.Production).UseSetting("https_port", "443");
-                builder.ConfigureServices(services =>
-                {
-                    var filter = new Mock<IStartupFilter>();
-                    filter.Setup(value => value.Configure(It.IsAny<Action<IApplicationBuilder>>()))
-                        .Returns<Action<IApplicationBuilder>>(next => app =>
-                        {
-                            next(app);
-                            app.Use(async (context, continuation) =>
-                            {
-                                if (context.Request.Path == "/test-only-failure")
-                                {
-                                    throw new InvalidOperationException("test-only exception detail");
-                                }
+                next(app);
+                app.Use(ThrowForTestRequest);
+            };
+        }
 
-                                await continuation(context);
-                            });
-                        });
-                    services.AddSingleton(filter.Object);
-                });
+        /// <summary>
+        /// Raises an exception for the isolated test path and forwards other requests.
+        /// </summary>
+        /// <param name="context">The current request.</param>
+        /// <param name="continuation">The remaining request pipeline.</param>
+        /// <returns>The asynchronous request operation.</returns>
+        private static async Task ThrowForTestRequest(HttpContext context, RequestDelegate continuation)
+        {
+            if (context.Request.Path == "/test-only-failure")
+            {
+                throw new InvalidOperationException("test-only exception detail");
             }
+
+            await continuation(context);
         }
     }
 }
