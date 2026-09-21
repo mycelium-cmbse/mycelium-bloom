@@ -1,0 +1,29 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ErrorLayout.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits LayoutComponentBase
+
+<div class="error-layout">
+    <AppHeader AriaLabel="Bloom application header">
+        <BrandContent>
+            <a class="error-layout__brand" href="/workspace/modeling">
+                <span class="error-layout__mark"><BrandMark /></span>
+                <span>Mycelium Bloom</span>
+            </a>
+        </BrandContent>
+    </AppHeader>
+
+    <main class="error-layout__main">
+        @this.Body
+    </main>
+
+    <footer class="error-layout__footer">
+        Mycelium · © 2026 Starion Group S.A.
+    </footer>
+</div>
