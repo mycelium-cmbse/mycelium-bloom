@@ -1,17 +1,10 @@
 const registrations = new Map();
 
 let documentKeydownHandler;
-let mutationObserver;
 
-// Blazor Blueprint Primitives 3.15.0 sets its keydown prevent-default flag
-// after the native event has already been dispatched. Preventing the native
-// button activation here allows the primitive's own handler to open the Select
-// exactly once for Enter and Space.
 export function registerSelectCompatibility(registrationId, triggerId) {
     registrations.set(registrationId, triggerId);
     ensureDocumentKeydownHandler();
-    ensureMutationObserver();
-    synchronizeRegisteredListboxes();
 }
 
 export function disposeSelectCompatibility(registrationId) {
@@ -25,9 +18,6 @@ export function disposeSelectCompatibility(registrationId) {
         document.removeEventListener("keydown", documentKeydownHandler, true);
         documentKeydownHandler = undefined;
     }
-
-    mutationObserver?.disconnect();
-    mutationObserver = undefined;
 }
 
 function ensureDocumentKeydownHandler() {
@@ -47,11 +37,6 @@ function handleDocumentKeyDown(event) {
     const triggerId = findRegisteredTriggerId(event.target);
 
     if (triggerId) {
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            return;
-        }
-
         if (event.key === "Tab") {
             const focusTarget = findAdjacentTabTarget(triggerId, event.shiftKey);
 
@@ -153,59 +138,4 @@ function isTabbable(element) {
         && style.visibility !== "hidden"
         && rect.width > 0
         && rect.height > 0;
-}
-
-function ensureMutationObserver() {
-    if (mutationObserver) {
-        return;
-    }
-
-    mutationObserver = new MutationObserver(mutations => {
-        for (const mutation of mutations) {
-            const listbox = mutation.target instanceof Element
-                ? mutation.target.closest('[role="listbox"]')
-                : undefined;
-
-            if (listbox) {
-                synchronizeListbox(listbox);
-            }
-        }
-
-        synchronizeRegisteredListboxes();
-    });
-
-    mutationObserver.observe(document.body, {
-        subtree: true,
-        childList: true,
-        attributes: true,
-        attributeFilter: ["data-focused"]
-    });
-}
-
-function synchronizeRegisteredListboxes() {
-    for (const triggerId of registrations.values()) {
-        const trigger = document.getElementById(triggerId);
-        const contentId = trigger?.getAttribute("aria-controls");
-        const listbox = contentId ? document.getElementById(contentId) : undefined;
-
-        if (listbox?.getAttribute("role") === "listbox") {
-            synchronizeListbox(listbox);
-        }
-    }
-}
-
-function synchronizeListbox(listbox) {
-    const labelledBy = listbox.getAttribute("aria-labelledby");
-
-    if (!labelledBy || !hasRegisteredTrigger(labelledBy)) {
-        return;
-    }
-
-    const activeOption = listbox.querySelector('[role="option"][data-focused="true"]');
-
-    if (activeOption?.id) {
-        listbox.setAttribute("aria-activedescendant", activeOption.id);
-    } else {
-        listbox.removeAttribute("aria-activedescendant");
-    }
 }

@@ -19,7 +19,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Icons.Lucide.Components;
     using BlazorBlueprint.Primitives;
-    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
@@ -295,6 +294,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 "[role='menuitem']",
                 ExpectedPresentationModeLabels.Length);
             await options.Single(option => option.TextContent.Trim() == "Expanded").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
 
             using (Assert.EnterMultipleScope())
             {
@@ -384,6 +384,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             }
 
             await options.Single(option => option.TextContent.Trim() == "Expanded").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -408,6 +409,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 "[role='menuitem']",
                 ExpectedPresentationModeLabels.Length);
             await options.Single(option => option.TextContent.Trim() == "Collapsed").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -436,6 +438,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 "[role='menuitem']",
                 ExpectedPresentationModeLabels.Length);
             await options.Single(option => option.TextContent.Trim() == "Expand on hover").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
 
             await component.WaitForAssertionAsync(() =>
             {

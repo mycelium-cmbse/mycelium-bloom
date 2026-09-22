@@ -7,7 +7,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using BlazorBlueprint.Primitives.Services
+@using BlazorBlueprint.Primitives
 @using BlazorBlueprint.Icons.Lucide.Components
 @using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
@@ -41,7 +41,7 @@
                 </BrandContent>
 
                 <ActionsContent>
-                    <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                    <BbButton Class="rounded-md" Type="BlazorBlueprint.Components.ButtonType.Button"
                               Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                               Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
                               AriaLabel="@(this.GetDetailsPanelToggleLabel())"

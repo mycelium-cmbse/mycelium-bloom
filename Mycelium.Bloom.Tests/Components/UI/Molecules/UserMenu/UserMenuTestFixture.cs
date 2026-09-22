@@ -11,7 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.UserMenu
 {
     using System.Threading.Tasks;
 
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 

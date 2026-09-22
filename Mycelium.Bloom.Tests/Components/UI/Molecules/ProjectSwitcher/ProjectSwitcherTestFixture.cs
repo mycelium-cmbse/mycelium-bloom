@@ -11,7 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
 {
     using System.Threading.Tasks;
 
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 
@@ -58,7 +58,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
 
             var trigger = component.Find("button");
             await trigger.ClickAsync();
-            var options = this.portalHost.WaitForElements("[role='menuitem']", 3);
+            var options = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 3);
 
             using (Assert.EnterMultipleScope())
             {
@@ -85,7 +85,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                 .Add(switcher => switcher.SelectedProjectIdChanged, id => selectedProjectId = id));
 
             await component.Find("button").ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']", 3)[1].ClickAsync();
+            await (await this.portalHost.WaitForElementsAsync("[role='menuitem']", 3))[1].ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -114,7 +114,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                 .Add(switcher => switcher.SelectedProjectIdChanged, _ => selectionCount++));
 
             await component.Find("button").ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']", 3)[2].ClickAsync();
+            await (await this.portalHost.WaitForElementsAsync("[role='menuitem']", 3))[2].ClickAsync();
 
             Assert.That(selectionCount, Is.Zero);
         }
@@ -135,7 +135,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                 .Add(switcher => switcher.Placeholder, "Choose project"));
 
             await component.Find("button").ClickAsync();
-            var icons = this.portalHost.WaitForElements(".mb-action-menu__item-symbol", 2);
+            var icons = await this.portalHost.WaitForElementsAsync(".mb-action-menu__item-symbol", 2);
 
             using (Assert.EnterMultipleScope())
             {
@@ -169,7 +169,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ProjectSwitcher
                 .Add(switcher => switcher.SelectedProjectId, "long"));
 
             await component.Find("button").ClickAsync();
-            var menuItem = this.portalHost.WaitForElement("[role='menuitem']");
+            var menuItem = await this.portalHost.WaitForElementAsync("[role='menuitem']");
 
             using (Assert.EnterMultipleScope())
             {

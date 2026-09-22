@@ -26,14 +26,14 @@
             }
 
             <div class="application-error-state__actions">
-                <BbButton Type="ButtonType.Button"
+                <BbButton Class="rounded-md" Type="ButtonType.Button"
                           Href="@viewModel.PrimaryAction.Href"
                           data-error-action="@viewModel.PrimaryAction.BrowserAction">@viewModel.PrimaryAction.Label</BbButton>
                 <BbButton Type="ButtonType.Button"
                           Href="@viewModel.SecondaryAction.Href"
                           data-error-action="@viewModel.SecondaryAction.BrowserAction"
                           Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                          Class="mb-secondary">@viewModel.SecondaryAction.Label</BbButton>
+                          Class="rounded-md mb-secondary">@viewModel.SecondaryAction.Label</BbButton>
             </div>
         </section>
     </div>

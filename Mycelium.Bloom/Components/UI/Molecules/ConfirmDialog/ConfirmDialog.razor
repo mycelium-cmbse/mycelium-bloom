@@ -37,11 +37,11 @@
                   Size="BlazorBlueprint.Components.ButtonSize.Small"
                   Disabled="@(this.IsActionInProgress())"
                   OnClick="this.HandleCancelAsync"
-                  Class="mb-secondary">
+                  Class="rounded-md mb-secondary">
             @(this.CancelText)
         </BbButton>
 
-        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+        <BbButton Class="rounded-md" Type="BlazorBlueprint.Components.ButtonType.Button"
                   Variant="@(this.GetConfirmButtonVariant())"
                   Size="BlazorBlueprint.Components.ButtonSize.Small"
                   Disabled="@(this.IsActionInProgress())"

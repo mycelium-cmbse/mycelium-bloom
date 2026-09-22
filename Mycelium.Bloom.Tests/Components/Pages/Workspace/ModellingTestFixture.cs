@@ -21,7 +21,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
     using AngleSharp.Dom;
 
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 

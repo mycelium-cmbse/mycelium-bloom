@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 
@@ -565,6 +565,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
+
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
 
@@ -596,6 +598,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var input = component.Find("input[role='combobox']");
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
+
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
 
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
@@ -638,6 +642,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var input = component.Find("input[role='combobox']");
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
+
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
 
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
@@ -1023,6 +1029,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
                 .ClickAsync();
 
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
+
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
 
@@ -1121,6 +1129,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 await input.KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
                 component.Instance.Dispose();
 
+                await BlueprintTestSetup.CompletePortalCloseAsync(component);
+
                 await this.portalHost.WaitForAssertionAsync(() =>
                     Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty));
             }
@@ -1198,12 +1208,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
 
             await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Is.Empty));
 
             await this.OpenFilterDrawerAsync(component);
             await this.portalHost.Find(".mb-project-browser__filter-popover")
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Escape" });
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Is.Empty));
         }
@@ -1655,6 +1667,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await this.OpenFilterDrawerAsync(firstComponent);
             var firstDrawerHeadingId = this.portalHost.Find(".mb-project-browser__filter-drawer-title").Id;
             await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(firstComponent);
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Is.Empty));
 
@@ -2231,6 +2244,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private async Task OpenFilterDrawerAsync(IRenderedComponent<ProjectBrowserComponent> component)
         {
             await component.Find("button[aria-label='Open project browser filters']").ClickAsync();
+            await BlueprintTestSetup.CompletePortalCloseAsync(component);
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll(".mb-project-browser__filter-drawer"), Has.Count.EqualTo(1)));
         }

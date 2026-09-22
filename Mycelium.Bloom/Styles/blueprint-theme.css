@@ -1,6 +1,8 @@
 :root {
     /* The theme service writes an inline radius; the shared CSS contract must retain authority. */
     --radius: var(--radius-8) !important;
+    --bb-menu-accent: var(--accent);
+    --bb-menu-accent-foreground: var(--accent-foreground);
 }
 
 @source inline("rounded-sm rounded-md rounded-lg rounded-xl");

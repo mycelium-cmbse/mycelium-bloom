@@ -13,7 +13,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.SelectInput
     using System.Collections.Generic;
     using System.Linq;
 
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 

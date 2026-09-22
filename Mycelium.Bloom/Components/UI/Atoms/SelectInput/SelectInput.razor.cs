@@ -38,7 +38,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SelectInput
         private IReadOnlyList<SelectInputOption> optionList = [];
 
         /// <summary>
-        /// The JavaScript module that bridges verified Blueprint 3.15.0 browser-behavior gaps.
+        /// The JavaScript module that preserves Tab order around the portalled listbox.
         /// </summary>
         private IJSObjectReference compatibilityModule;
 
@@ -186,16 +186,6 @@ namespace Mycelium.Bloom.Components.UI.Atoms.SelectInput
         private string GetFormValueId()
         {
             return $"{this.FieldId}-form-value";
-        }
-
-        /// <summary>
-        /// Gets the explicit ARIA selection state for a Blueprint option.
-        /// </summary>
-        /// <param name="option">The option to compare with the controlled value.</param>
-        /// <returns>The string-valued ARIA selection state.</returns>
-        private string IsOptionSelected(SelectInputOption option)
-        {
-            return string.Equals(option.Value, this.Value, StringComparison.Ordinal) ? "true" : "false";
         }
 
         /// <summary>
