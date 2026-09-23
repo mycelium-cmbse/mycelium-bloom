@@ -84,8 +84,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             var first = coordinator.RequestRefresh();
             var second = coordinator.RequestRefresh();
 
-            Assert.That(invocation, Is.EqualTo(1));
-            Assert.That(second.IsCompleted, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(invocation, Is.EqualTo(1));
+                Assert.That(second.IsCompleted, Is.False);
+            }
             firstCompletion.SetResult();
             await first;
             await secondStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
@@ -111,8 +114,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
 
             cancellation.Cancel();
 
-            Assert.That(Assert.CatchAsync<OperationCanceledException>(() => refresh), Is.Not.Null);
-            Assert.That(Assert.CatchAsync<OperationCanceledException>(() => pending), Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Assert.CatchAsync<OperationCanceledException>(() => refresh), Is.Not.Null);
+                Assert.That(Assert.CatchAsync<OperationCanceledException>(() => pending), Is.Not.Null);
+            }
             handler.Verify(x => x.ReloadAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -158,8 +164,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
                     break;
             }
 
-            Assert.That(Assert.CatchAsync<OperationCanceledException>(() => active), Is.Not.Null);
-            Assert.That(Assert.CatchAsync<OperationCanceledException>(() => pending), Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Assert.CatchAsync<OperationCanceledException>(() => active), Is.Not.Null);
+                Assert.That(Assert.CatchAsync<OperationCanceledException>(() => pending), Is.Not.Null);
+            }
             handler.Verify(x => x.ReloadAsync(It.IsAny<CancellationToken>()), Times.Once);
             service.Dispose();
             scheduler.AdvanceBy(TimeSpan.FromMilliseconds(1));

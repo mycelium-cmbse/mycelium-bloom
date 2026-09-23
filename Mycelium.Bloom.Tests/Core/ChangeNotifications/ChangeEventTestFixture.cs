@@ -113,8 +113,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             scheduler.AdvanceBy(TimeSpan.FromMilliseconds(75));
 
             Assert.That(received, Has.Count.EqualTo(1));
-            Assert.That(received[0].ChangedProperties, Is.EquivalentTo(ExpectedProperties));
-            Assert.That(differentSet, Does.Contain("OtherProperty"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(received[0].ChangedProperties, Is.EquivalentTo(ExpectedProperties));
+                Assert.That(differentSet, Does.Contain("OtherProperty"));
+            }
             service.Dispose();
             scheduler.AdvanceBy(TimeSpan.FromMilliseconds(1));
         }
@@ -124,12 +127,15 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
         {
             var id = Guid.NewGuid();
             var identifierTargets = new HashSet<ChangeTarget> { ChangeTarget.Element(id), ChangeTarget.Subtree(id) };
-            Assert.That(ChangeTarget.ForType(typeof(Package)), Is.EqualTo(ChangeTarget.ForType(typeof(IPackage))));
-            Assert.That(ChangeTarget.ForType(typeof(Namespace)), Is.EqualTo(ChangeTarget.ForType(typeof(INamespace))));
-            Assert.That(identifierTargets, Does.Contain(ChangeTarget.Element(id)));
-            Assert.That(identifierTargets, Does.Contain(ChangeTarget.Subtree(id)));
-            Assert.That(ChangeTarget.Element(id), Is.Not.EqualTo(ChangeTarget.Subtree(id)));
-            Assert.That(ChangeTarget.Element(id), Is.Not.EqualTo(ChangeTarget.Global));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ChangeTarget.ForType(typeof(Package)), Is.EqualTo(ChangeTarget.ForType(typeof(IPackage))));
+                Assert.That(ChangeTarget.ForType(typeof(Namespace)), Is.EqualTo(ChangeTarget.ForType(typeof(INamespace))));
+                Assert.That(identifierTargets, Does.Contain(ChangeTarget.Element(id)));
+                Assert.That(identifierTargets, Does.Contain(ChangeTarget.Subtree(id)));
+                Assert.That(ChangeTarget.Element(id), Is.Not.EqualTo(ChangeTarget.Subtree(id)));
+                Assert.That(ChangeTarget.Element(id), Is.Not.EqualTo(ChangeTarget.Global));
+            }
             Assert.That(() => ChangeTarget.Element(Guid.Empty), Throws.ArgumentException);
             Assert.That(() => ChangeTarget.Subtree(Guid.Empty), Throws.ArgumentException);
         }

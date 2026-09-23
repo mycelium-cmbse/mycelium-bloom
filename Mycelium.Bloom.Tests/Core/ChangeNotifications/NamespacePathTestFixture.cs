@@ -34,10 +34,13 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             input[0] = Guid.NewGuid();
             var differentPath = path.NamespaceIds.SetItem(0, Guid.NewGuid());
 
-            Assert.That(path.NamespaceIds, Is.EqualTo(new[] { nearest, root }));
-            Assert.That(path.ParentNamespaceId, Is.EqualTo(nearest));
-            Assert.That(differentPath[0], Is.Not.EqualTo(nearest));
-            Assert.That(new NamespacePath([]).ParentNamespaceId, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(path.NamespaceIds, Is.EqualTo(new[] { nearest, root }));
+                Assert.That(path.ParentNamespaceId, Is.EqualTo(nearest));
+                Assert.That(differentPath[0], Is.Not.EqualTo(nearest));
+                Assert.That(new NamespacePath([]).ParentNamespaceId, Is.Null);
+            }
         }
 
         [Test]
@@ -60,8 +63,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
 
             var path = NamespacePath.Capture(leaf);
 
-            Assert.That(path.NamespaceIds, Is.EqualTo(new[] { parent.Id, root.Id }));
-            Assert.That(NamespacePath.Capture(root).NamespaceIds, Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(path.NamespaceIds, Is.EqualTo(new[] { parent.Id, root.Id }));
+                Assert.That(NamespacePath.Capture(root).NamespaceIds, Is.Empty);
+            }
         }
 
         [Test]

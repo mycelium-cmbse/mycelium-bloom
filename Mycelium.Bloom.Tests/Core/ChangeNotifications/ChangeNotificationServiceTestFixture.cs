@@ -59,8 +59,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             this.service.Publish(other);
             this.Flush();
 
-            Assert.That(all, Is.EqualTo(new[] { first, other }));
-            Assert.That(selected, Is.EqualTo(new[] { first }));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(all, Is.EqualTo(new[] { first, other }));
+                Assert.That(selected, Is.EqualTo(new[] { first }));
+            }
         }
 
         [TestCase(typeof(Package), true)]
@@ -127,10 +130,13 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             this.service.Publish(change);
             this.Flush();
 
-            Assert.That(oldEvents, Is.EqualTo(new[] { change }));
-            Assert.That(newEvents, Is.EqualTo(new[] { change }));
-            Assert.That(rootEvents, Is.EqualTo(new[] { change }));
-            Assert.That(unrelatedEvents, Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(oldEvents, Is.EqualTo(new[] { change }));
+                Assert.That(newEvents, Is.EqualTo(new[] { change }));
+                Assert.That(rootEvents, Is.EqualTo(new[] { change }));
+                Assert.That(unrelatedEvents, Is.Empty);
+            }
         }
 
         [Test]
@@ -230,9 +236,12 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             this.service.Publish(CreateChange(elementId: id));
             this.Flush();
 
-            Assert.That(received.Take(changes.Length), Is.EqualTo(changes));
-            Assert.That(received, Has.Count.EqualTo(5));
-            Assert.That(received.Select(change => change.CommitId), Is.Unique);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(received.Take(changes.Length), Is.EqualTo(changes));
+                Assert.That(received, Has.Count.EqualTo(5));
+                Assert.That(received.Select(change => change.CommitId), Is.Unique);
+            }
         }
 
         [TestCase(ChangeKind.Created)]
@@ -298,8 +307,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             this.Flush();
 
             Assert.That(received, Has.Count.EqualTo(3));
-            Assert.That(received[1], Is.SameAs(change));
-            Assert.That(received[2].CommitId, Is.Not.EqualTo(change.CommitId));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(received[1], Is.SameAs(change));
+                Assert.That(received[2].CommitId, Is.Not.EqualTo(change.CommitId));
+            }
         }
 
         [Test]
@@ -341,16 +353,22 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
             this.service.Publish(CreateChange());
             this.Flush();
-            Assert.That(firstEvents, Is.Empty);
-            Assert.That(secondEvents, Has.Count.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstEvents, Is.Empty);
+                Assert.That(secondEvents, Has.Count.EqualTo(1));
+            }
             peer.Dispose();
             Assert.That(this.service.ActiveObservableCount, Is.Zero);
 
             using var second = stream.Subscribe(firstEvents.Add);
             this.service.Publish(CreateChange());
             this.Flush();
-            Assert.That(firstEvents, Has.Count.EqualTo(1));
-            Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstEvents, Has.Count.EqualTo(1));
+                Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
+            }
         }
 
         [Test]
@@ -387,8 +405,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             this.service.IsEnabled = true;
             this.Flush();
 
-            Assert.That(received, Is.Empty);
-            Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(received, Is.Empty);
+                Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
+            }
             this.service.Publish(change);
             this.Flush();
             Assert.That(received, Is.EqualTo(new[] { change }));
@@ -405,12 +426,18 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
 
             this.service.Dispose();
             Assert.That(this.service.Dispose, Throws.Nothing);
-            Assert.That(this.service.ActiveObservableCount, Is.Zero);
-            Assert.That(this.service.IsEnabled, Is.False);
-            Assert.That(completed, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.service.ActiveObservableCount, Is.Zero);
+                Assert.That(this.service.IsEnabled, Is.False);
+                Assert.That(completed, Is.False);
+            }
             this.Flush();
-            Assert.That(received, Is.Empty);
-            Assert.That(completed, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(received, Is.Empty);
+                Assert.That(completed, Is.True);
+            }
             Assert.That(() => this.service.Publish(CreateChange()), Throws.TypeOf<ObjectDisposedException>());
             Assert.That(() => this.service.Listen(), Throws.TypeOf<ObjectDisposedException>());
             Assert.That(() => this.service.IsEnabled = true, Throws.TypeOf<ObjectDisposedException>());
@@ -438,8 +465,11 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
                 this.service.Publish(CreateChange());
                 this.Flush();
                 this.Flush();
-                Assert.That(received, Has.Count.EqualTo(1));
-                Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(received, Has.Count.EqualTo(1));
+                    Assert.That(this.service.ActiveObservableCount, Is.EqualTo(1));
+                }
             }
             finally
             {
@@ -470,9 +500,12 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             this.service.Publish(CreateChange());
             this.Flush();
 
-            Assert.That(received, Is.EqualTo(1));
-            Assert.That(completed, Is.EqualTo(1));
-            Assert.That(this.service.ActiveObservableCount, Is.Zero);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(received, Is.EqualTo(1));
+                Assert.That(completed, Is.EqualTo(1));
+                Assert.That(this.service.ActiveObservableCount, Is.Zero);
+            }
         }
 
         [Test]

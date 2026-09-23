@@ -32,105 +32,105 @@ namespace Mycelium.Bloom.Extensions
     /// Provides dependency-injection registration extensions for Mycelium Bloom application services.
     /// </summary>
     public static class ServiceCollectionExtensions
-{
-    /// <summary>
-    /// Defines service registration extensions for an <see cref="IServiceCollection" />.
-    /// </summary>
-    /// <param name="services">The service collection to configure.</param>
-    extension(IServiceCollection services)
     {
         /// <summary>
-        /// Configures forwarded headers from the optional trusted reverse proxy and validates its address at startup.
+        /// Defines service registration extensions for an <see cref="IServiceCollection" />.
         /// </summary>
-        /// <param name="configuration">The application configuration containing the reverse proxy address.</param>
-        /// <returns>The original service collection for continued registration chaining.</returns>
-        public IServiceCollection AddReverseProxyOptions(IConfiguration configuration)
+        /// <param name="services">The service collection to configure.</param>
+        extension(IServiceCollection services)
         {
-            ArgumentNullException.ThrowIfNull(services);
-            ArgumentNullException.ThrowIfNull(configuration);
+            /// <summary>
+            /// Configures forwarded headers from the optional trusted reverse proxy and validates its address at startup.
+            /// </summary>
+            /// <param name="configuration">The application configuration containing the reverse proxy address.</param>
+            /// <returns>The original service collection for continued registration chaining.</returns>
+            public IServiceCollection AddReverseProxyOptions(IConfiguration configuration)
+            {
+                ArgumentNullException.ThrowIfNull(services);
+                ArgumentNullException.ThrowIfNull(configuration);
 
-            var knownProxyValue = configuration["ReverseProxy:KnownProxy"];
-            var isKnownProxyValid = IPAddress.TryParse(knownProxyValue, out var knownProxy);
+                var knownProxyValue = configuration["ReverseProxy:KnownProxy"];
+                var isKnownProxyValid = IPAddress.TryParse(knownProxyValue, out var knownProxy);
 
-            services.AddOptions<ForwardedHeadersOptions>()
-                .Configure(options =>
-                {
-                    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-                    options.RequireHeaderSymmetry = true;
-
-                    if (isKnownProxyValid)
+                services.AddOptions<ForwardedHeadersOptions>()
+                    .Configure(options =>
                     {
-                        options.KnownProxies.Add(knownProxy);
-                    }
-                })
-                .Validate(
-                    _ => string.IsNullOrWhiteSpace(knownProxyValue) || isKnownProxyValid,
-                    "ReverseProxy:KnownProxy must be a valid IP address.")
-                .ValidateOnStart();
+                        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                        options.RequireHeaderSymmetry = true;
 
-            return services;
-        }
+                        if (isKnownProxyValid)
+                        {
+                            options.KnownProxies.Add(knownProxy);
+                        }
+                    })
+                    .Validate(
+                        _ => string.IsNullOrWhiteSpace(knownProxyValue) || isKnownProxyValid,
+                        "ReverseProxy:KnownProxy must be a valid IP address.")
+                    .ValidateOnStart();
 
-        /// <summary>
-        /// Adds, binds, and validates the Workspace Editor options required during application startup.
-        /// </summary>
-        /// <param name="configuration">
-        /// The application configuration containing the Workspace Editor section.
-        /// </param>
-        /// <returns>The original service collection for continued registration chaining.</returns>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown when <paramref name="services" /> or <paramref name="configuration" /> is
-        /// <see langword="null" />.
-        /// </exception>
-        public IServiceCollection AddWorkspaceEditorOptions(IConfiguration configuration)
-        {
-            ArgumentNullException.ThrowIfNull(services);
-            ArgumentNullException.ThrowIfNull(configuration);
+                return services;
+            }
 
-            services.AddOptions<WorkspaceEditorOptions>()
-                .Bind(configuration.GetSection(WorkspaceEditorOptions.SectionName))
-                .Validate(
-                    options => options.MaximumGroupCount >= 1,
-                    $"{WorkspaceEditorOptions.SectionName}:{nameof(WorkspaceEditorOptions.MaximumGroupCount)} must be at least 1.")
-                .ValidateOnStart();
+            /// <summary>
+            /// Adds, binds, and validates the Workspace Editor options required during application startup.
+            /// </summary>
+            /// <param name="configuration">
+            /// The application configuration containing the Workspace Editor section.
+            /// </param>
+            /// <returns>The original service collection for continued registration chaining.</returns>
+            /// <exception cref="ArgumentNullException">
+            /// Thrown when <paramref name="services" /> or <paramref name="configuration" /> is
+            /// <see langword="null" />.
+            /// </exception>
+            public IServiceCollection AddWorkspaceEditorOptions(IConfiguration configuration)
+            {
+                ArgumentNullException.ThrowIfNull(services);
+                ArgumentNullException.ThrowIfNull(configuration);
 
-            return services;
-        }
+                services.AddOptions<WorkspaceEditorOptions>()
+                    .Bind(configuration.GetSection(WorkspaceEditorOptions.SectionName))
+                    .Validate(
+                        options => options.MaximumGroupCount >= 1,
+                        $"{WorkspaceEditorOptions.SectionName}:{nameof(WorkspaceEditorOptions.MaximumGroupCount)} must be at least 1.")
+                    .ValidateOnStart();
 
-        /// <summary>
-        /// Adds the Mycelium Bloom application services to the provided service collection.
-        /// </summary>
-        /// <returns>The configured service collection.</returns>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown when <paramref name="services" /> is <see langword="null" />.
-        /// </exception>
-        public IServiceCollection AddApplicationServices()
-        {
-            ArgumentNullException.ThrowIfNull(services);
+                return services;
+            }
 
-            services.AddScoped<IAssembler, Assembler>();
-            services.AddScoped<IDeSerializer, DeSerializer>();
-            services.AddScoped<IModelLoaderService, ModelLoaderService>();
-            services.AddScoped<IElementIdResolver, ElementIdResolver>();
-            services.AddScoped<IModelRefreshCoordinator, ModelRefreshCoordinator>();
-            services.AddScoped<IChangeNotificationService, ChangeNotificationService>();
-            services.AddScoped<ContextAwareService>();
-            services.AddScoped<IContextAwareService>(
-                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
-            services.AddScoped<IElementSelectionService>(
-                serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
-            services.AddScoped<Func<IProjectBrowserViewModel>>(serviceProvider =>
-                () => ActivatorUtilities.CreateInstance<ProjectBrowserViewModel>(serviceProvider));
-            services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
-            services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
-                () => ActivatorUtilities.CreateInstance<NavigationRailViewModel>(serviceProvider));
-            services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
-                () => ActivatorUtilities.CreateInstance<WorkspaceUrlContextService>(serviceProvider));
-            services.AddScoped<Func<IWorkspaceEditorViewModel>>(serviceProvider =>
-                () => ActivatorUtilities.CreateInstance<WorkspaceEditorViewModel>(serviceProvider));
+            /// <summary>
+            /// Adds the Mycelium Bloom application services to the provided service collection.
+            /// </summary>
+            /// <returns>The configured service collection.</returns>
+            /// <exception cref="ArgumentNullException">
+            /// Thrown when <paramref name="services" /> is <see langword="null" />.
+            /// </exception>
+            public IServiceCollection AddApplicationServices()
+            {
+                ArgumentNullException.ThrowIfNull(services);
 
-            return services;
+                services.AddScoped<IAssembler, Assembler>();
+                services.AddScoped<IDeSerializer, DeSerializer>();
+                services.AddScoped<IModelLoaderService, ModelLoaderService>();
+                services.AddScoped<IElementIdResolver, ElementIdResolver>();
+                services.AddScoped<IModelRefreshCoordinator, ModelRefreshCoordinator>();
+                services.AddScoped<IChangeNotificationService, ChangeNotificationService>();
+                services.AddScoped<ContextAwareService>();
+                services.AddScoped<IContextAwareService>(
+                    serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+                services.AddScoped<IElementSelectionService>(
+                    serviceProvider => serviceProvider.GetRequiredService<ContextAwareService>());
+                services.AddScoped<Func<IProjectBrowserViewModel>>(serviceProvider =>
+                    () => ActivatorUtilities.CreateInstance<ProjectBrowserViewModel>(serviceProvider));
+                services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
+                services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
+                    () => ActivatorUtilities.CreateInstance<NavigationRailViewModel>(serviceProvider));
+                services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
+                    () => ActivatorUtilities.CreateInstance<WorkspaceUrlContextService>(serviceProvider));
+                services.AddScoped<Func<IWorkspaceEditorViewModel>>(serviceProvider =>
+                    () => ActivatorUtilities.CreateInstance<WorkspaceEditorViewModel>(serviceProvider));
+
+                return services;
+            }
         }
     }
-}
 }

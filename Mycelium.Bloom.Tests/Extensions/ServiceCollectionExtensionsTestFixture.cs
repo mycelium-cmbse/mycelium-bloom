@@ -86,10 +86,13 @@ namespace Mycelium.Bloom.Tests.Extensions
             var secondService = secondScope.ServiceProvider.GetRequiredService<IChangeNotificationService>();
             var firstRefresh = firstScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>();
             var secondRefresh = secondScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>();
-            Assert.That(firstService, Is.SameAs(firstScope.ServiceProvider.GetRequiredService<IChangeNotificationService>()));
-            Assert.That(firstRefresh, Is.SameAs(firstScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>()));
-            Assert.That(secondService, Is.Not.SameAs(firstService));
-            Assert.That(secondRefresh, Is.Not.SameAs(firstRefresh));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstService, Is.SameAs(firstScope.ServiceProvider.GetRequiredService<IChangeNotificationService>()));
+                Assert.That(firstRefresh, Is.SameAs(firstScope.ServiceProvider.GetRequiredService<IModelRefreshCoordinator>()));
+                Assert.That(secondService, Is.Not.SameAs(firstService));
+                Assert.That(secondRefresh, Is.Not.SameAs(firstRefresh));
+            }
             var handler = new Mock<IModelRefreshHandler>(MockBehavior.Strict);
             handler.Setup(x => x.ReloadAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             using var registration = firstRefresh.Register(handler.Object);

@@ -107,10 +107,13 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             }
 
             await completion.Task.WaitAsync(timeout);
-            Assert.That(overlappingCallbacks, Is.Zero);
-            Assert.That(received, Is.EqualTo(disposeDuringCallback ? 1 : 33));
-            Assert.That(notifications.Task.IsFaulted, Is.False);
-            Assert.That(service.ActiveObservableCount, Is.Zero);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(overlappingCallbacks, Is.Zero);
+                Assert.That(received, Is.EqualTo(disposeDuringCallback ? 1 : 33));
+                Assert.That(notifications.Task.IsFaulted, Is.False);
+                Assert.That(service.ActiveObservableCount, Is.Zero);
+            }
         }
 
         private static ChangeEvent CreateChange()

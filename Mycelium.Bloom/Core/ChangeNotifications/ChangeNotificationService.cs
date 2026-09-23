@@ -239,9 +239,8 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                 this.recentChanges.Clear();
                 this.expirationOrder.Clear();
 
-                foreach (var entry in this.observables.Values)
+                foreach (var channel in this.observables.Values.Select(entry => entry.Value))
                 {
-                    var channel = entry.Value;
                     this.completingObservables.Add((channel, channel.Lifetime.GetDisposable()));
                     channel.Lifetime.Dispose();
                 }
