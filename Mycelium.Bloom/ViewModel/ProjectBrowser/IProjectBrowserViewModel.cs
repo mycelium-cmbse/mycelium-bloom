@@ -20,6 +20,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     public interface IProjectBrowserViewModel : IDisposable, INotifyPropertyChanged
     {
         /// <summary>
+        /// Gets the coherent immutable presentation published on the mutating caller's thread.
+        /// Rendering consumers must accept it through their Blazor dispatcher.
+        /// </summary>
+        ProjectBrowserRenderState RenderState { get; }
+
+        /// <summary>
         /// Gets the root nodes displayed by the project browser.
         /// </summary>
         ReadOnlyObservableCollection<ProjectBrowserNodeViewModel> RootNodes { get; }

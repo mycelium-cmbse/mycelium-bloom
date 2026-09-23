@@ -9,11 +9,10 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
-    using System.Reactive;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
 
-    using DynamicData.Binding;
+    using ReactiveUI;
 
     using Microsoft.AspNetCore.Components;
 
@@ -25,6 +24,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// </summary>
     public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
     {
+        /// <summary>Holds the immutable state accepted on this component's renderer.</summary>
+        private ProjectBrowserRenderState presentedState = ProjectBrowserRenderState.Empty;
+
+        /// <summary>Gets the coherent state used by this render.</summary>
+        private ProjectBrowserRenderState PresentedState => this.presentedState;
         /// <summary>
         /// The unique identifier of the filter drawer heading.
         /// </summary>
@@ -36,7 +40,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private readonly string typeFilterHeadingId = $"mb-project-browser-type-filter-heading-{Guid.NewGuid():N}";
 
         /// <summary>
-        /// Replaces the collection-change subscription when the caller supplies another ViewModel.
+        /// Replaces presentation observation when the caller supplies another ViewModel.
         /// </summary>
         private readonly SerialDisposable collectionChangesSubscription = new();
 
@@ -66,7 +70,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private bool isSearchAssistantOpen;
 
         /// <summary>
-        /// The ViewModel whose observable collections currently drive rendering.
+        /// The ViewModel whose immutable presentation currently drives rendering.
         /// </summary>
         private IProjectBrowserViewModel observedViewModel;
 
@@ -88,7 +92,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public EventCallback<ProjectBrowserNodeViewModel> SelectedNodeChanged { get; set; }
 
         /// <summary>
-        /// Connects rendering to the observable collections exposed by the current ViewModel.
+        /// Accepts presentation changes on the renderer while the originating ViewModel is still owned.
         /// </summary>
         protected override void OnParametersSet()
         {
@@ -100,13 +104,20 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.observedViewModel = this.ViewModel;
-            this.collectionChangesSubscription.Disposable = this.ViewModel is null
+            var owner = this.ViewModel;
+            this.presentedState = owner?.RenderState ?? ProjectBrowserRenderState.Empty;
+            this.collectionChangesSubscription.Disposable = owner is null
                 ? Disposable.Empty
-                : Observable.Merge(
-                        this.ViewModel.RootNodes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
-                        this.ViewModel.AvailableElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
-                        this.ViewModel.SelectedElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default))
-                    .Select(_ => Observable.FromAsync(() => this.InvokeAsync(this.StateHasChanged)))
+                : owner.WhenAnyValue(model => model.RenderState)
+                    .Where(state => state != null)
+                    .Select(state => Observable.FromAsync(() => this.InvokeAsync(() =>
+                    {
+                        if (!this.isDisposed && ReferenceEquals(owner, this.observedViewModel))
+                        {
+                            this.presentedState = state;
+                            this.StateHasChanged();
+                        }
+                    })))
                     .Concat()
                     .Subscribe();
         }
@@ -144,12 +155,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>
         /// Releases component-owned reactive subscriptions.
         /// </summary>
-        /// <param name="disposing">
-        /// <see langword="true" /> to release managed resources; otherwise, <see langword="false" />.
-        /// </param>
+        /// <param name="disposing">Whether managed component resources should be released.</param>
         protected override void Dispose(bool disposing)
         {
-            if (this.isDisposed)
+            if (this.isDisposed || !disposing)
             {
                 return;
             }
@@ -158,7 +167,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.isFilterDrawerOpen = false;
             this.isSearchAssistantOpen = false;
             this.collectionChangesSubscription.Dispose();
-
             base.Dispose(disposing);
         }
 
@@ -179,7 +187,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A value indicating whether the loading state should be shown.</returns>
         private bool ShouldShowLoadingState()
         {
-            var viewModel = this.RequiredViewModel;
+            var viewModel = this.PresentedState;
 
             return viewModel.IsLoading
                    || (!viewModel.IsLoaded && string.IsNullOrWhiteSpace(viewModel.ErrorMessage));
@@ -191,25 +199,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A value indicating whether the error state should be shown.</returns>
         private bool ShouldShowErrorState()
         {
-            return !string.IsNullOrWhiteSpace(this.RequiredViewModel.ErrorMessage);
+            return !string.IsNullOrWhiteSpace(this.PresentedState.ErrorMessage);
         }
 
         /// <summary>
         /// Gets the canonical root nodes visible in the supplied filter presentation.
         /// </summary>
-        /// <param name="filterPresentation">The immutable filter presentation to apply.</param>
         /// <returns>The visible root nodes in canonical order.</returns>
-        private IReadOnlyList<ProjectBrowserNodeViewModel> GetVisibleRootNodes(
-            ProjectBrowserFilterPresentation filterPresentation)
+        private IReadOnlyList<ProjectBrowserNodeRenderState> GetVisibleRootNodes()
         {
-            var rootNodes = this.RequiredViewModel.RootNodes;
-
-            if (!filterPresentation.IsActive)
-            {
-                return rootNodes;
-            }
-
-            return rootNodes.Where(filterPresentation.IsVisible).ToArray();
+            return this.PresentedState.Roots;
         }
 
         /// <summary>
@@ -218,7 +217,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The number of selected element types.</returns>
         private int GetActiveDrawerFilterCount()
         {
-            return this.RequiredViewModel.SelectedElementTypes.Count;
+            return this.PresentedState.SelectedElementTypes.Length;
         }
 
         /// <summary>
@@ -240,7 +239,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns><see langword="true" /> when the type is selected; otherwise, <see langword="false" />.</returns>
         private bool IsElementTypeSelected(Type elementType)
         {
-            return this.RequiredViewModel.SelectedElementTypes.Contains(elementType);
+            return this.PresentedState.SelectedElementTypes.Contains(elementType);
         }
 
         /// <summary>
@@ -393,11 +392,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             var viewModel = this.RequiredViewModel;
 
-            if (node.HasChildren && !viewModel.FilterPresentation.IsActive)
-            {
-                viewModel.ToggleNode(node);
-            }
-
+            viewModel.ToggleNode(node);
             viewModel.SelectNode(node);
             await this.SelectedNodeChanged.InvokeAsync(node);
         }

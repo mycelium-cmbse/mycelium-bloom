@@ -46,21 +46,37 @@
             }
 
             <span class="mb-project-browser-node__title">
-                @(viewModel.DisplayName)
+                @(this.Presentation?.DisplayName ?? viewModel.DisplayName)
             </span>
         </button>
 
         @if (nodePresentation.IsExpanded)
         {
             <div class="mb-project-browser-node__children" role="group">
-                @foreach (var child in nodePresentation.VisibleChildren)
+                @if (this.Presentation is { } presentation)
                 {
-                    <ProjectBrowserNode
-                        ViewModel="child"
-                        SelectedNode="this.SelectedNode"
-                        Depth="@(this.Depth + 1)"
-                        FilterPresentation="this.FilterPresentation"
-                        OnNodeSelected="this.OnNodeSelected"/>
+                    @foreach (var child in presentation.Children)
+                    {
+                        <ProjectBrowserNode @key="child.Node.Id"
+                                            ViewModel="child.Node"
+                                            Presentation="child"
+                                            SelectedNode="this.SelectedNode"
+                                            Depth="@(this.Depth + 1)"
+                                            FilterPresentation="this.FilterPresentation"
+                                            OnNodeSelected="this.OnNodeSelected" />
+                    }
+                }
+                else
+                {
+                    @foreach (var child in nodePresentation.VisibleChildren)
+                    {
+                        <ProjectBrowserNode @key="child.Id"
+                                            ViewModel="child"
+                                            SelectedNode="this.SelectedNode"
+                                            Depth="@(this.Depth + 1)"
+                                            FilterPresentation="this.FilterPresentation"
+                                            OnNodeSelected="this.OnNodeSelected" />
+                    }
                 }
             </div>
         }

@@ -24,7 +24,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using Bunit;
 
     using Microsoft.AspNetCore.Components.Web;
+    using System.Reactive.Linq;
+
     using Moq;
+
+    using Mycelium.Bloom.Core.ChangeNotifications;
+    using SysML2.NET.Dal;
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -421,7 +426,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 relationship);
             var modelLoader = new Mock<IModelLoaderService>(MockBehavior.Strict);
             modelLoader.Setup(loader => loader.LoadQuantitiesModel()).Returns(root);
-            using var viewModel = new ProjectBrowserViewModel(modelLoader.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoader.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                ProjectBrowserNodeTestFactory.CreateAssembler(root));
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
             this.RegisterViewModel(viewModel);
 
@@ -1150,7 +1157,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             using var presentationOwner = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
             presentationOwner.FilterText = "missing";
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel>
             {
@@ -1354,7 +1363,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var presentationOwner = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
             presentationOwner.FilterText = "missing";
             var filteredRoots = new ObservableCollection<ProjectBrowserNodeViewModel>
             {
@@ -1489,10 +1500,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies leaf interaction invokes selection and the callback without toggling.
+        /// Verifies leaf interaction delegates expansion policy to the owner before selection and the callback.
         /// </summary>
         [Test]
-        public void VerifyHandleNodeSelectedSkipsToggleForLeaf()
+        public void VerifyHandleNodeSelectedDelegatesLeafExpansionToOwner()
         {
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities");
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
@@ -1503,6 +1514,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
             viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.ToggleNode(node));
             viewModel.Setup(x => x.SelectNode(node)).Callback(() => interactions.Add("select"));
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
@@ -1515,7 +1527,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(interactions, Is.EqualTo(ExpectedLeafNodeInteractions));
-                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Once);
                 viewModel.Verify(x => x.SelectNode(node), Times.Once);
             }
         }
@@ -1568,6 +1580,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.SetupGet(x => x.FilterText).Returns("needle");
             viewModel.SetupGet(x => x.FilterPresentation).Returns(presentationOwner.FilterPresentation);
             viewModel.Setup(x => x.SelectNode(branch));
+            viewModel.Setup(x => x.ToggleNode(branch)).Callback(() => presentationOwner.ToggleNode(branch));
             var selectedNode = default(ProjectBrowserNodeViewModel);
             this.RegisterViewModel(viewModel.Object);
 
@@ -1582,7 +1595,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             {
                 Assert.That(selectedNode, Is.SameAs(branch));
                 Assert.That(branch.IsExpanded, Is.False);
-                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                viewModel.Verify(x => x.ToggleNode(branch), Times.Once);
                 viewModel.Verify(x => x.SelectNode(branch), Times.Once);
             }
         }
@@ -1712,7 +1725,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             isLoading = false;
             notifyingViewModel.Raise(
                 x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.IsLoading)));
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
 
             component.WaitForAssertion(() =>
                 Assert.That(component.Markup, Does.Contain("No model elements available.")));
@@ -1742,7 +1755,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             isLoaded = false;
             notifyingViewModel.Raise(
                 x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.IsLoaded)));
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
 
             component.WaitForAssertion(() =>
                 Assert.That(component.Markup, Does.Contain("Loading Quantities model")));
@@ -1771,7 +1784,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             errorMessage = "Reactive model failure";
             notifyingViewModel.Raise(
                 x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.ErrorMessage)));
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
 
             component.WaitForAssertion(() =>
                 Assert.That(component.Find("[role='alert']").TextContent, Does.Contain("Reactive model failure")));
@@ -1805,7 +1818,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             selectedNode = node;
             notifyingViewModel.Raise(
                 x => x.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.SelectedNode)));
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
 
             component.WaitForAssertion(() =>
             {
@@ -1819,10 +1832,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies observable root collection changes rerender without property notification choreography.
+        /// Verifies an owner-published root snapshot rerenders the recursive tree.
         /// </summary>
         [Test]
-        public void VerifyRootNodesCollectionChangesRerenderComponent()
+        public void VerifyRootPresentationChangesRerenderComponent()
         {
             var firstNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("first", "First");
             var secondNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("second", "Second");
@@ -1844,6 +1857,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             mutableRoots.Clear();
             mutableRoots.Add(secondNode);
             mutableRoots.Add(thirdNode);
+            viewModel.Raise(owner => owner.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
 
             component.WaitForAssertion(() =>
             {
@@ -1943,7 +1958,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 });
             using var viewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
             this.RegisterViewModel(viewModel);
 
             using var firstComponent = this.RenderProjectBrowser();
@@ -2059,6 +2076,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(component.RenderCount, Is.EqualTo(replacementRenderCount));
 
             secondRootsSource.Clear();
+            secondViewModel.Raise(owner => owner.PropertyChanged += null,
+                new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
 
             component.WaitForAssertion(() =>
             {
@@ -2170,6 +2189,43 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             return viewModel;
         }
 
+        /// <summary>Verifies background delivery renders coherent snapshots while retaining unaffected component identities.</summary>
+        [Test]
+        public async Task VerifyBackgroundNotificationRendersImmutablePresentation()
+        {
+            using var model = new ProjectBrowserLiveModel();
+            var browser = await model.CreateBrowser();
+            var left = ProjectBrowserLiveModel.Node(browser, model.Left);
+            browser.ToggleNode(left);
+            browser.SelectNode(left);
+            this.RegisterViewModel(browser);
+            using var component = this.RenderProjectBrowser();
+            var rootComponent = component.FindComponents<ProjectBrowserNodeComponent>()
+                .Single(candidate => candidate.Instance.ViewModel == browser.RootNodes[0]).Instance;
+            var rightComponent = component.FindComponents<ProjectBrowserNodeComponent>()
+                .Single(candidate => candidate.Instance.ViewModel.SourceElement == model.Right).Instance;
+
+            await Task.Run(() =>
+            {
+                model.Left.DeclaredName = "Background rename";
+                model.Publish(ChangeKind.Updated, model.Left);
+                model.Publish(ChangeKind.Created, model.Add(model.Left, "Background child"));
+            });
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(component.Markup, Does.Contain("Background rename").And.Contain("Background child"));
+                Assert.That(component.FindComponents<ProjectBrowserNodeComponent>()
+                    .Single(candidate => candidate.Instance.ViewModel == browser.RootNodes[0]).Instance, Is.SameAs(rootComponent));
+                Assert.That(component.FindComponents<ProjectBrowserNodeComponent>()
+                    .Single(candidate => candidate.Instance.ViewModel.SourceElement == model.Right).Instance, Is.SameAs(rightComponent));
+                Assert.That(browser.SelectedNode, Is.SameAs(left));
+            });
+            component.Dispose();
+            await Task.Run(() => model.Publish(ChangeKind.Updated, model.Left));
+            Assert.That(model.Bus.ActiveObservableCount, Is.GreaterThan(0));
+        }
+
         /// <summary>
         /// Creates a strict Project Browser contract with ordinary inactive filter state.
         /// </summary>
@@ -2177,7 +2233,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private static Mock<IProjectBrowserViewModel> CreateProjectBrowserViewModelMock()
         {
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
-            viewModel.SetupProperty(x => x.FilterText, string.Empty);
+            viewModel.SetupGet(owner => owner.RenderState).Returns(() => ProjectBrowserNodeTestFactory.CapturePresentation(viewModel.Object));
+            var filterText = string.Empty;
+            viewModel.SetupGet(x => x.FilterText).Returns(() => filterText);
+            viewModel.SetupSet(x => x.FilterText = It.IsAny<string>()).Callback<string>(value =>
+            {
+                filterText = value;
+                viewModel.Raise(owner => owner.PropertyChanged += null,
+                    new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
+            });
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
             viewModel.SetupGet(x => x.AvailableElementTypes).Returns(DefaultAvailableElementTypes);
             viewModel.SetupGet(x => x.SelectedElementTypes)
                 .Returns(EmptySelectedElementTypes);
@@ -2209,6 +2274,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     {
                         selectedTypes.Add(elementType);
                     }
+                    viewModel.Raise(owner => owner.PropertyChanged += null,
+                        new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.RenderState)));
                 });
 
             return selectedTypes;
@@ -2222,7 +2289,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
 
             return viewModel.FilterPresentation;
         }

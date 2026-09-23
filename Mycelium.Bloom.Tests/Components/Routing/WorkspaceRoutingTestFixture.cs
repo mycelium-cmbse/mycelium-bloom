@@ -24,7 +24,12 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
 
+    using System.Reactive.Linq;
+
     using Moq;
+
+    using Mycelium.Bloom.Core.ChangeNotifications;
+    using SysML2.NET.Dal;
 
     using Mycelium.Bloom.Components.Layout;
     using Mycelium.Bloom.Components.Pages.Workspace;
@@ -78,7 +83,9 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             var editorOptions = Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 3 });
             using var filterPresentationOwner = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
-                this.context);
+                this.context,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
             this.inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
 
             this.Services.AddSingleton<IContextAwareService>(this.context);
@@ -458,6 +465,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
                 new ObservableCollection<ProjectBrowserNodeViewModel>());
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(owner => owner.RenderState).Returns(() => ProjectBrowserNodeTestFactory.CapturePresentation(viewModel.Object));
             viewModel.SetupGet(candidate => candidate.RootNodes).Returns(rootNodes);
             viewModel.SetupGet(candidate => candidate.AvailableElementTypes).Returns(EmptyElementTypes);
             viewModel.SetupProperty(candidate => candidate.FilterText, string.Empty);

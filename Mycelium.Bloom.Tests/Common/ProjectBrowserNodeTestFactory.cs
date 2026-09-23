@@ -11,11 +11,19 @@ namespace Mycelium.Bloom.Tests.Common
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Reflection;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
+    using System.Reactive.Linq;
+
     using Moq;
+    using Microsoft.Extensions.Logging.Abstractions;
+
+    using Mycelium.Bloom.Core.ChangeNotifications;
+    using SysML2.NET.Dal;
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -107,7 +115,9 @@ namespace Mycelium.Bloom.Tests.Common
             var root = CreateElement<Namespace>("root", "Root", matchingBranch, sibling);
             var modelLoaderService = new Mock<IModelLoaderService>(MockBehavior.Strict);
             modelLoaderService.Setup(x => x.LoadQuantitiesModel()).Returns(root);
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                CreateAssembler(root));
 
             await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -150,10 +160,55 @@ namespace Mycelium.Bloom.Tests.Common
         private static void AttachOwnedElement(IElement owner, IElement child)
         {
             var membership = new OwningMembership();
-            var ownedElements = (ICollection<IElement>)OwnedRelatedElementProperty.GetValue(membership)!;
-            var ownedRelationships = (ICollection<IRelationship>)OwnedRelationshipProperty.GetValue(owner)!;
+            var ownedElements = (ICollection<IElement>)OwnedRelatedElementProperty.GetValue(membership);
+            var ownedRelationships = (ICollection<IRelationship>)OwnedRelationshipProperty.GetValue(owner);
             ownedElements.Add(child);
             ownedRelationships.Add(membership);
+        }
+
+        /// <summary>Indexes the already-loaded SDK graph independently of lazy browser construction.</summary>
+        /// <param name="root">The canonical model root.</param>
+        /// <returns>The populated model cache.</returns>
+        internal static IAssembler CreateAssembler(IElement root)
+        {
+            var assembler = new Assembler(NullLoggerFactory.Instance);
+            var pending = new Stack<IElement>();
+            var visited = new HashSet<IElement>(ReferenceEqualityComparer.Instance);
+            pending.Push(root);
+            while (pending.TryPop(out var element))
+            {
+                if (!visited.Add(element))
+                {
+                    continue;
+                }
+                var cachedElement = element;
+                assembler.Cache[Guid.NewGuid()] = new(() => cachedElement);
+                foreach (var child in element.ownedElement.Concat(element.OwnedRelationship))
+                {
+                    pending.Push(child);
+                }
+            }
+            return assembler;
+        }
+
+        /// <summary>Captures the public presentation contract for strict component mocks.</summary>
+        /// <param name="viewModel">The configured mock state.</param>
+        /// <returns>The immutable state supplied to the component.</returns>
+        internal static ProjectBrowserRenderState CapturePresentation(IProjectBrowserViewModel viewModel)
+        {
+            var filter = viewModel.FilterPresentation;
+            ProjectBrowserNodeRenderState Capture(ProjectBrowserNodeViewModel node)
+            {
+                var children = node.Children.Where(filter.IsVisible).ToArray();
+                var hasChildren = filter.IsActive ? children.Length > 0 : node.HasChildren;
+                var expanded = hasChildren && (node.IsExpanded || filter.IsActive);
+                return new(node, node.DisplayName, node.QualifiedName, node.ElementType, hasChildren, expanded,
+                    expanded ? children.Select(Capture).ToImmutableArray() : []);
+            }
+            return new(viewModel.RootNodes.Where(filter.IsVisible).Select(Capture).ToImmutableArray(),
+                viewModel.SelectedNode, viewModel.FilterText, viewModel.AvailableElementTypes.ToImmutableArray(),
+                viewModel.SelectedElementTypes.ToImmutableArray(), filter, viewModel.IsLoading, viewModel.IsLoaded,
+                viewModel.ErrorMessage);
         }
 
         /// <summary>
@@ -164,7 +219,7 @@ namespace Mycelium.Bloom.Tests.Common
         /// <returns>The required property.</returns>
         private static PropertyInfo GetRequiredProperty(string typeName, string propertyName)
         {
-            var declaringType = typeof(IElement).Assembly.GetType(typeName, throwOnError: true)!;
+            var declaringType = typeof(IElement).Assembly.GetType(typeName, throwOnError: true);
 
             return declaringType.GetProperty(propertyName)
                    ?? throw new InvalidOperationException($"Property '{typeName}.{propertyName}' was not found.");

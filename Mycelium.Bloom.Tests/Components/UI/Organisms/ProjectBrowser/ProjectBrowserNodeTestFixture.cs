@@ -323,6 +323,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         public async Task VerifyActiveFilterPresentsNodeWithOnlyHiddenChildrenAsLeaf()
         {
             using var presentationOwner = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            presentationOwner.ToggleNode(presentationOwner.RootNodes[0].Children[0]);
             var matchingNode = presentationOwner.RootNodes[0].Children[0].Children[0];
             matchingNode.IsExpanded = true;
             presentationOwner.FilterText = "needle";

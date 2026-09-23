@@ -36,10 +36,10 @@
                         Unable to load project browser
                     </strong>
 
-                    @if (!string.IsNullOrWhiteSpace(this.RequiredViewModel.ErrorMessage))
+                    @if (!string.IsNullOrWhiteSpace(this.PresentedState.ErrorMessage))
                     {
                         <p class="mb-project-browser__state-description">
-                            @(this.RequiredViewModel.ErrorMessage)
+                            @(this.PresentedState.ErrorMessage)
                         </p>
                     }
                 </div>
@@ -48,8 +48,8 @@
     }
     else
     {
-        var filterPresentation = this.RequiredViewModel.FilterPresentation;
-        var visibleRootNodes = this.GetVisibleRootNodes(filterPresentation);
+        var filterPresentation = this.PresentedState.FilterPresentation;
+        var visibleRootNodes = this.GetVisibleRootNodes();
 
         var activeDrawerFilterCount = this.GetActiveDrawerFilterCount();
 
@@ -58,9 +58,9 @@
              aria-label="Project browser filters">
             <div class="mb-project-browser__search">
                 <ProjectBrowserSearchAssistant
-                    CommittedFilterText="@(this.RequiredViewModel.FilterText)"
-                    SelectedElementTypes="@(this.RequiredViewModel.SelectedElementTypes)"
-                    ElementTypeOptions="@(this.RequiredViewModel.AvailableElementTypes)"
+                    CommittedFilterText="@(this.PresentedState.FilterText)"
+                    SelectedElementTypes="@(this.PresentedState.SelectedElementTypes)"
+                    ElementTypeOptions="@(this.PresentedState.AvailableElementTypes)"
                     IsOpen="@(this.isSearchAssistantOpen)"
                     DraftResetVersion="@(this.searchAssistantDraftResetVersion)"
                     IsOpenChanged="this.HandleSearchAssistantOpenChanged"
@@ -167,7 +167,7 @@
                                     </div>
 
                                     <div class="mb-project-browser__type-chips">
-                                        @foreach (var elementType in this.RequiredViewModel.AvailableElementTypes)
+                                        @foreach (var elementType in this.PresentedState.AvailableElementTypes)
                                         {
                                             var isSelected = this.IsElementTypeSelected(elementType);
 
@@ -214,7 +214,7 @@
 
         <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
-                @if (this.RequiredViewModel.RootNodes.Count == 0)
+                @if (!filterPresentation.IsActive && this.PresentedState.Roots.IsEmpty)
                 {
                     <div class="mb-project-browser__empty">
                         No model elements available.
@@ -231,8 +231,10 @@
                     @foreach (var node in visibleRootNodes)
                     {
                         <ProjectBrowserNode
-                            ViewModel="node"
-                            SelectedNode="@(this.RequiredViewModel.SelectedNode)"
+                            @key="node.Node.Id"
+                            ViewModel="node.Node"
+                            Presentation="node"
+                            SelectedNode="@(this.PresentedState.SelectedNode)"
                             Depth="0"
                             FilterPresentation="filterPresentation"
                             OnNodeSelected="this.HandleNodeSelectedAsync"/>

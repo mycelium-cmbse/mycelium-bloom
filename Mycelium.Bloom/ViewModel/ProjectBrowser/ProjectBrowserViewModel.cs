@@ -20,17 +20,20 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using DynamicData.Binding;
 
     using Mycelium.Bloom.Components.Common;
+    using Mycelium.Bloom.Core.ChangeNotifications;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
 
     using ReactiveUI;
+    using ReactiveUI.Primitives.Concurrency;
 
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Dal;
 
     /// <summary>
-    /// Provides tree, filter, and local selection state for the project browser.
+    /// Lazily materializes browser nodes over the already-loaded canonical SDK model without backend paging.
     /// </summary>
-    public sealed class ProjectBrowserViewModel : BloomBaseViewModel, IProjectBrowserViewModel
+    public sealed partial class ProjectBrowserViewModel : BloomBaseViewModel, IProjectBrowserViewModel
     {
         /// <summary>
         /// Compares derived filter presentations by their visibility semantics.
@@ -130,15 +133,21 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         /// <param name="modelLoaderService">The model loader service used to retrieve SysML models.</param>
         /// <param name="elementSelectionService">The shared element selection service.</param>
-        public ProjectBrowserViewModel(
-            IModelLoaderService modelLoaderService,
-            IElementSelectionService elementSelectionService)
+        /// <param name="changeNotificationService">The scoped committed-change stream.</param>
+        /// <param name="assembler">The SDK cache whose owner applies coherent model changes before publishing notifications.</param>
+        public ProjectBrowserViewModel(IModelLoaderService modelLoaderService,
+            IElementSelectionService elementSelectionService, IChangeNotificationService changeNotificationService,
+            IAssembler assembler)
         {
             ArgumentNullException.ThrowIfNull(modelLoaderService);
             ArgumentNullException.ThrowIfNull(elementSelectionService);
+            ArgumentNullException.ThrowIfNull(changeNotificationService);
+            ArgumentNullException.ThrowIfNull(assembler);
 
             this.modelLoaderService = modelLoaderService;
             this.elementSelectionService = elementSelectionService;
+            this.changeNotificationService = changeNotificationService;
+            this.assembler = assembler;
 
             this.subscriptions.Add(System.ObservableExtensions.Subscribe(
                 this.availableElementTypeSource
@@ -161,7 +170,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     this.rootNodeSource
                         .Connect()
                         .ToCollection()
-                        .StartWith(Array.Empty<ProjectBrowserNodeViewModel>()),
+                        .StartWith(Array.Empty<ProjectBrowserNodeViewModel>())
+                        .CombineLatest(this.modelChanges, (nodes, _) => nodes),
                     this.selectedElementTypeSource
                         .Connect()
                         .ToCollection()
@@ -172,7 +182,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 .ToProperty(
                     this,
                     viewModel => viewModel.FilterPresentation,
-                    ProjectBrowserFilterPresentation.Inactive);
+                    ProjectBrowserFilterPresentation.Inactive,
+                    scheduler: ImmediateSequencer.Instance);
             this.subscriptions.Add(this.filterPresentation);
 
             this.subscriptions.Add(System.ObservableExtensions.Subscribe(
@@ -189,6 +200,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                         CreateFocusPath)
                     .Where(path => path.Count > 0),
                 this.ApplyFocusPath));
+            this.InitializeLiveUpdates();
         }
 
         /// <summary>
@@ -209,10 +221,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             get => this.filterText;
             set
             {
-                if (!this.IsDisposed)
+                this.Mutate(() =>
                 {
                     this.RaiseAndSetIfChanged(ref this.filterText, value ?? string.Empty);
-                }
+                });
             }
         }
 
@@ -261,11 +273,20 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 return false;
             }
 
-            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                cancellationToken,
-                this.lifetimeCancellation.Token);
+            CancellationTokenSource linkedCancellation;
+            lock (this.stateGate)
+            {
+                if (this.IsDisposed)
+                {
+                    return false;
+                }
+
+                linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken, this.lifetimeCancellation.Token);
+            }
+            using var initializationCancellation = linkedCancellation;
             var initializationToken = linkedCancellation.Token;
-            this.StartLoading();
+            this.Mutate(this.StartLoading);
 
             try
             {
@@ -283,24 +304,26 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     return false;
                 }
 
-                var stagedNodeIds = new HashSet<string>(StringComparer.Ordinal);
-                var stagedAvailableElementTypes = new HashSet<Type>();
-                var rootNode = this.BuildNode(
-                    model,
-                    "root",
-                    stagedNodeIds,
-                    stagedAvailableElementTypes,
-                    initializationToken);
-
-                initializationToken.ThrowIfCancellationRequested();
-
-                return this.TryPublishTree(
-                    rootNode,
-                    stagedAvailableElementTypes,
-                    initializationToken);
+                var published = false;
+                this.Mutate(() =>
+                {
+                    var rootNode = this.BuildNode(model, "root", initializationToken);
+                    this.modelRoot = rootNode;
+                    var stagedElementTypes = this.GetModelElementTypes();
+                    stagedElementTypes.Add(model.GetType());
+                    this.EnsureChildren(rootNode);
+                    this.MaterializePath(this.PendingFocusElement);
+                    published = this.TryPublishTree(rootNode, stagedElementTypes, initializationToken);
+                    if (!published)
+                    {
+                        this.ResetTree();
+                    }
+                });
+                return published;
             }
             catch (Exception) when (initializationToken.IsCancellationRequested || this.IsDisposed)
             {
+                this.Mutate(this.ResetTree);
                 return false;
             }
             catch (Exception exception)
@@ -315,7 +338,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
                 if (!this.IsDisposed)
                 {
-                    this.StopLoading();
+                    this.Mutate(this.StopLoading);
                 }
             }
         }
@@ -328,10 +351,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            if (!this.IsDisposed && !this.FilterPresentation.IsActive && node.HasChildren)
+            this.Mutate(() =>
             {
-                node.IsExpanded = !node.IsExpanded;
-            }
+                if (!this.FilterPresentation.IsActive && node.HasChildren)
+                {
+                    this.SetNodeExpanded(node, !node.IsExpanded);
+                }
+            });
         }
 
         /// <summary>
@@ -339,13 +365,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         public void ClearFilter()
         {
-            if (this.IsDisposed)
+            this.Mutate(() =>
             {
-                return;
-            }
-
-            this.FilterText = string.Empty;
-            this.selectedElementTypeSource.Clear();
+                this.FilterText = string.Empty;
+                this.selectedElementTypeSource.Clear();
+            });
         }
 
         /// <summary>
@@ -356,28 +380,26 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(elementType);
 
-            if (this.IsDisposed)
+            this.Mutate(() =>
             {
-                return;
-            }
+                if (typeof(IRelationship).IsAssignableFrom(elementType)
+                    || !this.availableElementTypeSource.Lookup(elementType).HasValue)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(elementType),
+                        elementType,
+                        "The element type must be an available non-relationship model type.");
+                }
 
-            if (typeof(IRelationship).IsAssignableFrom(elementType)
-                || !this.availableElementTypeSource.Lookup(elementType).HasValue)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(elementType),
-                    elementType,
-                    "The element type must be an available non-relationship model type.");
-            }
-
-            if (this.selectedElementTypeSource.Lookup(elementType).HasValue)
-            {
-                this.selectedElementTypeSource.RemoveKey(elementType);
-            }
-            else
-            {
-                this.selectedElementTypeSource.AddOrUpdate(elementType);
-            }
+                if (this.selectedElementTypeSource.Lookup(elementType).HasValue)
+                {
+                    this.selectedElementTypeSource.RemoveKey(elementType);
+                }
+                else
+                {
+                    this.selectedElementTypeSource.AddOrUpdate(elementType);
+                }
+            });
         }
 
         /// <summary>
@@ -388,9 +410,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            if (!this.IsDisposed)
+            this.Mutate(() =>
             {
                 this.SelectedNode = node;
+            });
+            if (!this.IsDisposed)
+            {
                 this.elementSelectionService.SelectedElement = node.SourceElement;
             }
         }
@@ -403,10 +428,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(element);
 
-            if (!this.IsDisposed)
+            this.Mutate(() =>
             {
+                this.MaterializePath(element);
                 this.PendingFocusElement = element;
-            }
+            });
         }
 
         /// <summary>
@@ -414,17 +440,32 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref this.disposalState, 1) != 0)
+            lock (this.stateGate)
             {
-                return;
-            }
+                if (Interlocked.Exchange(ref this.disposalState, 1) != 0)
+                {
+                    return;
+                }
 
-            this.lifetimeCancellation.Cancel();
-            this.subscriptions.Dispose();
-            this.selectedElementTypeSource.Dispose();
-            this.availableElementTypeSource.Dispose();
-            this.rootNodeSource.Dispose();
-            this.lifetimeCancellation.Dispose();
+                this.lifetimeCancellation.Cancel();
+                this.subscriptions.Dispose();
+                this.liveTargets.Dispose();
+                this.modelChanges.Dispose();
+                foreach (var node in this.materializedNodes.Values)
+                {
+                    node.ExpansionRequested = null;
+                }
+                this.materializedNodes.Clear();
+                this.rowPresentations.Clear();
+                this.nodeIds.Clear();
+                this.affectedParents.Clear();
+                this.affectedParentChange = null;
+                this.lastLiveChange = null;
+                this.selectedElementTypeSource.Dispose();
+                this.availableElementTypeSource.Dispose();
+                this.rootNodeSource.Dispose();
+                this.lifetimeCancellation.Dispose();
+            }
         }
 
         /// <summary>
@@ -454,7 +495,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Applies one resolved local focus path without changing shared application selection.
+        /// Expands only the resolved local focus path without loading siblings or changing shared selection.
         /// </summary>
         /// <param name="path">The ancestor path ending at the local target node.</param>
         private void ApplyFocusPath(IReadOnlyList<ProjectBrowserNodeViewModel> path)
@@ -466,7 +507,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             for (var index = 0; index < path.Count - 1; index++)
             {
-                path[index].IsExpanded = true;
+                path[index].SetExpanded(true);
             }
 
             this.SelectedNode = path[^1];
@@ -491,7 +532,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
 
             this.SelectedNode = rootNode;
-            rootNode.IsExpanded = rootNode.HasChildren;
+            rootNode.SetExpanded(rootNode.HasChildren);
 
             this.availableElementTypeSource.Edit(types =>
             {
@@ -511,50 +552,40 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Builds a project browser node without mutating published state.
+        /// Creates and indexes one shallow node under the owning browser gate.
         /// </summary>
         /// <param name="element">The SysML element represented by the node.</param>
         /// <param name="fallbackId">The fallback identifier used when the element has no identifier.</param>
-        /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementTypes">The distinct non-relationship types found while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <returns>The project browser node for the provided SysML element.</returns>
-        private ProjectBrowserNodeViewModel BuildNode(
-            IElement element,
+        private ProjectBrowserNodeViewModel BuildNode(IElement element,
             string fallbackId,
-            HashSet<string> stagedNodeIds,
-            HashSet<Type> stagedElementTypes,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var elementType = element.GetType();
 
-            if (element is not IRelationship)
-            {
-                stagedElementTypes.Add(elementType);
-            }
-
             var elementId = element.ElementId.ToDisplayString();
             var nodeId = CreateUniqueNodeId(
-                stagedNodeIds,
+                this.nodeIds,
                 string.IsNullOrWhiteSpace(elementId) ? fallbackId : elementId);
-            var children = this.BuildChildren(
-                element,
-                nodeId,
-                stagedNodeIds,
-                stagedElementTypes,
-                cancellationToken);
             var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
                 element.qualifiedName.ToDisplayString(),
                 element);
 
-            return new ProjectBrowserNodeViewModel(
+            var node = new ProjectBrowserNodeViewModel(
                 nodeId,
                 GetDisplayName(element, elementType.Name),
                 metadata,
-                children);
+                [])
+            {
+                AreChildrenLoaded = false,
+                ExpansionRequested = this.SetNodeExpanded
+            };
+            this.materializedNodes.Add(node.Id, node);
+            return node;
         }
 
         /// <summary>
@@ -568,6 +599,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
 
             this.SelectedNode = null;
+            this.modelRoot = null;
+            foreach (var node in this.materializedNodes.Values)
+            {
+                node.ExpansionRequested = null;
+            }
+            this.materializedNodes.Clear();
+            this.rowPresentations.Clear();
+            this.nodeIds.Clear();
+            this.affectedParents.Clear();
+            this.affectedParentChange = null;
+            this.lastLiveChange = null;
             this.rootNodeSource.Clear();
             this.availableElementTypeSource.Clear();
             this.selectedElementTypeSource.Clear();
@@ -584,8 +626,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 return;
             }
 
-            this.ResetTree();
-            this.SetError(errorMessage);
+            this.Mutate(() =>
+            {
+                this.ResetTree();
+                this.SetError(errorMessage);
+            });
         }
 
         /// <summary>
@@ -595,7 +640,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="rootNodes">The canonical root nodes.</param>
         /// <param name="selectedElementTypes">The selected concrete element types.</param>
         /// <returns>The immutable visibility presentation.</returns>
-        private static ProjectBrowserFilterPresentation CreateFilterPresentation(
+        private ProjectBrowserFilterPresentation CreateFilterPresentation(
             string filterText,
             IReadOnlyCollection<ProjectBrowserNodeViewModel> rootNodes,
             IReadOnlyCollection<Type> selectedElementTypes)
@@ -610,91 +655,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var visibleNodes = ImmutableHashSet.CreateBuilder<ProjectBrowserNodeViewModel>(
                 ReferenceEqualityComparer.Instance);
 
-            foreach (var rootNode in rootNodes)
+            if (rootNodes.Count > 0)
             {
-                IncludeVisibleNode(
-                    rootNode,
-                    matchingText,
-                    selectedElementTypes,
-                    visibleNodes,
-                    ancestorDisplayNameMatches: false);
+                this.MaterializeFilterPaths(matchingText, selectedElementTypes, visibleNodes);
             }
 
             return ProjectBrowserFilterPresentation.CreateActive(visibleNodes);
-        }
-
-        /// <summary>
-        /// Adds a matching node and its ancestor chain to a visibility projection.
-        /// </summary>
-        /// <param name="node">The canonical node being evaluated.</param>
-        /// <param name="matchingText">The trimmed text criterion.</param>
-        /// <param name="selectedElementTypes">The selected concrete element types.</param>
-        /// <param name="visibleNodes">The reference-identity visibility builder.</param>
-        /// <param name="ancestorDisplayNameMatches">
-        /// Whether an ancestor's display name already matches the text criterion.
-        /// </param>
-        /// <returns>Whether the node directly matches or owns a visible descendant.</returns>
-        private static bool IncludeVisibleNode(
-            ProjectBrowserNodeViewModel node,
-            string matchingText,
-            IReadOnlyCollection<Type> selectedElementTypes,
-            ImmutableHashSet<ProjectBrowserNodeViewModel>.Builder visibleNodes,
-            bool ancestorDisplayNameMatches)
-        {
-            var displayNameMatches = ContainsText(node.DisplayName, matchingText);
-            var hasVisibleDescendant = false;
-
-            foreach (var childNode in node.Children)
-            {
-                hasVisibleDescendant |= IncludeVisibleNode(
-                    childNode,
-                    matchingText,
-                    selectedElementTypes,
-                    visibleNodes,
-                    ancestorDisplayNameMatches || displayNameMatches);
-            }
-
-            if (!hasVisibleDescendant
-                && !DirectlyMatches(
-                    node,
-                    matchingText,
-                    selectedElementTypes,
-                    displayNameMatches,
-                    ancestorDisplayNameMatches))
-            {
-                return false;
-            }
-
-            visibleNodes.Add(node);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Determines whether a node satisfies every active criterion.
-        /// </summary>
-        /// <param name="node">The canonical node.</param>
-        /// <param name="matchingText">The trimmed text criterion.</param>
-        /// <param name="selectedElementTypes">The selected concrete element types.</param>
-        /// <param name="displayNameMatches">Whether the node's display name matches the text criterion.</param>
-        /// <param name="ancestorDisplayNameMatches">
-        /// Whether an ancestor's display name already matches the text criterion.
-        /// </param>
-        /// <returns>Whether every active criterion matches the node.</returns>
-        private static bool DirectlyMatches(
-            ProjectBrowserNodeViewModel node,
-            string matchingText,
-            IReadOnlyCollection<Type> selectedElementTypes,
-            bool displayNameMatches,
-            bool ancestorDisplayNameMatches)
-        {
-            var textMatches = matchingText.Length == 0
-                              || displayNameMatches
-                              || (!ancestorDisplayNameMatches
-                                  && ContainsText(node.QualifiedName, matchingText));
-
-            return textMatches
-                   && (selectedElementTypes.Count == 0 || selectedElementTypes.Contains(node.ElementType));
         }
 
         /// <summary>
@@ -707,51 +673,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             return matchingText.Length > 0
                    && source?.Contains(matchingText, StringComparison.OrdinalIgnoreCase) == true;
-        }
-
-        /// <summary>
-        /// Builds child nodes from a SysML element's owned elements.
-        /// </summary>
-        /// <param name="element">The element whose owned elements are mapped.</param>
-        /// <param name="parentNodeId">The parent node identifier.</param>
-        /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementTypes">The distinct non-relationship types found while staging.</param>
-        /// <param name="cancellationToken">Cancels staged tree construction.</param>
-        /// <returns>The child nodes for the provided element.</returns>
-        private List<ProjectBrowserNodeViewModel> BuildChildren(
-            IElement element,
-            string parentNodeId,
-            HashSet<string> stagedNodeIds,
-            HashSet<Type> stagedElementTypes,
-            CancellationToken cancellationToken)
-        {
-            var children = new List<ProjectBrowserNodeViewModel>();
-
-            if (element.ownedElement == null)
-            {
-                return children;
-            }
-
-            var index = 0;
-
-            foreach (var childElement in element.ownedElement)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (childElement != null)
-                {
-                    children.Add(this.BuildNode(
-                        childElement,
-                        string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}"),
-                        stagedNodeIds,
-                        stagedElementTypes,
-                        cancellationToken));
-                }
-
-                index++;
-            }
-
-            return children;
         }
 
         /// <summary>

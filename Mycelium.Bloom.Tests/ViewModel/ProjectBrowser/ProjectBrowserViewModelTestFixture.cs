@@ -21,7 +21,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
+    using System.Reactive.Linq;
+
     using Moq;
+
+    using Mycelium.Bloom.Core.ChangeNotifications;
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -46,8 +50,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     public sealed class ProjectBrowserViewModelTestFixture
     {
         /// <summary>
-        /// The expected display-name order of the root node's children.
+        /// Holds canonical model metadata independently of browser materialization.
         /// </summary>
+        private IAssembler assembler = Mock.Of<IAssembler>();
+
+        /// <summary>Gets the ordered direct element names.</summary>
         private static readonly string[] ExpectedRootChildDisplayNames =
             ["First child", "Second child"];
 
@@ -78,7 +85,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(
                 () =>
                 {
-                    using var viewModel = new ProjectBrowserViewModel(null, new ContextAwareService());
+                    using var viewModel = new ProjectBrowserViewModel(null, new ContextAwareService(),
+                        Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                        this.assembler);
                 },
                 Throws.TypeOf<ArgumentNullException>()
                     .With.Property("ParamName").EqualTo("modelLoaderService"));
@@ -95,21 +104,25 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(
                 () =>
                 {
-                    using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, null);
+                    using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, null,
+                        Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                        this.assembler);
                 },
                 Throws.TypeOf<ArgumentNullException>()
                     .With.Property("ParamName").EqualTo("elementSelectionService"));
         }
 
         /// <summary>
-        /// Verifies that initialization builds the complete Quantities tree.
+        /// Verifies that initialization materializes the Quantities root and its direct children.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncBuildsTreeFromNamespace()
         {
             var model = LoadQuantitiesModel();
             var modelLoaderService = CreateModelLoader(model);
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -135,7 +148,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
 
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             using (Assert.EnterMultipleScope())
             {
@@ -157,7 +172,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var model = CreateMinimalModel();
             var modelLoaderService = CreateModelLoader(model);
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -187,10 +204,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var firstViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             using var secondViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
 
             await Task.WhenAll(
                 firstViewModel.InitializeAsync(CancellationToken.None),
@@ -237,7 +258,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())
                 .Throws(new InvalidOperationException("Model load failed"));
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
             var observedErrors = new List<string>();
             var observedLoadingStates = new List<bool>();
 
@@ -274,7 +297,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())
                 .Returns((INamespace)null);
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -297,7 +322,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyInitializeAsyncReturnsEarlyWhenAlreadyLoaded()
         {
             var modelLoaderService = CreateModelLoader(CreateMinimalModel());
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             var firstResult = await viewModel.InitializeAsync(CancellationToken.None);
             var secondResult = await viewModel.InitializeAsync(CancellationToken.None);
@@ -334,7 +361,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
                     return CreateMinimalModel();
                 });
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService(),
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             var firstInitialization = viewModel.InitializeAsync(CancellationToken.None);
 
@@ -363,7 +392,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
 
@@ -384,7 +415,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var leafNode = rootNode.Children[0];
@@ -407,7 +440,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
 
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
 
@@ -430,7 +465,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
 
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
 
@@ -459,7 +496,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             var observedValues = new List<string>();
             using var subscription = System.ObservableExtensions.Subscribe(
                 viewModel.WhenAnyValue(owner => owner.FilterText),
@@ -482,7 +521,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
 
@@ -512,10 +553,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
+            viewModel.ToggleNode(FindNode(rootNode, "Subsystem alpha"));
             var targetNode = FindNode(rootNode, "Deep target");
 
             viewModel.FilterText = "  DEEP Tar  ";
@@ -538,7 +582,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateQualifiedNameModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var qualifiedNameNode = FindNode(rootNode, "Friendly label");
@@ -561,9 +607,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
+            viewModel.ToggleNode(FindNode(rootNode, "Subsystem alpha"));
             var targetNode = FindNode(rootNode, "Deep target");
 
             viewModel.FilterText = targetNode.ElementType.Name;
@@ -585,7 +634,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var partDefinitionNode = FindNode(rootNode, "Mystery element");
@@ -643,9 +694,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
+            viewModel.ToggleNode(FindNode(rootNode, "Subsystem alpha"));
             var targetNode = FindNode(rootNode, "Deep target");
 
             viewModel.FilterText = "Deep target";
@@ -688,11 +742,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var canonicalChildren = rootNode.Children.ToArray();
             var branchNode = FindNode(rootNode, "Subsystem alpha");
+            viewModel.ToggleNode(FindNode(rootNode, "Subsystem alpha"));
             var targetNode = FindNode(rootNode, "Deep target");
             var unrelatedLeaf = FindNode(rootNode, "Unrelated leaf");
             var unrelatedSibling = FindNode(rootNode, "Sibling branch");
@@ -719,7 +776,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
@@ -730,7 +789,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(viewModel.FilterPresentation.IsVisible(rootNode), Is.True);
                 Assert.That(viewModel.FilterPresentation.IsVisible(branchNode), Is.True);
-                Assert.That(branchNode.Children.All(viewModel.FilterPresentation.IsVisible), Is.False);
+                Assert.That(branchNode.Children.Where(viewModel.FilterPresentation.IsVisible), Is.Empty);
                 Assert.That(branchNode.Children.Any(viewModel.FilterPresentation.IsVisible), Is.False);
             }
         }
@@ -743,7 +802,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
 
             viewModel.FilterText = "No element has this text";
@@ -764,7 +825,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
@@ -802,7 +865,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Deep target";
             viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
@@ -851,7 +916,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Deep target";
             var initialPresentation = viewModel.FilterPresentation;
@@ -873,7 +940,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(viewModel.FilterText, Is.EqualTo("  DEEP TARGET  "));
                 Assert.That(viewModel.FilterPresentation, Is.SameAs(initialPresentation));
-                Assert.That(changedProperties, Is.EqualTo(new[] { nameof(viewModel.FilterText) }));
+                Assert.That(changedProperties, Is.EqualTo(new[] { nameof(viewModel.FilterText), nameof(viewModel.RenderState) }));
             }
         }
 
@@ -885,7 +952,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             viewModel.FilterText = "Deep target";
             var collectionPublicationWasCoherent = false;
             var notifyingRoots = (INotifyCollectionChanged)viewModel.RootNodes;
@@ -912,7 +981,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(collectionPublicationWasCoherent, Is.True);
-                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(4));
+                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(8));
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
             }
         }
@@ -925,7 +994,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             viewModel.FilterText = "No matching element";
             var collectionPublicationWasCoherent = false;
             var notifyingRoots = (INotifyCollectionChanged)viewModel.RootNodes;
@@ -967,7 +1038,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 .Throws(new InvalidOperationException("Model load failed"));
             using var viewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService())
+                new ContextAwareService(), Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()), this.assembler)
             {
                 FilterText = "Deep target"
             };
@@ -991,10 +1062,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var hiddenNode = FindNode(rootNode, "Sibling branch");
+            viewModel.ToggleNode(FindNode(rootNode, "Subsystem alpha"));
             var visibleNode = FindNode(rootNode, "Deep target");
             viewModel.SelectNode(hiddenNode);
 
@@ -1026,10 +1100,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var modelLoaderService = CreateModelLoader(model);
             using var firstViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             using var secondViewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await firstViewModel.InitializeAsync(CancellationToken.None);
             await secondViewModel.InitializeAsync(CancellationToken.None);
 
@@ -1058,10 +1136,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
+            viewModel.ToggleNode(FindNode(rootNode, "Subsystem alpha"));
             var targetNode = FindNode(rootNode, "Deep target");
             var canonicalNodes = Flatten(rootNode).ToArray();
             var canonicalChildren = canonicalNodes.ToDictionary(
@@ -1118,7 +1199,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             var modelLoaderService = CreateModelLoader(CreateFilterModel());
             var viewModels = Enumerable.Range(0, browserCount)
-                .Select(_ => new ProjectBrowserViewModel(modelLoaderService.Object, selectionService))
+                .Select(_ => new ProjectBrowserViewModel(modelLoaderService.Object, selectionService, Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()), this.assembler))
                 .ToArray();
 
             try
@@ -1126,6 +1207,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 foreach (var viewModel in viewModels)
                 {
                     await viewModel.InitializeAsync(CancellationToken.None);
+                    viewModel.ToggleNode(FindNode(viewModel.RootNodes[0], "Subsystem alpha"));
                 }
 
                 for (var iteration = 0; iteration < iterationCount; iteration++)
@@ -1200,7 +1282,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var viewModel = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>().Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             var propertyNotifications = new List<string>();
             PropertyChangedEventHandler propertyHandler = (_, args) => propertyNotifications.Add(args.PropertyName);
             viewModel.PropertyChanged += propertyHandler;
@@ -1234,7 +1318,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>().Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
 
             using (Assert.EnterMultipleScope())
             {
@@ -1251,7 +1337,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
@@ -1275,7 +1363,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var node = viewModel.RootNodes[0].Children[0];
@@ -1298,7 +1388,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
 
@@ -1321,7 +1413,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
             viewModel.SelectNode(node);
@@ -1346,8 +1440,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var model = CreateSelectionModel();
             var selectionService = new ContextAwareService();
             var modelLoaderService = CreateModelLoader(model);
-            using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
-            using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
+            using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             await Task.WhenAll(
                 firstViewModel.InitializeAsync(CancellationToken.None),
@@ -1395,7 +1493,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             };
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -1422,7 +1522,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 SelectedElement = thrusterElement
             };
-            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -1461,10 +1563,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var foregroundViewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(model).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             using var backgroundViewModel = new ProjectBrowserViewModel(
                 backgroundModelLoaderService.Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             var backgroundInitialization = backgroundViewModel.InitializeAsync(CancellationToken.None);
 
             try
@@ -1507,7 +1613,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             var exposedRoots = viewModel.RootNodes;
 
             await viewModel.InitializeAsync(CancellationToken.None);
@@ -1519,7 +1627,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.RootNodes, Is.SameAs(exposedRoots));
                 Assert.That(exposedRoots, Has.Count.EqualTo(1));
                 Assert.That(
-                    exposedRoots[0].Children.Select(node => node.DisplayName),
+                    exposedRoots[0].Children.Where(node => node.SourceElement is not IRelationship).Select(node => node.DisplayName),
                     Is.EqualTo(ExpectedRootChildDisplayNames));
             }
         }
@@ -1532,7 +1640,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             var exposedRoots = viewModel.RootNodes;
             var collectionChanges = new List<NotifyCollectionChangedEventArgs>();
             var rootPropertyChanges = new List<string>();
@@ -1558,7 +1668,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.RootNodes, Is.SameAs(exposedRoots));
                 Assert.That(exposedRoots, Has.Count.EqualTo(1));
                 Assert.That(
-                    exposedRoots[0].Children.Select(node => node.DisplayName),
+                    exposedRoots[0].Children.Where(node => node.SourceElement is not IRelationship).Select(node => node.DisplayName),
                     Is.EqualTo(ExpectedRootChildDisplayNames));
                 Assert.That(rootPropertyChanges, Does.Not.Contain(nameof(ProjectBrowserViewModel.RootNodes)));
             }
@@ -1573,7 +1683,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             using var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var observedSelections = new List<ProjectBrowserNodeViewModel>();
 
@@ -1618,7 +1730,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 });
             using var viewModel = new ProjectBrowserViewModel(
                 modelLoaderService.Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             var observedLoadingStates = new List<bool>();
             var observedLoadedStates = new List<bool>();
 
@@ -1682,7 +1796,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     return CreateMinimalModel();
                 });
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
             var initialization = viewModel.InitializeAsync(cancellation.Token);
 
             Assert.That(loadStarted.Wait(TimeSpan.FromSeconds(10)), Is.True);
@@ -1730,7 +1846,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     return CreateMinimalModel();
                 });
             var selectionService = new ContextAwareService();
-            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
             var observedState = new List<(bool IsLoading, bool IsLoaded, string ErrorMessage)>();
             using var stateSubscription = System.ObservableExtensions.Subscribe(
                 viewModel.WhenAnyValue(
@@ -1771,7 +1889,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.SelectNode(viewModel.RootNodes[0].Children[0]);
             var selectedElement = selectionService.SelectedElement;
@@ -1791,7 +1911,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selectionService = new ContextAwareService();
             var viewModel = new ProjectBrowserViewModel(
                 CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+                selectionService,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var childNode = rootNode.Children[0];
@@ -1825,7 +1947,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 SelectedElement = workspaceElement
             };
-            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
             var coherentPublicationObserved = false;
             ((INotifyCollectionChanged)viewModel.RootNodes).CollectionChanged += (_, _) =>
             {
@@ -1856,7 +1980,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var deepTarget = matchingBranch.ownedElement.Single(element => element.ElementId == "deep-target");
             var sharedSelection = new Namespace { ElementId = "shared-selection" };
             var selectionService = new ContextAwareService { SelectedElement = sharedSelection };
-            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
 
             viewModel.FocusElement(deepTarget);
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
@@ -1883,7 +2009,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var matchingBranch = model.ownedElement.Single(element => element.ElementId == "matching-branch");
             var deepTarget = matchingBranch.ownedElement.Single(element => element.ElementId == "deep-target");
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Sibling branch";
             viewModel.ToggleElementTypeFilter(typeof(PartUsage));
@@ -1909,8 +2037,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var model = CreateSelectionModel();
             var thruster = model.ownedElement.Single(element => element.ElementId == "thruster");
             var sharedSelection = new ContextAwareService();
-            using var first = new ProjectBrowserViewModel(CreateModelLoader(model).Object, sharedSelection);
-            using var second = new ProjectBrowserViewModel(CreateModelLoader(model).Object, sharedSelection);
+            using var first = new ProjectBrowserViewModel(CreateModelLoader(model).Object, sharedSelection,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
+            using var second = new ProjectBrowserViewModel(CreateModelLoader(model).Object, sharedSelection,
+                Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                this.assembler);
             await first.InitializeAsync(CancellationToken.None);
             await second.InitializeAsync(CancellationToken.None);
             var secondTankNode = second.RootNodes[0].Children.Single(node => node.ElementId == "tank");
@@ -1931,8 +2063,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// </summary>
         /// <param name="model">The namespace returned by the loader.</param>
         /// <returns>The configured model loader mock.</returns>
-        private static Mock<IModelLoaderService> CreateModelLoader(INamespace model)
+        private Mock<IModelLoaderService> CreateModelLoader(INamespace model)
         {
+            this.assembler = CreateAssembler(model);
             var modelLoaderService = new Mock<IModelLoaderService>();
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())

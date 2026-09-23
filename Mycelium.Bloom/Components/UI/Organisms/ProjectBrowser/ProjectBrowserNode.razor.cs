@@ -29,6 +29,39 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// </summary>
     public partial class ProjectBrowserNode : BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
+        /// <summary>Gets or sets the immutable row state supplied by the browser.</summary>
+        [Parameter]
+        public ProjectBrowserNodeRenderState Presentation { get; set; }
+
+        /// <summary>Identifies the last row snapshot accepted for rendering.</summary>
+        private ProjectBrowserNodeRenderState renderedPresentation;
+
+        /// <summary>Retains the selection last propagated to this row and its descendants.</summary>
+        private ProjectBrowserNodeViewModel renderedSelection;
+
+        /// <summary>Retains the row's last rendered indentation depth.</summary>
+        private int renderedDepth;
+
+        /// <summary>Renders changed rows and ancestor paths while retaining unaffected branch output.</summary>
+        /// <returns>Whether the row or its visible descendants need rendering.</returns>
+        protected override bool ShouldRender()
+        {
+            return this.Presentation is null
+                || !ReferenceEquals(this.Presentation, this.renderedPresentation)
+                || !ReferenceEquals(this.renderedSelection, this.SelectedNode)
+                || this.renderedDepth != this.Depth;
+        }
+
+        /// <summary>Records the snapshot and row geometry accepted by the renderer.</summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        protected override void OnAfterRender(bool firstRender)
+        {
+            this.renderedPresentation = this.Presentation;
+            this.renderedSelection = this.SelectedNode;
+            this.renderedDepth = this.Depth;
+            base.OnAfterRender(firstRender);
+        }
+
         /// <summary>
         /// Gets the node ViewModel required while rendering an assigned node.
         /// </summary>
@@ -134,17 +167,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The design token color for the represented element.</returns>
         private string GetElementColor()
         {
-            return this.RequiredViewModel.SourceElement switch
+            var type = this.Presentation?.ElementType ?? this.RequiredViewModel.ElementType;
+            return type switch
             {
-                IDocumentation or IComment or IAnnotation or IAnnotatingElement => "var(--info)",
-                IImport => "var(--sysml-allocations-header)",
-                IMembership => "var(--sysml-metadata-header)",
-                IRelationship => "var(--sysml-connections-header)",
-                IDefinition => "var(--sysml-attributes-header)",
-                IUsage => "var(--sysml-behavior-header)",
-                IFeature => "var(--sysml-requirements-header)",
-                IType => "var(--sysml-verification-header)",
-                INamespace => "var(--sysml-structure-header)",
+                _ when typeof(IAnnotatingElement).IsAssignableFrom(type)
+                    || typeof(IAnnotation).IsAssignableFrom(type) => "var(--info)",
+                _ when typeof(IImport).IsAssignableFrom(type) => "var(--sysml-allocations-header)",
+                _ when typeof(IMembership).IsAssignableFrom(type) => "var(--sysml-metadata-header)",
+                _ when typeof(IRelationship).IsAssignableFrom(type) => "var(--sysml-connections-header)",
+                _ when typeof(IDefinition).IsAssignableFrom(type) => "var(--sysml-attributes-header)",
+                _ when typeof(IUsage).IsAssignableFrom(type) => "var(--sysml-behavior-header)",
+                _ when typeof(IFeature).IsAssignableFrom(type) => "var(--sysml-requirements-header)",
+                _ when typeof(IType).IsAssignableFrom(type) => "var(--sysml-verification-header)",
+                _ when typeof(INamespace).IsAssignableFrom(type) => "var(--sysml-structure-header)",
                 _ => "var(--foreground-muted)"
             };
         }
@@ -158,9 +193,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             var viewModel = this.RequiredViewModel;
             var suffix = this.GetTypeLabel();
 
-            if (!string.IsNullOrWhiteSpace(viewModel.QualifiedName))
+            var qualifiedName = this.Presentation?.QualifiedName ?? viewModel.QualifiedName;
+            if (!string.IsNullOrWhiteSpace(qualifiedName))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.QualifiedName} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{qualifiedName} - {suffix}");
             }
 
             if (!string.IsNullOrWhiteSpace(viewModel.ElementId))
@@ -177,7 +213,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The most specific type label available for the node.</returns>
         private string GetTypeLabel()
         {
-            return this.RequiredViewModel.ElementType.Name;
+            return (this.Presentation?.ElementType ?? this.RequiredViewModel.ElementType).Name;
         }
 
         /// <summary>
@@ -193,10 +229,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             var viewModel = this.RequiredViewModel;
             var filterPresentation = this.FilterPresentation ?? ProjectBrowserFilterPresentation.Inactive;
+            if (this.Presentation is { } presentation)
+            {
+                return ([], presentation.HasChildren, presentation.IsExpanded);
+            }
             var visibleChildren = filterPresentation.IsActive
                 ? viewModel.Children.Where(filterPresentation.IsVisible).ToArray()
                 : viewModel.Children;
-            var hasVisibleChildren = visibleChildren.Count > 0;
+            var hasVisibleChildren = filterPresentation.IsActive ? visibleChildren.Count > 0 : viewModel.HasChildren;
             var isExpanded = hasVisibleChildren
                              && (filterPresentation.IsActive || viewModel.IsExpanded);
 

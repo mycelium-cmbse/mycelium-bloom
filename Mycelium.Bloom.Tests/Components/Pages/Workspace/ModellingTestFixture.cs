@@ -31,7 +31,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Microsoft.Extensions.Options;
     using Microsoft.AspNetCore.Components.Web;
 
+    using System.Reactive.Linq;
+
     using Moq;
+
+    using Mycelium.Bloom.Core.ChangeNotifications;
+    using SysML2.NET.Dal;
 
     using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Components.Layout;
@@ -428,7 +433,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 {
                     var viewModel = new ProjectBrowserViewModel(
                         modelLoaderService.Object,
-                        context);
+                        context,
+                            Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                            Mock.Of<IAssembler>());
                     projectBrowserViewModels.Add(viewModel);
 
                     return viewModel;
@@ -914,18 +921,22 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         {
             using var filterPresentationOwner = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
-                new ContextAwareService());
+                new ContextAwareService(),
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
             var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
             var initialization = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             ObservableCollection<ProjectBrowserNodeViewModel> initializingMutableRoots = [];
             var initializingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
                 initializingMutableRoots);
             var initializingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            initializingViewModel.SetupGet(owner => owner.RenderState).Returns(() => ProjectBrowserNodeTestFactory.CapturePresentation(initializingViewModel.Object));
             var survivingNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("surviving", "Surviving");
             ObservableCollection<ProjectBrowserNodeViewModel> survivingMutableRoots = [survivingNode];
             var survivingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
                 survivingMutableRoots);
             var survivingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            survivingViewModel.SetupGet(owner => owner.RenderState).Returns(() => ProjectBrowserNodeTestFactory.CapturePresentation(survivingViewModel.Object));
             var initializationToken = CancellationToken.None;
 
             initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
@@ -1567,7 +1578,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var projectBrowserNodes = new List<ProjectBrowserNodeViewModel>();
             using var filterPresentationOwner = new ProjectBrowserViewModel(
                 new Mock<IModelLoaderService>(MockBehavior.Strict).Object,
-                context);
+                context,
+                    Mock.Of<IChangeNotificationService>(service => service.Listen(It.IsAny<ChangeTarget>()) == Observable.Empty<ChangeEvent>()),
+                    Mock.Of<IAssembler>());
             var inactiveFilterPresentation = filterPresentationOwner.FilterPresentation;
 
             this.Services.AddScoped<Func<IProjectBrowserViewModel>>(_ =>
@@ -1588,6 +1601,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     };
                     var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
                     var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+                    projectBrowserViewModel.SetupGet(owner => owner.RenderState).Returns(() => ProjectBrowserNodeTestFactory.CapturePresentation(projectBrowserViewModel.Object));
                     projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
                     projectBrowserViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes)
                         .Returns(EmptyElementTypes);
@@ -1603,6 +1617,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
                     projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
                     projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
+                    projectBrowserViewModel.Setup(viewModel => viewModel.ToggleNode(projectBrowserNode));
                     projectBrowserViewModel.Setup(
                         viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
                     projectBrowserViewModel.Setup(viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()));
