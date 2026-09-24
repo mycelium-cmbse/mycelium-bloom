@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
 {
     using System;
     using System.Linq;
+    using System.Reactive.Concurrency;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -23,6 +24,48 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
     [TestFixture]
     public sealed class ChangeNotificationConcurrencyTestFixture
     {
+        [Test]
+        public async Task VerifyPublishEntersSchedulerOutsideComponentLocks()
+        {
+            var timeout = TimeSpan.FromSeconds(5);
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var release = new ManualResetEventSlim();
+            var clock = new HistoricalScheduler();
+            var scheduler = new ScheduleCallbackScheduler(clock, () =>
+            {
+                entered.TrySetResult();
+                if (!release.Wait(timeout))
+                {
+                    throw new TimeoutException("Scheduling did not leave the admission boundary.");
+                }
+            });
+            using (var service = new ChangeNotificationService(Mock.Of<IModelRefreshCoordinator>(), scheduler))
+            {
+                var publication = Task.Run(() => service.Publish(CreateChange()));
+                try
+                {
+                    await entered.Task.WaitAsync(timeout);
+                    await Task.Run(() =>
+                    {
+                        service.IsEnabled = false;
+                        using var subscription = service.Listen().Subscribe(_ => { });
+                    }).WaitAsync(timeout);
+                }
+                finally
+                {
+                    release.Set();
+                }
+                await publication.WaitAsync(timeout);
+                clock.AdvanceBy(TimeSpan.FromMilliseconds(75));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(service.IsEnabled, Is.False);
+                    Assert.That(service.ActiveObservableCount, Is.Zero);
+                }
+            }
+            clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public async Task VerifyPublishSerializesCallbacksOutsideStateGate(bool disposeDuringCallback)
@@ -120,6 +163,30 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
         {
             return new ChangeEvent(ChangeKind.Updated, ChangeSource.Local, Guid.NewGuid(), typeof(Package),
                 new NamespacePath([]), [], Guid.NewGuid());
+        }
+
+        /// <summary>Exposes the caller's scheduler-entry boundary while retaining queued virtual execution.</summary>
+        /// <param name="scheduler">The virtual execution scheduler.</param>
+        /// <param name="onSchedule">The synchronous scheduling diagnostic.</param>
+        private sealed class ScheduleCallbackScheduler(IScheduler scheduler, Action onSchedule) : IScheduler
+        {
+            /// <inheritdoc />
+            public DateTimeOffset Now => scheduler.Now;
+
+            /// <inheritdoc />
+            public IDisposable Schedule<TState>(TState state, Func<IScheduler, TState, IDisposable> action)
+                => this.Schedule(state, TimeSpan.Zero, action);
+
+            /// <inheritdoc />
+            public IDisposable Schedule<TState>(TState state, DateTimeOffset dueTime, Func<IScheduler, TState, IDisposable> action)
+                => this.Schedule(state, dueTime - this.Now, action);
+
+            /// <inheritdoc />
+            public IDisposable Schedule<TState>(TState state, TimeSpan dueTime, Func<IScheduler, TState, IDisposable> action)
+            {
+                onSchedule();
+                return scheduler.Schedule(state, dueTime, action);
+            }
         }
     }
 }

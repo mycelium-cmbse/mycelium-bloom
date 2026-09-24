@@ -55,17 +55,41 @@ Generated SDK POCO classes use interfaces to represent metaclass ancestry:
 `SysmlMetaclass` matches the SDK's class/interface `ClassAttribute.XmiId` metadata
 and normalizes targets to metaclass interfaces. Thus `Namespace` and `INamespace`
 share a target even though CLR `Package` does not derive from CLR `Namespace`.
-The finite SDK normalization table and interface ancestry are cached. DTO types,
-unrelated CLR types and custom wrapper types are not accepted as metaclasses.
+Resolution inspects only the supplied type and its implemented interfaces. In the
+pinned SysML2.NET 0.23.0 SDK, each generated POCO class directly implements the
+metaclass interface carrying the same XMI identifier. Interface inputs already
+identify their canonical metaclass. One per-type cache holds the canonical
+interface and its ancestry; there is no assembly scan or global mapping table.
+DTO types, unrelated CLR types and custom wrapper types are not accepted.
+
+## Internal responsibilities
+
+| Component | Owned responsibility |
+| --- | --- |
+| `ChangeNotificationService` | Public API, Rx window scheduling and serialized delivery/completion |
+| `ChangeAccumulator` | Synchronous duplicate validation, pending batches, freeze, delivered retention and circuit breaker |
+| `ChangeObservableRegistry` | Target routing, synchronous subscription registration, subject lifetime and callback isolation |
+| `ModelRefreshCoordinator` | Current reload registration, request ordering and cancellation |
+| `SysmlMetaclass` | Validated SDK type normalization and cached interface ancestry |
+
+These are concrete internal collaborators, not independently registered services.
+`PendingChange`, `CommitElement`, `ChangeObservable`, `ModelRefreshRegistration`
+and `TargetScope` have dedicated definitions. The notification service owns the
+accumulator and registry; DI continues to own the scoped refresh coordinator.
 
 ## Batching and duplicate identity
 
-Rx opens a 75 ms buffer when the first queued change arrives; later changes do
-not extend that window. An idle circuit schedules no batching timer and performs
-no batch dispatch or duplicate cleanup. Ingestion and window closure are
-serialized together so a change cannot miss the next window's opening trigger.
-Both queued ingestion and batch
-delivery use the injected `IScheduler`, whose `Now` also controls duplicate expiry.
+The first admitted change reserves a window in the accumulator. After admission
+returns, the service enqueues that window request through a synchronized Rx
+observer. Rx starts a single 75 ms timer when it processes the request; later
+changes do not extend that window. When the timer fires, the accumulator freezes
+the pending batch and permits a new window reservation atomically. Empty batches
+are filtered before dispatch. An idle circuit schedules no timer and performs
+no dispatch or duplicate cleanup.
+
+Queued window requests and batch delivery use the injected `IScheduler`, whose
+`Now` also controls duplicate expiry. Terminating the request stream cancels
+outstanding timers and queues completion behind any in-flight delivery.
 Production defaults to `TaskPoolScheduler.Default`; deterministic checks can use
 a virtual-time scheduler. The scheduler must queue work rather than execute
 timed work inline, and it remains owned by its supplier. The built-in immediate
@@ -108,17 +132,28 @@ conflict handling.
 
 ## Concurrency and lifetime
 
-The service gate protects publication, duplicate state, subject attachment and
-release, batch snapshots, and disablement. Ingestion enters the raw subject only
-under that gate, and Rx queues ingestion before buffering. Dispatch follows this
-sequence:
+There is no service-wide lock. Mutable batching and duplicate state have one
+owner: `ChangeAccumulator`. Its narrow lock is required by the synchronous
+`Publish()` contract: an incompatible pending duplicate throws before the call
+returns. Deferring that check to the scheduler would change error delivery or
+require blocking on scheduler work, including virtual time. The accumulator does
+not call Rx, registry methods, handlers or subscribers while holding its lock.
 
-1. Under the gate, freeze the batch's immutable events and mark their aggregates
-   no longer mergeable.
-2. For each matching target, briefly acquire the gate to check the current
-   generation and acquire a subject lifetime lease.
-3. Release the gate before calling the target's `OnNext`.
-4. Release the lease after the callback returns, even if it throws.
+`Publish()` validates the event, admits/merges it under the accumulator lock, then
+enqueues a window request only after releasing that lock. The synchronized Rx
+observer safely orders concurrent requests and termination; it contains no
+mutable event state. `IsEnabled` and admission are atomic under the accumulator
+lock, so disablement cannot admit an event into a discarded generation.
+
+Subscription registration is synchronous and independently protected by the
+registry lock. No accumulator and registry locks are nested. Delivery proceeds:
+
+1. Freeze the pending batch under the accumulator lock, then release it.
+2. On the delivery drain, check each event's generation through the accumulator.
+3. For each target, acquire its subject lease under the registry lock, then
+   release that lock before calling `OnNext`.
+4. Release the lease after delivery and remember the delivered event through the
+   accumulator only after all its targets finish.
 
 A single downstream `ObserveOn` drain serializes all batch delivery and stream
 completion on the injected Rx scheduler. Concurrent producers therefore cannot
@@ -130,16 +165,19 @@ completion failures, before they can interrupt peers, other targets or the
 scheduler. Normal Rx auto-detachment still applies to a throwing subscription;
 healthy subscriptions continue receiving future changes. Consumers must not
 synchronously wait for later notifications on the same drain. They can call bus
-APIs without inheriting the state gate.
+APIs without inheriting either component's lock.
 
 `Listen` alone creates no subject. Each subscription acquires the canonical entry
-in `ConcurrentDictionary<ChangeTarget, Lazy<ChangeObservable>>`. Its stream uses
+in the registry's `Dictionary<ChangeTarget, ChangeObservable>`. Creation occurs
+only at subscription time under the registry lock, so racing subscriptions
+cannot create competing subjects and need neither `ConcurrentDictionary` nor
+`Lazy`. Its stream uses
 `Observable.Create(...).Publish().RefCount()`. Final disconnection removes that
 specific subject and retires its lifetime. An Rx `RefCountDisposable` delays
 physical disposal only while delivery or completion holds a lease, protecting the
 gap between lookup and callback without holding a lock over subscriber code.
-Attachment and disconnection share the service
-gate so a subscription cannot race onto a removed subject. A saved `Listen`
+Attachment and disconnection share the registry
+lock so a subscription cannot race onto a removed subject. A saved `Listen`
 observable can subscribe again and acquire the current canonical subject.
 `ActiveObservableCount` counts materialized targets, not subscribers or calls to
 `Listen`.
@@ -150,7 +188,7 @@ accepts fresh events without replaying discarded work. A callback already being
 selected for delivery may finish. Disposal immediately rejects new work, empties
 the canonical dictionary and cancels bus-initiated refresh requests. Completion
 is queued through the same Rx drain after the in-flight callback returns, so
-`OnCompleted` also runs outside the gate and cannot overlap `OnNext`. Terminal
+`OnCompleted` also runs outside both locks and cannot overlap `OnNext`. Terminal
 delivery releases the retained subjects and batching resources; a virtual-time
 scheduler must be advanced to execute it. Disposal is idempotent and does not
 wait on subscriber code. Subsequent
@@ -171,8 +209,20 @@ notifications. It must honor cancellation before replacing state.
 
 The coordinator serializes reload requests and returns their actual completion,
 cancellation or failure. Detaching the owner or disposing the coordinator cancels
-its accepted requests. Serialization resources remain alive until those requests
-finish. Without a registered owner, refresh fails with `InvalidOperationException`.
+its accepted requests. A narrow registration lock reserves each reload's position
+in a task chain; handlers and cancellation callbacks run outside it. Each next
+position waits for both its predecessor and the current request to finish. A
+cancelled queued request can return immediately without letting a later handler
+overtake an active reload. An active handler retains its position until it returns,
+even if it delays honoring cancellation. Failures propagate to the requester but
+do not poison the completion chain. There is no semaphore, active-request counter
+or synchronization-resource disposal bookkeeping. Without a registered owner,
+refresh fails with `InvalidOperationException`.
+
+The notification API retains `RequestRefresh()` as its full-model reload entry
+point. Its only work is checking service lifetime, linking caller/service
+cancellation and awaiting the coordinator; it neither interprets events as
+refresh requests nor owns reload state.
 
 Bloom's existing `ModelLoaderService` loads local files and caches the Quantities
 model; it has no connected-backend/current-model retrieval context. The future

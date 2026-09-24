@@ -17,14 +17,11 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         /// <summary>Protects registration replacement, cancellation-token acquisition and disposal across caller threads.</summary>
         private readonly object gate = new();
 
-        /// <summary>Serializes full model replacements without blocking caller threads.</summary>
-        private readonly SemaphoreSlim refreshGate = new(1, 1);
+        /// <summary>Reserves reload order without owning disposable synchronization primitives.</summary>
+        private Task previousReload = Task.CompletedTask;
 
         /// <summary>Holds the currently registered model owner and its cancellation lifetime.</summary>
-        private Registration registration;
-
-        /// <summary>Counts accepted requests until they release their asynchronous serialization resources.</summary>
-        private int activeRequests;
+        private ModelRefreshRegistration registration;
 
         /// <summary>Indicates that no more registrations or refresh requests can be accepted.</summary>
         private bool isDisposed;
@@ -46,7 +43,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                     throw new InvalidOperationException("A current-model refresh handler is already registered.");
                 }
 
-                var current = new Registration(handler);
+                var current = new ModelRefreshRegistration(handler);
                 this.registration = current;
                 return Disposable.Create(() => this.Unregister(current));
             }
@@ -58,8 +55,10 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         /// <exception cref="InvalidOperationException">No model owner is registered.</exception>
         public async Task RequestRefresh(CancellationToken cancellationToken = default)
         {
-            Registration current;
+            ModelRefreshRegistration current;
             CancellationTokenSource requestCancellation;
+            Task predecessor;
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             lock (this.gate)
             {
@@ -67,45 +66,30 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                 cancellationToken.ThrowIfCancellationRequested();
                 current = this.registration ?? throw new InvalidOperationException("No current-model refresh handler is registered.");
                 requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, current.Cancellation.Token);
-                this.activeRequests++;
+                predecessor = this.previousReload;
+                this.previousReload = Task.WhenAll(predecessor, completion.Task);
             }
 
             try
             {
                 using (requestCancellation)
                 {
-                    await this.refreshGate.WaitAsync(requestCancellation.Token).ConfigureAwait(false);
-
-                    try
-                    {
-                        requestCancellation.Token.ThrowIfCancellationRequested();
-                        await current.Handler.ReloadAsync(requestCancellation.Token).ConfigureAwait(false);
-                        requestCancellation.Token.ThrowIfCancellationRequested();
-                    }
-                    finally
-                    {
-                        this.refreshGate.Release();
-                    }
+                    await predecessor.WaitAsync(requestCancellation.Token).ConfigureAwait(false);
+                    requestCancellation.Token.ThrowIfCancellationRequested();
+                    await current.Handler.ReloadAsync(requestCancellation.Token).ConfigureAwait(false);
+                    requestCancellation.Token.ThrowIfCancellationRequested();
                 }
             }
             finally
             {
-                lock (this.gate)
-                {
-                    this.activeRequests--;
-
-                    if (this.isDisposed && this.activeRequests == 0)
-                    {
-                        this.refreshGate.Dispose();
-                    }
-                }
+                completion.SetResult();
             }
         }
 
         /// <summary>Detaches the current model owner and cancels pending refreshes idempotently.</summary>
         public void Dispose()
         {
-            Registration current;
+            ModelRefreshRegistration current;
 
             lock (this.gate)
             {
@@ -117,11 +101,6 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                 this.isDisposed = true;
                 current = this.registration;
                 this.registration = null;
-
-                if (this.activeRequests == 0)
-                {
-                    this.refreshGate.Dispose();
-                }
             }
 
             Cancel(current);
@@ -129,7 +108,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
 
         /// <summary>Detaches only the owner associated with the disposed registration.</summary>
         /// <param name="current">The registration being disposed.</param>
-        private void Unregister(Registration current)
+        private void Unregister(ModelRefreshRegistration current)
         {
             lock (this.gate)
             {
@@ -146,7 +125,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
 
         /// <summary>Cancels handler work outside the registration lock.</summary>
         /// <param name="current">The detached registration, if any.</param>
-        private static void Cancel(Registration current)
+        private static void Cancel(ModelRefreshRegistration current)
         {
             if (current == null)
             {
@@ -157,14 +136,6 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
             {
                 current.Cancellation.Cancel();
             }
-        }
-
-        /// <summary>Pairs a model owner with the lifetime of its accepted requests.</summary>
-        /// <param name="Handler">The connected current-model owner.</param>
-        private sealed record Registration(IModelRefreshHandler Handler)
-        {
-            /// <summary>Gets cancellation shared by requests for this registration.</summary>
-            internal CancellationTokenSource Cancellation { get; } = new();
         }
     }
 }

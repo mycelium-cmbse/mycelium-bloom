@@ -11,7 +11,9 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Reactive.Concurrency;
+    using System.Reflection;
 
     using Moq;
 
@@ -19,6 +21,8 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
 
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Decorators;
 
     [TestFixture]
     public sealed class ChangeEventTestFixture
@@ -138,6 +142,31 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             }
             Assert.That(() => ChangeTarget.Element(Guid.Empty), Throws.ArgumentException);
             Assert.That(() => ChangeTarget.Subtree(Guid.Empty), Throws.ArgumentException);
+        }
+
+        [Test]
+        public void VerifyTargetsNormalizeEveryGeneratedPocoThroughImplementedMetaclass()
+        {
+            var generated = typeof(IElement).Assembly.GetTypes()
+                .Where(typeof(IElement).IsAssignableFrom)
+                .Select(type => (Type: type, Metadata: type.GetCustomAttribute<ClassAttribute>(false)))
+                .Where(entry => entry.Metadata != null)
+                .ToArray();
+            var interfaces = generated.Where(entry => entry.Type.IsInterface)
+                .ToDictionary(entry => entry.Metadata.XmiId, entry => entry.Type, StringComparer.Ordinal);
+            var classes = generated.Where(entry => entry.Type.IsClass).ToArray();
+            Assert.That(classes, Is.Not.Empty);
+
+            using (Assert.EnterMultipleScope())
+            {
+                foreach (var (type, metadata) in classes)
+                {
+                    var metaclass = interfaces[metadata.XmiId];
+                    Assert.That(metaclass.IsAssignableFrom(type), Is.True, type.FullName);
+                    Assert.That(ChangeTarget.ForType(type), Is.EqualTo(ChangeTarget.ForType(metaclass)), type.FullName);
+                }
+            }
+            TestContext.Out.WriteLine($"Verified {classes.Length} generated POCO classes against {interfaces.Count} metaclass interfaces.");
         }
     }
 }

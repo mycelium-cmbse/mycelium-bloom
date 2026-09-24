@@ -9,489 +9,146 @@
 
 namespace Mycelium.Bloom.Core.ChangeNotifications
 {
-    using System.Collections.Concurrent;
+    using System.Reactive;
     using System.Reactive.Concurrency;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
-    using System.Reactive.Subjects;
 
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Logging.Abstractions;
 
-    /// <summary>Serializes committed changes into shared, automatically released circuit-scoped target streams.</summary>
+    /// <summary>Coordinates circuit-scoped admission, scheduled delivery and full-model refresh delegation.</summary>
     public sealed class ChangeNotificationService : IChangeNotificationService
     {
-        /// <summary>Defines the batch delivery interval.</summary>
+        /// <summary>Defines the first-event-triggered delivery interval.</summary>
         private static readonly TimeSpan BatchWindow = TimeSpan.FromMilliseconds(75);
 
-        /// <summary>Defines the maximum age of a remembered committed element change.</summary>
-        private static readonly TimeSpan DeduplicationWindow = TimeSpan.FromSeconds(2);
+        /// <summary>Owns pending, duplicate and circuit-breaker state.</summary>
+        private readonly ChangeAccumulator accumulator;
 
-        /// <summary>Bounds retained duplicate keys even when the input rate exceeds the expiry window.</summary>
-        private const int MaximumRememberedChanges = 4096;
+        /// <summary>Owns target subjects and subscription lifetimes.</summary>
+        private readonly ChangeObservableRegistry registry;
 
-        /// <summary>Protects ingestion, target lifetimes and delivery snapshots without running consumer callbacks.</summary>
-        private readonly object gate = new();
+        /// <summary>Serializes window requests and termination before scheduled processing.</summary>
+        private readonly IObserver<Unit> ingress;
 
-        /// <summary>Stores canonical lazily materialized subjects by their validated value keys.</summary>
-        private readonly ConcurrentDictionary<ChangeTarget, Lazy<ChangeObservable>> observables = new();
-
-        /// <summary>Tracks admitted changes until expiry or capacity eviction.</summary>
-        private readonly Dictionary<CommitElement, PendingChange> recentChanges = new();
-
-        /// <summary>Orders eviction of delivered changes without admitting pending work to the expiry queue.</summary>
-        private readonly Queue<PendingChange> expirationOrder = new();
-
-        /// <summary>Accepts changes only under the service gate before scheduling them into Rx batching.</summary>
-        private readonly Subject<PendingChange> ingress = new();
-
-        /// <summary>Owns scheduled ingestion, buffering and batch delivery.</summary>
+        /// <summary>Owns demand-driven timing and serialized delivery.</summary>
         private readonly IDisposable batching;
 
-        /// <summary>Provides both scheduling and the clock used for duplicate expiry.</summary>
-        private readonly IScheduler scheduler;
-
-        /// <summary>Reports isolated consumer callback failures.</summary>
-        private readonly ILogger<ChangeNotificationService> logger;
-
-        /// <summary>Routes full reload requests to the current-model owner.</summary>
+        /// <summary>Delegates reloads without owning the connected model.</summary>
         private readonly IModelRefreshCoordinator refreshCoordinator;
 
-        /// <summary>Cancels refresh requests when the notification service's lifetime ends.</summary>
+        /// <summary>Cancels only refresh requests made through this service.</summary>
         private readonly CancellationTokenSource lifetime = new();
 
-        /// <summary>Retains detached subjects until their serialized scheduler completion.</summary>
-        private List<(ChangeObservable Channel, IDisposable Lease)> completingObservables = [];
+        /// <summary>Links requests without accessing a disposed cancellation source.</summary>
+        private readonly CancellationToken lifetimeToken;
 
-        /// <summary>Invalidates pending batches whenever notifications are disabled.</summary>
-        private long generation;
-
-        /// <summary>Controls admission and dispatch without replacing existing target streams.</summary>
-        private bool isEnabled = true;
-
-        /// <summary>Marks the final service lifetime boundary.</summary>
-        private bool isDisposed;
-
-        /// <summary>Creates the notification bus using an asynchronous or virtual-time Rx scheduler.</summary>
-        /// <param name="refreshCoordinator">The circuit's full model refresh coordinator.</param>
-        /// <param name="scheduler">The queued scheduler and clock, defaulting to the Rx task pool.</param>
+        /// <summary>Creates the notification boundary with a queued Rx scheduler and application logger.</summary>
+        /// <param name="refreshCoordinator">The circuit's full-model refresh coordinator.</param>
+        /// <param name="scheduler">The scheduling and expiry clock, defaulting to the Rx task pool.</param>
         /// <param name="logger">The application logger for subscriber failures.</param>
         public ChangeNotificationService(IModelRefreshCoordinator refreshCoordinator, IScheduler scheduler = null,
             ILogger<ChangeNotificationService> logger = null)
         {
             this.refreshCoordinator = refreshCoordinator ?? throw new ArgumentNullException(nameof(refreshCoordinator));
-            this.scheduler = scheduler ?? TaskPoolScheduler.Default;
-            this.logger = logger ?? NullLogger<ChangeNotificationService>.Instance;
-
-            if (this.scheduler is ImmediateScheduler or CurrentThreadScheduler)
+            scheduler ??= TaskPoolScheduler.Default;
+            if (scheduler is ImmediateScheduler or CurrentThreadScheduler)
             {
                 throw new ArgumentException("Notification delivery requires a queued asynchronous or virtual-time scheduler.", nameof(scheduler));
             }
+            this.accumulator = new ChangeAccumulator(scheduler);
+            this.registry = new ChangeObservableRegistry(logger ?? NullLogger<ChangeNotificationService>.Instance);
+            this.lifetimeToken = this.lifetime.Token;
 
-            var batchGate = new object();
-            this.batching = this.ingress
-                .ObserveOn(this.scheduler)
-                .Synchronize(batchGate)
-                .Publish(changes => changes.Buffer(() => changes.Take(1)
-                    .SelectMany(_ => Observable.Timer(BatchWindow, this.scheduler).Synchronize(batchGate))))
+            IObserver<Unit> input = null;
+            var requests = Observable.Create<Unit>(observer =>
+            {
+                input = Observer.Synchronize(observer);
+                return Disposable.Empty;
+            });
+            this.batching = requests.ObserveOn(scheduler)
+                .Publish(windows => windows.SelectMany(_ => Observable.Timer(BatchWindow, scheduler))
+                    .TakeUntil(windows.IgnoreElements().Materialize()))
+                .Select(_ => this.accumulator.TakeBatch())
                 .Where(batch => batch.Count > 0)
-                .ObserveOn(this.scheduler)
-                .Subscribe(this.DispatchBatch, this.CompleteObservables);
+                .ObserveOn(scheduler)
+                .Subscribe(this.DispatchBatch, this.Complete);
+            this.ingress = input;
         }
 
-        /// <summary>Gets or sets notification admission, discarding pending changes when disabled.</summary>
+        /// <summary>Gets or sets admission, discarding pending notifications when disabled.</summary>
         public bool IsEnabled
         {
-            get
-            {
-                lock (this.gate)
-                {
-                    return this.isEnabled && !this.isDisposed;
-                }
-            }
-            set
-            {
-                lock (this.gate)
-                {
-                    ObjectDisposedException.ThrowIf(this.isDisposed, this);
-
-                    if (this.isEnabled == value)
-                    {
-                        return;
-                    }
-
-                    this.isEnabled = value;
-
-                    if (!value)
-                    {
-                        this.generation++;
-                        this.recentChanges.Clear();
-                        this.expirationOrder.Clear();
-                    }
-                }
-            }
+            get => this.accumulator.IsEnabled;
+            set => this.accumulator.IsEnabled = value;
         }
 
-        /// <summary>Gets the number of materialized subjects currently shared by subscribers.</summary>
-        public int ActiveObservableCount
-        {
-            get
-            {
-                lock (this.gate)
-                {
-                    return this.observables.Count;
-                }
-            }
-        }
+        /// <summary>Gets the number of materialized subjects with active subscribers.</summary>
+        public int ActiveObservableCount => this.registry.Count;
 
-        /// <summary>Admits a change once per bounded commit/element window and queues it for batch delivery.</summary>
-        /// <param name="changeEvent">The immutable committed element change.</param>
-        /// <exception cref="ArgumentException">A pending duplicate disagrees on kind, metaclass or containment.</exception>
+        /// <summary>Validates and enqueues a change before requesting its bounded batching window.</summary>
+        /// <param name="changeEvent">The immutable committed change.</param>
+        /// <exception cref="ArgumentException">A pending duplicate has incompatible structural metadata.</exception>
         public void Publish(ChangeEvent changeEvent)
         {
             ArgumentNullException.ThrowIfNull(changeEvent);
-
-            lock (this.gate)
+            if (this.accumulator.Accept(changeEvent))
             {
-                ObjectDisposedException.ThrowIf(this.isDisposed, this);
-
-                if (!this.isEnabled)
-                {
-                    return;
-                }
-
-                var now = this.scheduler.Now;
-                this.RemoveExpiredChanges(now);
-                var key = new CommitElement(changeEvent.CommitId, changeEvent.ElementId);
-
-                if (this.recentChanges.TryGetValue(key, out var existing))
-                {
-                    if (existing.IsPending)
-                    {
-                        existing.Event = existing.Event.Coalesce(changeEvent);
-                    }
-
-                    return;
-                }
-
-                var pending = new PendingChange(key, changeEvent, this.generation);
-                this.recentChanges.Add(key, pending);
-                this.ingress.OnNext(pending);
+                this.ingress.OnNext(Unit.Default);
             }
         }
 
-        /// <summary>Returns a deferred stream that attaches to the current canonical target subject on every subscription.</summary>
-        /// <param name="target">The target, or null for global changes.</param>
-        /// <returns>A target stream with serialized callbacks on the injected scheduler and no renderer affinity.</returns>
+        /// <summary>Returns a deferred target stream with registry-owned subject lifetime.</summary>
+        /// <param name="target">The subscription target, or null for all changes.</param>
+        /// <returns>The shared stream, reacquired on every subscription.</returns>
         public IObservable<ChangeEvent> Listen(ChangeTarget target = null)
         {
-            lock (this.gate)
-            {
-                ObjectDisposedException.ThrowIf(this.isDisposed, this);
-            }
-
-            var key = target ?? ChangeTarget.Global;
-
-            return Observable.Create<ChangeEvent>(observer =>
-            {
-                lock (this.gate)
-                {
-                    ObjectDisposedException.ThrowIf(this.isDisposed, this);
-                    var channel = this.observables.GetOrAdd(key,
-                        targetKey => new Lazy<ChangeObservable>(() => this.CreateObservable(targetKey))).Value;
-                    var subscription = channel.Observable.Subscribe(
-                        change => this.InvokeSubscriber(() => observer.OnNext(change)),
-                        error => this.InvokeSubscriber(() => observer.OnError(error)),
-                        () => this.InvokeSubscriber(observer.OnCompleted));
-
-                    return Disposable.Create(() =>
-                    {
-                        lock (this.gate)
-                        {
-                            subscription.Dispose();
-                        }
-                    });
-                }
-            });
+            this.accumulator.ThrowIfDisposed();
+            return this.registry.Listen(target ?? ChangeTarget.Global);
         }
 
-        /// <summary>Delegates full model refresh independently of the notification circuit breaker.</summary>
-        /// <param name="cancellationToken">Cancellation for the full reload.</param>
+        /// <summary>Delegates a full reload with caller and service-lifetime cancellation.</summary>
+        /// <param name="cancellationToken">Cancellation for the request.</param>
         /// <returns>The model owner's reload completion, cancellation or failure.</returns>
         public async Task RequestRefresh(CancellationToken cancellationToken = default)
         {
-            CancellationTokenSource requestCancellation;
-
-            lock (this.gate)
-            {
-                ObjectDisposedException.ThrowIf(this.isDisposed, this);
-                requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.lifetime.Token);
-            }
-
-            using (requestCancellation)
-            {
-                await this.refreshCoordinator.RequestRefresh(requestCancellation.Token).ConfigureAwait(false);
-            }
+            this.accumulator.ThrowIfDisposed();
+            using var request = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, this.lifetimeToken);
+            await this.refreshCoordinator.RequestRefresh(request.Token).ConfigureAwait(false);
         }
 
-        /// <summary>Stops ingestion immediately and queues serialized listener completion without waiting for callbacks.</summary>
+        /// <summary>Stops admission and registration immediately, then schedules completion behind active delivery.</summary>
         public void Dispose()
         {
-            lock (this.gate)
+            if (!this.accumulator.Stop())
             {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                this.isDisposed = true;
-                this.generation++;
-                this.recentChanges.Clear();
-                this.expirationOrder.Clear();
-
-                foreach (var channel in this.observables.Values.Select(entry => entry.Value))
-                {
-                    this.completingObservables.Add((channel, channel.Lifetime.GetDisposable()));
-                    channel.Lifetime.Dispose();
-                }
-
-                this.observables.Clear();
-                this.ingress.OnCompleted();
+                return;
             }
-
-            this.ingress.Dispose();
-
+            this.registry.Stop();
+            this.ingress.OnCompleted();
             using (this.lifetime)
             {
                 this.lifetime.Cancel();
             }
         }
 
-        /// <summary>Composes target sharing and final-subscriber cleanup.</summary>
-        /// <param name="target">The canonical target key.</param>
-        /// <returns>The materialized subject and reference-counted stream.</returns>
-        private ChangeObservable CreateObservable(ChangeTarget target)
+        /// <summary>Delegates frozen batch delivery without retaining a synchronization gate.</summary>
+        /// <param name="batch">The frozen batch in admission order.</param>
+        private void DispatchBatch(List<PendingChange> batch)
         {
-            var subject = new Subject<ChangeEvent>();
-            var subjectLifetime = new RefCountDisposable(subject);
-            var observable = Observable.Create<ChangeEvent>(observer =>
-                new CompositeDisposable(subject.Subscribe(observer),
-                    Disposable.Create(() => this.RemoveObservable(target, subject))))
-                .Publish()
-                .RefCount();
-
-            return new ChangeObservable(subject, observable, subjectLifetime);
-        }
-
-        /// <summary>Removes only the disconnected subject and releases its resources.</summary>
-        /// <param name="target">The disconnected target.</param>
-        /// <param name="subject">The subject whose last subscriber has detached.</param>
-        private void RemoveObservable(ChangeTarget target, Subject<ChangeEvent> subject)
-        {
-            lock (this.gate)
+            foreach (var change in batch)
             {
-                if (this.observables.TryGetValue(target, out var current)
-                    && ReferenceEquals(current.Value.Subject, subject))
-                {
-                    this.observables.TryRemove(target, out _);
-                    current.Value.Lifetime.Dispose();
-                }
+                this.registry.Deliver(change.Event, () => this.accumulator.CanDeliver(change));
+                this.accumulator.Remember(change);
             }
         }
 
-        /// <summary>Delivers each admitted event to its matching targets after the batching interval.</summary>
-        /// <param name="batch">The buffered committed changes.</param>
-        private void DispatchBatch(IList<PendingChange> batch)
+        /// <summary>Completes subscribers after scheduled notification callbacks return.</summary>
+        private void Complete()
         {
-            List<PendingChange> changes;
-
-            lock (this.gate)
-            {
-                if (this.isDisposed)
-                {
-                    return;
-                }
-
-                this.RemoveExpiredChanges(this.scheduler.Now);
-                changes = new List<PendingChange>(batch.Count);
-
-                foreach (var pending in batch)
-                {
-                    if (!this.isEnabled || pending.Generation != this.generation)
-                    {
-                        continue;
-                    }
-                    pending.IsPending = false;
-                    changes.Add(pending);
-                }
-            }
-
-            foreach (var change in changes)
-            {
-                foreach (var target in GetTargets(change.Event))
-                {
-                    ChangeObservable channel;
-                    IDisposable lease;
-
-                    lock (this.gate)
-                    {
-                        if (this.isDisposed || !this.isEnabled || change.Generation != this.generation)
-                        {
-                            break;
-                        }
-
-                        if (!this.observables.TryGetValue(target, out var entry))
-                        {
-                            continue;
-                        }
-
-                        channel = entry.Value;
-                        lease = channel.Lifetime.GetDisposable();
-                    }
-
-                    using (lease)
-                    {
-                        channel.Subject.OnNext(change.Event);
-                    }
-                }
-
-                this.RememberDeliveredChange(change);
-            }
+            this.registry.Complete();
+            this.batching.Dispose();
         }
-
-        /// <summary>Starts bounded duplicate retention only after an aggregate has finished dispatching.</summary>
-        /// <param name="change">The frozen aggregate whose delivery has completed.</param>
-        private void RememberDeliveredChange(PendingChange change)
-        {
-            lock (this.gate)
-            {
-                if (this.isDisposed || !this.isEnabled || change.Generation != this.generation)
-                {
-                    return;
-                }
-
-                var now = this.scheduler.Now;
-                this.RemoveExpiredChanges(now);
-                if (this.expirationOrder.Count == MaximumRememberedChanges)
-                {
-                    this.RemoveOldestChange();
-                }
-                change.ExpiresAt = now + DeduplicationWindow;
-                this.expirationOrder.Enqueue(change);
-            }
-        }
-
-        /// <summary>Isolates each consumer before a failure can reach a shared subject or scheduler.</summary>
-        /// <param name="callback">The individual consumer callback.</param>
-        private void InvokeSubscriber(Action callback)
-        {
-            try
-            {
-                callback();
-            }
-            catch (Exception exception)
-            {
-                this.logger.LogError(exception, "A change notification subscriber failed.");
-            }
-        }
-
-        /// <summary>Completes retired streams outside the gate after all scheduled batch callbacks have returned.</summary>
-        private void CompleteObservables()
-        {
-            List<(ChangeObservable Channel, IDisposable Lease)> completing;
-
-            lock (this.gate)
-            {
-                completing = this.completingObservables;
-                this.completingObservables = [];
-            }
-
-            try
-            {
-                foreach (var completion in completing)
-                {
-                    completion.Channel.Subject.OnCompleted();
-                }
-            }
-            finally
-            {
-                foreach (var (_, lease) in completing)
-                {
-                    lease.Dispose();
-                }
-
-                this.batching.Dispose();
-            }
-        }
-
-        /// <summary>Builds direct lookup keys from immutable event identity, containment and metaclass ancestry.</summary>
-        /// <param name="changeEvent">The event being dispatched.</param>
-        /// <returns>Distinct global, element, subtree and metaclass targets.</returns>
-        private static IEnumerable<ChangeTarget> GetTargets(ChangeEvent changeEvent)
-        {
-            yield return ChangeTarget.Global;
-            yield return ChangeTarget.Element(changeEvent.ElementId);
-            yield return ChangeTarget.Subtree(changeEvent.ElementId);
-
-            var namespaces = changeEvent.Containment.NamespaceIds.AsEnumerable();
-
-            if (changeEvent.PreviousContainment != null)
-            {
-                namespaces = namespaces.Concat(changeEvent.PreviousContainment.NamespaceIds);
-            }
-
-            foreach (var namespaceId in namespaces.Distinct())
-            {
-                yield return ChangeTarget.Subtree(namespaceId);
-            }
-
-            foreach (var type in SysmlMetaclass.GetHierarchy(changeEvent.ElementType))
-            {
-                yield return ChangeTarget.ForType(type);
-            }
-        }
-
-        /// <summary>Expires delivered keys during admission and nonempty batch delivery.</summary>
-        /// <param name="now">The injected scheduler's current time.</param>
-        private void RemoveExpiredChanges(DateTimeOffset now)
-        {
-            while (this.expirationOrder.TryPeek(out var oldest) && oldest.ExpiresAt <= now)
-            {
-                this.RemoveOldestChange();
-            }
-        }
-
-        /// <summary>Evicts the oldest remembered key from both duplicate-cache indexes.</summary>
-        private void RemoveOldestChange()
-        {
-            this.recentChanges.Remove(this.expirationOrder.Dequeue().Key);
-        }
-
-        /// <summary>Identifies one committed element mutation across transports.</summary>
-        /// <param name="CommitId">The backend commit identifier.</param>
-        /// <param name="ElementId">The stable element identifier.</param>
-        private readonly record struct CommitElement(Guid CommitId, Guid ElementId);
-
-        /// <summary>Owns the mutable pending aggregate until its scheduled dispatch.</summary>
-        /// <param name="Key">The duplicate identity.</param>
-        /// <param name="Event">The immutable current event aggregate.</param>
-        /// <param name="Generation">The notification generation at admission.</param>
-        private sealed record PendingChange(CommitElement Key, ChangeEvent Event, long Generation)
-        {
-            /// <summary>Gets or sets the pending immutable event aggregate under the service gate.</summary>
-            public ChangeEvent Event { get; set; } = Event;
-
-            /// <summary>Gets or sets the expiry assigned when delivery completes.</summary>
-            internal DateTimeOffset ExpiresAt { get; set; }
-
-            /// <summary>Gets or sets whether echoes can still contribute property information.</summary>
-            internal bool IsPending { get; set; } = true;
-        }
-
-        /// <summary>Pairs the owned subject with its shared subscriber lifecycle.</summary>
-        /// <param name="Subject">The owned target subject.</param>
-        /// <param name="Observable">The reference-counted stream.</param>
-        /// <param name="Lifetime">Defers physical subject disposal until active delivery leases are released.</param>
-        private sealed record ChangeObservable(Subject<ChangeEvent> Subject, IObservable<ChangeEvent> Observable, RefCountDisposable Lifetime);
     }
 }

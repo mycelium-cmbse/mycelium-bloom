@@ -25,7 +25,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
 
         /// <summary>Returns a shared target stream whose consumers own their subscriptions and receive scheduled completion on service disposal.</summary>
         /// <param name="target">The subscription target, or null for all changes.</param>
-        /// <returns>A stream with serialized callbacks on the injected Rx scheduler, outside the state gate and without renderer affinity.</returns>
+        /// <returns>A stream with serialized callbacks on the injected Rx scheduler, outside internal synchronization and without renderer affinity.</returns>
         IObservable<ChangeEvent> Listen(ChangeTarget target = null);
 
         /// <summary>Requests complete current model retrieval and replacement by the registered backend model owner.</summary>

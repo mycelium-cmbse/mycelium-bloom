@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         {
             this.Scope = scope;
             this.Id = id;
-            this.ElementType = elementType;
+            this.Metaclass = elementType;
         }
 
         /// <summary>Gets the target for all committed changes.</summary>
@@ -33,7 +33,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         internal Guid Id { get; }
 
         /// <summary>Gets the canonical metaclass interface.</summary>
-        internal Type ElementType { get; }
+        internal Type Metaclass { get; }
 
         /// <summary>Creates a target for changes to exactly one element.</summary>
         /// <param name="elementId">The non-empty element identifier.</param>
@@ -68,19 +68,6 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
             return id != Guid.Empty
                 ? new ChangeTarget(scope, id)
                 : throw new ArgumentException("A target identifier is required.", nameof(id));
-        }
-
-        /// <summary>Distinguishes target kinds without runtime object-shape checks.</summary>
-        internal enum TargetScope
-        {
-            /// <summary>Matches every change.</summary>
-            Global,
-            /// <summary>Matches an element identifier.</summary>
-            Element,
-            /// <summary>Matches containment ancestry.</summary>
-            Subtree,
-            /// <summary>Matches metaclass ancestry.</summary>
-            Type
         }
     }
 }

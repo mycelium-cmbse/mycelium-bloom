@@ -204,6 +204,7 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             var registration = coordinator.Register(original.Object);
             var active = coordinator.RequestRefresh();
             registration.Dispose();
+            Assert.That(active.IsCompleted, Is.False);
             var replacement = new Mock<IModelRefreshHandler>(MockBehavior.Strict);
             replacement.Setup(x => x.ReloadAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             using var next = coordinator.Register(replacement.Object);
@@ -215,6 +216,39 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             await pending;
 
             replacement.Verify(x => x.ReloadAsync(It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyCanceledQueuedRequestCannotReleaseLaterReloadBeforeActiveHandlerReturns()
+        {
+            using var coordinator = new ModelRefreshCoordinator();
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var calls = 0;
+            var handler = new Mock<IModelRefreshHandler>(MockBehavior.Strict);
+            handler.Setup(x => x.ReloadAsync(It.IsAny<CancellationToken>()))
+                .Returns(() => Interlocked.Increment(ref calls) == 1 ? release.Task : Task.CompletedTask);
+            using var registration = coordinator.Register(handler.Object);
+            using var cancellation = new CancellationTokenSource();
+            var active = coordinator.RequestRefresh();
+            var canceled = coordinator.RequestRefresh(cancellation.Token);
+            cancellation.Cancel();
+            Assert.That(Assert.CatchAsync<OperationCanceledException>(() => canceled), Is.Not.Null);
+
+            var later = coordinator.RequestRefresh();
+            try
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(later.IsCompleted, Is.False);
+                    Assert.That(calls, Is.EqualTo(1));
+                }
+            }
+            finally
+            {
+                release.SetResult();
+            }
+            await Task.WhenAll(active, later).WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.That(calls, Is.EqualTo(2));
         }
 
         [Test]

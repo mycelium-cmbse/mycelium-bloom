@@ -171,6 +171,32 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             Assert.That(received, Has.Count.EqualTo(changes.Length));
         }
 
+        /// <summary>Verifies an echo cannot replace or expire an aggregate frozen behind a delayed callback.</summary>
+        [Test]
+        public void VerifyFrozenEchoSurvivesDelayedDelivery()
+        {
+            var first = CreateChange();
+            var delayed = CreateChange();
+            var received = new List<ChangeEvent>();
+            using var subscription = this.service.Listen().Subscribe(change =>
+            {
+                received.Add(change);
+                if (change == first)
+                {
+                    this.scheduler.Clock.Sleep(TimeSpan.FromSeconds(3));
+                    this.service.Publish(LocalEcho(delayed));
+                }
+            });
+            this.service.Publish(first);
+            this.service.Publish(delayed);
+            this.Flush();
+            Assert.That(received, Is.EqualTo(new[] { first, delayed }));
+
+            this.service.Publish(delayed);
+            this.Flush();
+            Assert.That(received, Has.Count.EqualTo(2));
+        }
+
         /// <summary>Verifies one failing subscription cannot interrupt peers, other targets or future batches.</summary>
         /// <param name="failingFirst">Whether the failing subscriber precedes its peer in the shared subject.</param>
         [TestCase(true)]
