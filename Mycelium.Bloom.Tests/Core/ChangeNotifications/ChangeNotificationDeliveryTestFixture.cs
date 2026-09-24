@@ -26,6 +26,9 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
     [TestFixture]
     public sealed class ChangeNotificationDeliveryTestFixture
     {
+        /// <summary>Contains the property union expected from compatible transport representations.</summary>
+        private static readonly string[] MergedProperties = ["DeclaredName", "DeclaredShortName"];
+
         /// <summary>Controls queued work and records idle scheduler activity.</summary>
         private CountingScheduler scheduler;
 
@@ -130,7 +133,7 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(received[0].Source, Is.EqualTo(ChangeSource.Local));
-                Assert.That(received[0].ChangedProperties, Is.EquivalentTo(new[] { "DeclaredName", "DeclaredShortName" }));
+                Assert.That(received[0].ChangedProperties, Is.EquivalentTo(MergedProperties));
                 Assert.That(received[0].Kind, Is.EqualTo(kind));
                 Assert.That(received[0].Containment, Is.SameAs(change.Containment));
                 Assert.That(received[0].PreviousContainment, Is.SameAs(change.PreviousContainment));
@@ -160,8 +163,8 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
                 Assert.That(received.Select(change => (change.CommitId, change.ElementId)), Is.Unique);
                 Assert.That(received[0].Source, Is.EqualTo(ChangeSource.Local));
                 Assert.That(received[^1].Source, Is.EqualTo(ChangeSource.Local));
-                Assert.That(received[0].ChangedProperties, Is.EquivalentTo(new[] { "DeclaredName", "DeclaredShortName" }));
-                Assert.That(received[^1].ChangedProperties, Is.EquivalentTo(new[] { "DeclaredName", "DeclaredShortName" }));
+                Assert.That(received[0].ChangedProperties, Is.EquivalentTo(MergedProperties));
+                Assert.That(received[^1].ChangedProperties, Is.EquivalentTo(MergedProperties));
             }
             this.service.Publish(changes[^1]);
             this.Flush();
