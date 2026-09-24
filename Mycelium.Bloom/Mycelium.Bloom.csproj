@@ -42,14 +42,10 @@
 
     <ItemGroup>
         <!--
-          Blueprint Components 3.16.0 compatibility boundaries are deliberately narrow:
-          SelectInput bridges verified keyboard, ARIA, and Tab-order limitations; SplitButton bridges the verified
-          Enter-key limitation. TextArea and Checkbox remain native because Blueprint cannot preserve their required
-          contracts. Direct Primitive TabsList and TabsTrigger use remains localized to the Design System.
-          Bloom has no production Tooltip implementation because Escape dismissal and description relationships are
-          incomplete. Reassess only these exceptions after upgrading Blueprint.
+          SelectInput retains a portal Tab-order bridge; SplitButton owns pending asynchronous actions.
+          Native Checkbox and TextArea preserve browser form semantics and accessible field/count composition.
         -->
-        <PackageReference Include="BlazorBlueprint.Components" Version="3.17.0" />
+        <PackageReference Include="BlazorBlueprint.Components" Version="4.0.1" />
         <!--
           Intentionally direct: Bloom renders LucideIcon components in production markup and therefore compiles
           against this package's public API.
@@ -58,9 +54,9 @@
         <PackageReference Include="DynamicData" Version="9.4.33" />
         <!-- Intentionally direct: selects reviewed HtmlSanitizer 9.2.1039 used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when either dependency is upgraded. -->
         <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
-        <PackageReference Include="OpenTelemetry" Version="1.18.0" />
-        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+        <PackageReference Include="OpenTelemetry" Version="1.19.0" />
+        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.19.0" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.19.0" />
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
         <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />

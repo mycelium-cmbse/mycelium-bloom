@@ -4,9 +4,19 @@
 @import "./blueprint-theme.css";
 @import "./blueprint-overlays.css";
 
+@source not "../Core";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--border);
+    }
+
     html {
         min-height: 100%;
         font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

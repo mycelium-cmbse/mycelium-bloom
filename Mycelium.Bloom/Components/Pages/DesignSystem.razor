@@ -209,20 +209,20 @@
 
                 <div class="mb-design-system__stack">
                     <div class="mb-design-system__inline-group">
-                        <BbButton>Primary</BbButton>
-                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Class="mb-secondary">Secondary</BbButton>
-                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost">Ghost</BbButton>
-                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Destructive">Danger</BbButton>
+                        <BbButton Class="rounded-md">Primary</BbButton>
+                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Class="rounded-md mb-secondary">Secondary</BbButton>
+                        <BbButton Class="rounded-md" Variant="BlazorBlueprint.Components.ButtonVariant.Ghost">Ghost</BbButton>
+                        <BbButton Class="rounded-md" Variant="BlazorBlueprint.Components.ButtonVariant.Destructive">Danger</BbButton>
                     </div>
                     <div class="mb-design-system__inline-group">
-                        <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small">Small</BbButton>
-                        <BbButton>Default</BbButton>
-                        <BbButton Size="BlazorBlueprint.Components.ButtonSize.Large">Large</BbButton>
-                        <BbButton Disabled="true">Disabled</BbButton>
-                        <BbButton Loading="true" LoadingText="Loading">Loading</BbButton>
+                        <BbButton Class="rounded-md" Size="BlazorBlueprint.Components.ButtonSize.Small">Small</BbButton>
+                        <BbButton Class="rounded-md">Default</BbButton>
+                        <BbButton Class="rounded-md" Size="BlazorBlueprint.Components.ButtonSize.Large">Large</BbButton>
+                        <BbButton Class="rounded-md" Disabled="true">Disabled</BbButton>
+                        <BbButton Class="rounded-md" Loading="true" LoadingText="Loading">Loading</BbButton>
                     </div>
                     <div class="mb-design-system__inline-group">
-                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Class="mb-secondary">
+                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Class="rounded-md mb-secondary">
                             <Icon>
                                 <LucideIcon Name="plus"
                                             Size="16"
@@ -233,7 +233,7 @@
                             </Icon>
                             <ChildContent>Add element</ChildContent>
                         </BbButton>
-                        <BbButton
+                        <BbButton Class="rounded-md"
                             Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                             IconPosition="BlazorBlueprint.Components.IconPosition.End">
                             <Icon>
@@ -307,7 +307,7 @@
                 </header>
 
                 <div class="mb-design-system__inline-group">
-                    <BbButton
+                    <BbButton Class="rounded-md"
                         Type="BlazorBlueprint.Components.ButtonType.Button"
                         Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                         Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -320,7 +320,7 @@
                                     aria-hidden="true"
                                     focusable="false" />
                     </BbButton>
-                    <BbButton
+                    <BbButton Class="rounded-md"
                         Type="BlazorBlueprint.Components.ButtonType.Button"
                         Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                         Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -333,7 +333,7 @@
                                     aria-hidden="true"
                                     focusable="false" />
                     </BbButton>
-                    <BbButton
+                    <BbButton Class="rounded-md"
                         Type="BlazorBlueprint.Components.ButtonType.Button"
                         Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                         Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -346,7 +346,7 @@
                                     aria-hidden="true"
                                     focusable="false" />
                     </BbButton>
-                    <BbButton
+                    <BbButton Class="rounded-md"
                         Type="BlazorBlueprint.Components.ButtonType.Button"
                         Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                         Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -432,7 +432,7 @@
                             id="toggle-secondary-shortcut-search"
                             Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
-                            Class="mb-secondary mb-design-system__shortcut-toggle"
+                            Class="rounded-md mb-secondary mb-design-system__shortcut-toggle"
                             OnClick="this.ToggleSecondaryShortcutSearch">
                             @(this.SecondaryShortcutSearchVisible ? "Remove newest target" : "Restore newest target")
                         </BbButton>
@@ -457,7 +457,7 @@
                     <div class="mb-design-system__section-header">
                         <span class="mb-design-system__section-header-label">Owned elements</span>
                         <div class="mb-design-system__section-header-actions">
-                            <BbButton
+                            <BbButton Class="rounded-md"
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small">
                                 Add
@@ -482,11 +482,11 @@
                          role="status"
                          aria-label="Loading content"
                          aria-busy="true">
-                        <BbSkeleton Width="100%" Height="12px" />
-                        <BbSkeleton Width="100%" Height="12px" />
-                        <BbSkeleton Width="72%" Height="12px" />
+                        <BbSkeleton Class="rounded-md" Width="100%" Height="12px" />
+                        <BbSkeleton Class="rounded-md" Width="100%" Height="12px" />
+                        <BbSkeleton Class="rounded-md" Width="72%" Height="12px" />
                     </div>
-                    <BbSkeleton Width="96px" Height="56px" />
+                    <BbSkeleton Class="rounded-md" Width="96px" Height="56px" />
                 </div>
             </article>
 
@@ -502,7 +502,7 @@
                                 HelpText="Use a concise engineering name."
                                 HelpTextId="showcase-text-input-help"
                                 Required="true">
-                        <BbInputGroup Class="mb-design-system__input-group">
+                        <BbInputGroup Class="rounded-md mb-design-system__input-group">
                             <BbInputGroupAddon
                                 Align="BlazorBlueprint.Components.InputGroupAlign.InlineStart">
                                 <span aria-hidden="true">#</span>
@@ -526,7 +526,7 @@
                         </BbInputGroup>
                     </FieldShell>
                     <FieldShell ControlId="showcase-text-placeholder" Label="Owner">
-                        <BbInputGroup Class="mb-design-system__input-group">
+                        <BbInputGroup Class="rounded-md mb-design-system__input-group">
                             <BbInputGroupInput
                                 Id="showcase-text-placeholder"
                                 Placeholder="Select an owner"
@@ -537,7 +537,7 @@
                                 Label="Identifier"
                                 ErrorText="Use letters, numbers, and hyphens only."
                                 ErrorTextId="showcase-text-error-error">
-                        <BbInputGroup Class="mb-design-system__input-group">
+                        <BbInputGroup Class="rounded-md mb-design-system__input-group">
                             <BbInputGroupInput
                                 Id="showcase-text-error"
                                 Value="invalid value"
@@ -549,7 +549,7 @@
                     <FieldShell ControlId="showcase-text-disabled"
                                 Label="Generated ID"
                                 Disabled="true">
-                        <BbInputGroup Class="mb-design-system__input-group">
+                        <BbInputGroup Class="rounded-md mb-design-system__input-group">
                             <BbInputGroupInput
                                 Id="showcase-text-disabled"
                                 Value="SYS-042"
@@ -561,7 +561,7 @@
                                 Label="Qualified name"
                                 ReadOnly="true">
                         <BbInputGroup
-                            Class="mb-design-system__input-group mb-design-system__input-group--readonly">
+                            Class="rounded-md mb-design-system__input-group mb-design-system__input-group--readonly">
                             <BbInputGroupInput
                                 Id="showcase-text-readonly"
                                 Value="Platform::Thermal"
@@ -594,10 +594,10 @@
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
                             data-testid="set-primary-select-open"
                             OnClick="this.SetPrimarySelectToOpen"
-                            Class="mb-secondary">
+                            Class="rounded-md mb-secondary">
                             Set primary to Open
                         </BbButton>
-                        <BbButton
+                        <BbButton Class="rounded-md"
                             Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
                             data-testid="reset-primary-select"
@@ -726,36 +726,32 @@
                             ActivationMode="BlazorBlueprint.Primitives.Tabs.TabsActivationMode.Automatic"
                             Class="mb-design-system__tabs"
                             data-testid="tabs-horizontal">
-                            <BlazorBlueprint.Primitives.Tabs.BbTabsList
-                                class="mb-design-system__tabs-list"
+                            <BbTabsList
+                                Class="justify-start mb-design-system__tabs-list"
                                 aria-label="Element detail sections">
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                <BbTabsTrigger
                                     Value="overview"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveTabValue, "overview"))'>
+                                    Class="mb-design-system__tabs-trigger">
                                     Overview
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                </BbTabsTrigger>
+                                <BbTabsTrigger
                                     Value="properties"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveTabValue, "properties"))'>
+                                    Class="mb-design-system__tabs-trigger">
                                     Properties
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                </BbTabsTrigger>
+                                <BbTabsTrigger
                                     Value="relationships"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveTabValue, "relationships"))'>
+                                    Class="mb-design-system__tabs-trigger">
                                     Cross-domain relationships and allocations
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                </BbTabsTrigger>
+                                <BbTabsTrigger
                                     Value="history"
                                     Disabled="true"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveTabValue, "history"))'
+                                    Class="mb-design-system__tabs-trigger"
                                     aria-disabled="true">
                                     History
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                            </BlazorBlueprint.Primitives.Tabs.BbTabsList>
+                                </BbTabsTrigger>
+                            </BbTabsList>
 
                             <BbTabsContent
                                 Value="overview"
@@ -794,7 +790,7 @@
                             <BbButton
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                Class="mb-secondary"
+                                Class="rounded-md mb-secondary"
                                 OnClick='() => this.HandleTabChanged("overview")'>
                                 Select overview externally
                             </BbButton>
@@ -811,36 +807,32 @@
                             ActivationMode="BlazorBlueprint.Primitives.Tabs.TabsActivationMode.Manual"
                             Class="mb-design-system__tabs mb-design-system__tabs--vertical"
                             data-testid="tabs-vertical">
-                            <BlazorBlueprint.Primitives.Tabs.BbTabsList
-                                class="mb-design-system__tabs-list mb-design-system__tabs-list--vertical"
+                            <BbTabsList
+                                Class="h-auto mb-design-system__tabs-list mb-design-system__tabs-list--vertical"
                                 aria-label="Element review sections">
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                <BbTabsTrigger
                                     Value="summary"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveReviewTabValue, "summary"))'>
+                                    Class="mb-design-system__tabs-trigger">
                                     Summary
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                </BbTabsTrigger>
+                                <BbTabsTrigger
                                     Value="verification"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveReviewTabValue, "verification"))'>
+                                    Class="mb-design-system__tabs-trigger">
                                     Verification
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                </BbTabsTrigger>
+                                <BbTabsTrigger
                                     Value="traceability"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveReviewTabValue, "traceability"))'>
+                                    Class="mb-design-system__tabs-trigger">
                                     Traceability across subsystem boundaries
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                                <BlazorBlueprint.Primitives.Tabs.BbTabsTrigger
+                                </BbTabsTrigger>
+                                <BbTabsTrigger
                                     Value="archive"
                                     Disabled="true"
-                                    class="mb-design-system__tabs-trigger"
-                                    aria-selected='@(GetTabAriaSelected(this.ActiveReviewTabValue, "archive"))'
+                                    Class="mb-design-system__tabs-trigger"
                                     aria-disabled="true">
                                     Archive
-                                </BlazorBlueprint.Primitives.Tabs.BbTabsTrigger>
-                            </BlazorBlueprint.Primitives.Tabs.BbTabsList>
+                                </BbTabsTrigger>
+                            </BbTabsList>
 
                             <BbTabsContent
                                 Value="summary"
@@ -879,7 +871,7 @@
                             <BbButton
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                Class="mb-secondary"
+                                Class="rounded-md mb-secondary"
                                 OnClick='() => this.HandleReviewTabChanged("summary")'>
                                 Select summary externally
                             </BbButton>
@@ -912,9 +904,9 @@
                         Local operation
                     </BbBadge>
                     <div class="mb-design-system__loading-skeleton" aria-hidden="true">
-                        <BbSkeleton Width="100%" Height="12px" />
-                        <BbSkeleton Width="72%" Height="12px" />
-                        <BbSkeleton Width="100%" Height="48px" />
+                        <BbSkeleton Class="rounded-md" Width="100%" Height="12px" />
+                        <BbSkeleton Class="rounded-md" Width="72%" Height="12px" />
+                        <BbSkeleton Class="rounded-md" Width="100%" Height="48px" />
                     </div>
                 </div>
             </article>
@@ -933,7 +925,7 @@
                         <BbButton
                             Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
-                            Class="mb-secondary">
+                            Class="rounded-md mb-secondary">
                             Add relationship
                         </BbButton>
                     </ChildContent>
@@ -1026,7 +1018,7 @@
                                     Type="BlazorBlueprint.Components.ButtonType.Button"
                                     Variant="BlazorBlueprint.Components.ButtonVariant.Link"
                                     Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                    Class="h-auto p-0 font-normal"
+                                    Class="rounded-md h-auto p-0 font-normal"
                                     OnClick='() => this.HandleBreadcrumbSelected("Workspace")'>
                                     Workspace
                                 </BbButton>
@@ -1036,7 +1028,7 @@
                                     Type="BlazorBlueprint.Components.ButtonType.Button"
                                     Variant="BlazorBlueprint.Components.ButtonVariant.Link"
                                     Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                    Class="h-auto p-0 font-normal"
+                                    Class="rounded-md h-auto p-0 font-normal"
                                     OnClick='() => this.HandleBreadcrumbSelected("Projects")'>
                                     Projects
                                 </BbButton>
@@ -1046,7 +1038,7 @@
                                     Type="BlazorBlueprint.Components.ButtonType.Button"
                                     Variant="BlazorBlueprint.Components.ButtonVariant.Link"
                                     Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                    Class="h-auto p-0 font-normal"
+                                    Class="rounded-md h-auto p-0 font-normal"
                                     Disabled="true">
                                     Restricted
                                 </BbButton>
@@ -1080,14 +1072,14 @@
                         </BbBadge>
                     </div>
                     <div class="mb-design-system__toolbar-main">
-                        <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small">Save</BbButton>
+                        <BbButton Class="rounded-md" Size="BlazorBlueprint.Components.ButtonSize.Small">Save</BbButton>
                         <BbButton
                             Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
-                            Class="mb-secondary">
+                            Class="rounded-md mb-secondary">
                             Validate
                         </BbButton>
-                        <BbButton
+                        <BbButton Class="rounded-md"
                             Type="BlazorBlueprint.Components.ButtonType.Button"
                             Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                             Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -1290,7 +1282,7 @@
                             <strong>Bloom</strong>
                         </BrandContent>
                         <NavigationContent>
-                            <BbButton
+                            <BbButton Class="rounded-md"
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small">
                                 Projects
@@ -1312,7 +1304,7 @@
                                          FullWidth="true" />
                         </CenterContent>
                         <ActionsContent>
-                            <BbButton
+                            <BbButton Class="rounded-md"
                                 Type="BlazorBlueprint.Components.ButtonType.Button"
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                                 Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -1330,7 +1322,7 @@
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                                 Size="BlazorBlueprint.Components.ButtonSize.Small"
                                 OnClick="this.HandleValidateWorkspace"
-                                Class="mb-secondary">
+                                Class="rounded-md mb-secondary">
                                 Validate
                             </BbButton>
                         </ActionsContent>
@@ -1353,7 +1345,7 @@
                             </BbBadge>
                         </ContextContent>
                         <ActionsContent>
-                            <BbButton
+                            <BbButton Class="rounded-md"
                                 Type="BlazorBlueprint.Components.ButtonType.Button"
                                 Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                                 Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -1405,7 +1397,7 @@
                         <BbButton
                             Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                             Size="BlazorBlueprint.Components.ButtonSize.Small"
-                            Class="mb-secondary"
+                            Class="rounded-md mb-secondary"
                             OnClick='() => this.HandleCanvasToolbarAction("Connect")'>
                             Connect
                         </BbButton>
@@ -1506,7 +1498,7 @@
                     </ChildContent>
                     <TrailingContent>
                         <span>125, 84</span>
-                        <BbButton
+                        <BbButton Class="rounded-md"
                             Type="BlazorBlueprint.Components.ButtonType.Button"
                             Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                             Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
@@ -1537,7 +1529,7 @@
                         Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                         Size="BlazorBlueprint.Components.ButtonSize.Small"
                         OnClick="this.ToggleWorkspaceLeftPanel"
-                        Class="mb-secondary">
+                        Class="rounded-md mb-secondary">
                         @(this.WorkspaceLeftPanelVisible ? "Hide left panel" : "Show left panel")
                     </BbButton>
                     <BbButton
@@ -1545,7 +1537,7 @@
                         Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
                         Size="BlazorBlueprint.Components.ButtonSize.Small"
                         OnClick="this.ToggleWorkspaceRightPanel"
-                        Class="mb-secondary">
+                        Class="rounded-md mb-secondary">
                         @(this.WorkspaceRightPanelVisible ? "Hide right panel" : "Show right panel")
                     </BbButton>
                 </div>
@@ -1766,7 +1758,7 @@
                     Label="Modal field"
                     ReadOnly="true">
             <BbInputGroup
-                Class="mb-design-system__input-group mb-design-system__input-group--readonly">
+                Class="rounded-md mb-design-system__input-group mb-design-system__input-group--readonly">
                 <BbInputGroupInput
                     Id="showcase-modal-field"
                     Value="Sample value"
@@ -1780,10 +1772,10 @@
             Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
             Size="BlazorBlueprint.Components.ButtonSize.Small"
             OnClick="this.CloseModal"
-            Class="mb-secondary">
+            Class="rounded-md mb-secondary">
             Close
         </BbButton>
-        <BbButton
+        <BbButton Class="rounded-md"
             Size="BlazorBlueprint.Components.ButtonSize.Small"
             OnClick="this.CloseModal">
             Apply locally

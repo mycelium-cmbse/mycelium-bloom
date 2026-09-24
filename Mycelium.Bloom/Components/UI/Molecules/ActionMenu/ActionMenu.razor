@@ -46,7 +46,7 @@
         </BbDropdownMenuTrigger>
 
         <BbDropdownMenuContent
-            Class="@(this.MenuClass)"
+            Class="@ClassNames.cn("rounded-md", this.MenuClass)"
             Side="PopoverSide.Bottom"
             Align="@(this.GetPopoverAlignment())"
             Offset="6"
@@ -59,7 +59,7 @@
                 }
 
                 <BbDropdownMenuItem
-                    Class="@(GetItemCssClass(item))"
+                    Class="@ClassNames.cn("rounded-sm", GetItemCssClass(item))"
                     Disabled="@(item.Disabled)"
                     CloseOnSelect="true"
                     OnClick="_ => this.HandleItemSelectedAsync(item)">
@@ -82,13 +82,6 @@
                     </Icon>
 
                     <ChildContent>
-                        @if (!item.Disabled)
-                        {
-                            <span class="mb-action-menu__item-pointer-surface"
-                                  role="presentation"
-                                  aria-hidden="true"></span>
-                        }
-
                         <span class="mb-action-menu__item-content">
                             <span class="mb-action-menu__item-label" title="@(item.Label)">
                                 @(item.Label)

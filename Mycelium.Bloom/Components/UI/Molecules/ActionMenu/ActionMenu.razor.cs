@@ -139,6 +139,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ActionMenu
         private static string GetItemCssClass(ActionMenuItem item)
         {
             return CssClassBuilder.Build(
+                CssClassBuilder.When("cursor-pointer", !item.Disabled),
                 CssClassBuilder.When("text-destructive", item.Destructive),
                 CssClassBuilder.When("bg-accent text-accent-foreground font-semibold", item.IsSelected));
         }

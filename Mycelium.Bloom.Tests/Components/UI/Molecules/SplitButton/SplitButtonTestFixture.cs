@@ -11,7 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
 {
     using System.Threading.Tasks;
 
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 
@@ -125,7 +125,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
 
             var toggle = component.Find(".mb-split-button__toggle");
             await toggle.ClickAsync();
-            await this.portalHost.WaitForElements("[role='menuitem']", items.Length)[1].ClickAsync();
+            await (await this.portalHost.WaitForElementsAsync("[role='menuitem']", items.Length))[1].ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
@@ -149,7 +149,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
                 .Add(split => split.ItemSelected, _ => selectionCount++));
 
             await component.Find(".mb-split-button__toggle").ClickAsync();
-            var disabledItem = this.portalHost.WaitForElements("[role='menuitem']", items.Length)[2];
+            var disabledItem = (await this.portalHost.WaitForElementsAsync("[role='menuitem']", items.Length))[2];
             await disabledItem.ClickAsync();
 
             using (Assert.EnterMultipleScope())
@@ -207,7 +207,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
                 Assert.That(buttons[1].GetAttribute("aria-disabled"), Is.EqualTo("true"));
                 Assert.That(buttons[0].GetAttribute("aria-busy"), Is.EqualTo("true"));
                 Assert.That(component.FindComponent<BlueprintButton>().Instance.Loading, Is.True);
-                Assert.That(component.FindAll("svg.animate-spin"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("svg[class~='bb:animate-spin']"), Has.Count.EqualTo(1));
             }
         }
 
@@ -237,7 +237,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.SplitButton
             {
                 Assert.That(component.Find(".mb-split-button__primary").HasAttribute("disabled"), Is.True);
                 Assert.That(component.Find(".mb-split-button__toggle").GetAttribute("aria-disabled"), Is.EqualTo("true"));
-                Assert.That(component.FindAll("svg.animate-spin"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("svg[class~='bb:animate-spin']"), Has.Count.EqualTo(1));
             }
 
             await component.Find(".mb-split-button__primary").ClickAsync();

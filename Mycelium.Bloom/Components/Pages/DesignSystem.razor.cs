@@ -817,17 +817,6 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Gets an explicit ARIA selected state for a controlled direct Blueprint tab.
-        /// </summary>
-        /// <param name="activeValue">The active controlled tab value.</param>
-        /// <param name="tabValue">The candidate tab value.</param>
-        /// <returns>The lowercase ARIA Boolean value.</returns>
-        private static string GetTabAriaSelected(string activeValue, string tabValue)
-        {
-            return string.Equals(activeValue, tabValue, StringComparison.Ordinal) ? "true" : "false";
-        }
-
-        /// <summary>
         /// Records the selected breadcrumb.
         /// </summary>
         /// <param name="label">The selected breadcrumb label.</param>

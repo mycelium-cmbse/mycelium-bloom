@@ -16,7 +16,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 
@@ -105,10 +105,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             editorWorkspaceModule.SetupVoid("unregisterKeydownGuards", invocation => true).SetVoidResult();
 
             this.themeModule = this.JSInterop.SetupModule(
-                "./_content/BlazorBlueprint.Components/js/theme.js");
-            this.themeModule.SetupVoid("applyTheme", invocation => true).SetVoidResult();
-            this.applyDarkModeHandler = this.themeModule.SetupVoid("applyDarkMode", invocation => true);
-            this.themeModule.SetupVoid("saveTheme", invocation => true).SetVoidResult();
+                ComponentModules.CoreUrl);
+            this.applyDarkModeHandler = this.themeModule.SetupVoid("theme.applyDarkMode", invocation => true);
+            this.themeModule.SetupVoid("theme.saveTheme", invocation => true).SetVoidResult();
             this.applyDarkModeHandler.SetVoidResult();
         }
 
@@ -316,8 +315,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(themeService.IsDarkMode, Is.False);
-                Assert.That(this.themeModule.Invocations["applyTheme"], Has.Count.EqualTo(1));
-                Assert.That(this.themeModule.Invocations["applyTheme"][0].Arguments[0], Is.False);
+                Assert.That(this.themeModule.Invocations["theme.initialize"], Has.Count.EqualTo(1));
+                Assert.That(System.Text.Json.JsonSerializer.Serialize(this.themeModule.Invocations["theme.initialize"][0].Arguments[0]),
+                    Does.Contain("\"detectSystemPreference\":false"));
             }
 
             var themeButtons = component.FindAll("[role='group'][aria-label='Preview color theme'] button");
@@ -330,7 +330,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             {
                 Assert.That(themeService.IsDarkMode, Is.True);
                 Assert.That(this.applyDarkModeHandler.Invocations, Has.Count.EqualTo(1));
-                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][0].Arguments[0], Is.True);
+                Assert.That(this.applyDarkModeHandler.Invocations["theme.applyDarkMode"][0].Arguments[0], Is.True);
                 Assert.That(themeButtons
                     .Single(button => button.TextContent.Trim() == "Dark")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
@@ -348,7 +348,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             {
                 Assert.That(themeService.IsDarkMode, Is.False);
                 Assert.That(this.applyDarkModeHandler.Invocations, Has.Count.EqualTo(2));
-                Assert.That(this.applyDarkModeHandler.Invocations["applyDarkMode"][1].Arguments[0], Is.False);
+                Assert.That(this.applyDarkModeHandler.Invocations["theme.applyDarkMode"][1].Arguments[0], Is.False);
                 Assert.That(themeButtons
                     .Single(button => button.TextContent.Trim() == "Light")
                     .GetAttribute("aria-pressed"), Is.EqualTo("true"));
@@ -410,7 +410,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             await component.Find("[data-testid='action-menu-primary'] button").ClickAsync();
             await component.Find("#showcase-select-input").ClickAsync();
             var listbox = await this.portalHost.WaitForElementAsync("[role='listbox']");
-            var applyDarkModeInvocations = this.applyDarkModeHandler.Invocations["applyDarkMode"];
+            var applyDarkModeInvocations = this.applyDarkModeHandler.Invocations["theme.applyDarkMode"];
 
             using (Assert.EnterMultipleScope())
             {

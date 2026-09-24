@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives;
     using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
@@ -62,7 +63,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
         [Test]
         public void VerifyClosedModalRendersNothing()
         {
-            var component = this.Render<ModalShellComponent>(parameters => parameters
+            this.Render<ModalShellComponent>(parameters => parameters
                 .Add(component => component.IsOpen, false)
                 .AddChildContent("Dialog content"));
 
@@ -166,7 +167,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
                 .Add(component => component.IsOpenChanged, (bool isOpen) => changedState = isOpen)
                 .Add(component => component.OnClose, () => closeCount++));
 
-            var closeButton = this.portalHost.WaitForElement("button[aria-label='Close dialog']");
+            var closeButton = await this.portalHost.WaitForElementAsync("button[aria-label='Close dialog']");
 
             using (Assert.EnterMultipleScope())
             {
@@ -241,19 +242,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ModalShell
                 })
                 .Add(component => component.OnClose, () => closeCount++));
 
-            var firstClose = this.portalHost.WaitForElement("button[aria-label='Close dialog']").ClickAsync();
+            var firstClose = (await this.portalHost.WaitForElementAsync("button[aria-label='Close dialog']")).ClickAsync();
 
             await callbackStarted.Task;
 
             var closeButton = this.portalHost.Find("button[aria-label='Close dialog']");
             Assert.That(closeButton.HasAttribute("disabled"), Is.True);
 
-            closeButton.Click();
+            await closeButton.ClickAsync();
 
             releaseCallback.SetResult();
             await firstClose;
 
-            component.WaitForAssertion(() => Assert.That(closeCount, Is.EqualTo(1)));
+            await component.WaitForAssertionAsync(() => Assert.That(closeCount, Is.EqualTo(1)));
 
             using (Assert.EnterMultipleScope())
             {

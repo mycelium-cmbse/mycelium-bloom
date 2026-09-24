@@ -93,7 +93,7 @@
                                 focusable="false" />
                 </BbDropdownMenuTrigger>
 
-                <BbDropdownMenuContent Class="mb-navigation-rail__control-menu"
+                <BbDropdownMenuContent Class="rounded-md mb-navigation-rail__control-menu"
                                        Side="PopoverSide.Right"
                                        Align="PopoverAlign.End"
                                        Offset="4"
@@ -103,7 +103,7 @@
 
                         @foreach (var mode in PresentationModes)
                         {
-                            <BbDropdownMenuItem Class="@(this.GetSidebarControlItemCssClass(mode))"
+                            <BbDropdownMenuItem Class="@ClassNames.cn("rounded-sm", this.GetSidebarControlItemCssClass(mode))"
                                                 CloseOnSelect="true"
                                                 OnClick="_ => this.SetPresentationMode(mode)">
                                 <Icon>

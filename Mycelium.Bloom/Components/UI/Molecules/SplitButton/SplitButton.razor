@@ -17,7 +17,7 @@
         Disabled="@(this.Disabled)"
         Loading="@(this.IsActionInProgress())"
         LoadingText="@(this.PrimaryText)"
-        Class="mb-split-button__primary"
+        Class="rounded-md mb-split-button__primary"
         OnClick="this.HandlePrimaryActionAsync"
         aria-busy="@(this.IsActionInProgress() ? "true" : "false")">
         @(this.PrimaryText)

@@ -9,11 +9,15 @@
 
 namespace Mycelium.Bloom.Tests.Common
 {
+    using System.Threading.Tasks;
+
     using BlazorBlueprint.Components;
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
+    using BlazorBlueprint.Primitives.Floating;
 
     using Bunit;
 
+    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
 
     /// <summary>
@@ -44,6 +48,24 @@ namespace Mycelium.Bloom.Tests.Common
         {
             Configure(context);
             return context.Render<BbPortalHost>();
+        }
+
+        /// <summary>
+        /// Completes the browser animation callback that unmounts closed portals in bUnit.
+        /// </summary>
+        /// <param name="component">The component owning the portals.</param>
+        internal static Task CompletePortalCloseAsync(IRenderedComponent<IComponent> component)
+        {
+            return component.InvokeAsync(async () =>
+            {
+                foreach (var portal in component.FindComponents<BbFloatingPortal>())
+                {
+                    if (!portal.Instance.IsOpen)
+                    {
+                        await portal.Instance.JsOnClosed();
+                    }
+                }
+            });
         }
     }
 }

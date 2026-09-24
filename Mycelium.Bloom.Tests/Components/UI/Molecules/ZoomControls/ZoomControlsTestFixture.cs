@@ -13,7 +13,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
     using System.Linq;
 
     using BlazorBlueprint.Components;
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
 

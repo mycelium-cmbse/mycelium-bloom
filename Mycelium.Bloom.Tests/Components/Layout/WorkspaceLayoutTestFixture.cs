@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using System.Threading.Tasks;
 
     using BlazorBlueprint.Components;
-    using BlazorBlueprint.Primitives.Services;
+    using BlazorBlueprint.Primitives;
 
     using Bunit;
     using Bunit.TestDoubles;
@@ -86,10 +86,9 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 });
 
             this.themeModule = this.JSInterop.SetupModule(
-                "./_content/BlazorBlueprint.Components/js/theme.js");
-            this.themeModule.SetupVoid("applyTheme", invocation => true).SetVoidResult();
-            this.themeModule.SetupVoid("applyDarkMode", invocation => true).SetVoidResult();
-            this.themeModule.SetupVoid("saveTheme", invocation => true).SetVoidResult();
+                ComponentModules.CoreUrl);
+            this.themeModule.SetupVoid("theme.applyDarkMode", invocation => true).SetVoidResult();
+            this.themeModule.SetupVoid("theme.saveTheme", invocation => true).SetVoidResult();
         }
 
         /// <summary>
@@ -392,8 +391,8 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
             await component.WaitForAssertionAsync(() =>
             {
-                var applyDarkModeInvocations = this.themeModule.Invocations["applyDarkMode"];
-                var saveThemeInvocations = this.themeModule.Invocations["saveTheme"];
+                var applyDarkModeInvocations = this.themeModule.Invocations["theme.applyDarkMode"];
+                var saveThemeInvocations = this.themeModule.Invocations["theme.saveTheme"];
 
                 using (Assert.EnterMultipleScope())
                 {

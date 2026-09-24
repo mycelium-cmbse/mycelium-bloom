@@ -56,7 +56,6 @@ beforeEach(() => {
     globalThis.HTMLElement = dom.window.HTMLElement;
     globalThis.HTMLInputElement = dom.window.HTMLInputElement;
     globalThis.InputEvent = dom.window.InputEvent;
-    globalThis.MutationObserver = dom.window.MutationObserver;
     globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
     globalThis.requestAnimationFrame = callback => {
         animationFrameQueue.push(callback);
@@ -93,7 +92,6 @@ afterEach(() => {
     delete globalThis.HTMLElement;
     delete globalThis.HTMLInputElement;
     delete globalThis.InputEvent;
-    delete globalThis.MutationObserver;
     delete globalThis.getComputedStyle;
     delete globalThis.requestAnimationFrame;
 });
@@ -284,65 +282,6 @@ test("search shortcuts honor custom modifiers and detach after disposal", () => 
     assert.equal(focus.count, 1);
 });
 
-test("select compatibility synchronizes active descendants and owns one observer", async () => {
-    document.body.innerHTML = `
-        <button id="select-trigger" aria-controls="select-listbox">Select</button>
-        <button id="secondary-trigger" aria-controls="not-a-listbox">Secondary</button>
-        <div id="not-a-listbox"></div>
-        <div id="select-listbox" role="listbox" aria-labelledby="select-trigger">
-            <div id="first-option" role="option" data-focused="true">First</div>
-        </div>
-        <div id="unregistered-listbox" role="listbox" aria-labelledby="unknown-trigger">
-            <div id="unregistered-sync-option" role="option">Unknown</div>
-        </div>
-    `;
-    const NativeMutationObserver = dom.window.MutationObserver;
-    let disconnectCount = 0;
-
-    globalThis.MutationObserver = class extends NativeMutationObserver {
-        disconnect() {
-            disconnectCount++;
-            super.disconnect();
-        }
-    };
-
-    registerSelect("primary-select", "select-trigger");
-    registerSelect("secondary-select", "secondary-trigger");
-
-    const listbox = document.getElementById("select-listbox");
-    const option = document.getElementById("first-option");
-    const unregisteredListbox = document.getElementById("unregistered-listbox");
-    const unregisteredOption = document.getElementById("unregistered-sync-option");
-
-    assert.equal(listbox.getAttribute("aria-activedescendant"), "first-option");
-
-    unregisteredOption.setAttribute("data-focused", "true");
-    await settleMutationObserver();
-
-    assert.equal(unregisteredListbox.hasAttribute("aria-activedescendant"), false);
-
-    disposeSelect("secondary-select");
-
-    assert.equal(disconnectCount, 0);
-
-    option.setAttribute("data-focused", "false");
-    await settleMutationObserver();
-
-    assert.equal(listbox.hasAttribute("aria-activedescendant"), false);
-
-    option.setAttribute("data-focused", "true");
-    await settleMutationObserver();
-
-    assert.equal(listbox.getAttribute("aria-activedescendant"), "first-option");
-
-    disposeSelect("primary-select");
-
-    assert.equal(disconnectCount, 1);
-
-    const detachedEvent = dispatchKey(document.getElementById("select-trigger"), "Enter");
-    assert.equal(detachedEvent.defaultPrevented, false);
-});
-
 test("select compatibility preserves trigger and listbox tab order", () => {
     document.body.innerHTML = `
         <button id="before-trigger">Before</button>
@@ -394,8 +333,8 @@ test("select compatibility preserves trigger and listbox tab order", () => {
     const afterTrigger = document.getElementById("after-trigger");
     const activeOption = document.getElementById("active-option");
 
-    assert.equal(dispatchKey(trigger, "Enter").defaultPrevented, true);
-    assert.equal(dispatchKey(trigger, " ").defaultPrevented, true);
+    assert.equal(dispatchKey(trigger, "Enter").defaultPrevented, false);
+    assert.equal(dispatchKey(trigger, " ").defaultPrevented, false);
 
     const forwardTab = dispatchKey(trigger, "Tab");
     flushAnimationFrames();
@@ -423,6 +362,35 @@ test("select compatibility preserves trigger and listbox tab order", () => {
     assert.equal(dispatchKey(document.getElementById("hidden-trigger"), "Tab").defaultPrevented, false);
     assert.equal(dispatchKey(document.getElementById("before-trigger"), "Enter").defaultPrevented, false);
     assert.equal(dispatchKey(document, "Enter").defaultPrevented, false);
+});
+
+test("select registrations detach independently and support remounting", () => {
+    document.body.innerHTML = `
+        <button id="first-select">First</button>
+        <button id="second-select">Second</button>
+        <button id="after-selects">After</button>
+    `;
+    const first = document.getElementById("first-select");
+    const second = document.getElementById("second-select");
+    const after = document.getElementById("after-selects");
+    [first, second, after].forEach(markVisible);
+    registerSelect("first-registration", first.id);
+    registerSelect("second-registration", second.id);
+
+    disposeSelect("first-registration");
+    assert.equal(dispatchKey(first, "Tab").defaultPrevented, false);
+    assert.equal(dispatchKey(second, "Tab").defaultPrevented, true);
+    flushAnimationFrames();
+    assert.equal(document.activeElement, after);
+
+    disposeSelect("second-registration");
+    disposeSelect("second-registration");
+    assert.equal(dispatchKey(second, "Tab").defaultPrevented, false);
+
+    registerSelect("first-registration", first.id);
+    assert.equal(dispatchKey(first, "Tab").defaultPrevented, true);
+    flushAnimationFrames();
+    assert.equal(document.activeElement, second);
 });
 
 test("editor workspace pointer capture returns the measured adjacent pair and releases ownership", () => {
@@ -649,8 +617,4 @@ function flushAnimationFrames() {
             callback(0);
         }
     }
-}
-
-async function settleMutationObserver() {
-    await new Promise(resolve => setTimeout(resolve, 0));
 }

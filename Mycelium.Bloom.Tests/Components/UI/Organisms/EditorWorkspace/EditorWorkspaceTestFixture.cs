@@ -20,7 +20,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
 
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives;
-    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 

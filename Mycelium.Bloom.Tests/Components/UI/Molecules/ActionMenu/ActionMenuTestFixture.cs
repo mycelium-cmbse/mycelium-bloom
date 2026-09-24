@@ -14,7 +14,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
 
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives;
-    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
@@ -108,12 +107,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ActionMenu
             {
                 Assert.That(menuItems[0].TextContent, Does.Contain("Open details"));
                 Assert.That(menuItems[0].TextContent, Does.Contain("Inspect the selected element"));
-                var enabledSurface = menuItems[0].QuerySelector(".mb-action-menu__item-pointer-surface");
-                Assert.That(enabledSurface, Is.Not.Null);
-                Assert.That(enabledSurface.GetAttribute("role"), Is.EqualTo("presentation"));
-                Assert.That(enabledSurface.GetAttribute("aria-hidden"), Is.EqualTo("true"));
+                Assert.That(menuItems[0].ClassList, Does.Contain("cursor-pointer"));
                 Assert.That(menuItems[1].GetAttribute("aria-disabled"), Is.EqualTo("true"));
-                Assert.That(menuItems[1].QuerySelector(".mb-action-menu__item-pointer-surface"), Is.Null);
+                Assert.That(menuItems[1].ClassList, Does.Not.Contain("cursor-pointer"));
                 Assert.That(menuItems[2].ClassList, Does.Contain("text-destructive"));
                 Assert.That(menuItems[2].TextContent, Does.Contain("Destructive action"));
                 Assert.That(this.portalHost.FindAll("[role='separator']"), Has.Count.EqualTo(1));
