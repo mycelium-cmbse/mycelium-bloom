@@ -60,7 +60,11 @@ unrelated CLR types and custom wrapper types are not accepted as metaclasses.
 
 ## Batching and duplicate identity
 
-Rx buffers admitted changes in 75 ms windows. Both queued ingestion and batch
+Rx opens a 75 ms buffer when the first queued change arrives; later changes do
+not extend that window. An idle circuit schedules no batching timer and performs
+no batch dispatch or duplicate cleanup. Ingestion and window closure are
+serialized together so a change cannot miss the next window's opening trigger.
+Both queued ingestion and batch
 delivery use the injected `IScheduler`, whose `Now` also controls duplicate expiry.
 Production defaults to `TaskPoolScheduler.Default`; deterministic checks can use
 a virtual-time scheduler. The scheduler must queue work rather than execute
@@ -68,12 +72,15 @@ timed work inline, and it remains owned by its supplier. The built-in immediate
 and current-thread schedulers are rejected. The supplier must keep its scheduler
 available through scheduled stream completion.
 
-The duplicate identity is `(CommitId, ElementId)`. Keys expire two seconds after
-first admission, without extending expiry for repeated echoes. Admission and Rx
-batch flushes evict expired keys, including during idle periods. Capacity is
-limited to 4,096 keys; overload evicts the oldest key early, after which an echo
-can be admitted again. Neither expiry bookkeeping nor duplicate keys grow
-permanently, and there is no separate cleanup loop.
+The duplicate identity is `(CommitId, ElementId)`. Pending and frozen aggregates
+retain their keys until dispatch finishes, regardless of scheduler delay or
+burst size. Only then does their two-second retention window begin, without
+extending expiry for later echoes. Admission and nonempty delivery evict expired
+remembered keys. The 4,096-key cap applies only to delivered changes; overload
+evicts the oldest delivered key early, after which an echo can be admitted again.
+Pending memory follows the queued workload and is never evicted to satisfy that
+cap. At most 4,096 delivered entries remain retained while idle; the next active
+operation removes expired entries. There is no separate cleanup loop.
 
 Pending compatible echoes of every change kind combine property names and
 preserve local origin if either copy is local, independently of arrival order.
@@ -117,9 +124,13 @@ A single downstream `ObserveOn` drain serializes all batch delivery and stream
 completion on the injected Rx scheduler. Concurrent producers therefore cannot
 overlap callbacks for a subscription; callbacks across targets are also
 serialized. Scheduler execution does not imply a fixed OS thread, a UI context
-or Blazor renderer affinity. Consumer callbacks must follow the normal Rx
-non-throwing contract and must not synchronously wait for later notifications on
-the same drain. They can call bus APIs without inheriting the state gate.
+or Blazor renderer affinity. Each individual subscription isolates and logs
+callback failures through `ILogger<ChangeNotificationService>`, including
+completion failures, before they can interrupt peers, other targets or the
+scheduler. Normal Rx auto-detachment still applies to a throwing subscription;
+healthy subscriptions continue receiving future changes. Consumers must not
+synchronously wait for later notifications on the same drain. They can call bus
+APIs without inheriting the state gate.
 
 `Listen` alone creates no subject. Each subscription acquires the canonical entry
 in `ConcurrentDictionary<ChangeTarget, Lazy<ChangeObservable>>`. Its stream uses

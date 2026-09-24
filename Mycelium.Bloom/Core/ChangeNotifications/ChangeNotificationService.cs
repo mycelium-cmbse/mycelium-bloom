@@ -15,6 +15,9 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
     using System.Reactive.Linq;
     using System.Reactive.Subjects;
 
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Abstractions;
+
     /// <summary>Serializes committed changes into shared, automatically released circuit-scoped target streams.</summary>
     public sealed class ChangeNotificationService : IChangeNotificationService
     {
@@ -36,7 +39,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         /// <summary>Tracks admitted changes until expiry or capacity eviction.</summary>
         private readonly Dictionary<CommitElement, PendingChange> recentChanges = new();
 
-        /// <summary>Orders duplicate-cache eviction by admission time.</summary>
+        /// <summary>Orders eviction of delivered changes without admitting pending work to the expiry queue.</summary>
         private readonly Queue<PendingChange> expirationOrder = new();
 
         /// <summary>Accepts changes only under the service gate before scheduling them into Rx batching.</summary>
@@ -47,6 +50,9 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
 
         /// <summary>Provides both scheduling and the clock used for duplicate expiry.</summary>
         private readonly IScheduler scheduler;
+
+        /// <summary>Reports isolated consumer callback failures.</summary>
+        private readonly ILogger<ChangeNotificationService> logger;
 
         /// <summary>Routes full reload requests to the current-model owner.</summary>
         private readonly IModelRefreshCoordinator refreshCoordinator;
@@ -69,19 +75,26 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         /// <summary>Creates the notification bus using an asynchronous or virtual-time Rx scheduler.</summary>
         /// <param name="refreshCoordinator">The circuit's full model refresh coordinator.</param>
         /// <param name="scheduler">The queued scheduler and clock, defaulting to the Rx task pool.</param>
-        public ChangeNotificationService(IModelRefreshCoordinator refreshCoordinator, IScheduler scheduler = null)
+        /// <param name="logger">The application logger for subscriber failures.</param>
+        public ChangeNotificationService(IModelRefreshCoordinator refreshCoordinator, IScheduler scheduler = null,
+            ILogger<ChangeNotificationService> logger = null)
         {
             this.refreshCoordinator = refreshCoordinator ?? throw new ArgumentNullException(nameof(refreshCoordinator));
             this.scheduler = scheduler ?? TaskPoolScheduler.Default;
+            this.logger = logger ?? NullLogger<ChangeNotificationService>.Instance;
 
             if (this.scheduler is ImmediateScheduler or CurrentThreadScheduler)
             {
                 throw new ArgumentException("Notification delivery requires a queued asynchronous or virtual-time scheduler.", nameof(scheduler));
             }
 
+            var batchGate = new object();
             this.batching = this.ingress
                 .ObserveOn(this.scheduler)
-                .Buffer(BatchWindow, this.scheduler)
+                .Synchronize(batchGate)
+                .Publish(changes => changes.Buffer(() => changes.Take(1)
+                    .SelectMany(_ => Observable.Timer(BatchWindow, this.scheduler).Synchronize(batchGate))))
+                .Where(batch => batch.Count > 0)
                 .ObserveOn(this.scheduler)
                 .Subscribe(this.DispatchBatch, this.CompleteObservables);
         }
@@ -161,14 +174,8 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                     return;
                 }
 
-                if (this.recentChanges.Count == MaximumRememberedChanges)
-                {
-                    this.RemoveOldestChange();
-                }
-
-                var pending = new PendingChange(key, changeEvent, now + DeduplicationWindow, this.generation);
+                var pending = new PendingChange(key, changeEvent, this.generation);
                 this.recentChanges.Add(key, pending);
-                this.expirationOrder.Enqueue(pending);
                 this.ingress.OnNext(pending);
             }
         }
@@ -192,7 +199,10 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                     ObjectDisposedException.ThrowIf(this.isDisposed, this);
                     var channel = this.observables.GetOrAdd(key,
                         targetKey => new Lazy<ChangeObservable>(() => this.CreateObservable(targetKey))).Value;
-                    var subscription = channel.Observable.Subscribe(observer);
+                    var subscription = channel.Observable.Subscribe(
+                        change => this.InvokeSubscriber(() => observer.OnNext(change)),
+                        error => this.InvokeSubscriber(() => observer.OnError(error)),
+                        () => this.InvokeSubscriber(observer.OnCompleted));
 
                     return Disposable.Create(() =>
                     {
@@ -293,7 +303,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         /// <param name="batch">The buffered committed changes.</param>
         private void DispatchBatch(IList<PendingChange> batch)
         {
-            List<(ChangeEvent Event, long Generation)> changes;
+            List<PendingChange> changes;
 
             lock (this.gate)
             {
@@ -303,12 +313,16 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                 }
 
                 this.RemoveExpiredChanges(this.scheduler.Now);
-                changes = new List<(ChangeEvent, long)>(batch.Count);
+                changes = new List<PendingChange>(batch.Count);
 
                 foreach (var pending in batch)
                 {
+                    if (!this.isEnabled || pending.Generation != this.generation)
+                    {
+                        continue;
+                    }
                     pending.IsPending = false;
-                    changes.Add((pending.Event, pending.Generation));
+                    changes.Add(pending);
                 }
             }
 
@@ -340,6 +354,44 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
                         channel.Subject.OnNext(change.Event);
                     }
                 }
+
+                this.RememberDeliveredChange(change);
+            }
+        }
+
+        /// <summary>Starts bounded duplicate retention only after an aggregate has finished dispatching.</summary>
+        /// <param name="change">The frozen aggregate whose delivery has completed.</param>
+        private void RememberDeliveredChange(PendingChange change)
+        {
+            lock (this.gate)
+            {
+                if (this.isDisposed || !this.isEnabled || change.Generation != this.generation)
+                {
+                    return;
+                }
+
+                var now = this.scheduler.Now;
+                this.RemoveExpiredChanges(now);
+                if (this.expirationOrder.Count == MaximumRememberedChanges)
+                {
+                    this.RemoveOldestChange();
+                }
+                change.ExpiresAt = now + DeduplicationWindow;
+                this.expirationOrder.Enqueue(change);
+            }
+        }
+
+        /// <summary>Isolates each consumer before a failure can reach a shared subject or scheduler.</summary>
+        /// <param name="callback">The individual consumer callback.</param>
+        private void InvokeSubscriber(Action callback)
+        {
+            try
+            {
+                callback();
+            }
+            catch (Exception exception)
+            {
+                this.logger.LogError(exception, "A change notification subscriber failed.");
             }
         }
 
@@ -399,7 +451,7 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
             }
         }
 
-        /// <summary>Expires remembered keys during admission and each scheduled batch flush.</summary>
+        /// <summary>Expires delivered keys during admission and nonempty batch delivery.</summary>
         /// <param name="now">The injected scheduler's current time.</param>
         private void RemoveExpiredChanges(DateTimeOffset now)
         {
@@ -423,12 +475,14 @@ namespace Mycelium.Bloom.Core.ChangeNotifications
         /// <summary>Owns the mutable pending aggregate until its scheduled dispatch.</summary>
         /// <param name="Key">The duplicate identity.</param>
         /// <param name="Event">The immutable current event aggregate.</param>
-        /// <param name="ExpiresAt">The duplicate identity's expiry time.</param>
         /// <param name="Generation">The notification generation at admission.</param>
-        private sealed record PendingChange(CommitElement Key, ChangeEvent Event, DateTimeOffset ExpiresAt, long Generation)
+        private sealed record PendingChange(CommitElement Key, ChangeEvent Event, long Generation)
         {
             /// <summary>Gets or sets the pending immutable event aggregate under the service gate.</summary>
             public ChangeEvent Event { get; set; } = Event;
+
+            /// <summary>Gets or sets the expiry assigned when delivery completes.</summary>
+            internal DateTimeOffset ExpiresAt { get; set; }
 
             /// <summary>Gets or sets whether echoes can still contribute property information.</summary>
             internal bool IsPending { get; set; } = true;

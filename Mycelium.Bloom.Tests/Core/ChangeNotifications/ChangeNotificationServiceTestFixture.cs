@@ -299,6 +299,7 @@ namespace Mycelium.Bloom.Tests.Core.ChangeNotifications
             var received = new List<ChangeEvent>();
             using var subscription = this.service.Listen().Subscribe(received.Add);
             this.service.Publish(change);
+            this.Flush();
             this.scheduler.AdvanceBy(TimeSpan.FromSeconds(1));
             this.service.Publish(change);
             this.scheduler.AdvanceBy(TimeSpan.FromSeconds(1));
