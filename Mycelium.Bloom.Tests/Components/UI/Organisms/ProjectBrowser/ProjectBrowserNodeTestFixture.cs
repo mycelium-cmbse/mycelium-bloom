@@ -22,11 +22,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
+    using SysML2.NET.Core.POCO.Kernel.Expressions;
+    using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
+    using SysML2.NET.Core.POCO.Systems.Parts;
 
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
 
@@ -37,6 +40,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectBrowserNodeTestFixture : BunitContext
     {
+        [Test]
+        public void VerifyResolvedMultiplicityRendersInline()
+        {
+            var multiplicity = ProjectBrowserNodeTestFactory.CreateElement<MultiplicityRange>(
+                "range", null, new LiteralInteger { Value = 2 }, new LiteralInfinity());
+            var part = ProjectBrowserNodeTestFactory.CreateElement<PartUsage>("part", "Part", multiplicity);
+            var node = new ProjectBrowserNodeViewModel(
+                "part", "Part", new ProjectBrowserNodeMetadata("part", null, part), []);
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(value => value.ViewModel, node));
+
+            Assert.That(component.Find(".mb-project-browser-node__multiplicity").TextContent, Is.EqualTo("[2..*]"));
+            Assert.That(component.FindAll("[role='treeitem']"), Has.Count.EqualTo(1));
+        }
+
         /// <summary>
         /// The visible node titles expected for a deep filtered match.
         /// </summary>
@@ -52,10 +70,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies that the concrete SDK runtime type is used as the visible type label.
+        /// Verifies default package rows use the exported folder icon without displaying CD notation.
         /// </summary>
         [Test]
-        public void VerifyRenderUsesRuntimeTypeNameAsVisibleTypeLabel()
+        public void VerifyRenderUsesSemanticPackagePresentation()
         {
             var node = new ProjectBrowserNodeViewModel(
                 "quantities",
@@ -71,35 +89,43 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Markup, Does.Contain("LibraryPackage"));
-                Assert.That(component.Markup, Does.Not.Contain("Unknown LibraryPackage"));
-                Assert.That(component.Find("button").GetAttribute("title"), Does.Contain("LibraryPackage"));
-                Assert.That(component.Find("button").GetAttribute("title"), Does.Not.Contain("Unknown"));
+                Assert.That(component.FindAll(".mb-project-browser-node__stereotype"), Is.Empty);
+                Assert.That(node.Presentation.Stereotype, Is.EqualTo("«package»"));
+                Assert.That(component.Find(".mb-project-browser-node__title").TextContent.Trim(), Is.EqualTo("Quantities"));
+                Assert.That(component.Find(".mb-project-browser-node__element-icon").GetAttribute("style"),
+                    Does.Contain("icons/project-browser/folder.svg"));
+                Assert.That(component.Find("button").GetAttribute("title"), Is.EqualTo("Quantities - Package"));
+                Assert.That(component.Markup, Does.Not.Contain("LibraryPackage"));
             }
         }
 
         /// <summary>
-        /// Verifies each SysML category renders its canonical semantic color through the node component.
+        /// Verifies kinds without an established tree icon use the same neutral outline fallback.
         /// </summary>
         /// <typeparam name="TElement">The represented SysML element category.</typeparam>
-        /// <param name="expectedColor">The canonical CSS color reference.</param>
-        [TestCase("var(--info)", TypeArgs = [typeof(IDocumentation)])]
-        [TestCase("var(--info)", TypeArgs = [typeof(IComment)])]
-        [TestCase("var(--info)", TypeArgs = [typeof(IAnnotation)])]
-        [TestCase("var(--info)", TypeArgs = [typeof(IAnnotatingElement)])]
-        [TestCase("var(--sysml-allocations-header)", TypeArgs = [typeof(IImport)])]
-        [TestCase("var(--sysml-metadata-header)", TypeArgs = [typeof(IMembership)])]
-        [TestCase("var(--sysml-connections-header)", TypeArgs = [typeof(IRelationship)])]
-        [TestCase("var(--sysml-attributes-header)", TypeArgs = [typeof(IDefinition)])]
-        [TestCase("var(--sysml-behavior-header)", TypeArgs = [typeof(IUsage)])]
-        [TestCase("var(--sysml-requirements-header)", TypeArgs = [typeof(IFeature)])]
-        [TestCase("var(--sysml-verification-header)", TypeArgs = [typeof(IType)])]
-        [TestCase("var(--sysml-structure-header)", TypeArgs = [typeof(INamespace)])]
-        [TestCase("var(--foreground-muted)", TypeArgs = [typeof(IElement)])]
-        public void VerifyRenderUsesCanonicalElementColor<TElement>(string expectedColor)
+        [TestCase(TypeArgs = [typeof(IDocumentation)])]
+        [TestCase(TypeArgs = [typeof(IComment)])]
+        [TestCase(TypeArgs = [typeof(IAnnotation)])]
+        [TestCase(TypeArgs = [typeof(IAnnotatingElement)])]
+        [TestCase(TypeArgs = [typeof(IImport)])]
+        [TestCase(TypeArgs = [typeof(IMembership)])]
+        [TestCase(TypeArgs = [typeof(IRelationship)])]
+        [TestCase(TypeArgs = [typeof(IDefinition)])]
+        [TestCase(TypeArgs = [typeof(IUsage)])]
+        [TestCase(TypeArgs = [typeof(IFeature)])]
+        [TestCase(TypeArgs = [typeof(IType)])]
+        [TestCase(TypeArgs = [typeof(INamespace)])]
+        [TestCase(TypeArgs = [typeof(IElement)])]
+        public void VerifyRenderUsesNeutralFallbackForUnmappedIcons<TElement>()
             where TElement : class, IElement
         {
             var element = new Mock<TElement>(MockBehavior.Strict);
+
+            if (typeof(IType).IsAssignableFrom(typeof(TElement)))
+            {
+                element.As<IType>().SetupGet(value => value.multiplicity).Returns((IMultiplicity)null);
+            }
+
             var node = new ProjectBrowserNodeViewModel(
                 "element",
                 "Element",
@@ -109,9 +135,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(projectBrowserNode => projectBrowserNode.ViewModel, node));
 
-            Assert.That(
-                component.Find("button.mb-project-browser-node__row").GetAttribute("style"),
-                Is.EqualTo($"--project-browser-node-element-color: {expectedColor};"));
+            Assert.That(component.FindAll(".mb-project-browser-node__fallback-icon svg"), Has.Count.EqualTo(1));
+            Assert.That(component.FindAll(".mb-project-browser-node__element-icon"), Is.Empty);
+            Assert.That(component.Find("button.mb-project-browser-node__row").HasAttribute("style"), Is.False);
         }
 
         /// <summary>
@@ -165,7 +191,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-project-browser-node__row\s*\{[^}]*box-sizing:\s*border-box;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
+                        @"(?s)\.mb-project-browser-node__line\s*\{[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
                 Assert.That(
                     style,
                     Does.Match(

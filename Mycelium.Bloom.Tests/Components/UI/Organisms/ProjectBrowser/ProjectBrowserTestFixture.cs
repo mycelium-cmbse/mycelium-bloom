@@ -60,7 +60,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// The selected type-chip labels expected from the active type criteria.
         /// </summary>
         private static readonly string[] ExpectedSelectedTypeChipLabels =
-            ["«partdefinition»", "«partusage»", "«namespace»"];
+            ["«part def»", "«part»", "Namespace"];
 
         /// <summary>
         /// The visible node titles expected for a deep filtered match.
@@ -342,7 +342,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await component.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
             await this.OpenFilterDrawerAsync(component);
             await this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
+                .Single(button => button.TextContent.Contains("«part def»", StringComparison.Ordinal))
                 .ClickAsync();
 
             Assert.That(viewModel.Object.FilterText, Is.EqualTo("needle"));
@@ -387,7 +387,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(surface.TextContent, Does.Contain("Contains \"def\""));
                 Assert.That(options, Has.Count.EqualTo(2));
                 Assert.That(options[0].TextContent, Does.Contain("Contains \"def\""));
-                Assert.That(options[1].TextContent, Does.Contain("«partdefinition»"));
+                Assert.That(options[1].TextContent, Does.Contain("«part def»"));
                 Assert.That(controlledListbox.GetAttribute("role"), Is.EqualTo("listbox"));
                 Assert.That(controlledListbox.GetAttribute("aria-label"), Is.EqualTo("Search suggestions"));
                 Assert.That(popoverContent.Instance.CloseOnEscape, Is.True);
@@ -451,10 +451,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(input.GetAttribute("value"), Is.Empty);
                 Assert.That(viewModel.FilterText, Is.Empty);
                 Assert.That(options, Has.Count.EqualTo(2));
-                Assert.That(surface.TextContent, Does.Contain("«namespace»"));
-                Assert.That(surface.TextContent, Does.Contain("«partdefinition»"));
+                Assert.That(surface.TextContent, Does.Contain("Namespace"));
+                Assert.That(surface.TextContent, Does.Contain("«part def»"));
                 Assert.That(surface.TextContent, Does.Not.Contain("Contains \"\""));
-                Assert.That(surface.TextContent, Does.Not.Contain("«partusage»"));
+                Assert.That(surface.TextContent, Does.Not.Contain("«part»"));
                 Assert.That(surface.TextContent, Does.Not.Contain("«membership»"));
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Membership)));
             }
@@ -493,7 +493,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
-                    Does.Contain("«partdefinition»")));
+                    Does.Contain("«part def»")));
             await component.Find("input[role='combobox']")
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
@@ -555,7 +555,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
-                    Does.Contain("«partdefinition»")));
+                    Does.Contain("«part def»")));
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowUp" });
             await this.portalHost.WaitForAssertionAsync(() =>
@@ -575,7 +575,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Find("button[aria-label='Open project browser filters']")
                     .GetAttribute("data-filter-active"), Is.EqualTo("true"));
                 Assert.That(component.Find(".mb-project-browser-search-assistant__criterion--type").TextContent,
-                    Does.Contain("Type «partdefinition»"));
+                    Does.Contain("Type «part def»"));
                 viewModel.Verify(
                     owner => owner.ToggleElementTypeFilter(typeof(PartDefinition)),
                     Times.Once);
@@ -791,7 +791,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await this.OpenSearchAssistantAsync(component, "usage");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal))
                 .ClickAsync();
 
             for (var iteration = 0; iteration < compositionCount; iteration++)
@@ -846,7 +846,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
             await this.OpenSearchAssistantAsync(component, "usage");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal))
                 .ClickAsync();
             await this.OpenSearchAssistantAsync(component, "next criterion");
 
@@ -888,7 +888,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
                 await this.OpenSearchAssistantAsync(component, "usage");
                 await this.portalHost.FindAll("[role='option']")
-                    .Single(option => option.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                    .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal))
                     .ClickAsync();
 
                 var thirdDraft = $"gamma-{iteration}";
@@ -958,15 +958,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "definition");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal))
                 .ClickAsync();
 
             Assert.That(component.Find(".mb-project-browser-search-assistant__criterion--type").TextContent,
-                Does.Contain("Type «partdefinition»"));
+                Does.Contain("Type «part def»"));
 
             await this.OpenSearchAssistantAsync(component, "definition");
             var selectedDefinitionSuggestion = this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal));
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal));
 
             using (Assert.EnterMultipleScope())
             {
@@ -977,7 +977,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await this.OpenFilterDrawerAsync(component);
             var definitionChip = this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«partdefinition»", StringComparison.Ordinal));
+                .Single(button => button.TextContent.Contains("«part def»", StringComparison.Ordinal));
 
             using (Assert.EnterMultipleScope())
             {
@@ -993,7 +993,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await this.OpenSearchAssistantAsync(component, "definition");
             var definitionSuggestion = this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal));
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal));
 
             using (Assert.EnterMultipleScope())
             {
@@ -1020,7 +1020,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "definition");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal))
                 .ClickAsync();
 
             await this.portalHost.WaitForAssertionAsync(() =>
@@ -1284,10 +1284,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
             await this.OpenFilterDrawerAsync(component);
             await this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«namespace»", StringComparison.Ordinal))
+                .Single(button => button.TextContent.Contains("Namespace", StringComparison.Ordinal))
                 .ClickAsync();
             await this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                .Single(button => button.TextContent.Contains("«part»", StringComparison.Ordinal))
                 .ClickAsync();
 
             await this.portalHost.WaitForAssertionAsync(() =>

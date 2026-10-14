@@ -230,7 +230,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(elementType);
 
-            return $"«{elementType.Name.ToLowerInvariant()}»";
+            var presentation = ProjectBrowserElementPresentation.For(elementType);
+            return presentation.Stereotype ?? presentation.Kind;
         }
 
         /// <summary>

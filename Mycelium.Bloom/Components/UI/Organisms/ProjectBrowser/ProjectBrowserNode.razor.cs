@@ -17,13 +17,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
-    using SysML2.NET.Core.POCO.Core.Features;
-    using SysML2.NET.Core.POCO.Core.Types;
-    using SysML2.NET.Core.POCO.Root.Annotations;
-    using SysML2.NET.Core.POCO.Root.Elements;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
-    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
-
     /// <summary>
     /// Renders one recursive node in the project browser tree.
     /// </summary>
@@ -97,56 +90,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the inline style variables for the node row.
-        /// </summary>
-        /// <returns>The inline style variables for the node row.</returns>
-        private string GetNodeStyle()
-        {
-            return string.Create(
-                CultureInfo.InvariantCulture,
-                $"--project-browser-node-element-color: {this.GetElementColor()};");
-        }
-
-        /// <summary>
         /// Gets the indentation style for the current node depth.
         /// </summary>
         /// <returns>The indentation style for the current node depth.</returns>
         private string GetIndentStyle()
         {
             var safeDepth = Math.Max(0, this.Depth);
-            var width = safeDepth * 16;
-
-            return string.Create(CultureInfo.InvariantCulture, $"width: {width}px;");
-        }
-
-        /// <summary>
-        /// Gets the stereotype label displayed for the node.
-        /// </summary>
-        /// <returns>The stereotype label displayed for the node.</returns>
-        private string GetStereotype()
-        {
-            return this.GetTypeLabel();
-        }
-
-        /// <summary>
-        /// Gets the design token color for the represented SysML element.
-        /// </summary>
-        /// <returns>The design token color for the represented element.</returns>
-        private string GetElementColor()
-        {
-            return this.RequiredViewModel.SourceElement switch
-            {
-                IDocumentation or IComment or IAnnotation or IAnnotatingElement => "var(--info)",
-                IImport => "var(--sysml-allocations-header)",
-                IMembership => "var(--sysml-metadata-header)",
-                IRelationship => "var(--sysml-connections-header)",
-                IDefinition => "var(--sysml-attributes-header)",
-                IUsage => "var(--sysml-behavior-header)",
-                IFeature => "var(--sysml-requirements-header)",
-                IType => "var(--sysml-verification-header)",
-                INamespace => "var(--sysml-structure-header)",
-                _ => "var(--foreground-muted)"
-            };
+            return string.Create(CultureInfo.InvariantCulture, $"width: calc({safeDepth} * var(--spacing-16));");
         }
 
         /// <summary>
@@ -156,7 +106,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string GetTooltip()
         {
             var viewModel = this.RequiredViewModel;
-            var suffix = this.GetTypeLabel();
+            var suffix = viewModel.Presentation.Kind;
 
             if (!string.IsNullOrWhiteSpace(viewModel.QualifiedName))
             {
@@ -169,15 +119,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             return suffix;
-        }
-
-        /// <summary>
-        /// Gets the most specific type label available for the node.
-        /// </summary>
-        /// <returns>The most specific type label available for the node.</returns>
-        private string GetTypeLabel()
-        {
-            return this.RequiredViewModel.ElementType.Name;
         }
 
         /// <summary>

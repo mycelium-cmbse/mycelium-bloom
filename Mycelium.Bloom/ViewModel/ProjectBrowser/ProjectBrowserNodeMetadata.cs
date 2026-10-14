@@ -22,16 +22,19 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="elementId">The SysML element identifier, when available.</param>
         /// <param name="qualifiedName">The qualified SysML name, when available.</param>
         /// <param name="sourceElement">The source SysML element represented by the node.</param>
+        /// <param name="hiddenElements">Elements whose nearest navigable ancestor is this node.</param>
         public ProjectBrowserNodeMetadata(
             string elementId,
             string qualifiedName,
-            IElement sourceElement)
+            IElement sourceElement,
+            IReadOnlyList<IElement> hiddenElements = null)
         {
             ArgumentNullException.ThrowIfNull(sourceElement);
 
             this.ElementId = elementId;
             this.QualifiedName = qualifiedName;
             this.SourceElement = sourceElement;
+            this.HiddenElements = hiddenElements?.ToArray() ?? [];
         }
 
         /// <summary>
@@ -48,5 +51,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the source SysML element represented by the node.
         /// </summary>
         public IElement SourceElement { get; }
+
+        /// <summary>
+        /// Gets the hidden elements associated with this navigable ancestor.
+        /// </summary>
+        public IReadOnlyList<IElement> HiddenElements { get; }
     }
 }

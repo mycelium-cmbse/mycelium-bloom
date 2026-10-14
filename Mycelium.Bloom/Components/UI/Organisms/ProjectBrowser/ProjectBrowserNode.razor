@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @inherits BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
+@using BlazorBlueprint.Icons.Lucide.Components
 
 @if (this.ViewModel is { } viewModel)
 {
@@ -17,38 +18,46 @@
          class="@(this.BuildRootCssClass("mb-project-browser-node"))"
          role="treeitem" aria-expanded="@(GetAriaExpanded(nodePresentation))"
          aria-selected="@(this.GetAriaSelected())">
-        <button
-            type="button"
-            class="@(this.GetNodeCssClass())"
-            style="@(this.GetNodeStyle())"
-            title="@(this.GetTooltip())"
-            @onclick="this.SelectNodeAsync">
-            <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())"></span>
+        <div class="mb-project-browser-node__line">
+            <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())" aria-hidden="true"></span>
+            <button
+                type="button"
+                class="@(this.GetNodeCssClass())"
+                title="@(this.GetTooltip())"
+                @onclick="this.SelectNodeAsync">
+                @if (nodePresentation.HasVisibleChildren)
+                {
+                    <span class="mb-project-browser-node__toggle"
+                          data-expanded="@(nodePresentation.IsExpanded ? "true" : "false")"
+                          aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span class="mb-project-browser-node__toggle-spacer"></span>
+                }
 
-            @if (nodePresentation.HasVisibleChildren)
-            {
-                <span class="mb-project-browser-node__toggle" aria-hidden="true">
-                    @(nodePresentation.IsExpanded ? "v" : ">")
+                @if (viewModel.Presentation.IconName is { } iconName)
+                {
+                    <span class="mb-project-browser-node__element-icon"
+                          style="@($"--project-browser-node-icon: url('icons/project-browser/{iconName}.svg');")"
+                          aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span class="mb-project-browser-node__fallback-icon" aria-hidden="true">
+                        <LucideIcon Name="file" Size="12" StrokeWidth="2" aria-hidden="true" focusable="false" />
+                    </span>
+                }
+
+                <span class="mb-project-browser-node__title">
+                    @(viewModel.DisplayName)
                 </span>
-            }
-            else
-            {
-                <span class="mb-project-browser-node__toggle-spacer"></span>
-            }
-
-            <span class="mb-project-browser-node__element-icon" aria-hidden="true"></span>
-
-            @if (!string.IsNullOrWhiteSpace(this.GetStereotype()))
-            {
-                <span class="mb-project-browser-node__stereotype">
-                    @(this.GetStereotype())
-                </span>
-            }
-
-            <span class="mb-project-browser-node__title">
-                @(viewModel.DisplayName)
-            </span>
-        </button>
+                @if (viewModel.Multiplicity is { } multiplicity)
+                {
+                    <span class="mb-project-browser-node__multiplicity">@multiplicity</span>
+                }
+            </button>
+        </div>
 
         @if (nodePresentation.IsExpanded)
         {

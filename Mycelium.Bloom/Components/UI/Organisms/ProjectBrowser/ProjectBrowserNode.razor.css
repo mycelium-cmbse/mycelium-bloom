@@ -4,18 +4,24 @@
     min-width: 100%;
 }
 
+.mb-project-browser-node__line {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+}
+
 .mb-project-browser-node__row {
-    --project-browser-node-element-color: var(--foreground-muted);
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--spacing-8);
     width: max-content;
-    min-width: 100%;
-    height: 32px;
-    padding: 0 8px;
+    min-width: 0;
+    flex: 1 0 auto;
+    height: var(--spacing-30);
+    padding: 0 var(--spacing-8);
     border: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
     background: transparent;
     color: var(--foreground);
     text-align: left;
@@ -27,18 +33,24 @@
     background: var(--muted);
 }
 
-.mb-project-browser-node__row--selected {
+.mb-project-browser-node__row--selected,
+.mb-project-browser-node__row--selected:hover {
     background: var(--accent);
+}
+
+.mb-project-browser-node__row:focus-visible {
+    outline: var(--spacing-2) solid var(--ring);
+    outline-offset: calc(-1 * var(--spacing-2));
 }
 
 .mb-project-browser-node__row--selected .mb-project-browser-node__title {
     color: var(--primary);
-    font-weight: 500;
+    font-weight: var(--typography-typography-body-sm-medium-font-weight);
 }
 
 .mb-project-browser-node__indent {
     flex: 0 0 auto;
-    height: 1px;
+    height: var(--spacing-1);
 }
 
 .mb-project-browser-node__toggle,
@@ -47,29 +59,36 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 8px;
-    height: 16px;
+    width: var(--spacing-12);
+    height: var(--spacing-12);
     color: var(--muted-foreground);
-    font-size: 11px;
-    line-height: 1;
+}
+
+.mb-project-browser-node__toggle {
+    background: currentColor;
+    mask: url("/icons/project-browser/chevron-right.svg") center / contain no-repeat;
+}
+
+.mb-project-browser-node__toggle[data-expanded="true"] {
+    mask-image: url("/icons/project-browser/chevron-down.svg");
+}
+
+.mb-project-browser-node__element-icon,
+.mb-project-browser-node__fallback-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: var(--spacing-12);
+    height: var(--spacing-12);
+    color: var(--muted-foreground);
 }
 
 .mb-project-browser-node__element-icon {
-    flex: 0 0 auto;
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    background: var(--project-browser-node-element-color);
+    background: currentColor;
+    mask: var(--project-browser-node-icon) center / contain no-repeat;
 }
 
-.mb-project-browser-node__stereotype {
-    flex: 0 0 auto;
-    color: var(--muted-foreground);
-    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--typography-typography-mono-xs-font-size);
-    line-height: var(--typography-typography-mono-xs-line-height);
-    font-weight: var(--typography-typography-mono-xs-font-weight);
-    white-space: nowrap;
+.mb-project-browser-node__row--selected .mb-project-browser-node__element-icon {
+    color: var(--primary);
 }
 
 .mb-project-browser-node__title {
@@ -77,9 +96,9 @@
     min-width: max-content;
     color: var(--foreground);
     font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: var(--typography-typography-body-md-font-size);
-    line-height: var(--typography-typography-body-md-line-height);
-    font-weight: var(--typography-typography-body-md-font-weight);
+    font-size: var(--typography-typography-body-sm-font-size);
+    line-height: var(--typography-typography-body-sm-line-height);
+    font-weight: var(--typography-typography-body-sm-font-weight);
     white-space: nowrap;
 }
 
@@ -87,7 +106,15 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--spacing-1);
     width: max-content;
     min-width: 100%;
+}
+
+.mb-project-browser-node__multiplicity {
+    flex: 0 0 auto;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono), monospace;
+    font-size: var(--text-10);
+    white-space: nowrap;
 }

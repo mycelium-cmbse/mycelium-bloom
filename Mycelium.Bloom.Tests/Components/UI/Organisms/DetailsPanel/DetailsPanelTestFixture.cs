@@ -23,8 +23,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Tests.Common;
 
+    using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.Parts;
 
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
 
@@ -56,11 +58,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             "declared-short",
             "Package::Declared element"
         ];
-
-        /// <summary>
-        /// The expected fallback values for unavailable element properties.
-        /// </summary>
-        private static readonly string[] ExpectedMissingPropertyValues = ["—", "—", "—", "—"];
 
         /// <summary>
         /// The reactive selection source injected into the component under test.
@@ -105,7 +102,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Instance.ViewModel, Is.SameAs(this.selectionService.Object));
-                Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Details"));
+                Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Properties"));
                 Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                     Is.EqualTo("Select an element to display its details."));
                 Assert.That(component.FindAll(".mb-details-panel__element-name"), Is.Empty);
@@ -163,17 +160,50 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         }
 
         /// <summary>
-        /// Verifies unavailable and whitespace-only property values use an em dash.
+        /// Verifies unavailable and whitespace-only property values are omitted.
         /// </summary>
         [Test]
-        public void VerifyMissingPropertyValuesUseFallback()
+        public void VerifyMissingPropertyValuesAreOmitted()
         {
             var element = CreateElement(null, string.Empty, " ", "Display name", "\t");
             this.SetSelectedElement(element);
             var component = this.Render<DetailsPanelComponent>();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
-            Assert.That(values, Is.EqualTo(ExpectedMissingPropertyValues));
+            Assert.That(values, Is.Empty);
+        }
+
+        [Test]
+        public void VerifySdkPropertiesAndDocumentationFollowSelection()
+        {
+            var documentation = new Documentation { Body = "A <script>plain-text</script> description." };
+            var part = ProjectBrowserNodeTestFactory.CreateElement<PartUsage>("part", "Power harness", documentation);
+            part.IsComposite = true;
+            this.SetSelectedElement(part);
+            var component = this.Render<DetailsPanelComponent>();
+            var classification = component.Find("section[aria-label='Classification']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("section[aria-label='Identity']"), Is.Not.Null);
+                Assert.That(classification.TextContent, Does.Contain("composite"));
+                Assert.That(classification.TextContent, Does.Not.Contain("Multiplicity"));
+                Assert.That(classification.TextContent, Does.Not.Contain("Typed by"));
+                Assert.That(component.Find(".mb-details-panel__documentation").TextContent,
+                    Is.EqualTo(documentation.Body));
+                Assert.That(component.FindAll("script"), Is.Empty);
+                Assert.That(component.FindAll("input"), Is.Empty);
+                Assert.That(component.FindAll(".mb-details-panel__section-title").Select(heading => heading.TextContent),
+                    Is.EqualTo(new[] { "Identity", "Documentation", "Classification" }));
+            }
+
+            this.SetSelectedElement(documentation);
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(component.Find(".mb-details-panel__documentation").TextContent,
+                    Is.EqualTo(documentation.Body));
+                Assert.That(component.FindAll("section[aria-label='Classification']"), Is.Empty);
+            });
         }
 
         /// <summary>
@@ -307,7 +337,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(section.ClassList, Does.Contain("custom-details"));
                 Assert.That(section.GetAttribute("data-testid"), Is.EqualTo("details-panel"));
                 Assert.That(headingId, Is.Not.Empty);
-                Assert.That(component.Find($"#{headingId}").TextContent.Trim(), Is.EqualTo("Details"));
+                Assert.That(component.Find($"#{headingId}").TextContent.Trim(), Is.EqualTo("Properties"));
                 Assert.That(section.QuerySelectorAll("dl"), Has.Length.EqualTo(1));
                 Assert.That(section.QuerySelectorAll("dl > div"), Has.Length.EqualTo(4));
             }
