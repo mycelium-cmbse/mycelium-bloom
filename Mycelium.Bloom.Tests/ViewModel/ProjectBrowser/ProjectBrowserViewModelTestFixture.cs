@@ -423,7 +423,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies available Type choices come from distinct concrete non-relationship elements in the loaded model.
+        /// Verifies available Type choices come from distinct concrete navigable elements in the loaded model.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncDiscoversAvailableConcreteElementTypes()
@@ -445,8 +445,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Documentation)));
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Membership)));
                 Assert.That(
-                    Flatten(viewModel.RootNodes[0]).Any(node => node.SourceElement is Membership),
-                    Is.True);
+                    Flatten(viewModel.RootNodes[0]).Where(node => node.SourceElement is Membership),
+                    Is.Empty);
                 Assert.That(((IList<Type>)viewModel.AvailableElementTypes).IsReadOnly, Is.True);
             }
         }
@@ -912,7 +912,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(collectionPublicationWasCoherent, Is.True);
-                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(4));
+                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(3));
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
             }
         }
@@ -1244,7 +1244,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies Type filter state accepts only available non-relationship element types.
+        /// Verifies Type filter state accepts only available navigable element types.
         /// </summary>
         [Test]
         public async Task VerifyToggleElementTypeFilterRejectsUnavailableTypes()

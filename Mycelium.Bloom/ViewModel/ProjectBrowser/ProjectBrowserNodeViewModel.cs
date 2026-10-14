@@ -24,6 +24,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private bool isExpanded;
 
         /// <summary>
+        /// The hidden elements whose local navigation target is this node.
+        /// </summary>
+        private readonly IReadOnlyList<IElement> hiddenElements;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserNodeViewModel" /> class.
         /// </summary>
         /// <param name="id">The unique node identifier used by the project browser.</param>
@@ -43,8 +48,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.ElementId = metadata.ElementId;
             this.QualifiedName = metadata.QualifiedName;
             this.ElementType = metadata.SourceElement.GetType();
+            this.Presentation = ProjectBrowserElementPresentation.For(this.ElementType);
             this.Children = children;
             this.SourceElement = metadata.SourceElement;
+            this.hiddenElements = metadata.HiddenElements;
+            this.Multiplicity = ElementPresentation.GetMultiplicity(this.SourceElement);
         }
 
         /// <summary>
@@ -73,6 +81,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         public Type ElementType { get; }
 
         /// <summary>
+        /// Gets the semantic kind, supported stereotype and icon for the row.
+        /// </summary>
+        public ProjectBrowserElementPresentation Presentation { get; }
+
+        /// <summary>
         /// Gets the child nodes built from the SysML owned element hierarchy.
         /// </summary>
         public IReadOnlyList<ProjectBrowserNodeViewModel> Children { get; }
@@ -81,6 +94,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the source SysML element represented by the node.
         /// </summary>
         public IElement SourceElement { get; }
+
+        /// <summary>
+        /// Gets the resolved multiplicity annotation, when available.
+        /// </summary>
+        public string Multiplicity { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the node is expanded.
@@ -105,9 +123,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(element);
 
-            if (ReferenceEquals(this.SourceElement, element)
-                || (!string.IsNullOrWhiteSpace(element.ElementId)
-                    && string.Equals(this.ElementId, element.ElementId, StringComparison.Ordinal)))
+            if (MatchesIdentity(this.SourceElement, element)
+                || this.hiddenElements.Any(hidden => MatchesIdentity(hidden, element)))
             {
                 return [this];
             }
@@ -119,6 +136,16 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return childPath is null
                 ? Array.Empty<ProjectBrowserNodeViewModel>()
                 : [this, .. childPath];
+        }
+
+        /// <summary>
+        /// Compares canonical references or available model identifiers.
+        /// </summary>
+        private static bool MatchesIdentity(IElement candidate, IElement target)
+        {
+            return ReferenceEquals(candidate, target)
+                   || (!string.IsNullOrWhiteSpace(target.ElementId)
+                       && string.Equals(candidate.ElementId, target.ElementId, StringComparison.Ordinal));
         }
     }
 }

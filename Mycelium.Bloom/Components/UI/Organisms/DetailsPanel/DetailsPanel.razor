@@ -11,19 +11,23 @@
 
 @inherits BloomReactiveInjectableComponentBase<IElementSelectionService>
 
+@{
+    var presentation = this.GetPresentation();
+}
+
 <section class="@(this.GetCssClass())"
          aria-labelledby="@(this.headingId)"
          @attributes="this.AdditionalAttributes">
     <header class="mb-details-panel__header">
         <div class="mb-details-panel__heading-content">
             <h2 id="@(this.headingId)" class="mb-details-panel__title">
-                Details
+                Properties
             </h2>
 
-            @if (this.SelectedElement is not null)
+            @if (presentation is not null)
             {
                 <p class="mb-details-panel__element-name">
-                    @(GetDisplayName(this.SelectedElement))
+                    @(presentation.DisplayName)
                 </p>
             }
         </div>
@@ -47,7 +51,7 @@
         }
     </header>
 
-    @if (this.SelectedElement is null)
+    @if (presentation is null)
     {
         <p class="mb-details-panel__empty">
             Select an element to display its details.
@@ -55,26 +59,27 @@
     }
     else
     {
-        <dl class="mb-details-panel__properties">
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">ID</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.ElementId))</dd>
-            </div>
-
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">Declared name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.DeclaredName))</dd>
-            </div>
-
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">Declared short name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.DeclaredShortName))</dd>
-            </div>
-
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">Qualified name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.qualifiedName))</dd>
-            </div>
-        </dl>
+        @foreach (var section in presentation.Sections)
+        {
+            <section class="mb-details-panel__section" aria-label="@section.Title">
+                <h3 class="mb-details-panel__section-title">@section.Title</h3>
+                @if (section.Properties.Count > 0)
+                {
+                    <dl class="mb-details-panel__properties">
+                        @foreach (var property in section.Properties)
+                        {
+                            <div class="mb-details-panel__property">
+                                <dt class="mb-details-panel__label">@property.Key</dt>
+                                <dd class="mb-details-panel__value">@property.Value</dd>
+                            </div>
+                        }
+                    </dl>
+                }
+                @foreach (var body in section.Paragraphs)
+                {
+                    <p class="mb-details-panel__documentation">@body</p>
+                }
+            </section>
+        }
     }
 </section>
