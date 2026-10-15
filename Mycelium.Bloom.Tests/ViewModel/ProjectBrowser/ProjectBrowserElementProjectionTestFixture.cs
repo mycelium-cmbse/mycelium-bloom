@@ -131,8 +131,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var first = new ProjectBrowserViewModel(loader.Object, selection);
             using var second = new ProjectBrowserViewModel(loader.Object, selection);
 
-            Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
-            Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            await Assert.MultipleAsync(async () =>
+            {
+                Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
+                Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            });
             var node = first.RootNodes[0].Children.Single();
             var leafNode = node.Children.Single();
 
@@ -258,8 +261,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var second = new ProjectBrowserViewModel(loader.Object, selection);
             first.FocusElement(documentation);
 
-            Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
-            Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            await Assert.MultipleAsync(async () =>
+            {
+                Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
+                Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            });
             var firstPart = first.RootNodes[0].Children.Single();
             var secondPart = second.RootNodes[0].Children.Single();
 

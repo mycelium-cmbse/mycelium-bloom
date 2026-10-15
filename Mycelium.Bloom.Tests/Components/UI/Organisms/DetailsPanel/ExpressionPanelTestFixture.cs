@@ -216,8 +216,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             loader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
             using var first = new ProjectBrowserViewModel(loader.Object, this.selection);
             using var second = new ProjectBrowserViewModel(loader.Object, this.selection);
-            Assert.That(await first.InitializeAsync(System.Threading.CancellationToken.None), Is.True);
-            Assert.That(await second.InitializeAsync(System.Threading.CancellationToken.None), Is.True);
+            await Assert.MultipleAsync(async () =>
+            {
+                Assert.That(await first.InitializeAsync(System.Threading.CancellationToken.None), Is.True);
+                Assert.That(await second.InitializeAsync(System.Threading.CancellationToken.None), Is.True);
+            });
             this.selection.SelectedElement = dimensions;
             var component = this.Render<Panel>();
             var input = dimensions.ownedElement[0].ownedElement[0];

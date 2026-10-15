@@ -170,8 +170,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selection = new ContextAwareService();
             using var first = new ProjectBrowserViewModel(loader.Object, selection);
             using var second = new ProjectBrowserViewModel(loader.Object, selection);
-            Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
-            Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            await Assert.MultipleAsync(async () =>
+            {
+                Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
+                Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            });
             var chainNode = first.RootNodes[0].Children.Single().Children.Single();
             var portNode = chainNode.Children.Single(node => node.SourceElement == port);
 
