@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Exceptions;
 
     /// <summary>
     /// Represents one SysML element node in the project browser tree.
@@ -52,7 +53,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.Children = children;
             this.SourceElement = metadata.SourceElement;
             this.hiddenElements = metadata.HiddenElements;
-            this.Multiplicity = ElementPresentation.GetMultiplicity(this.SourceElement);
+            try
+            {
+                this.Multiplicity = ElementPresentation.GetMultiplicity(this.SourceElement);
+            }
+            catch (IncompleteModelException)
+            {
+                this.Multiplicity = null;
+            }
         }
 
         /// <summary>

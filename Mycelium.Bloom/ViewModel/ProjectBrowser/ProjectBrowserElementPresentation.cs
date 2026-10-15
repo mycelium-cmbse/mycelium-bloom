@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Kernel.Associations;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Functions;
+    using SysML2.NET.Core.POCO.Kernel.Connectors;
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -40,7 +41,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets the label for an element without an available model name.
         /// </summary>
-        public string UnnamedLabel => this.Kind == "Namespace" ? "Model" : $"Unnamed {this.Kind.ToLowerInvariant()}";
+        public string UnnamedLabel => this.Kind == "Namespace" ? "Model" : this.Kind;
 
         /// <summary>
         /// Maps SDK interfaces in specificity order to read-only row presentation.
@@ -59,6 +60,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 _ when typeof(ISuccessionFlowUsage).IsAssignableFrom(elementType) => new("Succession flow"),
                 _ when typeof(IFlowUsage).IsAssignableFrom(elementType) => new("Flow"),
                 _ when typeof(IConnectionUsage).IsAssignableFrom(elementType) => new("Connection"),
+                _ when typeof(IConnector).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
                 _ when typeof(IAssociation).IsAssignableFrom(elementType) => new("Association"),
                 _ when typeof(IViewUsage).IsAssignableFrom(elementType) => new("View", IconName: "network"),
                 _ when typeof(IViewDefinition).IsAssignableFrom(elementType) => new("View definition"),
@@ -76,13 +78,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 _ when typeof(IFeatureChainExpression).IsAssignableFrom(elementType) => new("Feature chain"),
                 _ when typeof(IFeatureReferenceExpression).IsAssignableFrom(elementType) => new("Feature reference"),
                 _ when typeof(IOperatorExpression).IsAssignableFrom(elementType) => new("Operator expression"),
-                _ when typeof(IExpression).IsAssignableFrom(elementType) => new("Expression"),
-                _ when typeof(IDefinition).IsAssignableFrom(elementType) => new("Definition"),
-                _ when typeof(IUsage).IsAssignableFrom(elementType) => new("Usage"),
-                _ when typeof(IClassifier).IsAssignableFrom(elementType) => new("Classifier"),
+                _ when typeof(IExpression).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
+                _ when typeof(IDefinition).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
+                _ when typeof(IUsage).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
+                _ when typeof(IClassifier).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
                 _ when typeof(IFeature).IsAssignableFrom(elementType) => new("Feature"),
                 _ when typeof(INamespace).IsAssignableFrom(elementType) => new("Namespace"),
-                _ => new("Element")
+                _ => new(ElementPresentation.GetKindName(elementType))
             };
         }
     }

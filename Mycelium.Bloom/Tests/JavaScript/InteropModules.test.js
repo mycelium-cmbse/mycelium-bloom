@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, test } from "node:test";
 
 import { JSDOM } from "jsdom";
+import { create as createWorkspaceShell } from "../../Components/UI/Organisms/WorkspaceShell/WorkspaceShell.razor.js";
 
 import {
     clearSearchInputValue,
@@ -31,6 +32,7 @@ const searchRegistrationIds = new Set();
 const emptySpaceRegistrationIds = new Set();
 const selectRegistrationIds = new Set();
 const workspaceGuardIds = new Set();
+const originalAbortController = globalThis.AbortController;
 
 before(async () => {
     const bootstrap = new JSDOM("<!doctype html><html><body></body></html>");
@@ -96,6 +98,138 @@ afterEach(() => {
     delete globalThis.MutationObserver;
     delete globalThis.getComputedStyle;
     delete globalThis.requestAnimationFrame;
+    delete globalThis.ResizeObserver;
+    globalThis.AbortController = originalAbortController;
+});
+
+function createResizableShell({ deferRender = false } = {}) {
+    document.body.innerHTML = `<section><div class="mb-workspace-shell__body" style="display:grid">
+        <aside class="mb-workspace-shell__left-panel"></aside>
+        <div class="mb-workspace-shell__main" tabindex="-1" data-narrow-active="true"></div>
+        <div class="mb-workspace-shell__right-splitter" tabindex="0"></div>
+        <aside class="mb-workspace-shell__right-panel" tabindex="-1"></aside>
+    </div></section>`;
+    globalThis.AbortController = window.AbortController;
+    let observer;
+    globalThis.ResizeObserver = class {
+        constructor(callback) { this.callback = callback; observer = this; }
+        observe() {}
+        unobserve() {}
+        disconnect() { this.disconnected = true; }
+    };
+    const root = document.querySelector('section');
+    const body = root.firstElementChild;
+    const handle = root.querySelector('.mb-workspace-shell__right-splitter');
+    const panel = root.querySelector('.mb-workspace-shell__right-panel');
+    let available = 1000;
+    Object.defineProperty(body, 'clientWidth', { get: () => available });
+    root.querySelector('.mb-workspace-shell__left-panel').getBoundingClientRect = () => ({ width: 56 });
+    handle.getBoundingClientRect = () => ({ width: 4 });
+    panel.getBoundingClientRect = () => ({ width: Number.parseFloat(body.style.getPropertyValue('--workspace-shell-effective-right-width')) || 380 });
+    const captures = new Set();
+    handle.setPointerCapture = id => captures.add(id);
+    handle.hasPointerCapture = id => captures.has(id);
+    handle.releasePointerCapture = id => captures.delete(id);
+    const changes = [];
+    let complete;
+    const committed = new Promise(resolve => { complete = resolve; });
+    const interaction = createWorkspaceShell(root, {
+        async invokeMethodAsync(method, width) {
+            assert.equal(method, 'CommitRightPanelWidth');
+            changes.push(width);
+            if (!deferRender) interaction.update(width, 260, 600, 320, null);
+            complete();
+        }
+    });
+    interaction.update(380, 260, 600, 320, null);
+    return { body, handle, captures, changes, committed, observer, interaction,
+        resize(width) { available = width; observer.callback(); },
+        pointer(type, x) {
+            const event = new window.Event(type, { bubbles: true, cancelable: true });
+            Object.assign(event, { button: 0, isPrimary: true, pointerId: 17, clientX: x });
+            handle.dispatchEvent(event);
+        }
+    };
+}
+
+test('workspace right splitter bounds geometry without overwriting the preferred width', () => {
+    const shell = createResizableShell();
+    try {
+        shell.interaction.update(600, 260, 600, 320, null);
+        shell.resize(800);
+        assert.equal(shell.handle.getAttribute('aria-valuemax'), '420');
+        assert.equal(shell.handle.getAttribute('aria-valuenow'), '420');
+        assert.deepEqual(shell.changes, []);
+        shell.resize(1200);
+        assert.equal(shell.handle.getAttribute('aria-valuenow'), '600');
+    } finally { shell.interaction.dispose(); }
+    assert.equal(shell.observer.disconnected, true);
+});
+
+test('workspace right splitter commits captured pointer resizing and releases capture', async () => {
+    const shell = createResizableShell();
+    try {
+        shell.pointer('pointerdown', 600);
+        shell.pointer('pointermove', 500);
+        assert.equal(shell.handle.getAttribute('aria-valuenow'), '480');
+        assert.deepEqual(shell.changes, []);
+        shell.pointer('pointerup', 500);
+        await shell.committed;
+        assert.deepEqual(shell.changes, [480]);
+        assert.equal(shell.captures.size, 0);
+    } finally { shell.interaction.dispose(); }
+});
+
+test('workspace right splitter cancels drag and ignores compact or disposed keyboard interaction', () => {
+    const shell = createResizableShell();
+    shell.pointer('pointerdown', 600);
+    shell.pointer('pointermove', 400);
+    shell.pointer('pointercancel', 400);
+    assert.equal(shell.handle.getAttribute('aria-valuenow'), '380');
+    assert.equal(shell.captures.size, 0);
+    shell.body.style.display = 'block';
+    shell.handle.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    assert.deepEqual(shell.changes, []);
+    shell.interaction.dispose();
+    shell.body.style.display = 'grid';
+    shell.pointer('pointerdown', 600);
+    assert.equal(shell.captures.size, 0);
+});
+
+test('workspace right splitter keyboard steps increase right width toward the left', async () => {
+    const shell = createResizableShell();
+    try {
+        const event = new window.KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true, cancelable: true });
+        shell.handle.dispatchEvent(event);
+        await shell.committed;
+        assert.equal(event.defaultPrevented, true);
+        assert.deepEqual(shell.changes, [430]);
+    } finally { shell.interaction.dispose(); }
+});
+
+test('workspace right splitter retains rapid keyboard intent across delayed and stale renders', async () => {
+    const shell = createResizableShell({ deferRender: true });
+    try {
+        shell.handle.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true }));
+        await shell.committed;
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(shell.handle.getAttribute('aria-valuenow'), '430');
+        shell.interaction.update(380, 260, 600, 320, null);
+        shell.body.style.removeProperty('--workspace-shell-effective-right-width');
+        shell.handle.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(shell.changes, [430, 440]);
+        shell.interaction.update(430, 260, 600, 320, null);
+        assert.equal(shell.handle.getAttribute('aria-valuenow'), '440');
+        shell.interaction.update(440, 260, 600, 320, null);
+        shell.body.style.removeProperty('--workspace-shell-effective-right-width');
+        shell.handle.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+        await new Promise(resolve => setImmediate(resolve));
+        assert.deepEqual(shell.changes, [430, 440, 450]);
+        shell.interaction.update(450, 260, 600, 320, null);
+        shell.interaction.update(400, 260, 600, 320, null);
+        assert.equal(shell.handle.getAttribute('aria-valuenow'), '400');
+    } finally { shell.interaction.dispose(); }
 });
 
 test("error recovery bootstrap leaves ordinary pages unchanged", async () => {

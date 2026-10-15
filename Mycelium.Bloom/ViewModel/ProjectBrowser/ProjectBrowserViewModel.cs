@@ -27,6 +27,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Exceptions;
 
     using IMultiplicity = SysML2.NET.Core.POCO.Core.Types.IMultiplicity;
 
@@ -546,15 +547,24 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 stagedElementTypes,
                 cancellationToken,
                 hiddenElements);
+            string qualifiedName;
+            try
+            {
+                qualifiedName = element.qualifiedName.ToDisplayString();
+            }
+            catch (IncompleteModelException)
+            {
+                qualifiedName = string.Empty;
+            }
             var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
-                element.qualifiedName.ToDisplayString(),
+                qualifiedName,
                 element,
                 hiddenElements);
 
             return new ProjectBrowserNodeViewModel(
                 nodeId,
-                GetDisplayName(element, ProjectBrowserElementPresentation.For(elementType).UnnamedLabel),
+                GetDisplayName(element),
                 metadata,
                 children);
         }
@@ -801,29 +811,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the best available display name for a SysML element.
         /// </summary>
         /// <param name="element">The SysML element to describe.</param>
-        /// <param name="unnamedLabel">The semantic label used when no model name is available.</param>
         /// <returns>The display name for the SysML element.</returns>
-        private static string GetDisplayName(IElement element, string unnamedLabel)
+        private static string GetDisplayName(IElement element)
         {
-            var declaredName = element.DeclaredName.ToDisplayString();
-
-            if (!string.IsNullOrWhiteSpace(declaredName))
-            {
-                return declaredName;
-            }
-
-            var name = element.name.ToDisplayString();
-
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                return name;
-            }
-
-            var qualifiedName = element.qualifiedName.ToDisplayString();
-
-            return string.IsNullOrWhiteSpace(qualifiedName)
-                ? unnamedLabel
-                : qualifiedName;
+            return ElementPresentation.GetDisplayName(element);
         }
     }
 }

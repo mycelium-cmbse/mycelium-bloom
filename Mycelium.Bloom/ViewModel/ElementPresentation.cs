@@ -10,12 +10,15 @@
 namespace Mycelium.Bloom.ViewModel
 {
     using System.Globalization;
+    using System.Text.RegularExpressions;
 
     using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Exceptions;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Formats supported SDK data without evaluating expressions or changing the model.
@@ -26,12 +29,37 @@ namespace Mycelium.Bloom.ViewModel
         /// Gets the first available element name for display.
         /// </summary>
         /// <param name="element">The element to describe.</param>
-        /// <returns>The available name or concrete SDK type.</returns>
+        /// <returns>An SDK name, semantic role, or explicit incomplete-name state.</returns>
         public static string GetDisplayName(IElement element)
         {
-            return new[] { element.DeclaredName, element.name, element.qualifiedName }
-                       .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))
-                   ?? element.GetType().Name;
+            if (!string.IsNullOrWhiteSpace(element.DeclaredName)) return element.DeclaredName;
+            if (!string.IsNullOrWhiteSpace(element.DeclaredShortName)) return element.DeclaredShortName;
+            var incomplete = false;
+            foreach (var read in new Func<string>[] { () => element.name, () => element.shortName })
+            {
+                try
+                {
+                    var name = read();
+                    if (!string.IsNullOrWhiteSpace(name)) return name;
+                }
+                catch (IncompleteModelException)
+                {
+                    incomplete = true;
+                }
+            }
+            var role = ProjectBrowserElementPresentation.For(element.GetType()).UnnamedLabel;
+            return incomplete ? $"{role} (name unresolved)" : role;
+        }
+
+        /// <summary>Labels an SDK metaclass without exposing its implementation identifier as prose.</summary>
+        /// <param name="type">The SDK type being presented.</param>
+        /// <returns>A readable metaclass label or the neutral element role.</returns>
+        public static string GetKindName(System.Type type)
+        {
+            if (type.Assembly != typeof(IElement).Assembly) return "Element";
+            var name = type.IsInterface ? type.Name[1..] : type.Name;
+            var words = Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ");
+            return words.Length == 0 ? "Element" : words[..1] + words[1..].ToLowerInvariant();
         }
 
         /// <summary>
@@ -79,6 +107,7 @@ namespace Mycelium.Bloom.ViewModel
                 ILiteralInteger integer => integer.Value.ToString(CultureInfo.InvariantCulture),
                 ILiteralRational rational when double.IsFinite(rational.Value) => rational.Value.ToString(CultureInfo.InvariantCulture),
                 ILiteralBoolean boolean => boolean.Value ? "true" : "false",
+                ILiteralString { Value: "" } => "Empty string",
                 ILiteralString text => text.Value,
                 _ => null
             };

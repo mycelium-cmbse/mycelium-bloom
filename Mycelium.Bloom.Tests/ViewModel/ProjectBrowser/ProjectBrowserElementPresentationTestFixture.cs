@@ -86,7 +86,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var presentation = ProjectBrowserElementPresentation.For(element.GetType());
 
             Assert.That(presentation.Kind, Is.EqualTo("Element"));
-            Assert.That(presentation.UnnamedLabel, Is.EqualTo("Unnamed element"));
+            Assert.That(presentation.UnnamedLabel, Is.EqualTo("Element"));
             Assert.That(presentation.Stereotype, Is.Null);
             Assert.That(presentation.IconName, Is.Null);
         }

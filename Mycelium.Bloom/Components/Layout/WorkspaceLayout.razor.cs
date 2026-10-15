@@ -18,6 +18,9 @@ namespace Mycelium.Bloom.Components.Layout
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.WorkspaceLayout;
+    using ReactiveUI;
+    using Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell;
 
     /// <summary>
     /// Composes the shared application frame for routed engineering-workspace pages.
@@ -35,9 +38,18 @@ namespace Mycelium.Bloom.Components.Layout
         private bool isNavigationCollapsed = true;
 
         /// <summary>
-        /// A value indicating whether the workspace inspector is visible.
+        /// The stable focus-return target for the Properties region.
         /// </summary>
-        private bool isDetailsPanelOpen = true;
+        private readonly string propertiesToggleId = $"properties-toggle-{Guid.NewGuid():N}";
+
+        /// <summary>The generic shell rendered by this layout.</summary>
+        private WorkspaceShell workspaceShell;
+
+        /// <summary>The mounted Properties feature receiving explicit browser-selection intentions.</summary>
+        private Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel propertiesPanel;
+
+        /// <summary>Gets the region preferences owned solely by this layout.</summary>
+        private WorkspaceLayoutViewModel LayoutState { get; } = new();
 
         /// <summary>
         /// A value indicating whether final layout disposal has occurred.
@@ -116,6 +128,18 @@ namespace Mycelium.Bloom.Components.Layout
                 this.NavigationViewModel = navigationViewModel;
                 this.UrlContextService = urlContextService;
                 this.ObserveUrlContext();
+                this.urlContextSubscriptions.Add(this.LayoutState
+                    .WhenAnyValue(state => state.PropertiesCollapsed, state => state.PropertiesWidth)
+                    .Skip(1)
+                    .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                    {
+                        if (!this.isDisposed)
+                        {
+                            this.StateHasChanged();
+                        }
+                    })))
+                    .Concat()
+                    .Subscribe(_ => { }, exception => this.Logger.LogError(exception, "Workspace region rendering failed.")));
             }
             catch
             {
@@ -229,20 +253,30 @@ namespace Mycelium.Bloom.Components.Layout
         }
 
         /// <summary>
-        /// Closes the workspace inspector.
-        /// </summary>
-        private void CloseDetailsPanel()
-        {
-            this.isDetailsPanelOpen = false;
-        }
-
-        /// <summary>
         /// Toggles the workspace inspector visibility.
         /// </summary>
         private void ToggleDetailsPanel()
         {
-            this.isDetailsPanelOpen = !this.isDetailsPanelOpen;
+            this.LayoutState.PropertiesCollapsed = !this.LayoutState.PropertiesCollapsed;
+            if (!this.LayoutState.PropertiesCollapsed)
+            {
+                this.workspaceShell?.RevealRightPanel();
+            }
         }
+
+        /// <summary>Reveals Properties only for an explicit composition-owned user intent.</summary>
+        private void RevealProperties()
+        {
+            if (!this.isDisposed)
+            {
+                this.propertiesPanel?.ViewModel.ResetInspectionHistory();
+                this.LayoutState.PropertiesCollapsed = false;
+                this.workspaceShell?.RevealRightPanel();
+            }
+        }
+
+        /// <summary>Retains a user-selected width without storing responsive geometry.</summary>
+        private void HandlePropertiesWidthChanged(double width) => this.LayoutState.PropertiesWidth = width;
 
         /// <summary>
         /// Gets the accessible action label for the workspace inspector toggle.
@@ -250,7 +284,7 @@ namespace Mycelium.Bloom.Components.Layout
         /// <returns>The action performed by the toggle.</returns>
         private string GetDetailsPanelToggleLabel()
         {
-            return this.isDetailsPanelOpen ? "Close details panel" : "Open details panel";
+            return this.LayoutState.PropertiesCollapsed ? "Expand Properties" : "Collapse Properties";
         }
 
         /// <summary>
@@ -259,7 +293,7 @@ namespace Mycelium.Bloom.Components.Layout
         /// <returns>The Lucide icon name.</returns>
         private string GetDetailsPanelToggleIconName()
         {
-            return this.isDetailsPanelOpen ? "panel-right-close" : "panel-right-open";
+            return this.LayoutState.PropertiesCollapsed ? "panel-right-open" : "panel-right-close";
         }
 
         /// <summary>

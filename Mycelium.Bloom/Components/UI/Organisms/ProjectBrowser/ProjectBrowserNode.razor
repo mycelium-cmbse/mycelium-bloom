@@ -17,6 +17,7 @@
     <div @attributes="this.AdditionalAttributes"
          class="@(this.BuildRootCssClass("mb-project-browser-node"))"
          role="treeitem" aria-expanded="@(GetAriaExpanded(nodePresentation))"
+         data-element-id="@viewModel.ElementId"
          aria-selected="@(this.GetAriaSelected())">
         <div class="mb-project-browser-node__line">
             <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())" aria-hidden="true"></span>
