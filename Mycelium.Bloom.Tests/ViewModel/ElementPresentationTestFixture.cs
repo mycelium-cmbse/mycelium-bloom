@@ -21,6 +21,16 @@ namespace Mycelium.Bloom.Tests.ViewModel
     [TestFixture]
     public sealed class ElementPresentationTestFixture
     {
+        [TestCase(typeof(PartUsage), "Part usage")]
+        [TestCase(typeof(IPartUsage), "Part usage")]
+        [TestCase(typeof(FeatureReferenceExpression), "Feature reference expression")]
+        [TestCase(typeof(ILiteralInteger), "Literal integer")]
+        [TestCase(typeof(ElementPresentationTestFixture), "Element")]
+        public void VerifyGetKindName(System.Type type, string expected)
+        {
+            Assert.That(ElementPresentation.GetKindName(type), Is.EqualTo(expected));
+        }
+
         [TestCase(null, 4, "[4]")]
         [TestCase(0, 4, "[0..4]")]
         [TestCase(0, null, "[0..*]")]

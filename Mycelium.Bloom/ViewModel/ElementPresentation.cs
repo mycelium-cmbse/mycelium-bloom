@@ -58,7 +58,7 @@ namespace Mycelium.Bloom.ViewModel
         {
             if (type.Assembly != typeof(IElement).Assembly) return "Element";
             var name = type.IsInterface ? type.Name[1..] : type.Name;
-            var words = Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ");
+            var words = Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ", RegexOptions.None, TimeSpan.FromMilliseconds(100));
             return words.Length == 0 ? "Element" : words[..1] + words[1..].ToLowerInvariant();
         }
 
