@@ -62,12 +62,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var browser = new ProjectBrowserViewModel(loader.Object, selection);
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var node = browser.RootNodes.Single().Children.Single();
-            Assert.That(node.DisplayName, Does.Contain("name unresolved"));
-            Assert.That(node.Multiplicity, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.DisplayName, Does.Contain("name unresolved"));
+                Assert.That(node.Multiplicity, Is.Null);
+            }
             browser.SelectNode(node);
-            Assert.That(selection.SelectedElement, Is.SameAs(feature.Object));
-            Assert.That(new Mycelium.Bloom.ViewModel.DetailsPanel.DetailsPanelPresentation(feature.Object).ModelLinks
-                .Single(link => link.Role == "Multiplicity").Label, Does.Contain("Unresolved"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(feature.Object));
+                Assert.That(new Mycelium.Bloom.ViewModel.DetailsPanel.DetailsPanelPresentation(feature.Object).ModelLinks
+                    .Single(link => link.Role == "Multiplicity").Label, Does.Contain("Unresolved"));
+            }
         }
 
         [TestCase(true, TypeArgs = [typeof(IPackage)])]
@@ -157,13 +163,19 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             selection.SelectedElement = intermediate;
             first.FocusElement(intermediate);
-            Assert.That(first.SelectedNode, Is.SameAs(node));
-            Assert.That(selection.SelectedElement, Is.SameAs(intermediate));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.SelectedNode, Is.SameAs(node));
+                Assert.That(selection.SelectedElement, Is.SameAs(intermediate));
+            }
 
             first.ClearFilter();
             first.FocusElement(leaf);
-            Assert.That(first.SelectedNode, Is.SameAs(leafNode));
-            Assert.That(node.IsExpanded, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.SelectedNode, Is.SameAs(leafNode));
+                Assert.That(node.IsExpanded, Is.True);
+            }
             first.ToggleNode(node);
             Assert.That(node.IsExpanded, Is.False);
             first.FocusElement(new PartUsage { ElementId = "leaf" });
@@ -215,14 +227,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             selection.SelectedElement = inner;
             browser.FocusElement(inner);
-            Assert.That(browser.SelectedNode, Is.SameAs(partNode));
-            Assert.That(selection.SelectedElement, Is.SameAs(inner));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browser.SelectedNode, Is.SameAs(partNode));
+                Assert.That(selection.SelectedElement, Is.SameAs(inner));
+            }
 
             var containment = part.OwnedRelationship.Single();
             selection.SelectedElement = containment;
             browser.FocusElement(containment);
-            Assert.That(browser.SelectedNode, Is.SameAs(partNode));
-            Assert.That(selection.SelectedElement, Is.SameAs(containment));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browser.SelectedNode, Is.SameAs(partNode));
+                Assert.That(selection.SelectedElement, Is.SameAs(containment));
+            }
         }
 
         [Test]

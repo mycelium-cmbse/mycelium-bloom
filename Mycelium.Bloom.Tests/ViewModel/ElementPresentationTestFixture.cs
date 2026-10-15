@@ -58,8 +58,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var part = new Mock<IPartUsage>();
             part.SetupGet(value => value.multiplicity).Returns(range.Object);
 
-            Assert.That(ElementPresentation.GetMultiplicity(new PartUsage()), Is.Null);
-            Assert.That(ElementPresentation.GetMultiplicity(part.Object), Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ElementPresentation.GetMultiplicity(new PartUsage()), Is.Null);
+                Assert.That(ElementPresentation.GetMultiplicity(part.Object), Is.Null);
+            }
 
             range.SetupGet(value => value.upperBound).Returns(Mock.Of<IExpression>());
             Assert.That(ElementPresentation.GetMultiplicity(part.Object), Is.Null);

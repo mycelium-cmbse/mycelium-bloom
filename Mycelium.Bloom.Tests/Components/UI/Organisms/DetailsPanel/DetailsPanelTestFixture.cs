@@ -15,7 +15,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
     using Bunit;
 
-    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
@@ -38,6 +37,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class DetailsPanelTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedDisplayNameValues = ["Display name"];
+
+        private static readonly string[] ExpectedDocumentedPartSections = ["Identity", "Documentation", "Classification"];
         /// <summary>
         /// The expected labels in their required display order.
         /// </summary>
@@ -170,9 +172,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             Assert.That(this.selectionService.SelectedElement, Is.Null);
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Properties"));
-                Assert.That(component.Find(".mb-details-panel__empty"), Is.Not.Null);
-                Assert.That(component.FindAll("button[aria-label='Clear selection']"), Is.Empty);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Properties"));
+                    Assert.That(component.Find(".mb-details-panel__empty"), Is.Not.Null);
+                    Assert.That(component.FindAll("button[aria-label='Clear selection']"), Is.Empty);
+                }
             });
         }
 
@@ -187,7 +192,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var component = this.Render<DetailsPanelComponent>();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
-            Assert.That(values, Is.EqualTo(new[] { "Display name" }));
+            Assert.That(values, Is.EqualTo(ExpectedDisplayNameValues));
         }
 
         [Test]
@@ -211,15 +216,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(component.FindAll("script"), Is.Empty);
                 Assert.That(component.FindAll("input"), Is.Empty);
                 Assert.That(component.FindAll(".mb-details-panel__section-title").Select(heading => heading.TextContent),
-                    Is.EqualTo(new[] { "Identity", "Documentation", "Classification" }));
+                    Is.EqualTo(ExpectedDocumentedPartSections));
             }
 
             this.SetSelectedElement(documentation);
             component.WaitForAssertion(() =>
             {
-                Assert.That(component.Find(".mb-details-panel__documentation").TextContent,
-                    Is.EqualTo(documentation.Body));
-                Assert.That(component.FindAll("section[aria-label='Classification']"), Is.Empty);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__documentation").TextContent,
+                        Is.EqualTo(documentation.Body));
+                    Assert.That(component.FindAll("section[aria-label='Classification']"), Is.Empty);
+                }
             });
         }
 

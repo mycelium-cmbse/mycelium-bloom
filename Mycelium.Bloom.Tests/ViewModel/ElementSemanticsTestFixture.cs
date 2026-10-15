@@ -49,13 +49,16 @@ namespace Mycelium.Bloom.Tests.ViewModel
             specific.AssignOwnership(new Redefinition { RedefiningFeature = specific, RedefinedFeature = general });
             var snapshot = new DetailsPanelPresentation(specific);
             var identity = snapshot.Sections.Single(section => section.Title == "Identity").Properties.ToDictionary();
-            Assert.That(snapshot.DisplayName, Is.EqualTo(specific.EffectiveName()));
-            Assert.That(identity["Effective name"], Is.EqualTo("dimensions"));
-            Assert.That(identity["Effective short name"], Is.EqualTo("dim"));
-            Assert.That(identity["Name source"], Does.Contain("SDK naming feature"));
-            Assert.That(snapshot.ModelLinks.Single(link => link.Role == "Naming feature").Element, Is.SameAs(general));
-            Assert.That(specific.DeclaredName, Is.Null);
-            Assert.That(specific.DeclaredShortName, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(snapshot.DisplayName, Is.EqualTo(specific.EffectiveName()));
+                Assert.That(identity["Effective name"], Is.EqualTo("dimensions"));
+                Assert.That(identity["Effective short name"], Is.EqualTo("dim"));
+                Assert.That(identity["Name source"], Does.Contain("SDK naming feature"));
+                Assert.That(snapshot.ModelLinks.Single(link => link.Role == "Naming feature").Element, Is.SameAs(general));
+                Assert.That(specific.DeclaredName, Is.Null);
+                Assert.That(specific.DeclaredShortName, Is.Null);
+            }
         }
 
         [Test]
@@ -64,9 +67,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var feature = new Mock<IFeature>();
             feature.SetupGet(element => element.name).Throws(new IncompleteModelException("Missing naming feature"));
             var snapshot = new DetailsPanelPresentation(feature.Object);
-            Assert.That(snapshot.DisplayName, Does.Contain("name unresolved"));
-            Assert.That(snapshot.Sections.Single(section => section.Title == "Identity").Properties
-                .Single(property => property.Key == "Name source").Value, Is.EqualTo("Unresolved name"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(snapshot.DisplayName, Does.Contain("name unresolved"));
+                Assert.That(snapshot.Sections.Single(section => section.Title == "Identity").Properties
+                    .Single(property => property.Key == "Name source").Value, Is.EqualTo("Unresolved name"));
+            }
         }
 
         [Test]
@@ -75,14 +81,17 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var elements = Descendants(LoadQuantities()).OfType<IFeature>().ToArray();
             var dimensions = elements.Single(element => element.name == "dimensions");
             var order = elements.Single(element => element.name == "order");
-            Assert.That(dimensions.DeclaredName, Is.Null);
-            Assert.That(dimensions.NamingFeature().name, Is.EqualTo("dimensions"));
-            Assert.That(dimensions.ownedRedefinition.Single().RedefinedFeature, Is.SameAs(dimensions.NamingFeature()));
-            Assert.That(new DetailsPanelPresentation(dimensions).Sections.Single(section => section.Title == "Value")
-                .Properties.Single().Value, Is.EqualTo("Local binding: mRef.dimensions"));
-            Assert.That(order.DeclaredName, Is.EqualTo("order"));
-            Assert.That(order.ownedRedefinition.Single().RedefinedFeature.name, Is.EqualTo("rank"));
-            Assert.That(ElementPresentation.GetDisplayName(order), Is.EqualTo("order"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dimensions.DeclaredName, Is.Null);
+                Assert.That(dimensions.NamingFeature().name, Is.EqualTo("dimensions"));
+                Assert.That(dimensions.ownedRedefinition.Single().RedefinedFeature, Is.SameAs(dimensions.NamingFeature()));
+                Assert.That(new DetailsPanelPresentation(dimensions).Sections.Single(section => section.Title == "Value")
+                    .Properties.Single().Value, Is.EqualTo("Local binding: mRef.dimensions"));
+                Assert.That(order.DeclaredName, Is.EqualTo("order"));
+                Assert.That(order.ownedRedefinition.Single().RedefinedFeature.name, Is.EqualTo("rank"));
+                Assert.That(ElementPresentation.GetDisplayName(order), Is.EqualTo("order"));
+            }
         }
 
         [TestCase(false, false, "Local binding")]
@@ -116,13 +125,19 @@ namespace Mycelium.Bloom.Tests.ViewModel
             panel.Inspect(link.Element);
             Assert.That(selection.SelectedElement, Is.SameAs(range));
             panel.Inspect(panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Upper bound").Element);
-            Assert.That(selection.SelectedElement, Is.SameAs(bound));
-            Assert.That(panel.Presentation.Expressions.Single().Reference, Is.SameAs(referenced));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(bound));
+                Assert.That(panel.Presentation.Expressions.Single().Reference, Is.SameAs(referenced));
+            }
             panel.GoBack();
             Assert.That(selection.SelectedElement, Is.SameAs(range));
             panel.GoBack();
-            Assert.That(selection.SelectedElement, Is.SameAs(feature));
-            Assert.That(feature.ownedElement.Single(), Is.SameAs(range));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(feature));
+                Assert.That(feature.ownedElement.Single(), Is.SameAs(range));
+            }
         }
     }
 }

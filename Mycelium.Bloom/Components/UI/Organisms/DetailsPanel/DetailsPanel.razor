@@ -65,17 +65,17 @@
         {
             <section class="mb-details-panel__section" aria-label="Expression" @key="presentation.Element">
                 <h3 class="mb-details-panel__section-title">Expression</h3>
-                @foreach (var group in presentation.ExpressionNotations)
+                @foreach (var notation in presentation.ExpressionNotations.Select(group => group.TextualNotation))
                 {
                     <div class="mb-details-panel__notation">
                         <p class="mb-details-panel__notation-label">SDK textual notation</p>
-                        @if (group.TextualNotation.Text is { } text)
+                        @if (notation.Text is { } text)
                         {
                             <pre class="mb-details-panel__notation-text"><code>@text</code></pre>
                         }
                         else
                         {
-                            <p class="mb-details-panel__documentation">@group.TextualNotation.UnavailableReason</p>
+                            <p class="mb-details-panel__documentation">@notation.UnavailableReason</p>
                         }
                     </div>
                 }

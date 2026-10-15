@@ -20,7 +20,6 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Exceptions;
 
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Represents one read-only expression group with its canonical element and membership.
@@ -143,65 +142,65 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 || node.Children.Any(HasUnavailableStructure);
         }
 
-        /// <summary>Reads one optional SDK property without suppressing unrelated failures.</summary>
-        private static T Read<T>(Func<T> read, out bool incomplete)
-        {
-            try
-            {
-                incomplete = false;
-                return read();
-            }
-            catch (IncompleteModelException)
-            {
-                incomplete = true;
-                return default;
-            }
-        }
-
-        /// <summary>Retains inspection unless an anonymous structural feature is confirmed empty.</summary>
-        private static bool HasInspectionContent(IElement element)
-        {
-            if (element is not IFeature feature || element is IExpression or IUsage
-                || !string.IsNullOrWhiteSpace(element.DeclaredName)
-                || !string.IsNullOrWhiteSpace(element.DeclaredShortName))
-            {
-                return true;
-            }
-
-            var name = Read(() => element.name, out var incompleteName);
-            var relationships = Read(() => element.OwnedRelationship, out var incompleteRelationships);
-            var types = Read(() => feature.type, out var incompleteTypes);
-            var additionalContent = Read(() => feature.multiplicity is not null
-                || feature.documentation is { Count: > 0 } || feature.textualRepresentation is { Count: > 0 }
-                || feature.ownedAnnotation is { Count: > 0 }, out var incompleteContent);
-            return incompleteName || incompleteRelationships || incompleteTypes || incompleteContent || additionalContent
-                || !string.IsNullOrWhiteSpace(name) || relationships is { Count: > 0 } || types is { Count: > 0 }
-                || feature.AliasIds is { Count: > 0 } || feature.IsComposite || feature.IsOrdered || feature.IsAbstract
-                || feature.IsDerived || feature.IsEnd || !feature.IsUnique || feature.IsConstant || feature.IsVariable
-                || feature.IsPortion || feature.IsSufficient || feature.IsImpliedIncluded;
-        }
-
-        /// <summary>Keeps memberships with additional information or unresolved structure inspectable.</summary>
-        private static bool HasMembershipContent(IMembership membership, bool elementHasContent)
-        {
-            if (membership is null) return false;
-            if (elementHasContent || !string.IsNullOrWhiteSpace(membership.DeclaredName)
-                || !string.IsNullOrWhiteSpace(membership.DeclaredShortName)) return true;
-            var members = Read(() => membership.OwnedRelatedElement, out var incompleteMembers);
-            var relationships = Read(() => membership.OwnedRelationship, out var incompleteRelationships);
-            return incompleteMembers || incompleteRelationships || members is { Count: > 1 }
-                || relationships is { Count: > 0 };
-        }
-
-        /// <summary>Uses available names before a semantic kind, without requiring qualified-name resolution.</summary>
-        private static string Name(IElement element)
-        {
-            return ElementPresentation.GetDisplayName(element);
-        }
-
         /// <summary>Owns traversal limits for one immutable selection snapshot.</summary>
         private sealed class Builder
         {
+            /// <summary>Reads one optional SDK property without suppressing unrelated failures.</summary>
+            private static T Read<T>(Func<T> read, out bool incomplete)
+            {
+                try
+                {
+                    incomplete = false;
+                    return read();
+                }
+                catch (IncompleteModelException)
+                {
+                    incomplete = true;
+                    return default;
+                }
+            }
+
+            /// <summary>Retains inspection unless an anonymous structural feature is confirmed empty.</summary>
+            private static bool HasInspectionContent(IElement element)
+            {
+                if (element is not IFeature feature || element is IExpression or IUsage
+                    || !string.IsNullOrWhiteSpace(element.DeclaredName)
+                    || !string.IsNullOrWhiteSpace(element.DeclaredShortName))
+                {
+                    return true;
+                }
+
+                var name = Read(() => element.name, out var incompleteName);
+                var relationships = Read(() => element.OwnedRelationship, out var incompleteRelationships);
+                var types = Read(() => feature.type, out var incompleteTypes);
+                var additionalContent = Read(() => feature.multiplicity is not null
+                    || feature.documentation is { Count: > 0 } || feature.textualRepresentation is { Count: > 0 }
+                    || feature.ownedAnnotation is { Count: > 0 }, out var incompleteContent);
+                return incompleteName || incompleteRelationships || incompleteTypes || incompleteContent || additionalContent
+                    || !string.IsNullOrWhiteSpace(name) || relationships is { Count: > 0 } || types is { Count: > 0 }
+                    || feature.AliasIds is { Count: > 0 } || feature.IsComposite || feature.IsOrdered || feature.IsAbstract
+                    || feature.IsDerived || feature.IsEnd || !feature.IsUnique || feature.IsConstant || feature.IsVariable
+                    || feature.IsPortion || feature.IsSufficient || feature.IsImpliedIncluded;
+            }
+
+            /// <summary>Keeps memberships with additional information or unresolved structure inspectable.</summary>
+            private static bool HasMembershipContent(IMembership membership, bool elementHasContent)
+            {
+                if (membership is null) return false;
+                if (elementHasContent || !string.IsNullOrWhiteSpace(membership.DeclaredName)
+                    || !string.IsNullOrWhiteSpace(membership.DeclaredShortName)) return true;
+                var members = Read(() => membership.OwnedRelatedElement, out var incompleteMembers);
+                var relationships = Read(() => membership.OwnedRelationship, out var incompleteRelationships);
+                return incompleteMembers || incompleteRelationships || members is { Count: > 1 }
+                    || relationships is { Count: > 0 };
+            }
+
+            /// <summary>Uses available names before a semantic kind, without requiring qualified-name resolution.</summary>
+            private static string Name(IElement element)
+            {
+                return ElementPresentation.GetDisplayName(element);
+            }
+
             /// <summary>Bounds nesting without discarding access to canonical subtree roots.</summary>
             private const int MaximumDepth = 12;
 
@@ -215,7 +214,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private int count;
 
             /// <summary>Projects an expression, parameter, or an element owning expression values.</summary>
-            public IReadOnlyList<ExpressionPresentation> BuildSelection(IElement element)
+            public ExpressionPresentation[] BuildSelection(IElement element)
             {
                 if (element is IMembership selectedMembership)
                 {
@@ -237,7 +236,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Projects selected membership contents while retaining their canonical ownership order.</summary>
-            private IReadOnlyList<ExpressionPresentation> BuildSelectedMembership(IMembership selectedMembership)
+            private ExpressionPresentation[] BuildSelectedMembership(IMembership selectedMembership)
             {
                 var members = Read(() => selectedMembership.OwnedRelatedElement, out var incomplete);
                 var role = selectedMembership switch
@@ -393,7 +392,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Preserves membership ordering and every resolved owned value instead of derived arguments.</summary>
-            private IReadOnlyList<ExpressionPresentation> Children(IElement element, int depth, bool valuesOnly)
+            private ExpressionPresentation[] Children(IElement element, int depth, bool valuesOnly)
             {
                 var result = new List<ExpressionPresentation>();
                 var relationships = Read(() => element.OwnedRelationship, out var incompleteRelationships);

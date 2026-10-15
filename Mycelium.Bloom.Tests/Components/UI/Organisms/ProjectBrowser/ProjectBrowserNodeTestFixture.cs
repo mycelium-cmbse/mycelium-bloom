@@ -51,8 +51,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
 
-            Assert.That(component.Find(".mb-project-browser-node__multiplicity").TextContent, Is.EqualTo("[2..*]"));
-            Assert.That(component.FindAll("[role='treeitem']"), Has.Count.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find(".mb-project-browser-node__multiplicity").TextContent, Is.EqualTo("[2..*]"));
+                Assert.That(component.FindAll("[role='treeitem']"), Has.Count.EqualTo(1));
+            }
         }
 
         /// <summary>
@@ -136,8 +139,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Add(projectBrowserNode => projectBrowserNode.ViewModel, node));
 
             Assert.That(component.FindAll(".mb-project-browser-node__fallback-icon svg"), Has.Count.EqualTo(1));
-            Assert.That(component.FindAll(".mb-project-browser-node__element-icon"), Is.Empty);
-            Assert.That(component.Find("button.mb-project-browser-node__row").HasAttribute("style"), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll(".mb-project-browser-node__element-icon"), Is.Empty);
+                Assert.That(component.Find("button.mb-project-browser-node__row").HasAttribute("style"), Is.False);
+            }
         }
 
         /// <summary>

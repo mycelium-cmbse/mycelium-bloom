@@ -20,7 +20,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Moq;
     using Mycelium.Bloom.Core.ModelLoading;
-    using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Systems.Parts;
     using static Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory;
@@ -36,17 +35,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             this.selection.SelectedElement = Descendants(LoadQuantities()).Single(element => element.name == "dimensions");
             var component = this.Render<Panel>();
             await component.Find("button[aria-label='Advanced metadata for Value: Feature chain']").ClickAsync();
-            Assert.That(component.FindAll("button[aria-label='Inspect Result: Feature']"), Is.Empty);
-            Assert.That(component.FindAll("button[aria-label='Inspect membership of Result']"), Is.Empty);
-            Assert.That(component.FindAll("button[aria-label='Inspect Owned element: Feature']"), Is.Empty);
-            Assert.That(component.FindAll(".value-group__identity"), Has.Count.EqualTo(6));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("button[aria-label='Inspect Result: Feature']"), Is.Empty);
+                Assert.That(component.FindAll("button[aria-label='Inspect membership of Result']"), Is.Empty);
+                Assert.That(component.FindAll("button[aria-label='Inspect Owned element: Feature']"), Is.Empty);
+                Assert.That(component.FindAll(".value-group__identity"), Has.Count.EqualTo(6));
+            }
             await component.Find("button[aria-label='Inspect Operand 1: Feature']").ClickAsync();
             await component.Find("button[aria-label='Advanced metadata for Input: Feature']").ClickAsync();
             Assert.That(component.FindAll("button[aria-label='Inspect Input: Feature']"), Is.Empty);
             await component.Find("button[aria-label='Inspect membership of Input']").ClickAsync();
             await component.Find("button[aria-label='Advanced metadata for Input: Feature']").ClickAsync();
-            Assert.That(component.FindAll("button[aria-label='Inspect membership of Input']"), Is.Empty);
-            Assert.That(component.FindAll("button[aria-label='Inspect Input: Feature']"), Has.Count.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("button[aria-label='Inspect membership of Input']"), Is.Empty);
+                Assert.That(component.FindAll("button[aria-label='Inspect Input: Feature']"), Has.Count.EqualTo(1));
+            }
         }
 
         [Test]
@@ -59,16 +64,25 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await component.Find("button[aria-label='Advanced metadata for Value: Feature chain']").ClickAsync();
             var membership = component.Instance.ViewModel.Presentation.Expressions[0].Membership;
             await component.Find("button[aria-label='Inspect membership of Value']").ClickAsync();
-            Assert.That(this.selection.SelectedElement, Is.SameAs(membership));
-            Assert.That(component.Find("button[aria-label='Back to previous inspected element']").HasAttribute("disabled"), Is.False);
-            Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain("mRef.dimensions"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.selection.SelectedElement, Is.SameAs(membership));
+                Assert.That(component.Find("button[aria-label='Back to previous inspected element']").HasAttribute("disabled"), Is.False);
+                Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain("mRef.dimensions"));
+            }
             await component.Find("button[aria-label='Back to previous inspected element']").ClickAsync();
-            Assert.That(this.selection.SelectedElement, Is.SameAs(dimensions));
-            Assert.That(component.Find("button[aria-label='Back to previous inspected element']").HasAttribute("disabled"), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.selection.SelectedElement, Is.SameAs(dimensions));
+                Assert.That(component.Find("button[aria-label='Back to previous inspected element']").HasAttribute("disabled"), Is.True);
+            }
             await component.InvokeAsync(() => component.Instance.ViewModel.Inspect(membership));
             await component.Find("button[aria-label='Clear selection']").ClickAsync();
-            Assert.That(component.Instance.ViewModel.CanGoBack, Is.False);
-            Assert.That(component.Find(".mb-details-panel__empty"), Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Instance.ViewModel.CanGoBack, Is.False);
+                Assert.That(component.Find(".mb-details-panel__empty"), Is.Not.Null);
+            }
         }
 
         [Test]
@@ -81,15 +95,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             Assert.That(results, Is.Not.Empty);
             foreach (var result in results)
             {
-                Assert.That(result.QuerySelector(".value-group__trigger"), Is.Null);
-                Assert.That(result.TextContent, Does.Contain("No explicit value"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(result.QuerySelector(".value-group__trigger"), Is.Null);
+                    Assert.That(result.TextContent, Does.Contain("No explicit value"));
+                }
             }
             Assert.That(component.FindAll("dl dd").Select(value => value.TextContent), Does.Not.Contain(this.selection.SelectedElement.ElementId));
             await component.Find("button[aria-label='Advanced metadata for Value: Feature chain']").ClickAsync();
-            Assert.That(component.FindAll("dl dd").Select(value => value.TextContent), Does.Contain(this.selection.SelectedElement.ElementId));
-            Assert.That(component.FindAll("button[aria-label^='Advanced metadata']"), Has.Count.EqualTo(1));
-            Assert.That(component.FindAll(".value-group__identity dt").Select(label => label.TextContent), Does.Not.Contain("SDK ID"));
-            Assert.That(component.FindAll(".value-group__identity dt").Select(label => label.TextContent), Does.Not.Contain("Membership SDK ID"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("dl dd").Select(value => value.TextContent), Does.Contain(this.selection.SelectedElement.ElementId));
+                Assert.That(component.FindAll("button[aria-label^='Advanced metadata']"), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll(".value-group__identity dt").Select(label => label.TextContent), Does.Not.Contain("SDK ID"));
+                Assert.That(component.FindAll(".value-group__identity dt").Select(label => label.TextContent), Does.Not.Contain("Membership SDK ID"));
+            }
         }
 
         [Test]
@@ -101,8 +121,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var equality = (IOperatorExpression)snapshot.Expressions[0].Children[0].Element;
             equality.Operator = "!=";
             component.Render(parameters => parameters.Add(panel => panel.Class, "rerendered"));
-            Assert.That(component.Instance.ViewModel.Presentation, Is.SameAs(snapshot));
-            Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain(" == "));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Instance.ViewModel.Presentation, Is.SameAs(snapshot));
+                Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain(" == "));
+            }
             component.Instance.ViewModel.Refresh();
             component.WaitForAssertion(() =>
                 Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain(" != ")));
@@ -169,8 +192,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var expected = Descendants(this.selection.SelectedElement).OfType<IFeatureReferenceExpression>()
                 .First(expression => expression.referent?.name == targetName).referent;
             var component = this.Render<Panel>();
-            Assert.That(component.Find("section[aria-label='Expression']").TextContent, Does.Contain(operation));
-            Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain(operation));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("section[aria-label='Expression']").TextContent, Does.Contain(operation));
+                Assert.That(component.Find(".mb-details-panel__notation-text").TextContent, Does.Contain(operation));
+            }
             await ExpandAll(component);
             Assert.That(component.FindAll("button.value-group__details-trigger"), Has.Count.EqualTo(1));
             var targetButton = component.FindAll("button").First(button =>
@@ -207,10 +233,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             Assert.That(identity.TextContent, Does.Contain(input.ElementId));
             Assert.That(identity.TextContent, Does.Contain(input.owningMembership.ElementId));
             await component.Find("button[aria-label='Inspect membership of Input']").ClickAsync();
-            Assert.That(this.selection.SelectedElement, Is.SameAs(input.owningMembership));
-            Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
-            Assert.That(second.SelectedNode, Is.SameAs(second.RootNodes[0]));
-            Assert.That(second.FilterText, Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.selection.SelectedElement, Is.SameAs(input.owningMembership));
+                Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
+                Assert.That(second.SelectedNode, Is.SameAs(second.RootNodes[0]));
+                Assert.That(second.FilterText, Is.Empty);
+            }
         }
 
         [Test]
@@ -220,8 +249,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             this.selection.SelectedElement = elements.Single(element => element.name == "dimensions");
             var component = this.Render<Panel>();
             var trigger = component.Find("button[aria-label='Expand or collapse Value: Feature chain']");
-            Assert.That(trigger.ClassList, Does.Contain("value-group__trigger"));
-            Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(trigger.ClassList, Does.Contain("value-group__trigger"));
+                Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("true"));
+            }
             await trigger.ClickAsync();
             Assert.That(trigger.GetAttribute("aria-expanded"), Is.EqualTo("false"));
             await this.Renderer.Dispatcher.InvokeAsync(() =>
@@ -233,8 +265,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await this.Renderer.Dispatcher.InvokeAsync(() => this.selection.SelectedElement = part);
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(component.FindAll("section[aria-label='Expression']"), Is.Empty);
-                Assert.That(component.Find("section[aria-label='Classification']").TextContent, Does.Contain("composite"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.FindAll("section[aria-label='Expression']"), Is.Empty);
+                    Assert.That(component.Find("section[aria-label='Classification']").TextContent, Does.Contain("composite"));
+                }
             });
         }
 

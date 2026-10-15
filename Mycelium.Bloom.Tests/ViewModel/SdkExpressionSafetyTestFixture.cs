@@ -26,7 +26,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using SysML2.NET.Core.POCO.Root.Elements;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using SysML2.NET.Dal;
-    using SysML2.NET.Extensions;
     using SysML2.NET.Serializer.Json;
     using static Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory;
 
@@ -67,8 +66,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(process.ExitCode, Is.Zero, await output + await error);
             var report = XDocument.Load(Path.Combine(directory, "probe.trx"));
             var counters = report.Descendants().Single(node => node.Name.LocalName == "Counters");
-            Assert.That((string)counters.Attribute("passed"), Is.EqualTo("1"));
-            Assert.That((string)counters.Attribute("failed"), Is.EqualTo("0"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That((string)counters.Attribute("passed"), Is.EqualTo("1"));
+                Assert.That((string)counters.Attribute("failed"), Is.EqualTo("0"));
+            }
         }
 
         [Test, Explicit("Recursive SDK writers must execute in the isolated child runner.")]
@@ -88,25 +90,37 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(elements, Has.Length.EqualTo(16843));
             var expression = (IBooleanExpression)elements.Single(element => element.ElementId == "68c0c0ba-d0f8-513f-8243-be9ce46853da");
             var notation = SdkExpressionText.Create(expression);
-            Assert.That(notation.UnavailableReason, Is.Null);
-            Assert.That(notation.Text, Does.Contain("bool earlierFirstIncomingTransferSort : IncomingTransferSort"));
-            Assert.That(notation.Text, Does.Contain("return t1First = includes(t1.endShot.successors, t2.endShot);"));
-            Assert.That(new DetailsPanelPresentation(expression).ExpressionNotations.Single().Element, Is.SameAs(expression));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notation.UnavailableReason, Is.Null);
+                Assert.That(notation.Text, Does.Contain("bool earlierFirstIncomingTransferSort : IncomingTransferSort"));
+                Assert.That(notation.Text, Does.Contain("return t1First = includes(t1.endShot.successors, t2.endShot);"));
+                Assert.That(new DetailsPanelPresentation(expression).ExpressionNotations.Single().Element, Is.SameAs(expression));
+            }
 
             var range = (SysML2.NET.Core.POCO.Kernel.Multiplicities.IMultiplicityRange)elements
                 .Single(element => element.ElementId == "12db684f-2c52-5586-a738-29a8850903b4");
             var bound = elements.Single(element => element.ElementId == "2bd186c1-af44-570f-b037-570e90d46611");
-            Assert.That(range.upperBound, Is.SameAs(bound));
-            Assert.That(new DetailsPanelPresentation(range).ModelLinks.Single(link => link.Role == "Upper bound").Element, Is.SameAs(bound));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(range.upperBound, Is.SameAs(bound));
+                Assert.That(new DetailsPanelPresentation(range).ModelLinks.Single(link => link.Role == "Upper bound").Element, Is.SameAs(bound));
+            }
             var boundSnapshot = new DetailsPanelPresentation(bound);
-            Assert.That(boundSnapshot.ExpressionNotations.Single().TextualNotation.Text, Is.Not.Empty);
-            Assert.That(boundSnapshot.Expressions.Single().Reference, Is.SameAs(((IFeatureReferenceExpression)bound).referent));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(boundSnapshot.ExpressionNotations.Single().TextualNotation.Text, Is.Not.Empty);
+                Assert.That(boundSnapshot.Expressions.Single().Reference, Is.SameAs(((IFeatureReferenceExpression)bound).referent));
+            }
 
             foreach (var sample in elements.GroupBy(element => element.GetType()).Select(group => group.First()))
             {
                 var snapshot = new DetailsPanelPresentation(sample);
-                Assert.That(snapshot.Element, Is.SameAs(sample));
-                Assert.That(snapshot.DisplayName, Is.Not.Empty, sample.GetType().Name);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(snapshot.Element, Is.SameAs(sample));
+                    Assert.That(snapshot.DisplayName, Is.Not.Empty, sample.GetType().Name);
+                }
                 foreach (var owned in sample.ownedElement.Concat(sample.OwnedRelationship))
                     Assert.That(snapshot.ModelLinks.Any(link => ReferenceEquals(link.Element, owned)), Is.True, sample.GetType().Name);
                 if (sample is IRelationship relationship)
@@ -124,9 +138,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             {
                 var element = (IElement)Activator.CreateInstance(type);
                 var snapshot = new DetailsPanelPresentation(element);
-                Assert.That(snapshot.Element, Is.SameAs(element));
-                Assert.That(snapshot.DisplayName, Is.Not.Empty, type.Name);
-                Assert.That(snapshot.DisplayName, Does.Not.StartWith("Unnamed"), type.Name);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(snapshot.Element, Is.SameAs(element));
+                    Assert.That(snapshot.DisplayName, Is.Not.Empty, type.Name);
+                    Assert.That(snapshot.DisplayName, Does.Not.StartWith("Unnamed"), type.Name);
+                }
                 if (type.Name != "Element")
                     Assert.That(ProjectBrowserElementPresentation.For(type).Kind, Is.Not.EqualTo("Element"), type.Name);
             }
@@ -147,15 +164,21 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var valueOwner = new SysML2.NET.Core.POCO.Core.Features.Feature();
             var booleanValue = new BooleanExpression();
             Attach<FeatureValue>(valueOwner, booleanValue);
-            Assert.That(SdkExpressionText.Create(booleanValue).UnavailableReason, Does.Contain("unavailable"));
-            Assert.That(SdkExpressionText.Create(new Expression()).UnavailableReason, Does.Contain("unavailable"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(SdkExpressionText.Create(booleanValue).UnavailableReason, Does.Contain("unavailable"));
+                Assert.That(SdkExpressionText.Create(new Expression()).UnavailableReason, Does.Contain("unavailable"));
+            }
             var boundOwner = new SysML2.NET.Core.POCO.Kernel.Multiplicities.MultiplicityRange();
             var genericBound = new Expression();
             Attach<SysML2.NET.Core.POCO.Root.Namespaces.OwningMembership>(boundOwner, genericBound);
-            Assert.That(SdkExpressionText.Create(genericBound).UnavailableReason, Does.Contain("unavailable"));
-            Assert.That(SdkExpressionText.Create(Moq.Mock.Of<IInstantiationExpression>()).UnavailableReason, Does.Contain("unavailable"));
-            Assert.That(SdkExpressionText.Create(new LiteralInteger { Value = 7 }).Text, Is.EqualTo("7"));
-            Assert.That(SdkExpressionText.Create(new LiteralString { Value = "" }).UnavailableReason, Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(SdkExpressionText.Create(genericBound).UnavailableReason, Does.Contain("unavailable"));
+                Assert.That(SdkExpressionText.Create(Moq.Mock.Of<IInstantiationExpression>()).UnavailableReason, Does.Contain("unavailable"));
+                Assert.That(SdkExpressionText.Create(new LiteralInteger { Value = 7 }).Text, Is.EqualTo("7"));
+                Assert.That(SdkExpressionText.Create(new LiteralString { Value = "" }).UnavailableReason, Is.Not.Null);
+            }
         }
     }
 }

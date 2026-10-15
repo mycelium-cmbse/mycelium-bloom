@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @inherits BloomComponentBase
+@using System.Globalization
 
 <section @attributes="this.AdditionalAttributes"
          @ref="this.rootElement"
@@ -59,7 +60,7 @@
     }
 
     <div class="mb-workspace-shell__body"
-         style="@(this.RightPanelResizable ? FormattableString.Invariant($"--workspace-shell-preferred-right-width: {this.RightPanelWidth}px;") : null)">
+         style="@(this.RightPanelResizable ? string.Create(CultureInfo.InvariantCulture, $"--workspace-shell-preferred-right-width: {this.RightPanelWidth}px;") : null)">
         @if (this.ShouldRenderLeftPanel())
         {
             <aside id="@(this.leftPanelId)"
