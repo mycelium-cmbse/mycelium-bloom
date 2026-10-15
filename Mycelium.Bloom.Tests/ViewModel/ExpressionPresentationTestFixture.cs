@@ -34,6 +34,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
     [TestFixture]
     public sealed class ExpressionPresentationTestFixture
     {
+        private static readonly string[] ExpectedOrderOperands = ["contravariantOrder", "covariantOrder"];
+
+        private static readonly string[] ExpectedBoundMatchOperators = ["or", "==", ".", "and", "not", "."];
+
+        private static readonly string[] ExpectedMultipleValueNotation = ["1", "2"];
         [Test]
         public void VerifyInspectionOmitsEmptyQuantitiesWrappersWithoutRemovingMetadata()
         {
@@ -43,11 +48,14 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(empty, Has.Length.EqualTo(3));
             foreach (var group in empty)
             {
-                Assert.That(group.CanInspectElement, Is.False);
-                Assert.That(group.CanInspectMembership, Is.False);
-                Assert.That(group.Element, Is.Not.Null);
-                Assert.That(group.Membership, Is.Not.Null);
-                Assert.That(group.Properties, Is.Not.Empty);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(group.CanInspectElement, Is.False);
+                    Assert.That(group.CanInspectMembership, Is.False);
+                    Assert.That(group.Element, Is.Not.Null);
+                    Assert.That(group.Membership, Is.Not.Null);
+                    Assert.That(group.Properties, Is.Not.Empty);
+                }
             }
             Assert.That(groups.Where(node => node.Role is "Operand 1" or "Value")
                 .All(node => node.CanInspectElement && node.CanInspectMembership), Is.True);
@@ -64,8 +72,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(ExpressionPresentation.Create(input.Object).Single().CanInspectElement, Is.True);
             var operation = new OperatorExpression { Operator = "+" };
             Attach<ParameterMembership>(operation, new Feature { DeclaredName = "input" });
-            Assert.That(ExpressionPresentation.Create(operation).Single().Children.Single().CanInspectElement, Is.True);
-            Assert.That(ExpressionPresentation.Create(new LiteralRational { Value = 53.4 }).Single().CanInspectElement, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ExpressionPresentation.Create(operation).Single().Children.Single().CanInspectElement, Is.True);
+                Assert.That(ExpressionPresentation.Create(new LiteralRational { Value = 53.4 }).Single().CanInspectElement, Is.True);
+            }
         }
 
         [Test]
@@ -86,12 +97,15 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var membership = chain.OwnedRelationship.OfType<IReturnParameterMembership>().Single();
             Assert.That(membership.ownedElement, Is.Empty);
             var projected = ExpressionPresentation.Create(membership).Single();
-            Assert.That(projected.Element, Is.SameAs(membership.OwnedRelatedElement.Single()));
-            Assert.That(projected.Membership, Is.SameAs(membership));
-            Assert.That(projected.Role, Is.EqualTo("Result"));
-            Assert.That(projected.ValueState, Is.EqualTo("No explicit value"));
-            Assert.That(projected.Properties.Single(property => property.Key == "Direction").Value, Is.EqualTo("out"));
-            Assert.That(projected.Children, Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(projected.Element, Is.SameAs(membership.OwnedRelatedElement.Single()));
+                Assert.That(projected.Membership, Is.SameAs(membership));
+                Assert.That(projected.Role, Is.EqualTo("Result"));
+                Assert.That(projected.ValueState, Is.EqualTo("No explicit value"));
+                Assert.That(projected.Properties.Single(property => property.Key == "Direction").Value, Is.EqualTo("out"));
+                Assert.That(projected.Children, Is.Empty);
+            }
         }
 
         [Test]
@@ -99,15 +113,21 @@ namespace Mycelium.Bloom.Tests.ViewModel
         {
             var literal = new LiteralRational { Value = 53.4 };
             var projected = ExpressionPresentation.Create(literal).Single();
-            Assert.That(projected.LiteralText, Is.EqualTo("53.4"));
-            Assert.That(projected.TextualNotation.Text, Is.EqualTo("53.4"));
-            Assert.That(projected.ValueState, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(projected.LiteralText, Is.EqualTo("53.4"));
+                Assert.That(projected.TextualNotation.Text, Is.EqualTo("53.4"));
+                Assert.That(projected.ValueState, Is.Null);
+            }
             var dimensions = Descendants(LoadQuantities()).Single(element => element.name == "dimensions");
             var reference = Descendants(dimensions).OfType<IFeatureReferenceExpression>().Single();
             var input = ExpressionPresentation.Create(reference.owner).Single();
-            Assert.That(input.ValueState, Is.Null);
-            Assert.That(input.OwnedGroups.Single(node => node.ReferenceRole == "Reference").Reference,
-                Is.SameAs(reference.referent));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(input.ValueState, Is.Null);
+                Assert.That(input.OwnedGroups.Single(node => node.ReferenceRole == "Reference").Reference,
+                    Is.SameAs(reference.referent));
+            }
         }
 
         [Test]
@@ -117,14 +137,20 @@ namespace Mycelium.Bloom.Tests.ViewModel
             input.SetupGet(element => element.owningMembership).Returns(new ParameterMembership());
             input.SetupGet(element => element.OwnedRelationship).Throws(new IncompleteModelException("Missing structure"));
             var projected = ExpressionPresentation.Create(input.Object).Single();
-            Assert.That(projected.ValueState, Does.StartWith("Unresolved"));
-            Assert.That(projected.Children.Single().Notice, Does.Contain("incomplete model"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(projected.ValueState, Does.StartWith("Unresolved"));
+                Assert.That(projected.Children.Single().Notice, Does.Contain("incomplete model"));
+            }
             var membership = new Mock<IReturnParameterMembership>();
             membership.SetupGet(element => element.OwnedRelatedElement).Throws(new IncompleteModelException("Missing result"));
             var missing = ExpressionPresentation.Create(membership.Object).Single();
-            Assert.That(missing.Notice, Does.StartWith("Unresolved"));
-            Assert.That(missing.Membership, Is.SameAs(membership.Object));
-            Assert.That(missing.Element, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(missing.Notice, Does.StartWith("Unresolved"));
+                Assert.That(missing.Membership, Is.SameAs(membership.Object));
+                Assert.That(missing.Element, Is.Null);
+            }
         }
 
         [TestCase("dimensions", false)]
@@ -136,12 +162,18 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var roots = ExpressionPresentation.Create(selected);
             var original = roots.SelectMany(Flatten).ToArray();
             var compact = roots.SelectMany(ExpandDisplayPaths).ToArray();
-            Assert.That(compact, Is.EqualTo(original));
-            Assert.That(original.Any(node => node.DisplayPath.Count > 1), Is.EqualTo(combinesValues));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(compact, Is.EqualTo(original));
+                Assert.That(original.Any(node => node.DisplayPath.Count > 1), Is.EqualTo(combinesValues));
+            }
             foreach (var node in original)
             {
-                Assert.That(node.DisplayPath[0], Is.SameAs(node));
-                Assert.That(node.Element?.owner, Is.SameAs(node.Membership?.OwningRelatedElement));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(node.DisplayPath[0], Is.SameAs(node));
+                    Assert.That(node.Element?.owner, Is.SameAs(node.Membership?.OwningRelatedElement));
+                }
             }
         }
 
@@ -155,8 +187,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Attach<ParameterMembership>(operation, input);
             var group = ExpressionPresentation.Create(operation)[0].Children[0];
             Assert.That(group.DisplayPath, Has.Count.EqualTo(1));
-            Assert.That(group.Children, Has.Count.EqualTo(2));
-            Assert.That(group.HasSummaryLabel, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(group.Children, Has.Count.EqualTo(2));
+                Assert.That(group.HasSummaryLabel, Is.True);
+            }
         }
 
         private static IEnumerable<ExpressionPresentation> ExpandDisplayPaths(ExpressionPresentation node)
@@ -173,8 +208,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var selected = Descendants(LoadQuantities()).Single(element => element.name == name);
             var nodes = ExpressionPresentation.Create(selected).SelectMany(Flatten).ToArray();
             var notation = nodes.Single(node => node.TextualNotation is not null).TextualNotation;
-            Assert.That(notation.Text, Is.EqualTo(expected));
-            Assert.That(notation.UnavailableReason, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notation.Text, Is.EqualTo(expected));
+                Assert.That(notation.UnavailableReason, Is.Null);
+            }
         }
 
         [TestCase("dimensions")]
@@ -250,8 +288,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 }
             }
             var text = ExpressionPresentation.Create(multiplication)[0].TextualNotation;
-            Assert.That(text.Text, Is.EqualTo("(1+ 2) * 3"));
-            Assert.That(text.UnavailableReason, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(text.Text, Is.EqualTo("(1+ 2) * 3"));
+                Assert.That(text.UnavailableReason, Is.Null);
+            }
         }
 
         [TestCase("dimensions", 1)]
@@ -292,7 +333,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(equality.Operator, Is.EqualTo("=="));
                 Assert.That(addition.Operator, Is.EqualTo("+"));
                 Assert.That(addition.Children.Where(node => node.Role.StartsWith("Operand", StringComparison.Ordinal))
-                    .Select(node => node.Children[0].ReferenceLabel), Is.EqualTo(new[] { "contravariantOrder", "covariantOrder" }));
+                    .Select(node => node.Children[0].ReferenceLabel), Is.EqualTo(ExpectedOrderOperands));
                 Assert.That(equality.Children[1].Children[0].ReferenceLabel, Is.EqualTo("order"));
                 Assert.That(equality.Children[^1].Role, Is.EqualTo("Result"));
                 Assert.That(equality.Children[^1].Properties.Single(p => p.Key == "Direction").Value, Is.EqualTo("out"));
@@ -313,7 +354,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(chain.ReferenceLabel, Is.EqualTo("dimensions"));
                 Assert.That(chain.Children[0].Children[0].ReferenceLabel, Is.EqualTo("mRef"));
                 Assert.That(nodes.Where(node => node.Operator is not null).Select(node => node.Operator),
-                    Is.EqualTo(new[] { "or", "==", ".", "and", "not", "." }));
+                    Is.EqualTo(ExpectedBoundMatchOperators));
                 var embedded = nodes.Where(node => node.Reference is IExpression).ToArray();
                 Assert.That(embedded, Has.Length.EqualTo(2));
                 foreach (var reference in embedded)
@@ -350,7 +391,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(ExpressionPresentation.Create(reference)[0].Children, Is.Empty);
                 var notationRoots = new DetailsPanelPresentation(input).ExpressionNotations;
                 Assert.That(notationRoots.Select(group => group.Element), Is.EqualTo(new IElement[] { first, second }));
-                Assert.That(notationRoots.Select(group => group.TextualNotation.Text), Is.EqualTo(new[] { "1", "2" }));
+                Assert.That(notationRoots.Select(group => group.TextualNotation.Text), Is.EqualTo(ExpectedMultipleValueNotation));
             }
         }
 
@@ -383,9 +424,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             membership.SetupGet(element => element.OwnedRelatedElement).Returns([valid]);
             root.SetupGet(element => element.OwnedRelationship).Returns([missing, membership.Object]);
             var nodes = ExpressionPresentation.Create(root.Object)[0].Children;
-            Assert.That(nodes[0].Notice, Does.Contain("no resolved owned element"));
-            Assert.That(nodes[0].Membership, Is.SameAs(missing));
-            Assert.That(nodes[1].Element, Is.SameAs(valid));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(nodes[0].Notice, Does.Contain("no resolved owned element"));
+                Assert.That(nodes[0].Membership, Is.SameAs(missing));
+                Assert.That(nodes[1].Element, Is.SameAs(valid));
+            }
         }
 
         [Test]
@@ -407,10 +451,13 @@ namespace Mycelium.Bloom.Tests.ViewModel
             }
             var deep = Flatten(ExpressionPresentation.Create(root)[0]).ToArray();
             Assert.That(deep, Has.Length.EqualTo(13));
-            Assert.That(deep[^1].Notice, Does.Contain("limit"));
-            Assert.That(deep[^1].Element, Is.Not.Null);
-            Assert.That(deep[0].TextualNotation.Text, Is.Null);
-            Assert.That(deep[0].TextualNotation.UnavailableReason, Does.Contain("display limit"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(deep[^1].Notice, Does.Contain("limit"));
+                Assert.That(deep[^1].Element, Is.Not.Null);
+                Assert.That(deep[0].TextualNotation.Text, Is.Null);
+                Assert.That(deep[0].TextualNotation.UnavailableReason, Does.Contain("display limit"));
+            }
 
             var wide = new OperatorExpression();
             for (var index = 0; index < 150; index++)
@@ -418,7 +465,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Attach<ParameterMembership>(wide, new Feature());
             }
             var nodes = Flatten(ExpressionPresentation.Create(wide)[0]).ToArray();
-            Assert.That(nodes.Length, Is.LessThanOrEqualTo(130));
+            Assert.That(nodes, Has.Length.LessThanOrEqualTo(130));
             Assert.That(nodes[^1].Notice, Does.Contain("limit"));
         }
 
@@ -428,9 +475,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var part = new PartUsage { DeclaredName = "Harness" };
             var attribute = new AttributeUsage { DeclaredName = "Mass" };
             Attach<FeatureMembership>(part, attribute);
-            Assert.That(new DetailsPanelPresentation(part).Expressions, Is.Empty);
-            Assert.That(part.ownedElement[0], Is.SameAs(attribute));
-            Assert.That(attribute.owner, Is.SameAs(part));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(new DetailsPanelPresentation(part).Expressions, Is.Empty);
+                Assert.That(part.ownedElement[0], Is.SameAs(attribute));
+                Assert.That(attribute.owner, Is.SameAs(part));
+            }
         }
 
         private static IEnumerable<ExpressionPresentation> Flatten(ExpressionPresentation node)

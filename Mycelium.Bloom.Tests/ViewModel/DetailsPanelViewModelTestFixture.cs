@@ -31,12 +31,18 @@ namespace Mycelium.Bloom.Tests.ViewModel
             viewModel.Inspect(second);
             viewModel.Inspect(third);
             viewModel.GoBack();
-            Assert.That(selection.SelectedElement, Is.SameAs(second));
-            Assert.That(viewModel.Presentation.Element, Is.SameAs(second));
-            Assert.That(viewModel.CanGoBack, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(second));
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(second));
+                Assert.That(viewModel.CanGoBack, Is.True);
+            }
             viewModel.Inspect(first);
-            Assert.That(selection.SelectedElement, Is.SameAs(first));
-            Assert.That(viewModel.CanGoBack, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(first));
+                Assert.That(viewModel.CanGoBack, Is.False);
+            }
             viewModel.GoBack();
             Assert.That(selection.SelectedElement, Is.SameAs(first));
         }
@@ -51,21 +57,30 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using var viewModel = new DetailsPanelViewModel(selection);
             using var other = new DetailsPanelViewModel(selection);
             viewModel.Inspect(second);
-            Assert.That(viewModel.CanGoBack, Is.True);
-            Assert.That(other.CanGoBack, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.CanGoBack, Is.True);
+                Assert.That(other.CanGoBack, Is.False);
+            }
             viewModel.Refresh();
             Assert.That(viewModel.CanGoBack, Is.True);
             selection.SelectedElement = external;
             Assert.That(viewModel.CanGoBack, Is.False);
             viewModel.Inspect(first);
             viewModel.ResetInspectionHistory();
-            Assert.That(viewModel.CanGoBack, Is.False);
-            Assert.That(selection.SelectedElement, Is.SameAs(first));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.CanGoBack, Is.False);
+                Assert.That(selection.SelectedElement, Is.SameAs(first));
+            }
             viewModel.Inspect(second);
             viewModel.ClearSelection();
             viewModel.GoBack();
-            Assert.That(viewModel.CanGoBack, Is.False);
-            Assert.That(selection.SelectedElement, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.CanGoBack, Is.False);
+                Assert.That(selection.SelectedElement, Is.Null);
+            }
         }
 
         [Test]
@@ -81,8 +96,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 viewModel.GoBack();
                 Assert.That(++count, Is.LessThanOrEqualTo(32));
             }
-            Assert.That(count, Is.EqualTo(32));
-            Assert.That(selection.SelectedElement, Is.SameAs(elements[7]));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(count, Is.EqualTo(32));
+                Assert.That(selection.SelectedElement, Is.SameAs(elements[7]));
+            }
             viewModel.Inspect(elements[39]);
             viewModel.Dispose();
             viewModel.GoBack();
@@ -101,12 +119,18 @@ namespace Mycelium.Bloom.Tests.ViewModel
             element.DeclaredName = "Updated";
             selection.SelectedElement = element;
             selection.LifecycleState = ProjectLifecycleState.Open;
-            Assert.That(viewModel.Presentation, Is.SameAs(initial));
-            Assert.That(initial.DisplayName, Is.EqualTo("Initial"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.Presentation, Is.SameAs(initial));
+                Assert.That(initial.DisplayName, Is.EqualTo("Initial"));
+            }
             viewModel.Refresh();
-            Assert.That(viewModel.Presentation, Is.Not.SameAs(initial));
-            Assert.That(viewModel.Presentation.DisplayName, Is.EqualTo("Updated"));
-            Assert.That(viewModel.Presentation.Element, Is.SameAs(element));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.Presentation, Is.Not.SameAs(initial));
+                Assert.That(viewModel.Presentation.DisplayName, Is.EqualTo("Updated"));
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(element));
+            }
         }
 
         [Test]
@@ -117,11 +141,17 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var selection = new ContextAwareService { SelectedElement = first };
             using var viewModel = new DetailsPanelViewModel(selection);
             viewModel.Inspect(second);
-            Assert.That(selection.SelectedElement, Is.SameAs(second));
-            Assert.That(viewModel.Presentation.Element, Is.SameAs(second));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(second));
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(second));
+            }
             viewModel.ClearSelection();
-            Assert.That(selection.SelectedElement, Is.Null);
-            Assert.That(viewModel.Presentation, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.Null);
+                Assert.That(viewModel.Presentation, Is.Null);
+            }
         }
 
         [Test]
@@ -137,9 +167,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             first.Refresh();
             first.Inspect(new Namespace());
             first.ClearSelection();
-            Assert.That(first.Presentation, Is.SameAs(retained));
-            Assert.That(second.Presentation.Element, Is.SameAs(selection.SelectedElement));
-            Assert.That(second.Presentation.DisplayName, Is.EqualTo("Next"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.Presentation, Is.SameAs(retained));
+                Assert.That(second.Presentation.Element, Is.SameAs(selection.SelectedElement));
+                Assert.That(second.Presentation.DisplayName, Is.EqualTo("Next"));
+            }
         }
     }
 }

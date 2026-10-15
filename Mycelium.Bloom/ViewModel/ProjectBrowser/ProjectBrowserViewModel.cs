@@ -545,8 +545,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 nodeId,
                 stagedNodeIds,
                 stagedElementTypes,
-                cancellationToken,
-                hiddenElements);
+                hiddenElements, cancellationToken);
             string qualifiedName;
             try
             {
@@ -728,17 +727,16 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="parentNodeId">The parent node identifier.</param>
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
         /// <param name="stagedElementTypes">The distinct navigable types found while staging.</param>
-        /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <param name="hiddenElements">Elements associated with the nearest visible ancestor.</param>
+        /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <param name="insideMultiplicity">Whether traversal is within a multiplicity representation.</param>
         /// <returns>The child nodes for the provided element.</returns>
-        private List<ProjectBrowserNodeViewModel> BuildChildren(
-            IElement element,
+        private List<ProjectBrowserNodeViewModel> BuildChildren(IElement element,
             string parentNodeId,
             HashSet<string> stagedNodeIds,
             HashSet<Type> stagedElementTypes,
-            CancellationToken cancellationToken,
             List<IElement> hiddenElements,
+            CancellationToken cancellationToken,
             bool insideMultiplicity = false)
         {
             var children = new List<ProjectBrowserNodeViewModel>();
@@ -771,8 +769,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     {
                         hiddenElements.Add(childElement);
                         children.AddRange(this.BuildChildren(
-                            childElement, childId, stagedNodeIds, stagedElementTypes, cancellationToken,
-                            hiddenElements, insideMultiplicity || childElement is IMultiplicity));
+                            childElement, childId, stagedNodeIds, stagedElementTypes,
+                            hiddenElements, cancellationToken, insideMultiplicity || childElement is IMultiplicity));
                     }
                 }
 

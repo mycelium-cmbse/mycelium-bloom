@@ -85,10 +85,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var element = Mock.Of<IElement>();
             var presentation = ProjectBrowserElementPresentation.For(element.GetType());
 
-            Assert.That(presentation.Kind, Is.EqualTo("Element"));
-            Assert.That(presentation.UnnamedLabel, Is.EqualTo("Element"));
-            Assert.That(presentation.Stereotype, Is.Null);
-            Assert.That(presentation.IconName, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(presentation.Kind, Is.EqualTo("Element"));
+                Assert.That(presentation.UnnamedLabel, Is.EqualTo("Element"));
+                Assert.That(presentation.Stereotype, Is.Null);
+                Assert.That(presentation.IconName, Is.Null);
+            }
         }
 
         /// <summary>
@@ -109,11 +112,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             browser.SelectNode(node);
             browser.FocusElement(root);
 
-            Assert.That(node.DisplayName, Is.EqualTo("Model"));
-            Assert.That(node.SourceElement, Is.SameAs(root));
-            Assert.That(selection.SelectedElement, Is.SameAs(root));
-            Assert.That(browser.SelectedNode, Is.SameAs(node));
-            Assert.That(root.DeclaredName, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.DisplayName, Is.EqualTo("Model"));
+                Assert.That(node.SourceElement, Is.SameAs(root));
+                Assert.That(selection.SelectedElement, Is.SameAs(root));
+                Assert.That(browser.SelectedNode, Is.SameAs(node));
+                Assert.That(root.DeclaredName, Is.Null);
+            }
         }
     }
 }

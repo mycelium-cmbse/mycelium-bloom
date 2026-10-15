@@ -45,6 +45,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserExpressionProjectionTestFixture
     {
+        private static readonly string[] ExpectedConstraintNames = ["orderSum", "boundMatch"];
         [Test]
         public void VerifyQuantitiesHidesOnlyEmptyExpressionSupport()
         {
@@ -70,7 +71,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(expressions, Has.Length.EqualTo(21));
                 Assert.That(expressions.All(ProjectBrowserElementProjection.IsNavigable), Is.True);
                 Assert.That(elements.OfType<IAssertConstraintUsage>().Select(element => element.name),
-                    Is.EquivalentTo(new[] { "orderSum", "boundMatch" }));
+                    Is.EquivalentTo(ExpectedConstraintNames));
                 Assert.That(elements.OfType<IComment>().Where(element => element is not IDocumentation)
                     .All(ProjectBrowserElementProjection.IsNavigable), Is.True);
             }
@@ -185,9 +186,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             first.FilterText = "Nested port";
             first.FocusElement(port);
-            Assert.That(first.SelectedNode, Is.SameAs(portNode));
-            Assert.That(first.FilterPresentation.IsVisible(chainNode), Is.True);
-            Assert.That(chainNode.IsExpanded, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.SelectedNode, Is.SameAs(portNode));
+                Assert.That(first.FilterPresentation.IsVisible(chainNode), Is.True);
+                Assert.That(chainNode.IsExpanded, Is.True);
+            }
             first.SelectNode(portNode);
             Assert.That(selection.SelectedElement, Is.SameAs(port));
             first.ClearFilter();
@@ -195,8 +199,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 selection.SelectedElement = hidden;
                 first.FocusElement(hidden);
-                Assert.That(first.SelectedNode, Is.SameAs(chainNode));
-                Assert.That(selection.SelectedElement, Is.SameAs(hidden));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(first.SelectedNode, Is.SameAs(chainNode));
+                    Assert.That(selection.SelectedElement, Is.SameAs(hidden));
+                }
             }
 
             first.ToggleNode(chainNode);

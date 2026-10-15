@@ -202,10 +202,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
             }
             catch (JSDisconnectedException)
             {
+                // A disconnected circuit can no longer perform JavaScript cleanup.
             }
             finally
             {
                 this.selfReference?.Dispose();
+                GC.SuppressFinalize(this);
             }
         }
 
@@ -332,18 +334,41 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         {
             base.OnParametersSet();
 
-            if (this.RightPanelResizable && (!double.IsFinite(this.RightPanelWidth)
-                || !double.IsFinite(this.RightPanelMinimumWidth) || this.RightPanelMinimumWidth <= 0
-                || !double.IsFinite(this.RightPanelMaximumWidth) || this.RightPanelMaximumWidth < this.RightPanelMinimumWidth
-                || !double.IsFinite(this.MinimumMainContentWidth) || this.MinimumMainContentWidth < 0))
-            {
-                throw new ArgumentOutOfRangeException(nameof(this.RightPanelWidth), "Panel widths must define finite, ordered bounds.");
-            }
+            this.ValidateRightPanelSizing(this.RightPanelWidth, this.RightPanelMinimumWidth, this.RightPanelMaximumWidth, this.MinimumMainContentWidth);
 
             if ((this.ActiveNarrowPane == NarrowPane.Left && !this.ShouldRenderLeftPanel())
                 || (this.ActiveNarrowPane == NarrowPane.Right && (!this.ShouldRenderRightPanel() || this.RightPanelCollapsed)))
             {
                 this.ActiveNarrowPane = NarrowPane.Main;
+            }
+        }
+
+        /// <summary>Validates opt-in panel sizing before workspace layout is rendered.</summary>
+        /// <param name="rightPanelWidth">The preferred right-panel width.</param>
+        /// <param name="rightPanelMinimumWidth">The minimum right-panel width.</param>
+        /// <param name="rightPanelMaximumWidth">The maximum right-panel width.</param>
+        /// <param name="minimumMainContentWidth">The minimum center-region width.</param>
+        private void ValidateRightPanelSizing(double rightPanelWidth, double rightPanelMinimumWidth,
+            double rightPanelMaximumWidth, double minimumMainContentWidth)
+        {
+            if (this.RightPanelResizable)
+            {
+                if (!double.IsFinite(rightPanelWidth))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(rightPanelWidth), rightPanelWidth, "Panel width must be finite.");
+                }
+                if (!double.IsFinite(rightPanelMinimumWidth) || rightPanelMinimumWidth <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(rightPanelMinimumWidth), rightPanelMinimumWidth, "Minimum width must be finite and greater than zero.");
+                }
+                if (!double.IsFinite(rightPanelMaximumWidth) || rightPanelMaximumWidth < rightPanelMinimumWidth)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(rightPanelMaximumWidth), rightPanelMaximumWidth, "Maximum width must be finite and at least the minimum width.");
+                }
+                if (!double.IsFinite(minimumMainContentWidth) || minimumMainContentWidth < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(minimumMainContentWidth), minimumMainContentWidth, "Minimum content width must be finite and nonnegative.");
+                }
             }
         }
 

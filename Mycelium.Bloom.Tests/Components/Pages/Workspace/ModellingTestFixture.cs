@@ -95,10 +95,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     await browser.Find(rowSelector).ClickAsync();
                     await component.WaitForAssertionAsync(() =>
                     {
-                        Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
-                        Assert.That(composition.Context.SelectedElement, Is.SameAs(node.SourceElement));
-                        Assert.That(panelViewModel.Presentation.Element, Is.SameAs(node.SourceElement));
-                        Assert.That(panelViewModel.CanGoBack, Is.False);
+                        using (Assert.EnterMultipleScope())
+                        {
+                            Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+                            Assert.That(composition.Context.SelectedElement, Is.SameAs(node.SourceElement));
+                            Assert.That(panelViewModel.Presentation.Element, Is.SameAs(node.SourceElement));
+                            Assert.That(panelViewModel.CanGoBack, Is.False);
+                        }
                     });
                 }
             }
@@ -108,8 +111,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 browser.Verify(viewModel => viewModel.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Exactly(2));
             }
             await component.Find("[data-testid='properties-clear-selection']").ClickAsync();
-            Assert.That(composition.Context.SelectedElement, Is.Null);
-            Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.Context.SelectedElement, Is.Null);
+                Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+            }
         }
 
         /// <summary>

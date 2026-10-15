@@ -190,9 +190,12 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
             await component.InvokeAsync(() => this.context.SelectedElement =
                 new SysML2.NET.Core.POCO.Systems.Parts.PartUsage { DeclaredName = "Background selection" });
-            Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
-            Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(this.context.SelectedElement));
-            Assert.That(panel.ViewModel.CanGoBack, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
+                Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(this.context.SelectedElement));
+                Assert.That(panel.ViewModel.CanGoBack, Is.False);
+            }
 
             await component.Find("button[aria-label='Expand Properties']").ClickAsync();
 
