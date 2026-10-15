@@ -14,21 +14,27 @@
 @inherits LayoutComponentBase
 
 <CascadingValue Value="this.UrlContextService" IsFixed="true">
+<CascadingValue Name="PropertiesRequested" Value="@(EventCallback.Factory.Create(this, this.RevealProperties))" IsFixed="true">
 <div class="mb-workspace-layout">
-    <WorkspaceShell FullApplication="true"
+    <WorkspaceShell @ref="this.workspaceShell" FullApplication="true"
                     LeftPanelCollapsed="this.isNavigationCollapsed"
-                    RightPanelVisible="this.isDetailsPanelOpen"
+                    RightPanelCollapsed="this.LayoutState.PropertiesCollapsed"
+                    RightPanelResizable="true"
+                    RightPanelWidth="this.LayoutState.PropertiesWidth"
+                    RightPanelWidthChanged="this.HandlePropertiesWidthChanged"
+                    RightPanelFocusReturnId="@(this.propertiesToggleId)"
+                    RightPanelResizeLabel="Resize Properties"
+                    RightPanelTestId="properties-region"
                     AriaLabel="Bloom engineering workspace"
                     HeaderAriaLabel="Application header"
                     LeftPanelAriaLabel="Workspace navigation"
                     MainContentAriaLabel="Workspace content"
-                    RightPanelAriaLabel="Workspace auxiliary region"
+                    RightPanelAriaLabel="Properties"
                     StatusBarAriaLabel="Workspace status"
                     CompactLeftPanelLabel="Navigation"
                     CompactMainContentLabel="Content"
-                    CompactRightPanelLabel="Auxiliary"
-                    role="main"
-                    style="--workspace-shell-right-panel-width: 380px;">
+                    CompactRightPanelLabel="Properties"
+                    role="main">
         <Header>
             <AppHeader Compact="true"
                        AriaLabel="Bloom application header"
@@ -46,7 +52,9 @@
                               Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
                               AriaLabel="@(this.GetDetailsPanelToggleLabel())"
                               title="@(this.GetDetailsPanelToggleLabel())"
-                              aria-pressed="@(this.isDetailsPanelOpen ? "true" : "false")"
+                              id="@(this.propertiesToggleId)"
+                              data-testid="properties-collapse"
+                              aria-expanded="@(!this.LayoutState.PropertiesCollapsed ? "true" : "false")"
                               OnClick="this.ToggleDetailsPanel">
                         <LucideIcon Name="@(this.GetDetailsPanelToggleIconName())"
                                     Size="16"
@@ -73,8 +81,7 @@
         </MainContent>
 
         <RightPanel>
-            <DetailsPanel CloseRequested="this.CloseDetailsPanel"
-                          data-testid="workspace-details-panel" />
+            <DetailsPanel @ref="this.propertiesPanel" data-testid="workspace-details-panel" />
         </RightPanel>
 
         <StatusBar>
@@ -100,4 +107,5 @@
         🗙
     </button>
 </div>
+</CascadingValue>
 </CascadingValue>

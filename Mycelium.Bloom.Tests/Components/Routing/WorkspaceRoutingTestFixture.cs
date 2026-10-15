@@ -32,6 +32,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -83,6 +84,8 @@ namespace Mycelium.Bloom.Tests.Components.Routing
 
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
+                () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             this.Services.AddSingleton(this.elementIdResolver.Object);
             this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
                 () => new WorkspaceUrlContextService(
@@ -329,7 +332,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             initialNavigation.PresentationMode = NavigationRailPresentationMode.Expanded;
 
             await routes.Find("button[aria-label='Switch to dark mode']").ClickAsync();
-            await routes.Find(".mb-details-panel button[aria-label='Close details panel']").ClickAsync();
+            await routes.Find("button[aria-label='Collapse Properties']").ClickAsync();
             this.Services.GetRequiredService<NavigationManager>().NavigateTo("/workspace/dashboard");
 
             routes.WaitForAssertion(() =>
@@ -341,10 +344,10 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                     Assert.That(routes.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
-                    Assert.That(routes.FindComponents<DetailsPanelComponent>(), Is.Empty);
-                    Assert.That(routes.FindAll("aside.mb-workspace-shell__right-panel"), Is.Empty);
-                    Assert.That(routes.Find("button[aria-label='Open details panel']")
-                        .GetAttribute("aria-pressed"), Is.EqualTo("false"));
+                    Assert.That(routes.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
+                    Assert.That(routes.FindAll("aside.mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
+                    Assert.That(routes.Find("button[aria-label='Expand Properties']")
+                        .GetAttribute("aria-expanded"), Is.EqualTo("false"));
                     Assert.That(routes.FindComponents<EditorWorkspaceComponent>(), Is.Empty);
                     Assert.That(routes.Find(".mb-workspace-shell__main h1").TextContent.Trim(),
                         Is.EqualTo("Dashboard"));
@@ -383,10 +386,10 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                     Assert.That(routes.FindComponents<WorkspaceShellComponent>(), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<Modelling>(), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<EditorWorkspaceComponent>(), Has.Count.EqualTo(1));
-                    Assert.That(routes.FindComponents<DetailsPanelComponent>(), Is.Empty);
-                    Assert.That(routes.FindAll("aside.mb-workspace-shell__right-panel"), Is.Empty);
-                    Assert.That(routes.Find("button[aria-label='Open details panel']")
-                        .GetAttribute("aria-pressed"), Is.EqualTo("false"));
+                    Assert.That(routes.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
+                    Assert.That(routes.FindAll("aside.mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
+                    Assert.That(routes.Find("button[aria-label='Expand Properties']")
+                        .GetAttribute("aria-expanded"), Is.EqualTo("false"));
                     Assert.That(routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel,
                         Is.Not.SameAs(initialEditor));
                     Assert.That(this.editorViewModels, Has.Count.EqualTo(2));
@@ -403,7 +406,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                 }
             });
 
-            await routes.Find("button[aria-label='Open details panel']").ClickAsync();
+            await routes.Find("button[aria-label='Expand Properties']").ClickAsync();
 
             await routes.WaitForAssertionAsync(() =>
             {

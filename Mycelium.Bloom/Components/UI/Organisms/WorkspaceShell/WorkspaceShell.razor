@@ -10,6 +10,7 @@
 @inherits BloomComponentBase
 
 <section @attributes="this.AdditionalAttributes"
+         @ref="this.rootElement"
          class="@(this.GetCssClass())"
          aria-label="@(this.AriaLabel)"
          data-navigation-collapsed="@(this.LeftPanelCollapsed ? "true" : "false")">
@@ -44,7 +45,7 @@
                 @(this.CompactMainContentLabel)
             </button>
 
-            @if (this.ShouldRenderRightPanel())
+            @if (this.ShouldRenderRightPanel() && !this.RightPanelCollapsed)
             {
                 <button type="button"
                         class="@(this.GetPaneButtonCssClass(NarrowPane.Right))"
@@ -57,7 +58,8 @@
         </div>
     }
 
-    <div class="mb-workspace-shell__body">
+    <div class="mb-workspace-shell__body"
+         style="@(this.RightPanelResizable ? FormattableString.Invariant($"--workspace-shell-preferred-right-width: {this.RightPanelWidth}px;") : null)">
         @if (this.ShouldRenderLeftPanel())
         {
             <aside id="@(this.leftPanelId)"
@@ -72,6 +74,7 @@
         <div id="@(this.mainContentId)"
              class="mb-workspace-shell__main"
              role="region"
+             tabindex="-1"
              aria-label="@(this.MainContentAriaLabel)"
              data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Main))">
             @(this.MainContent)
@@ -79,9 +82,25 @@
 
         @if (this.ShouldRenderRightPanel())
         {
+            @if (this.RightPanelResizable && !this.RightPanelCollapsed)
+            {
+                <div class="mb-workspace-shell__right-splitter"
+                     role="separator" tabindex="0"
+                     data-testid="workspace-right-splitter"
+                     aria-label="@this.RightPanelResizeLabel"
+                     aria-orientation="vertical" aria-controls="@this.rightPanelId"
+                     aria-valuemin="@this.RightPanelMinimumWidth" aria-valuemax="@this.RightPanelMaximumWidth"
+                     aria-valuenow="@this.RightPanelWidth">
+                </div>
+            }
             <aside id="@(this.rightPanelId)"
                    class="mb-workspace-shell__right-panel"
                    aria-label="@(this.RightPanelAriaLabel)"
+                   data-testid="@this.RightPanelTestId"
+                   hidden="@this.RightPanelCollapsed"
+                   inert="@(this.RightPanelCollapsed ? string.Empty : null)"
+                   aria-hidden="@(this.RightPanelCollapsed ? "true" : "false")"
+                   tabindex="-1"
                    data-narrow-active="@(this.GetPaneAriaPressed(NarrowPane.Right))">
                 @(this.RightPanel)
             </aside>

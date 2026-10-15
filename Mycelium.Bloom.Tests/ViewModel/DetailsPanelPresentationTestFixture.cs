@@ -27,12 +27,69 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using SysML2.NET.Core.POCO.Systems.Connections;
     using SysML2.NET.Core.POCO.Systems.Flows;
     using SysML2.NET.Core.POCO.Systems.Parts;
+    using SysML2.NET.Exceptions;
+    using SysML2.NET.Core.POCO.Core.Types;
 
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
     [TestFixture]
     public sealed class DetailsPanelPresentationTestFixture
     {
+        [Test]
+        public void VerifyAttributesPreserveUnsetUnresolvedUnsupportedAndMultipleValues()
+        {
+            var unset = new AttributeUsage { DeclaredName = "unset" };
+            var missing = new Mock<IAttributeUsage>();
+            missing.SetupGet(element => element.DeclaredName).Returns("missing");
+            missing.SetupGet(element => element.OwnedRelationship).Returns([new FeatureValue()]);
+            var unsupported = new AttributeUsage { DeclaredName = "expression" };
+            var multiple = new AttributeUsage { DeclaredName = "multiple" };
+            var empty = new AttributeUsage { DeclaredName = "empty" };
+            Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(unsupported, new LiteralExpression());
+            Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(multiple, new LiteralInteger { Value = 2 }, new LiteralInteger { Value = 3 });
+            Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(empty, new LiteralString { Value = "" });
+            var parent = new Mock<IPartUsage>();
+            parent.SetupGet(element => element.ownedElement).Returns([unset, missing.Object, unsupported, multiple, empty]);
+            var values = new DetailsPanelPresentation(parent.Object).Sections.Single(section => section.Title == "Attributes")
+                .Properties.ToDictionary(property => property.Key, property => property.Value);
+            Assert.That(values, Has.Count.EqualTo(5));
+            Assert.That(values["unset"], Is.EqualTo("No local value; inherited/default values not resolved"));
+            Assert.That(values["missing"], Is.EqualTo("Unresolved value"));
+            Assert.That(values["expression"], Does.Contain("SDK produced no textual notation"));
+            Assert.That(values["multiple"], Is.EqualTo("Multiple values (2): 1: Local binding: 2; 2: Local binding: 3"));
+            Assert.That(values["empty"], Is.EqualTo("Local binding: Empty string"));
+        }
+
+        [Test]
+        public void VerifyIncompletePropertiesPreserveValidSiblingsAndUnrelatedErrors()
+        {
+            var selected = new Mock<IPartUsage>();
+            selected.SetupGet(element => element.DeclaredName).Returns("Retained");
+            selected.SetupGet(element => element.qualifiedName).Throws(new IncompleteModelException("Missing owner"));
+            selected.SetupGet(element => element.type).Throws(new IncompleteModelException("Missing type"));
+            selected.SetupGet(element => element.multiplicity).Throws(new IncompleteModelException("Missing bound"));
+            var value = new Mock<IFeatureValue>();
+            value.SetupGet(element => element.value).Throws(new IncompleteModelException("Missing value"));
+            var attribute = new Mock<IAttributeUsage>();
+            attribute.SetupGet(element => element.DeclaredName).Returns("mass");
+            attribute.SetupGet(element => element.OwnedRelationship).Returns([value.Object]);
+            var brokenMembership = new Mock<IMembership>();
+            brokenMembership.SetupGet(element => element.ownedElement).Throws(new IncompleteModelException("Missing member"));
+            selected.SetupGet(element => element.ownedElement).Returns([brokenMembership.Object, attribute.Object]);
+            selected.SetupGet(element => element.documentation).Returns([new Documentation { Body = "Retained documentation" }]);
+            var result = new DetailsPanelPresentation(selected.Object);
+            Assert.That(result.DisplayName, Is.EqualTo("Retained"));
+            Assert.That(result.Documentation, Is.EqualTo(new[] { "Retained documentation" }));
+            Assert.That(result.Sections.Single(section => section.Title == "Identity").Properties
+                .Single(property => property.Key == "Qualified name").Value, Does.Contain("incomplete"));
+            Assert.That(result.Sections.Single(section => section.Title == "Attributes").Properties
+                .Single(property => property.Key == "mass").Value, Is.EqualTo("Unresolved value"));
+            Assert.That(result.Sections.Single(section => section.Title == "Classification").Properties
+                .Single(property => property.Key == "Typed by").Value, Does.Contain("incomplete"));
+            selected.SetupGet(element => element.qualifiedName).Throws(new System.InvalidOperationException("Unexpected"));
+            Assert.That(() => new DetailsPanelPresentation(selected.Object), Throws.TypeOf<System.InvalidOperationException>());
+        }
+
         [TestCase(TypeArgs = [typeof(IAssociation)])]
         [TestCase(TypeArgs = [typeof(IConnectionUsage)])]
         [TestCase(TypeArgs = [typeof(IFlowUsage)])]
@@ -54,11 +111,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(new DetailsPanelPresentation(parent.Object).Sections.Select(section => section.Title),
                 Does.Not.Contain("Attributes"));
             Assert.That(new DetailsPanelPresentation(nested.Object).Sections
-                .Single(section => section.Title == "Attributes").Properties[0].Value, Is.EqualTo("5"));
+                .Single(section => section.Title == "Attributes").Properties[0].Value, Is.EqualTo("Local binding: 5"));
 
             hidden.SetupGet(element => element.ownedElement).Returns([attribute.Object]);
             Assert.That(new DetailsPanelPresentation(parent.Object).Sections
-                .Single(section => section.Title == "Attributes").Properties[0].Value, Is.EqualTo("5"));
+                .Single(section => section.Title == "Attributes").Properties[0].Value, Is.EqualTo("Local binding: 5"));
         }
 
         [Test]
@@ -84,14 +141,15 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(classification["Typed by"], Is.EqualTo("HarnessDef"));
                 Assert.That(classification["Multiplicity"], Is.EqualTo("[2]"));
                 Assert.That(classification["Composition"], Is.EqualTo("composite"));
-                Assert.That(classification["Is variation"], Is.EqualTo("true"));
+                Assert.That(presentation.AdvancedProperties.Single(property => property.Key == "Is variation").Value, Is.EqualTo("true"));
+                Assert.That(classification.Keys, Does.Not.Contain("Is variation"));
                 Assert.That(identity["Visibility"], Is.EqualTo(part.Object.owningMembership.Visibility.ToString().ToLowerInvariant()));
                 Assert.That(classification.Keys, Does.Not.Contain("Is read only"));
             }
         }
 
         [Test]
-        public void VerifyAttributeLiteralValuesOmitUnresolvedExpressions()
+        public void VerifyAttributeValuesRetainUnsupportedExpressions()
         {
             var featureValue = new Mock<IFeatureValue>();
             featureValue.SetupGet(value => value.value).Returns(new LiteralRational { Value = 12.5 });
@@ -107,16 +165,16 @@ namespace Mycelium.Bloom.Tests.ViewModel
             {
                 Assert.That(attributes, Has.Count.EqualTo(1));
                 Assert.That(attributes[0].Key, Is.EqualTo("mass"));
-                Assert.That(attributes[0].Value, Is.EqualTo("12.5"));
+                Assert.That(attributes[0].Value, Is.EqualTo("Local binding: 12.5"));
                 Assert.That(new DetailsPanelPresentation(attribute.Object).Sections
-                    .Single(section => section.Title == "Value").Properties[0].Value, Is.EqualTo("12.5"));
+                    .Single(section => section.Title == "Value").Properties[0].Value, Is.EqualTo("Local binding: 12.5"));
             }
 
-            featureValue.SetupGet(value => value.value).Returns(Mock.Of<IExpression>());
-            Assert.That(new DetailsPanelPresentation(part.Object).Sections.Select(section => section.Title),
-                Does.Not.Contain("Attributes"));
-            Assert.That(new DetailsPanelPresentation(attribute.Object).Sections.Select(section => section.Title),
-                Does.Not.Contain("Value"));
+            featureValue.SetupGet(value => value.value).Returns(new LiteralExpression());
+            Assert.That(new DetailsPanelPresentation(part.Object).Sections.Single(section => section.Title == "Attributes").Properties[0].Value,
+                Does.Contain("SDK produced no textual notation"));
+            Assert.That(new DetailsPanelPresentation(attribute.Object).Sections.Single(section => section.Title == "Value").Properties[0].Value,
+                Does.Contain("SDK produced no textual notation"));
         }
 
         [Test]

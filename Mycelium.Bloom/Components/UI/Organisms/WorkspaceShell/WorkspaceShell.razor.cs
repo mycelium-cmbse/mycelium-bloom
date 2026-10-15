@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
 {
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
@@ -22,7 +23,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
     /// the shell exposes one full-width pane at a time through its accessible pane switcher. The compact layout is
     /// supported down to 20rem; narrower embedding widths are outside the supported presentation target.
     /// </remarks>
-    public partial class WorkspaceShell : BloomComponentBase
+    public partial class WorkspaceShell : BloomComponentBase, IAsyncDisposable
     {
         /// <summary>
         /// Identifies the workspace pane exposed at compact component widths.
@@ -64,6 +65,149 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         /// Gets or sets the pane shown by the compact-width pane switcher.
         /// </summary>
         private NarrowPane ActiveNarrowPane { get; set; } = NarrowPane.Main;
+
+        /// <summary>The root used by component-local geometry and focus handling.</summary>
+        private ElementReference rootElement;
+
+        /// <summary>The owned browser module and per-instance interaction registration.</summary>
+        private IJSObjectReference module, interaction;
+
+        /// <summary>The callback reference owned by this shell.</summary>
+        private DotNetObjectReference<WorkspaceShell> selfReference;
+
+        /// <summary>The single in-flight browser initialization.</summary>
+        private Task initialization;
+
+        /// <summary>Prevents late browser callbacks after shell teardown.</summary>
+        private bool isDisposed;
+
+        /// <summary>Gets or sets the browser runtime for geometry and pointer capture.</summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>Gets or sets whether the mounted right region is folded and inert.</summary>
+        [Parameter]
+        public bool RightPanelCollapsed { get; set; }
+
+        /// <summary>Gets or sets whether the right region exposes a generic resize separator.</summary>
+        [Parameter]
+        public bool RightPanelResizable { get; set; }
+
+        /// <summary>Gets or sets the caller-owned preferred right width in CSS pixels.</summary>
+        [Parameter]
+        public double RightPanelWidth { get; set; } = 380;
+
+        /// <summary>Gets or sets the callback for a completed user resize.</summary>
+        [Parameter]
+        public EventCallback<double> RightPanelWidthChanged { get; set; }
+
+        /// <summary>Gets or sets the minimum right width in CSS pixels.</summary>
+        [Parameter]
+        public double RightPanelMinimumWidth { get; set; } = 260;
+
+        /// <summary>Gets or sets the maximum right width before responsive constraints.</summary>
+        [Parameter]
+        public double RightPanelMaximumWidth { get; set; } = 600;
+
+        /// <summary>Gets or sets the preferred minimum central content width.</summary>
+        [Parameter]
+        public double MinimumMainContentWidth { get; set; } = 320;
+
+        /// <summary>Gets or sets the accessible separator action label.</summary>
+        [Parameter]
+        public string RightPanelResizeLabel { get; set; } = "Resize right panel";
+
+        /// <summary>Gets or sets an optional focus-return control for folded content.</summary>
+        [Parameter]
+        public string RightPanelFocusReturnId { get; set; }
+
+        /// <summary>Gets or sets an optional stable identifier for the right region boundary.</summary>
+        [Parameter]
+        public string RightPanelTestId { get; set; }
+
+        /// <summary>Reveals the right pane in the compact switcher without changing controlled collapse state.</summary>
+        public void RevealRightPanel()
+        {
+            if (!this.isDisposed && this.ShouldRenderRightPanel())
+            {
+                this.ActiveNarrowPane = NarrowPane.Right;
+                this.StateHasChanged();
+            }
+        }
+
+        /// <summary>Forwards a bounded user resize to the sole preferred-width authority.</summary>
+        /// <param name="width">The measured user-selected width in CSS pixels.</param>
+        /// <returns>The controlled width callback.</returns>
+        [JSInvokable]
+        public Task CommitRightPanelWidth(double width)
+        {
+            return !this.isDisposed && this.RightPanelResizable && !this.RightPanelCollapsed
+                   && this.ShouldRenderRightPanel() && double.IsFinite(width)
+                ? this.RightPanelWidthChanged.InvokeAsync(Math.Clamp(width, this.RightPanelMinimumWidth, this.RightPanelMaximumWidth))
+                : Task.CompletedTask;
+        }
+
+        /// <summary>Initializes optional browser interaction and applies controlled parameters after rendering.</summary>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+            if (this.isDisposed || (!this.RightPanelResizable && !this.RightPanelCollapsed && this.initialization is null))
+            {
+                return;
+            }
+            this.initialization ??= this.InitializeInteractionAsync();
+            await this.initialization;
+            if (!this.isDisposed && this.interaction is not null)
+            {
+                await this.interaction.InvokeVoidAsync("update", this.RightPanelWidth, this.RightPanelMinimumWidth,
+                    this.RightPanelMaximumWidth, this.MinimumMainContentWidth, this.RightPanelFocusReturnId);
+            }
+        }
+
+        /// <summary>Creates one browser registration while retaining ownership through asynchronous teardown.</summary>
+        private async Task InitializeInteractionAsync()
+        {
+            this.module = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import",
+                "./Components/UI/Organisms/WorkspaceShell/WorkspaceShell.razor.js");
+            if (!this.isDisposed && this.module is not null)
+            {
+                this.selfReference = DotNetObjectReference.Create(this);
+                this.interaction = await this.module.InvokeAsync<IJSObjectReference>("create", this.rootElement, this.selfReference);
+            }
+        }
+
+        /// <summary>Releases geometry observation, pointer capture and browser callback references.</summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (this.isDisposed)
+            {
+                return;
+            }
+            this.isDisposed = true;
+            try
+            {
+                if (this.initialization is not null)
+                {
+                    await this.initialization;
+                }
+                if (this.interaction is not null)
+                {
+                    await this.interaction.InvokeVoidAsync("dispose");
+                    await this.interaction.DisposeAsync();
+                }
+                if (this.module is not null)
+                {
+                    await this.module.DisposeAsync();
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+            finally
+            {
+                this.selfReference?.Dispose();
+            }
+        }
 
         /// <summary>
         /// Gets or sets the accessible label of the workspace.
@@ -188,8 +332,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         {
             base.OnParametersSet();
 
+            if (this.RightPanelResizable && (!double.IsFinite(this.RightPanelWidth)
+                || !double.IsFinite(this.RightPanelMinimumWidth) || this.RightPanelMinimumWidth <= 0
+                || !double.IsFinite(this.RightPanelMaximumWidth) || this.RightPanelMaximumWidth < this.RightPanelMinimumWidth
+                || !double.IsFinite(this.MinimumMainContentWidth) || this.MinimumMainContentWidth < 0))
+            {
+                throw new ArgumentOutOfRangeException(nameof(this.RightPanelWidth), "Panel widths must define finite, ordered bounds.");
+            }
+
             if ((this.ActiveNarrowPane == NarrowPane.Left && !this.ShouldRenderLeftPanel())
-                || (this.ActiveNarrowPane == NarrowPane.Right && !this.ShouldRenderRightPanel()))
+                || (this.ActiveNarrowPane == NarrowPane.Right && (!this.ShouldRenderRightPanel() || this.RightPanelCollapsed)))
             {
                 this.ActiveNarrowPane = NarrowPane.Main;
             }
@@ -208,7 +360,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
                     this.FullApplication),
                 CssClassBuilder.When(
                     "mb-workspace-shell--left-panel-collapsed",
-                    this.LeftPanelCollapsed));
+                    this.LeftPanelCollapsed),
+                CssClassBuilder.When("mb-workspace-shell--right-resizable", this.RightPanelResizable));
         }
 
         /// <summary>

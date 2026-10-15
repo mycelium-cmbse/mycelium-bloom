@@ -113,6 +113,14 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [CascadingParameter]
         private IWorkspaceUrlContextService UrlContextService { get; set; }
 
+        /// <summary>Gets or sets the layout-owned reveal intent without transferring selection state.</summary>
+        [CascadingParameter(Name = "PropertiesRequested")]
+        private EventCallback PropertiesRequested { get; set; }
+
+        /// <summary>Forwards explicit browser selection, including a repeated click on the same object.</summary>
+        private Task HandleBrowserSelectionAsync(ProjectBrowserNodeViewModel node) =>
+            this.isDisposed ? Task.CompletedTask : this.PropertiesRequested.InvokeAsync();
+
         /// <summary>
         /// Gets the durable editor state owned by this routed editor page.
         /// </summary>

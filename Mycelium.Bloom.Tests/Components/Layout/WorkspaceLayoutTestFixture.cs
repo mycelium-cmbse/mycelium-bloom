@@ -33,6 +33,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -68,6 +69,8 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             this.context = new ContextAwareService();
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
+                () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             this.elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
             this.Services.AddSingleton(this.elementIdResolver.Object);
             this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
@@ -120,9 +123,9 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(component.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<BbDarkModeToggle>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("aside.mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
-                Assert.That(component.Find("button[aria-label='Close details panel'][aria-pressed='true']"),
+                Assert.That(component.Find("button[aria-label='Collapse Properties'][aria-expanded='true']"),
                     Is.Not.Null);
-                Assert.That(component.FindAll("button[aria-label='Close details panel']"), Has.Count.EqualTo(2));
+                Assert.That(component.FindAll("button[aria-label='Collapse Properties']"), Has.Count.EqualTo(1));
                 Assert.That(shell.Instance.FullApplication, Is.True);
                 Assert.That(component.FindAll("section.mb-workspace-shell[role='main']"), Has.Count.EqualTo(1));
                 Assert.That(component.Find(".mb-workspace-shell__main [data-testid='layout-body']")
@@ -156,22 +159,17 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         public async Task VerifyDetailsPanelCanCloseAndReopen()
         {
             using var component = this.RenderLayout(CreateBody("Editor content", "Modelling"));
-
-            await component.Find(".mb-details-panel button[aria-label='Close details panel']").ClickAsync();
-
-            await component.WaitForAssertionAsync(() =>
+            var panel = component.FindComponent<DetailsPanelComponent>().Instance;
+            var previous = new SysML2.NET.Core.POCO.Systems.Parts.PartUsage { DeclaredName = "Previous" };
+            await component.InvokeAsync(() =>
             {
-                using (Assert.EnterMultipleScope())
-                {
-                    Assert.That(component.FindComponents<DetailsPanelComponent>(), Is.Empty);
-                    Assert.That(component.FindAll("aside.mb-workspace-shell__right-panel"), Is.Empty);
-                    Assert.That(component.FindAll("button[aria-label='Close details panel']"), Is.Empty);
-                    Assert.That(component.Find("button[aria-label='Open details panel']")
-                        .GetAttribute("aria-pressed"), Is.EqualTo("false"));
-                }
+                this.context.SelectedElement = previous;
+                panel.ViewModel.Inspect(new SysML2.NET.Core.POCO.Systems.Parts.PartUsage { DeclaredName = "Inspected" });
             });
+            var shell = component.FindComponent<WorkspaceShellComponent>();
+            await component.InvokeAsync(() => shell.Instance.CommitRightPanelWidth(475));
 
-            await component.Find("button[aria-label='Open details panel']").ClickAsync();
+            await component.Find("button[aria-label='Collapse Properties']").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -179,9 +177,38 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 {
                     Assert.That(component.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
                     Assert.That(component.FindAll("aside.mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
-                    Assert.That(component.Find("button[aria-label='Close details panel'][aria-pressed='true']"),
+                    Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
+                    Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("inert"), Is.True);
+                    Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(panel));
+                    Assert.That(panel.ViewModel.CanGoBack, Is.True);
+                    Assert.That(shell.Instance.RightPanelWidth, Is.EqualTo(475));
+                    Assert.That(component.FindAll("button[aria-label='Collapse Properties']"), Is.Empty);
+                    Assert.That(component.Find("button[aria-label='Expand Properties']")
+                        .GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                }
+            });
+
+            await component.InvokeAsync(() => this.context.SelectedElement =
+                new SysML2.NET.Core.POCO.Systems.Parts.PartUsage { DeclaredName = "Background selection" });
+            Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
+            Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(this.context.SelectedElement));
+            Assert.That(panel.ViewModel.CanGoBack, Is.False);
+
+            await component.Find("button[aria-label='Expand Properties']").ClickAsync();
+
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
+                    Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(panel));
+                    Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+                    Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("inert"), Is.False);
+                    Assert.That(shell.Instance.RightPanelWidth, Is.EqualTo(475));
+                    Assert.That(component.FindAll("aside.mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
+                    Assert.That(component.Find("button[aria-label='Collapse Properties'][aria-expanded='true']"),
                         Is.Not.Null);
-                    Assert.That(component.FindAll(".mb-details-panel button[aria-label='Close details panel']"),
+                    Assert.That(component.FindAll("button[aria-label='Collapse Properties']"),
                         Has.Count.EqualTo(1));
                 }
             });
@@ -199,7 +226,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             viewModel.PresentationMode = NavigationRailPresentationMode.Expanded;
             var layoutInstance = component.Instance;
 
-            await component.Find(".mb-details-panel button[aria-label='Close details panel']").ClickAsync();
+            await component.Find("button[aria-label='Collapse Properties']").ClickAsync();
 
             this.Services.GetRequiredService<NavigationManager>()
                 .NavigateTo("/workspace/dashboard?panel=summary#workspace-dashboard-heading");
@@ -213,10 +240,10 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
-                Assert.That(component.FindComponents<DetailsPanelComponent>(), Is.Empty);
-                Assert.That(component.FindAll("aside.mb-workspace-shell__right-panel"), Is.Empty);
-                Assert.That(component.Find("button[aria-label='Open details panel']")
-                    .GetAttribute("aria-pressed"), Is.EqualTo("false"));
+                Assert.That(component.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("aside.mb-workspace-shell__right-panel"), Has.Count.EqualTo(1));
+                Assert.That(component.Find("button[aria-label='Expand Properties']")
+                    .GetAttribute("aria-expanded"), Is.EqualTo("false"));
                 Assert.That(component.Find(".mb-workspace-shell__main h1").TextContent.Trim(),
                     Is.EqualTo("Dashboard"));
                 Assert.That(viewModel.SelectedItem.Id, Is.EqualTo("dashboard"));

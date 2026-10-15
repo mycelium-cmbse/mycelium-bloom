@@ -27,6 +27,58 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class WorkspaceShellTestFixture : BunitContext
     {
+        [Test]
+        public async Task VerifyControlledCollapseRetainsContentAndCompactReveal()
+        {
+            this.JSInterop.Mode = JSRuntimeMode.Loose;
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.MainContent, "<span>Canvas</span>")
+                .Add(shell => shell.RightPanel, "<input aria-label='Panel input' />")
+                .Add(shell => shell.RightPanelWidth, 460)
+                .Add(shell => shell.RightPanelCollapsed, true));
+            var panel = component.Find(".mb-workspace-shell__right-panel");
+            Assert.That(panel.HasAttribute("hidden"), Is.True);
+            Assert.That(panel.HasAttribute("inert"), Is.True);
+            Assert.That(component.FindAll("input"), Has.Count.EqualTo(1));
+            Assert.That(component.FindAll("[role='separator']"), Is.Empty);
+            component.Render(parameters => parameters.Add(shell => shell.RightPanelCollapsed, false));
+            await component.InvokeAsync(component.Instance.RevealRightPanel);
+            Assert.That(component.Find(".mb-workspace-shell__right-panel").GetAttribute("data-narrow-active"), Is.EqualTo("true"));
+            Assert.That(component.Instance.RightPanelWidth, Is.EqualTo(460));
+            component.Render(parameters => parameters.Add(shell => shell.RightPanelCollapsed, true));
+            Assert.That(component.Find(".mb-workspace-shell__main").GetAttribute("data-narrow-active"), Is.EqualTo("true"));
+            component.Render(parameters => parameters.Add(shell => shell.RightPanelVisible, false));
+            Assert.That(component.FindAll(".mb-workspace-shell__right-panel"), Is.Empty);
+        }
+
+        [Test]
+        public async Task VerifyResizeOptInPublishesBoundedWidthWithoutMutatingParameters()
+        {
+            this.JSInterop.Mode = JSRuntimeMode.Loose;
+            double? requested = null;
+            var component = this.Render<WorkspaceShellComponent>(parameters => parameters
+                .Add(shell => shell.MainContent, "<span>Canvas</span>")
+                .Add(shell => shell.RightPanel, "<span>Inspector</span>")
+                .Add(shell => shell.RightPanelWidthChanged, width => requested = width));
+            Assert.That(component.FindAll("[role='separator']"), Is.Empty);
+            Assert.That(this.JSInterop.Invocations, Is.Empty);
+            component.Render(parameters => parameters.Add(shell => shell.RightPanelResizable, true));
+            var separator = component.Find("[role='separator']");
+            Assert.That(separator.GetAttribute("aria-orientation"), Is.EqualTo("vertical"));
+            Assert.That(separator.GetAttribute("aria-controls"), Is.EqualTo(component.Find("aside").Id));
+            Assert.That(separator.GetAttribute("aria-valuemin"), Is.EqualTo("260"));
+            Assert.That(separator.GetAttribute("aria-valuemax"), Is.EqualTo("600"));
+            await component.InvokeAsync(() => component.Instance.CommitRightPanelWidth(900));
+            Assert.That(requested, Is.EqualTo(600));
+            Assert.That(component.Instance.RightPanelWidth, Is.EqualTo(380));
+            await component.InvokeAsync(() => component.Instance.CommitRightPanelWidth(200));
+            Assert.That(requested, Is.EqualTo(260));
+            component.Render(parameters => parameters.Add(shell => shell.RightPanelCollapsed, true));
+            await component.InvokeAsync(() => component.Instance.CommitRightPanelWidth(450));
+            Assert.That(requested, Is.EqualTo(260));
+            Assert.That(component.FindAll("[role='separator']"), Is.Empty);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>

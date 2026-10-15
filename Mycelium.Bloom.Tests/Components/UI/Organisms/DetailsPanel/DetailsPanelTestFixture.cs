@@ -9,7 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 {
-    using System.ComponentModel;
+    using Mycelium.Bloom.Core.Context;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -21,6 +21,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     using Moq;
 
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Tests.Common;
 
     using SysML2.NET.Core.POCO.Root.Annotations;
@@ -42,9 +43,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// </summary>
         private static readonly string[] ExpectedPropertyLabels =
         [
-            "ID",
             "Declared name",
             "Declared short name",
+            "Effective name",
             "Qualified name"
         ];
 
@@ -53,21 +54,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// </summary>
         private static readonly string[] ExpectedPropertyValues =
         [
-            "element-42",
             "Declared element",
             "declared-short",
+            "Effective element",
             "Package::Declared element"
         ];
 
         /// <summary>
         /// The reactive selection source injected into the component under test.
         /// </summary>
-        private readonly Mock<IElementSelectionService> selectionService;
+        private readonly ContextAwareService selectionService = new();
 
         /// <summary>
         /// The selected element returned by the mocked selection source.
         /// </summary>
-        private IElement selectedElement;
+        private IElement selectedElement => this.selectionService.SelectedElement;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DetailsPanelTestFixture" /> class.
@@ -76,10 +77,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         {
             BlueprintTestSetup.Configure(this);
 
-            this.selectionService = new Mock<IElementSelectionService>();
-            this.selectionService.SetupGet(service => service.SelectedElement)
-                .Returns(() => this.selectedElement);
-            this.Services.AddSingleton(this.selectionService.Object);
+            this.Services.AddSingleton<IElementSelectionService>(this.selectionService);
+            this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
+                () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Instance.ViewModel, Is.SameAs(this.selectionService.Object));
+                Assert.That(component.Instance.ViewModel.Presentation, Is.Null);
                 Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Properties"));
                 Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                     Is.EqualTo("Select an element to display its details."));
@@ -135,28 +135,45 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             }
         }
 
-        /// <summary>
-        /// Verifies the optional close control exposes an accessible action and emits close intent.
-        /// </summary>
         [Test]
-        public async Task VerifyCloseActionEmitsIntent()
+        public async Task VerifyAdvancedLinksInspectCanonicalMultiplicityAndReturn()
         {
-            var closeCount = 0;
-            var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.CloseRequested,
-                    EventCallback.Factory.Create(this, () => closeCount++)));
-            var closeButton = component.Find("button[aria-label='Close details panel']");
+            var feature = new SysML2.NET.Core.POCO.Core.Features.Feature { DeclaredName = "items" };
+            var range = new SysML2.NET.Core.POCO.Kernel.Multiplicities.MultiplicityRange();
+            ExpressionModelTestFactory.Attach<OwningMembership>(feature, range);
+            ExpressionModelTestFactory.Attach<OwningMembership>(range, new SysML2.NET.Core.POCO.Kernel.Expressions.FeatureReferenceExpression());
+            this.SetSelectedElement(feature);
+            var component = this.Render<DetailsPanelComponent>();
+            await component.Find("button[aria-label='Advanced model links']").ClickAsync();
+            await component.Find("button[aria-label^='Inspect Multiplicity:']").ClickAsync();
+            await component.WaitForAssertionAsync(() => Assert.That(this.selectionService.SelectedElement, Is.SameAs(range)));
+            await component.Find("button[aria-label='Back to previous inspected element']").ClickAsync();
+            await component.WaitForAssertionAsync(() => Assert.That(this.selectionService.SelectedElement, Is.SameAs(feature)));
+        }
+
+        [Test]
+        public async Task VerifyClearSelectionKeepsPanelAndShowsEmptyState()
+        {
+            this.selectionService.SelectedElement = new PartUsage { DeclaredName = "Harness" };
+            var component = this.Render<DetailsPanelComponent>();
+            var closeButton = component.Find("button[aria-label='Clear selection']");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(closeButton.GetAttribute("type"), Is.EqualTo("button"));
-                Assert.That(closeButton.GetAttribute("title"), Is.EqualTo("Close details panel"));
+                Assert.That(closeButton.GetAttribute("title"), Is.EqualTo("Clear selection"));
                 Assert.That(closeButton.QuerySelector("svg").GetAttribute("aria-hidden"), Is.EqualTo("true"));
             }
 
             await closeButton.ClickAsync();
 
-            Assert.That(closeCount, Is.EqualTo(1));
+            Assert.That(this.selectionService.SelectedElement, Is.Null);
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Properties"));
+                Assert.That(component.Find(".mb-details-panel__empty"), Is.Not.Null);
+                Assert.That(component.FindAll("button[aria-label='Clear selection']"), Is.Empty);
+            });
         }
 
         /// <summary>
@@ -170,7 +187,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var component = this.Render<DetailsPanelComponent>();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
-            Assert.That(values, Is.Empty);
+            Assert.That(values, Is.EqualTo(new[] { "Display name" }));
         }
 
         [Test]
@@ -214,8 +231,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// <param name="qualifiedName">The qualified name.</param>
         /// <param name="expectedName">The expected displayed name.</param>
         [TestCase("Declared", " ", " ", "Declared", TestName = "VerifyHeadingDisplaysDeclaredName")]
-        [TestCase(" ", "Name", "Qualified", "Name", TestName = "VerifyHeadingUsesNameFallback")]
-        [TestCase(" ", " ", "Qualified", "Qualified", TestName = "VerifyHeadingUsesQualifiedNameFallback")]
+        [TestCase(" ", "Name", "Qualified", "short", TestName = "VerifyHeadingUsesDeclaredShortName")]
+        [TestCase(" ", " ", "Qualified", "short", TestName = "VerifyHeadingPrefersShortNameToQualifiedPath")]
         [TestCase("Declared", "Name", "Qualified", "Declared", TestName = "VerifyHeadingPreservesNamePrecedence")]
         public void VerifyHeadingDisplayName(
             string declaredName,
@@ -241,7 +258,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var component = this.Render<DetailsPanelComponent>();
 
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
-                Is.EqualTo(nameof(Namespace)));
+                Is.EqualTo("Model"));
         }
 
         /// <summary>
@@ -265,7 +282,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 {
                     Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
                         Is.EqualTo("First"));
-                    Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("first-id"));
+                    Assert.That(component.Instance.ViewModel.Presentation.Element, Is.SameAs(firstElement));
                 }
             });
 
@@ -277,7 +294,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 {
                     Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
                         Is.EqualTo("Second"));
-                    Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("second-id"));
+                    Assert.That(component.Instance.ViewModel.Presentation.Element, Is.SameAs(secondElement));
                 }
             });
 
@@ -349,10 +366,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// <param name="element">The newly selected element.</param>
         private void SetSelectedElement(IElement element)
         {
-            this.selectedElement = element;
-            this.selectionService.Raise(
-                service => service.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IElementSelectionService.SelectedElement)));
+            this.selectionService.SelectedElement = element;
         }
 
         /// <summary>

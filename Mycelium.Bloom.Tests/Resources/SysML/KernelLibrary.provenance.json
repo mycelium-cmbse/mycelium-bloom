@@ -1,0 +1,14 @@
+{
+  "source": "https://github.com/STARIONGROUP/SysML2.NET",
+  "commit": "905c249e885decd006eba7035d7fc605c7db035e",
+  "sdkVersion": "0.23.0",
+  "sourcePath": "SysML2.NET.Serializer.Xmi.Tests/Resources/Systems Library/Ports.sysmlx",
+  "root": "Ports.sysmlx with SDK-loaded referenced namespaces",
+  "format": "Gzip-compressed PSM JSON exported through public SDK DTO conversion and JSON serialization",
+  "canonicalObjectCount": 16843,
+  "regressionElementId": "68c0c0ba-d0f8-513f-8243-be9ce46853da",
+  "regressionElement": "Occurrences::earlierFirstIncomingTransferSort",
+  "sourceMetamodelNamespace": "https://www.omg.org/spec/SysML/20250201",
+  "upstreamLicense": "Apache-2.0",
+  "purpose": "Read-only standard-library writer and presentation regression fixture; canonical identities and relationship ordering are retained"
+}

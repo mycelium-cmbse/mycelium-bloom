@@ -224,17 +224,17 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         private static void Attach<TMembership>(IElement owner, IElement child) where TMembership : IRelationship, new()
         {
             var membership = new TMembership();
-            var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedRelationship")!
-                .GetProperty("OwnedRelatedElement")!;
-            ((ICollection<IElement>)property.GetValue(membership)!).Add(child);
+            var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedRelationship")
+                .GetProperty("OwnedRelatedElement");
+            ((ICollection<IElement>)property.GetValue(membership)).Add(child);
             AttachRelationship(owner, membership);
         }
 
         private static void AttachRelationship(IElement owner, IRelationship relationship)
         {
-            var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedElement")!
-                .GetProperty("OwnedRelationship")!;
-            ((ICollection<IRelationship>)property.GetValue(owner)!).Add(relationship);
+            var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedElement")
+                .GetProperty("OwnedRelationship");
+            ((ICollection<IRelationship>)property.GetValue(owner)).Add(relationship);
         }
     }
 }

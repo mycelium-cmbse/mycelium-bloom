@@ -39,6 +39,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
@@ -66,6 +67,51 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ModellingTestFixture : BunitContext
     {
+        [Test]
+        public async Task VerifyExplicitSelectionFromIndependentBrowsersUnfoldsEvenForRepeatedObjects()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            await this.OpenProjectBrowserAsync(modelling, composition.Editor.Groups[1].Id);
+            var panel = component.FindComponent<DetailsPanelComponent>().Instance;
+            var panelViewModel = panel.ViewModel;
+            var browsers = component.FindComponents<ProjectBrowserComponent>();
+            Assert.That(browsers, Has.Count.EqualTo(2));
+            foreach (var browser in browsers)
+            {
+                var node = browser.Instance.ViewModel.RootNodes[0];
+                var rowSelector = $"[role='treeitem'][data-element-id='{node.ElementId}'] > .mb-project-browser-node__line > button";
+                for (var click = 0; click < 2; click++)
+                {
+                    await component.InvokeAsync(() =>
+                    {
+                        composition.Context.SelectedElement = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "inspection-origin" };
+                        panelViewModel.Inspect(node.SourceElement);
+                    });
+                    Assert.That(panelViewModel.CanGoBack, Is.True);
+                    await component.Find("[data-testid='properties-collapse']").ClickAsync();
+                    Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
+                    await browser.Find(rowSelector).ClickAsync();
+                    await component.WaitForAssertionAsync(() =>
+                    {
+                        Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+                        Assert.That(composition.Context.SelectedElement, Is.SameAs(node.SourceElement));
+                        Assert.That(panelViewModel.Presentation.Element, Is.SameAs(node.SourceElement));
+                        Assert.That(panelViewModel.CanGoBack, Is.False);
+                    });
+                }
+            }
+            Assert.That(component.FindComponent<DetailsPanelComponent>().Instance.ViewModel, Is.SameAs(panelViewModel));
+            foreach (var browser in composition.ProjectBrowsers)
+            {
+                browser.Verify(viewModel => viewModel.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Exactly(2));
+            }
+            await component.Find("[data-testid='properties-clear-selection']").ClickAsync();
+            Assert.That(composition.Context.SelectedElement, Is.Null);
+            Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+        }
+
         /// <summary>
         /// The Figma-derived relative weights expected for the default three-group composition.
         /// </summary>
@@ -74,7 +120,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         /// <summary>
         /// The semantic element order expected inside the workspace body.
         /// </summary>
-        private static readonly string[] ExpectedWorkspaceBodyElementNames = ["aside", "div", "aside"];
+        private static readonly string[] ExpectedWorkspaceBodyElementNames = ["aside", "div", "div", "aside"];
 
         /// <summary>
         /// The editor-type icon names expected for the default placeholder tabs.
@@ -142,8 +188,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(shellRoot.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
                 Assert.That(composition.Navigation.PresentationMode,
                     Is.EqualTo(NavigationRailPresentationMode.ExpandOnHover));
-                Assert.That(shellRoot.GetAttribute("style"),
-                    Does.Contain("--workspace-shell-right-panel-width: 380px;"));
+                Assert.That(shell.Instance.RightPanelResizable, Is.True);
+                Assert.That(shell.Instance.RightPanelWidth, Is.EqualTo(380));
                 Assert.That(navigation.Instance.ViewModel, Is.SameAs(composition.Navigation));
                 Assert.That(navigationRoot.GetAttribute("style"), Is.Null);
                 Assert.That(editorWorkspace.Instance.ViewModel, Is.SameAs(composition.Editor));
@@ -152,7 +198,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(editorWorkspace.Instance.TabClosed.HasDelegate, Is.True);
                 Assert.That(editorWorkspace.Instance.TabLeadingContent, Is.Not.Null);
                 Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowsers[0].Object));
-                Assert.That(detailsPanel.Instance.ViewModel, Is.SameAs(composition.Context));
+                Assert.That(detailsPanel.Instance.ViewModel.Presentation?.Element, Is.SameAs(composition.Context.SelectedElement));
                 Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<EditorWorkspaceComponent>(), Has.Count.EqualTo(1));
@@ -1619,6 +1665,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             this.Services.AddScoped<Func<INavigationRailViewModel>>(_ => () => navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
+            this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
+                () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             var elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
             elementIdResolver
                 .Setup(resolver => resolver.ResolveAsync(

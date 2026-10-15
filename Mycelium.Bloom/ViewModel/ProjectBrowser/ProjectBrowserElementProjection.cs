@@ -16,12 +16,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Functions;
+    using SysML2.NET.Core.POCO.Kernel.Connectors;
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.Core.Types;
     using SysML2.NET.Core.Root.Namespaces;
+    using SysML2.NET.Exceptions;
 
     /// <summary>
     /// Separates navigable model elements from relationship and property representations.
@@ -38,7 +40,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return element switch
             {
                 null => false,
-                IPackage or IClassifier or IUsage => true,
+                IPackage or IClassifier or IUsage or IConnector => true,
                 IRelationship or IDocumentation or IMultiplicity => false,
                 IFeature feature when IsEmptyExpressionSupport(feature) => false,
                 _ => true
@@ -111,10 +113,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private static bool IsAnonymous(IElement element)
         {
-            return string.IsNullOrWhiteSpace(element.DeclaredName)
-                && string.IsNullOrWhiteSpace(element.DeclaredShortName)
-                && string.IsNullOrWhiteSpace(element.name)
-                && string.IsNullOrWhiteSpace(element.shortName);
+            try
+            {
+                return string.IsNullOrWhiteSpace(element.DeclaredName)
+                    && string.IsNullOrWhiteSpace(element.DeclaredShortName)
+                    && string.IsNullOrWhiteSpace(element.name)
+                    && string.IsNullOrWhiteSpace(element.shortName);
+            }
+            catch (IncompleteModelException)
+            {
+                return false;
+            }
         }
     }
 }

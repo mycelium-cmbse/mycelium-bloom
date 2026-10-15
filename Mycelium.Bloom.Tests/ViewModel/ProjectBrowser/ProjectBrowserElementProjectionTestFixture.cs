@@ -22,6 +22,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Core.Classifiers;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Associations;
+    using SysML2.NET.Core.POCO.Kernel.Connectors;
+    using SysML2.NET.Core.POCO.Kernel.Interactions;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Kernel.Packages;
@@ -42,6 +44,32 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserElementProjectionTestFixture
     {
+        [Test]
+        public async Task VerifyIncompleteNamesAndMultiplicityRetainCanonicalNodes()
+        {
+            var feature = new Mock<IFeature>();
+            feature.SetupGet(element => element.ElementId).Returns("incomplete-feature");
+            feature.SetupGet(element => element.name).Throws(new SysML2.NET.Exceptions.IncompleteModelException("Missing name"));
+            feature.SetupGet(element => element.qualifiedName).Throws(new SysML2.NET.Exceptions.IncompleteModelException("Missing namespace"));
+            feature.SetupGet(element => element.multiplicity).Throws(new SysML2.NET.Exceptions.IncompleteModelException("Missing bound"));
+            var root = new Mock<INamespace>();
+            root.SetupGet(element => element.ElementId).Returns("root");
+            root.SetupGet(element => element.DeclaredName).Returns("Root");
+            root.SetupGet(element => element.ownedElement).Returns([feature.Object]);
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(root.Object);
+            var selection = new ContextAwareService();
+            using var browser = new ProjectBrowserViewModel(loader.Object, selection);
+            Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
+            var node = browser.RootNodes.Single().Children.Single();
+            Assert.That(node.DisplayName, Does.Contain("name unresolved"));
+            Assert.That(node.Multiplicity, Is.Null);
+            browser.SelectNode(node);
+            Assert.That(selection.SelectedElement, Is.SameAs(feature.Object));
+            Assert.That(new Mycelium.Bloom.ViewModel.DetailsPanel.DetailsPanelPresentation(feature.Object).ModelLinks
+                .Single(link => link.Role == "Multiplicity").Label, Does.Contain("Unresolved"));
+        }
+
         [TestCase(true, TypeArgs = [typeof(IPackage)])]
         [TestCase(true, TypeArgs = [typeof(IClassifier)])]
         [TestCase(true, TypeArgs = [typeof(IPartUsage)])]
@@ -73,6 +101,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         [TestCase(TypeArgs = [typeof(Association)])]
+        [TestCase(TypeArgs = [typeof(Connector)])]
+        [TestCase(TypeArgs = [typeof(BindingConnector)])]
+        [TestCase(TypeArgs = [typeof(Succession)])]
+        [TestCase(TypeArgs = [typeof(Flow)])]
+        [TestCase(TypeArgs = [typeof(SuccessionFlow)])]
         [TestCase(TypeArgs = [typeof(ConnectionDefinition)])]
         [TestCase(TypeArgs = [typeof(FlowDefinition)])]
         [TestCase(TypeArgs = [typeof(ConnectionUsage)])]
@@ -100,7 +133,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(element, Is.InstanceOf<IRelationship>());
-                Assert.That(element, Is.InstanceOf<IClassifier>().Or.InstanceOf<IUsage>());
+                Assert.That(element, Is.InstanceOf<IClassifier>().Or.InstanceOf<IUsage>().Or.InstanceOf<IConnector>());
                 Assert.That(ProjectBrowserElementProjection.IsNavigable(element), Is.True);
                 Assert.That(node.SourceElement, Is.SameAs(element));
                 Assert.That(leafNode.SourceElement, Is.SameAs(leaf));
