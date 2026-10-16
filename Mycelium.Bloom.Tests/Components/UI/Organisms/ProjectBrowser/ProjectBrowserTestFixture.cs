@@ -51,6 +51,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
 
+        private static readonly string[] ExpectedDisclosureToggleInteractions = ["toggle"];
+
         /// <summary>
         /// The selected type-chip labels expected from the active type criteria.
         /// </summary>
@@ -1506,13 +1508,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
 
             var disclosure = component.Find("[data-testid='project-browser-node-disclosure']");
-            Assert.That(disclosure.GetAttribute("aria-expanded"), Is.EqualTo("false"));
-            Assert.That(disclosure.GetAttribute("aria-label"), Is.EqualTo("Expand Quantities"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(disclosure.GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(disclosure.GetAttribute("aria-label"), Is.EqualTo("Expand Quantities"));
+            }
+
             disclosure.Click();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(interactions, Is.EqualTo(new[] { "toggle" }));
+                Assert.That(interactions, Is.EqualTo(ExpectedDisclosureToggleInteractions));
                 Assert.That(node.IsExpanded, Is.True);
                 Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("false"));
                 Assert.That(

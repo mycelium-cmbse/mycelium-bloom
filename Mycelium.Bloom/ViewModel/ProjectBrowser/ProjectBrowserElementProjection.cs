@@ -62,10 +62,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
 
             var relationships = feature.OwnedRelationship;
-            var values = relationships?.OfType<IFeatureValue>().ToArray() ?? [];
-            var hasRedefinition = relationships?.Any(relationship => relationship is IRedefinition) == true;
+            if (relationships is null)
+            {
+                return false;
+            }
+
+            var values = relationships.OfType<IFeatureValue>().ToArray();
+            var hasRedefinition = relationships.Any(relationship => relationship is IRedefinition);
             return values.Length > 0
-                   && relationships is not null
                    && relationships.All(relationship => relationship is IFeatureValue or IRedefinition)
                    && values.All(value =>
                        (value.value is IFeatureReferenceExpression or IFeatureChainExpression)
