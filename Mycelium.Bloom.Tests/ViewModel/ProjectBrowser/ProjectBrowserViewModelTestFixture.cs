@@ -17,26 +17,21 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-
     using Moq;
-
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-
     using ReactiveUI;
-
     using SysML2.NET.Dal;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Parts;
     using SysML2.NET.Serializer.Json;
-
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
     /// <summary>
@@ -109,17 +104,38 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var model = LoadQuantitiesModel();
             var modelLoaderService = CreateModelLoader(model);
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var details = new DetailsPanelViewModel(selectionService);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+            var root = viewModel.RootNodes[0];
+            var quantities = root.Children.Single(node => node.SourceElement.DeclaredName == "Quantities");
+            viewModel.SelectNode(root);
+            var identity = details.Presentation.Sections.Single(section => section.Title == "Identity")
+                .Properties.ToDictionary(property => property.Key, property => property.Value);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(initialized, Is.True);
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
-                Assert.That(viewModel.RootNodes[0].DisplayName, Is.Not.Empty);
-                Assert.That(viewModel.RootNodes[0].ElementType, Is.EqualTo(typeof(Namespace)));
-                Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
+                Assert.That(root.DisplayName, Is.EqualTo("Model"));
+                Assert.That(root.SourceElement, Is.SameAs(model));
+                Assert.That(root.ElementType, Is.EqualTo(typeof(Namespace)));
+                Assert.That(root.Presentation.IsModelRoot, Is.True);
+                Assert.That(root.Presentation.IconName, Is.EqualTo("network"));
+                Assert.That(quantities.Presentation.Kind, Is.EqualTo("Package"));
+                Assert.That(quantities.Presentation.IconName, Is.EqualTo("folder"));
+                Assert.That(identity["Declared name"], Is.EqualTo("Not declared"));
+                Assert.That(details.Presentation.DisplayName, Is.EqualTo("Namespace"));
+                Assert.That(details.Presentation.AdvancedProperties
+                    .Single(property => property.Key == "Model kind").Value, Is.EqualTo("Namespace"));
+                Assert.That(details.Presentation.AdvancedProperties
+                    .Single(property => property.Key == "Element ID").Value, Is.EqualTo(model.ElementId));
+                Assert.That(details.Presentation.ModelLinks
+                        .Any(link =>
+                            link.Element is not null && quantities.SourceElement.ElementId == link.Element.ElementId),
+                    Is.True);
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.IsLoading, Is.False);
                 Assert.That(viewModel.ErrorMessage, Is.Empty);
@@ -377,6 +393,40 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
+        /// Verifies inspection and return selection do not alter any browser expansion state.
+        /// </summary>
+        [Test]
+        public async Task VerifySelectNodePreservesTreeExpansionState()
+        {
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(
+                CreateModelLoader(CreateMinimalModel()).Object,
+                selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+
+            var nodes = viewModel.RootNodes.SelectMany(Flatten).ToArray();
+            foreach (var node in nodes.Where(node => node.HasChildren))
+            {
+                node.IsExpanded = node.Id.Length % 2 == 0;
+            }
+
+            var expansionStates = nodes.Select(node => node.IsExpanded).ToArray();
+            var initialNode = nodes[0];
+            var inspectedNode = nodes[^1];
+
+            viewModel.SelectNode(inspectedNode);
+            viewModel.SelectNode(initialNode);
+            viewModel.SelectNode(initialNode);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(nodes.Select(node => node.IsExpanded), Is.EqualTo(expansionStates));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(initialNode));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(initialNode.SourceElement));
+            }
+        }
+
+        /// <summary>
         /// Verifies ordinary toggle changes only nodes with children.
         /// </summary>
         [Test]
@@ -423,7 +473,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies available Type choices come from distinct concrete non-relationship elements in the loaded model.
+        /// Verifies available Type choices come from distinct concrete navigable elements in the loaded model.
         /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncDiscoversAvailableConcreteElementTypes()
@@ -445,8 +495,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Documentation)));
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Membership)));
                 Assert.That(
-                    Flatten(viewModel.RootNodes[0]).Any(node => node.SourceElement is Membership),
-                    Is.True);
+                    Flatten(viewModel.RootNodes[0]).Where(node => node.SourceElement is Membership),
+                    Is.Empty);
                 Assert.That(((IList<Type>)viewModel.AvailableElementTypes).IsReadOnly, Is.True);
             }
         }
@@ -912,7 +962,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(collectionPublicationWasCoherent, Is.True);
-                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(4));
+                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(3));
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
             }
         }
@@ -1080,7 +1130,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(viewModel.FilterPresentation.IsActive, Is.True, $"active commit at {iteration}");
-                    Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True, $"visible target at {iteration}");
+                    Assert.That(viewModel.FilterPresentation.IsVisible(targetNode), Is.True,
+                        $"visible target at {iteration}");
                     Assert.That(viewModel.SelectedElementTypes, Has.Count.EqualTo(1), $"single Type at {iteration}");
                 }
 
@@ -1093,7 +1144,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 {
                     Assert.That(viewModel.FilterText, Is.Empty, $"cleared Contains at {iteration}");
                     Assert.That(viewModel.SelectedElementTypes, Is.Empty, $"cleared Types at {iteration}");
-                    Assert.That(viewModel.FilterPresentation.IsActive, Is.False, $"inactive presentation at {iteration}");
+                    Assert.That(viewModel.FilterPresentation.IsActive, Is.False,
+                        $"inactive presentation at {iteration}");
                     Assert.That(Flatten(rootNode), Is.EqualTo(canonicalNodes), $"canonical nodes at {iteration}");
                     Assert.That(
                         canonicalNodes.All(node => node.Children.SequenceEqual(canonicalChildren[node])),
@@ -1102,7 +1154,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     Assert.That(rootNode.IsExpanded, Is.False, $"root expansion at {iteration}");
                     Assert.That(branchNode.IsExpanded, Is.True, $"branch expansion at {iteration}");
                     Assert.That(viewModel.SelectedNode, Is.SameAs(targetNode), $"local selection at {iteration}");
-                    Assert.That(selectionService.SelectedElement, Is.SameAs(targetNode.SourceElement), $"shared context at {iteration}");
+                    Assert.That(selectionService.SelectedElement, Is.SameAs(targetNode.SourceElement),
+                        $"shared context at {iteration}");
                 }
             }
         }
@@ -1244,7 +1297,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies Type filter state accepts only available non-relationship element types.
+        /// Verifies Type filter state accepts only available navigable element types.
         /// </summary>
         [Test]
         public async Task VerifyToggleElementTypeFilterRejectsUnavailableTypes()

@@ -17,26 +17,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives.Services;
-
     using Bunit;
-
     using Microsoft.AspNetCore.Components.Web;
     using Moq;
-
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Parts;
-
     using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
-    using ProjectBrowserSearchAssistantComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAssistant;
+    using ProjectBrowserSearchAssistantComponent =
+        Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAssistant;
     using SearchInputComponent = Mycelium.Bloom.Components.UI.Atoms.SearchInput.SearchInput;
 
     /// <summary>
@@ -47,20 +42,22 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     public sealed class ProjectBrowserTestFixture : BunitContext
     {
         /// <summary>
-        /// The expected parent-node interaction order.
+        /// The expected node-selection interaction order.
         /// </summary>
-        private static readonly string[] ExpectedParentNodeInteractions = ["toggle", "select", "callback"];
+        private static readonly string[] ExpectedParentNodeInteractions = ["select", "callback", "select", "callback"];
 
         /// <summary>
         /// The expected leaf-node interaction order.
         /// </summary>
         private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
 
+        private static readonly string[] ExpectedDisclosureToggleInteractions = ["toggle"];
+
         /// <summary>
         /// The selected type-chip labels expected from the active type criteria.
         /// </summary>
         private static readonly string[] ExpectedSelectedTypeChipLabels =
-            ["«partdefinition»", "«partusage»", "«namespace»"];
+            ["«part def»", "«part»", "Namespace"];
 
         /// <summary>
         /// The visible node titles expected for a deep filtered match.
@@ -248,7 +245,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(viewport.Children[0].ClassList, Does.Contain("mb-project-browser__tree"));
                 Assert.That(tree.GetAttribute("role"), Is.EqualTo("tree"));
                 Assert.That(tree.GetAttribute("aria-label"), Is.EqualTo("Project browser"));
-                Assert.That(component.Markup, Does.Contain("ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling"));
+                Assert.That(component.Markup,
+                    Does.Contain("ExtremelyLongElementNameThatMustRemainAvailableToHorizontalScrolling"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -307,7 +305,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(filterRegion.GetAttribute("aria-label"), Is.EqualTo("Project browser filters"));
                 Assert.That(filterRegion.Children, Has.Count.EqualTo(2));
                 Assert.That(filterRegion.Children[0].ClassList, Does.Contain("mb-project-browser__search"));
-                Assert.That(filterRegion.Children[1].ClassList, Does.Contain("mb-project-browser__filter-trigger-host"));
+                Assert.That(filterRegion.Children[1].ClassList,
+                    Does.Contain("mb-project-browser__filter-trigger-host"));
                 Assert.That(searchInput.Instance.Value, Is.Empty);
                 Assert.That(searchInput.Instance.FullWidth, Is.True);
                 Assert.That(searchInput.Instance.Placeholder, Is.EqualTo("Search elements..."));
@@ -342,7 +341,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await component.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
             await this.OpenFilterDrawerAsync(component);
             await this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
+                .Single(button => button.TextContent.Contains("«part def»", StringComparison.Ordinal))
                 .ClickAsync();
 
             Assert.That(viewModel.Object.FilterText, Is.EqualTo("needle"));
@@ -387,7 +386,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(surface.TextContent, Does.Contain("Contains \"def\""));
                 Assert.That(options, Has.Count.EqualTo(2));
                 Assert.That(options[0].TextContent, Does.Contain("Contains \"def\""));
-                Assert.That(options[1].TextContent, Does.Contain("«partdefinition»"));
+                Assert.That(options[1].TextContent, Does.Contain("«part def»"));
                 Assert.That(controlledListbox.GetAttribute("role"), Is.EqualTo("listbox"));
                 Assert.That(controlledListbox.GetAttribute("aria-label"), Is.EqualTo("Search suggestions"));
                 Assert.That(popoverContent.Instance.CloseOnEscape, Is.True);
@@ -451,10 +450,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(input.GetAttribute("value"), Is.Empty);
                 Assert.That(viewModel.FilterText, Is.Empty);
                 Assert.That(options, Has.Count.EqualTo(2));
-                Assert.That(surface.TextContent, Does.Contain("«namespace»"));
-                Assert.That(surface.TextContent, Does.Contain("«partdefinition»"));
+                Assert.That(surface.TextContent, Does.Contain("Namespace"));
+                Assert.That(surface.TextContent, Does.Contain("«part def»"));
                 Assert.That(surface.TextContent, Does.Not.Contain("Contains \"\""));
-                Assert.That(surface.TextContent, Does.Not.Contain("«partusage»"));
+                Assert.That(surface.TextContent, Does.Not.Contain("«part»"));
                 Assert.That(surface.TextContent, Does.Not.Contain("«membership»"));
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Membership)));
             }
@@ -493,7 +492,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
-                    Does.Contain("«partdefinition»")));
+                    Does.Contain("«part def»")));
             await component.Find("input[role='combobox']")
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
 
@@ -555,7 +554,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.Find("[role='option'][data-focused='true']").TextContent,
-                    Does.Contain("«partdefinition»")));
+                    Does.Contain("«part def»")));
 
             await input.KeyDownAsync(new KeyboardEventArgs { Key = "ArrowUp" });
             await this.portalHost.WaitForAssertionAsync(() =>
@@ -575,7 +574,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Find("button[aria-label='Open project browser filters']")
                     .GetAttribute("data-filter-active"), Is.EqualTo("true"));
                 Assert.That(component.Find(".mb-project-browser-search-assistant__criterion--type").TextContent,
-                    Does.Contain("Type «partdefinition»"));
+                    Does.Contain("Type «part def»"));
                 viewModel.Verify(
                     owner => owner.ToggleElementTypeFilter(typeof(PartDefinition)),
                     Times.Once);
@@ -791,7 +790,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await this.OpenSearchAssistantAsync(component, "usage");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal))
                 .ClickAsync();
 
             for (var iteration = 0; iteration < compositionCount; iteration++)
@@ -816,7 +815,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 {
                     Assert.That(viewModel.Object.FilterText, Is.EqualTo(committedDraft));
                     Assert.That(selectedTypes, Is.EquivalentTo(new[] { typeof(PartUsage) }));
-                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(2));
+                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"),
+                        Has.Count.EqualTo(2));
                     Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
                     Assert.That(component.Find("input[role='combobox']").Id, Is.EqualTo(stableInputId));
                     Assert.That(this.portalHost.Find(".mb-project-browser-search-assistant__surface").TextContent,
@@ -846,7 +846,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
             await this.OpenSearchAssistantAsync(component, "usage");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal))
                 .ClickAsync();
             await this.OpenSearchAssistantAsync(component, "next criterion");
 
@@ -888,7 +888,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
                 await this.OpenSearchAssistantAsync(component, "usage");
                 await this.portalHost.FindAll("[role='option']")
-                    .Single(option => option.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                    .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal))
                     .ClickAsync();
 
                 var thirdDraft = $"gamma-{iteration}";
@@ -899,7 +899,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.True);
                     Assert.That(viewModel.FilterText, Is.EqualTo(firstDraft));
                     Assert.That(viewModel.SelectedElementTypes, Is.EquivalentTo(new[] { typeof(PartUsage) }));
-                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(2));
+                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"),
+                        Has.Count.EqualTo(2));
                 }
 
                 await component.Find($"button[aria-label='Remove Contains {firstDraft} search criterion']")
@@ -922,7 +923,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Assert.That(viewModel.FilterText, Is.EqualTo(finalDraft));
                     Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                     Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
-                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(1));
+                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"),
+                        Has.Count.EqualTo(1));
                     Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
                     Assert.That(viewModel.RootNodes.Single(), Is.SameAs(canonicalRoot));
                     Assert.That(canonicalRoot.Children, Is.EqualTo(canonicalChildren));
@@ -958,15 +960,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "definition");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal))
                 .ClickAsync();
 
             Assert.That(component.Find(".mb-project-browser-search-assistant__criterion--type").TextContent,
-                Does.Contain("Type «partdefinition»"));
+                Does.Contain("Type «part def»"));
 
             await this.OpenSearchAssistantAsync(component, "definition");
             var selectedDefinitionSuggestion = this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal));
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal));
 
             using (Assert.EnterMultipleScope())
             {
@@ -977,7 +979,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await this.OpenFilterDrawerAsync(component);
             var definitionChip = this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«partdefinition»", StringComparison.Ordinal));
+                .Single(button => button.TextContent.Contains("«part def»", StringComparison.Ordinal));
 
             using (Assert.EnterMultipleScope())
             {
@@ -993,7 +995,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             await this.OpenSearchAssistantAsync(component, "definition");
             var definitionSuggestion = this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal));
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal));
 
             using (Assert.EnterMultipleScope())
             {
@@ -1020,7 +1022,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "definition");
             await this.portalHost.FindAll("[role='option']")
-                .Single(option => option.TextContent.Contains("«partdefinition»", StringComparison.Ordinal))
+                .Single(option => option.TextContent.Contains("«part def»", StringComparison.Ordinal))
                 .ClickAsync();
 
             await this.portalHost.WaitForAssertionAsync(() =>
@@ -1088,7 +1090,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             {
                 Assert.That(firstViewModel.Object.FilterText, Is.EqualTo("first"));
                 Assert.That(secondViewModel.Object.FilterText, Is.Empty);
-                Assert.That(firstComponent.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(1));
+                Assert.That(firstComponent.FindAll(".mb-project-browser-search-assistant__criterion"),
+                    Has.Count.EqualTo(1));
                 Assert.That(secondComponent.FindAll(".mb-project-browser-search-assistant__criterion"), Is.Empty);
             }
         }
@@ -1112,7 +1115,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(2));
+                    Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"),
+                        Has.Count.EqualTo(2));
                     Assert.That(input.GetAttribute("value"), Is.Empty);
                     Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
                 }
@@ -1284,10 +1288,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var component = this.RenderProjectBrowser();
             await this.OpenFilterDrawerAsync(component);
             await this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«namespace»", StringComparison.Ordinal))
+                .Single(button => button.TextContent.Contains("Namespace", StringComparison.Ordinal))
                 .ClickAsync();
             await this.portalHost.FindAll("button[aria-pressed]")
-                .Single(button => button.TextContent.Contains("«partusage»", StringComparison.Ordinal))
+                .Single(button => button.TextContent.Contains("«part»", StringComparison.Ordinal))
                 .ClickAsync();
 
             await this.portalHost.WaitForAssertionAsync(() =>
@@ -1439,13 +1443,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies parent-node interaction invokes ordinary ViewModel methods before the local callback.
+        /// Verifies selecting a parent invokes selection and the local callback without toggling disclosure.
         /// </summary>
         [Test]
-        public void VerifyHandleNodeSelectedInvokesToggleSelectAndCallbackInOrder()
+        public void VerifyHandleNodeSelectedPreservesExpansionAndInvokesSelectionAndCallbackInOrder()
         {
             var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities/length", "Length");
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities", child);
+            node.IsExpanded = true;
             var mutableRoots = new ObservableCollection<ProjectBrowserNodeViewModel> { node };
             var roots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRoots);
             var interactions = new List<string>();
@@ -1454,7 +1459,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.SetupGet(x => x.IsLoaded).Returns(true);
             viewModel.SetupGet(x => x.IsLoading).Returns(false);
             viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
-            viewModel.Setup(x => x.ToggleNode(node)).Callback(() => interactions.Add("toggle"));
             viewModel.Setup(x => x.SelectNode(node)).Callback(() => interactions.Add("select"));
             viewModel.Setup(x => x.Dispose());
             this.RegisterViewModel(viewModel.Object);
@@ -1466,13 +1470,62 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     interactions.Add("callback");
                 }));
 
-            component.Find(".mb-project-browser-node__row").Click();
+            component.Find("[data-testid='project-browser-node-selection']").Click();
+            component.Find("[data-testid='project-browser-node-selection']").Click();
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(interactions, Is.EqualTo(ExpectedParentNodeInteractions));
+                Assert.That(node.IsExpanded, Is.True);
+                viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
+                viewModel.Verify(x => x.SelectNode(node), Times.Exactly(2));
+            }
+        }
+
+        /// <summary>Verifies disclosure toggles without selecting or notifying the parent.</summary>
+        [Test]
+        public void VerifyDisclosureTogglesWithoutSelectingOrInvokingSelectionCallback()
+        {
+            var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities/length", "Length");
+            var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities", child);
+            var interactions = new List<string>();
+            var viewModel = CreateProjectBrowserViewModelMock();
+            viewModel.SetupGet(x => x.RootNodes).Returns(new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
+                new ObservableCollection<ProjectBrowserNodeViewModel> { node }));
+            viewModel.SetupGet(x => x.IsLoaded).Returns(true);
+            viewModel.SetupGet(x => x.IsLoading).Returns(false);
+            viewModel.SetupGet(x => x.ErrorMessage).Returns(string.Empty);
+            viewModel.Setup(x => x.ToggleNode(node)).Callback(() =>
+            {
+                interactions.Add("toggle");
+                node.IsExpanded = !node.IsExpanded;
+            });
+            viewModel.Setup(x => x.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()))
+                .Callback(() => interactions.Add("select"));
+            viewModel.Setup(x => x.Dispose());
+            this.RegisterViewModel(viewModel.Object);
+
+            using var component = this.RenderProjectBrowser();
+
+            var disclosure = component.Find("[data-testid='project-browser-node-disclosure']");
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(disclosure.GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(disclosure.GetAttribute("aria-label"), Is.EqualTo("Expand Quantities"));
+            }
+
+            disclosure.Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(interactions, Is.EqualTo(ExpectedDisclosureToggleInteractions));
+                Assert.That(node.IsExpanded, Is.True);
+                Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-selected"), Is.EqualTo("false"));
+                Assert.That(
+                    component.Find("[data-testid='project-browser-node-disclosure']").GetAttribute("aria-label"),
+                    Is.EqualTo("Collapse Quantities"));
+                viewModel.Verify(x => x.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
                 viewModel.Verify(x => x.ToggleNode(node), Times.Once);
-                viewModel.Verify(x => x.SelectNode(node), Times.Once);
             }
         }
 
@@ -1968,9 +2021,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 }
 
                 await replacementComponent.WaitForAssertionAsync(() =>
-                    Assert.That(
-                        replacementComponent.FindAll(".mb-project-browser-node__row"),
-                        Has.Count.EqualTo(1)),
+                        Assert.That(
+                            replacementComponent.FindAll(".mb-project-browser-node__row"),
+                            Has.Count.EqualTo(1)),
                     TimeSpan.FromSeconds(10));
 
                 using (Assert.EnterMultipleScope())

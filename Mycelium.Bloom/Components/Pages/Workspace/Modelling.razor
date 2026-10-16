@@ -66,6 +66,7 @@
                 {
                     <ProjectBrowser @key="tab.Id"
                                     ViewModel="projectBrowserViewModel"
+                                    SelectedNodeChanged="this.HandleBrowserSelectionAsync"
                                     data-testid="workspace-project-browser"
                                     data-tab-id="@(tab.Id)" />
                 }

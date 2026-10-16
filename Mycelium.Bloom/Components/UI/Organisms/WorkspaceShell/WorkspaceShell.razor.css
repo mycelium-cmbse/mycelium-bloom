@@ -110,6 +110,44 @@
     pointer-events: auto;
 }
 
+.mb-workspace-shell--right-resizable .mb-workspace-shell__body {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.mb-workspace-shell--right-resizable .mb-workspace-shell__right-panel {
+    grid-column: 4;
+    width: var(--workspace-shell-effective-right-width, var(--workspace-shell-preferred-right-width));
+    border-left: 0;
+}
+
+.mb-workspace-shell__right-splitter {
+    position: relative;
+    grid-column: 3;
+    width: var(--spacing-4);
+    cursor: col-resize;
+    touch-action: none;
+    background: transparent;
+}
+
+.mb-workspace-shell__right-splitter::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: var(--border-width-default);
+    background: var(--border);
+    pointer-events: none;
+}
+
+.mb-workspace-shell__right-splitter:hover::after,
+.mb-workspace-shell__right-splitter:focus-visible::after {
+    background: var(--primary);
+}
+
+.mb-workspace-shell__right-splitter:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+
 @container mb-workspace-shell (max-width: 64rem) {
     .mb-workspace-shell__body {
         --workspace-shell-left-panel-width: 17.5rem;
@@ -139,6 +177,13 @@
    that component width, one full-width pane remains operable at a time.
 */
 @container mb-workspace-shell (max-width: 45rem) {
+    .mb-workspace-shell__right-splitter {
+        display: none;
+    }
+
+    .mb-workspace-shell--right-resizable .mb-workspace-shell__right-panel {
+        width: 100%;
+    }
     .mb-workspace-shell__pane-switcher {
         display: flex;
         align-items: center;
@@ -197,6 +242,10 @@
     .mb-workspace-shell__body > [data-narrow-active="true"] {
         display: block;
     }
+}
+
+.mb-workspace-shell__right-panel[hidden] {
+    display: none;
 }
 
 @supports (interpolate-size: allow-keywords) {

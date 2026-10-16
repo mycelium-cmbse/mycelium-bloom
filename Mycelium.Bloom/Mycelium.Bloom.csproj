@@ -58,12 +58,13 @@
         <PackageReference Include="DynamicData" Version="9.4.33" />
         <!-- Intentionally direct: selects reviewed HtmlSanitizer 9.2.1039 used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when either dependency is upgraded. -->
         <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
-        <PackageReference Include="OpenTelemetry" Version="1.18.0" />
-        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.18.0" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+        <PackageReference Include="OpenTelemetry" Version="1.19.1" />
+        <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.19.1" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
         <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
+        <PackageReference Include="SysML2.NET.Serializer.TextualNotation" Version="0.23.0" />
     </ItemGroup>
 
     <Import Project="Build/Tailwind.targets" />

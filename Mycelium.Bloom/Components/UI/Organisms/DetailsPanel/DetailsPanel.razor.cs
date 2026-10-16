@@ -11,16 +11,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Core.Selection;
-
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
-    /// Displays the identifying properties of a selected SysML element.
+    /// Displays read-only SDK properties and documentation for the selected element.
     /// </summary>
-    public sealed partial class DetailsPanel : BloomReactiveInjectableComponentBase<IElementSelectionService>
+    public sealed partial class DetailsPanel : BloomReactiveComponentBase<IDetailsPanelViewModel>
     {
         /// <summary>
         /// The stable identifier of the panel heading.
@@ -28,26 +26,72 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         private readonly string headingId = $"mb-details-panel-title-{Guid.NewGuid():N}";
 
         /// <summary>
-        /// Gets or sets the callback invoked when the panel requests to close.
+        /// Gets or sets the factory for panel-owned presentation state.
         /// </summary>
-        [Parameter]
-        public EventCallback CloseRequested { get; set; }
+        [Inject]
+        private Func<IDetailsPanelViewModel> ViewModelFactory { get; set; }
 
-        /// <summary>
-        /// Gets the injected selection service required by this component.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when the selection service has not been provided through dependency injection.
-        /// </exception>
-        private IElementSelectionService RequiredViewModel =>
-            this.ViewModel
-            ?? throw new InvalidOperationException(
-                $"{nameof(DetailsPanel)} requires an {nameof(IElementSelectionService)}.");
+        /// <summary>The ViewModel constructed and disposed by this panel.</summary>
+        private IDetailsPanelViewModel ownedViewModel;
 
-        /// <summary>
-        /// Gets the currently selected SysML element.
-        /// </summary>
-        private IElement SelectedElement => this.RequiredViewModel.SelectedElement;
+        /// <summary>Constructs panel state once while preserving a caller-supplied ViewModel's ownership.</summary>
+        protected override void OnInitialized()
+        {
+            if (this.ViewModel is null)
+            {
+                this.ownedViewModel = this.ViewModelFactory()
+                    ?? throw new InvalidOperationException("The Details Panel ViewModel factory returned null.");
+                this.ViewModel = this.ownedViewModel;
+            }
+            base.OnInitialized();
+        }
+
+        /// <summary>Releases internally created state when a caller replaces it.</summary>
+        protected override void OnParametersSet()
+        {
+            if (this.ownedViewModel is not null && !ReferenceEquals(this.ownedViewModel, this.ViewModel))
+            {
+                this.ownedViewModel.Dispose();
+                this.ownedViewModel = null;
+            }
+            base.OnParametersSet();
+        }
+
+        /// <summary>Detaches rendering and releases only the state constructed by this panel.</summary>
+        /// <param name="disposing">Whether managed resources are being released.</param>
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+            {
+                this.ownedViewModel?.Dispose();
+                this.ownedViewModel = null;
+            }
+        }
+
+        /// <summary>Inspects the exact canonical target without revealing or selecting a browser row.</summary>
+        private void InspectElement(IElement element)
+        {
+            this.ViewModel.Inspect(element);
+        }
+
+        /// <summary>Adds namespace boundary wrap opportunities while preserving the property's text.</summary>
+        /// <param name="text">The SDK-backed property text.</param>
+        /// <returns>Escaped text with optional line breaks between namespace segments.</returns>
+        private static RenderFragment RenderPropertyText(string text) => builder =>
+        {
+            var segments = text.Split("::", StringSplitOptions.None);
+            for (var index = 0; index < segments.Length; index++)
+            {
+                if (index > 0)
+                {
+                    builder.AddContent(0, "::");
+                    builder.OpenElement(1, "wbr");
+                    builder.CloseElement();
+                }
+                builder.AddContent(2, segments[index]);
+            }
+        };
 
         /// <summary>
         /// Gets the final CSS class list applied to the details panel.
@@ -58,47 +102,5 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
             return this.BuildRootCssClass("mb-details-panel");
         }
 
-        /// <summary>
-        /// Emits the panel close intent.
-        /// </summary>
-        /// <returns>A task representing the callback.</returns>
-        private Task RequestCloseAsync()
-        {
-            return this.CloseRequested.InvokeAsync();
-        }
-
-        /// <summary>
-        /// Gets the best available display name for an element.
-        /// </summary>
-        /// <param name="element">The element to describe.</param>
-        /// <returns>The display name for the element.</returns>
-        private static string GetDisplayName(IElement element)
-        {
-            var displayName = element.DeclaredName.ToDisplayString();
-
-            if (string.IsNullOrWhiteSpace(displayName))
-            {
-                displayName = element.name.ToDisplayString();
-            }
-
-            if (string.IsNullOrWhiteSpace(displayName))
-            {
-                displayName = element.qualifiedName.ToDisplayString();
-            }
-
-            return string.IsNullOrWhiteSpace(displayName) ? element.GetType().Name : displayName;
-        }
-
-        /// <summary>
-        /// Gets an invariant property value for display.
-        /// </summary>
-        /// <param name="value">The value to display.</param>
-        /// <returns>The converted value, or an em dash when the value is unavailable.</returns>
-        private static string GetDisplayValue(object value)
-        {
-            var displayValue = value.ToDisplayString();
-
-            return string.IsNullOrWhiteSpace(displayValue) ? "—" : displayValue;
-        }
     }
 }

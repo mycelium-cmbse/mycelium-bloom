@@ -9,23 +9,19 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 {
-    using System.ComponentModel;
+    using Mycelium.Bloom.Core.Context;
     using System.Linq;
     using System.Threading.Tasks;
-
     using Bunit;
-
-    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
-
     using Moq;
-
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Tests.Common;
-
+    using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
-
+    using SysML2.NET.Core.POCO.Systems.Parts;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
 
     /// <summary>
@@ -35,14 +31,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class DetailsPanelTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedDisplayNameValues = ["Not declared", "Display name"];
+
+        private static readonly string[] ExpectedDocumentedPartSections =
+            ["Identity", "Documentation", "Classification"];
+
         /// <summary>
         /// The expected labels in their required display order.
         /// </summary>
         private static readonly string[] ExpectedPropertyLabels =
         [
-            "ID",
             "Declared name",
             "Declared short name",
+            "Effective name",
             "Qualified name"
         ];
 
@@ -51,26 +52,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// </summary>
         private static readonly string[] ExpectedPropertyValues =
         [
-            "element-42",
             "Declared element",
             "declared-short",
+            "Effective element",
             "Package::Declared element"
         ];
 
         /// <summary>
-        /// The expected fallback values for unavailable element properties.
-        /// </summary>
-        private static readonly string[] ExpectedMissingPropertyValues = ["—", "—", "—", "—"];
-
-        /// <summary>
         /// The reactive selection source injected into the component under test.
         /// </summary>
-        private readonly Mock<IElementSelectionService> selectionService;
+        private readonly ContextAwareService selectionService = new();
 
         /// <summary>
         /// The selected element returned by the mocked selection source.
         /// </summary>
-        private IElement selectedElement;
+        private IElement selectedElement => this.selectionService.SelectedElement;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DetailsPanelTestFixture" /> class.
@@ -79,10 +75,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         {
             BlueprintTestSetup.Configure(this);
 
-            this.selectionService = new Mock<IElementSelectionService>();
-            this.selectionService.SetupGet(service => service.SelectedElement)
-                .Returns(() => this.selectedElement);
-            this.Services.AddSingleton(this.selectionService.Object);
+            this.Services.AddSingleton<IElementSelectionService>(this.selectionService);
+            this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
+                () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
         }
 
         /// <summary>
@@ -104,8 +99,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Instance.ViewModel, Is.SameAs(this.selectionService.Object));
-                Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Details"));
+                Assert.That(component.Instance.ViewModel.Presentation, Is.Null);
+                Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(), Is.EqualTo("Properties"));
                 Assert.That(component.Find(".mb-details-panel__empty").TextContent.Trim(),
                     Is.EqualTo("Select an element to display its details."));
                 Assert.That(component.FindAll(".mb-details-panel__element-name"), Is.Empty);
@@ -138,42 +133,103 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             }
         }
 
-        /// <summary>
-        /// Verifies the optional close control exposes an accessible action and emits close intent.
-        /// </summary>
         [Test]
-        public async Task VerifyCloseActionEmitsIntent()
+        public async Task VerifyAdvancedLinksInspectCanonicalMultiplicityAndReturn()
         {
-            var closeCount = 0;
-            var component = this.Render<DetailsPanelComponent>(parameters => parameters
-                .Add(panel => panel.CloseRequested,
-                    EventCallback.Factory.Create(this, () => closeCount++)));
-            var closeButton = component.Find("button[aria-label='Close details panel']");
+            var feature = new SysML2.NET.Core.POCO.Core.Features.Feature { DeclaredName = "items" };
+            var range = new SysML2.NET.Core.POCO.Kernel.Multiplicities.MultiplicityRange();
+            ExpressionModelTestFactory.Attach<OwningMembership>(feature, range);
+            ExpressionModelTestFactory.Attach<OwningMembership>(range,
+                new SysML2.NET.Core.POCO.Kernel.Expressions.FeatureReferenceExpression());
+            this.SetSelectedElement(feature);
+            var component = this.Render<DetailsPanelComponent>();
+            await component.Find("button[aria-label='Advanced model links']").ClickAsync();
+            await component.Find("button[aria-label^='Inspect Multiplicity:']").ClickAsync();
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(this.selectionService.SelectedElement, Is.SameAs(range)));
+            await component.Find("button[aria-label='Back to previous inspected element']").ClickAsync();
+            await component.WaitForAssertionAsync(() =>
+                Assert.That(this.selectionService.SelectedElement, Is.SameAs(feature)));
+        }
+
+        [Test]
+        public async Task VerifyClearSelectionKeepsPanelAndShowsEmptyState()
+        {
+            this.selectionService.SelectedElement = new PartUsage { DeclaredName = "Harness" };
+            var component = this.Render<DetailsPanelComponent>();
+            var closeButton = component.Find("button[aria-label='Clear selection']");
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(closeButton.GetAttribute("type"), Is.EqualTo("button"));
-                Assert.That(closeButton.GetAttribute("title"), Is.EqualTo("Close details panel"));
+                Assert.That(closeButton.GetAttribute("title"), Is.EqualTo("Clear selection"));
                 Assert.That(closeButton.QuerySelector("svg").GetAttribute("aria-hidden"), Is.EqualTo("true"));
             }
 
             await closeButton.ClickAsync();
 
-            Assert.That(closeCount, Is.EqualTo(1));
+            Assert.That(this.selectionService.SelectedElement, Is.Null);
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__title").TextContent.Trim(),
+                        Is.EqualTo("Properties"));
+                    Assert.That(component.Find(".mb-details-panel__empty"), Is.Not.Null);
+                    Assert.That(component.FindAll("button[aria-label='Clear selection']"), Is.Empty);
+                }
+            });
         }
 
         /// <summary>
-        /// Verifies unavailable and whitespace-only property values use an em dash.
+        /// Verifies undeclared names are explicit and other unavailable property values are omitted.
         /// </summary>
         [Test]
-        public void VerifyMissingPropertyValuesUseFallback()
+        public void VerifyMissingPropertyValuesAreOmitted()
         {
             var element = CreateElement(null, string.Empty, " ", "Display name", "\t");
             this.SetSelectedElement(element);
             var component = this.Render<DetailsPanelComponent>();
             var values = component.FindAll("dl dd").Select(description => description.TextContent.Trim()).ToArray();
 
-            Assert.That(values, Is.EqualTo(ExpectedMissingPropertyValues));
+            Assert.That(values, Is.EqualTo(ExpectedDisplayNameValues));
+        }
+
+        [Test]
+        public void VerifySdkPropertiesAndDocumentationFollowSelection()
+        {
+            var documentation = new Documentation { Body = "A <script>plain-text</script> description." };
+            var part = ProjectBrowserNodeTestFactory.CreateElement<PartUsage>("part", "Power harness", documentation);
+            part.IsComposite = true;
+            this.SetSelectedElement(part);
+            var component = this.Render<DetailsPanelComponent>();
+            var classification = component.Find("section[aria-label='Classification']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("section[aria-label='Identity']"), Is.Not.Null);
+                Assert.That(classification.TextContent, Does.Contain("composite"));
+                Assert.That(classification.TextContent, Does.Not.Contain("Multiplicity"));
+                Assert.That(classification.TextContent, Does.Not.Contain("Typed by"));
+                Assert.That(component.Find(".mb-details-panel__documentation").TextContent,
+                    Is.EqualTo(documentation.Body));
+                Assert.That(component.FindAll("script"), Is.Empty);
+                Assert.That(component.FindAll("input"), Is.Empty);
+                Assert.That(
+                    component.FindAll(".mb-details-panel__section-title").Select(heading => heading.TextContent),
+                    Is.EqualTo(ExpectedDocumentedPartSections));
+            }
+
+            this.SetSelectedElement(documentation);
+            component.WaitForAssertion(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find(".mb-details-panel__documentation").TextContent,
+                        Is.EqualTo(documentation.Body));
+                    Assert.That(component.FindAll("section[aria-label='Classification']"), Is.Empty);
+                }
+            });
         }
 
         /// <summary>
@@ -184,8 +240,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// <param name="qualifiedName">The qualified name.</param>
         /// <param name="expectedName">The expected displayed name.</param>
         [TestCase("Declared", " ", " ", "Declared", TestName = "VerifyHeadingDisplaysDeclaredName")]
-        [TestCase(" ", "Name", "Qualified", "Name", TestName = "VerifyHeadingUsesNameFallback")]
-        [TestCase(" ", " ", "Qualified", "Qualified", TestName = "VerifyHeadingUsesQualifiedNameFallback")]
+        [TestCase(" ", "Name", "Qualified", "short", TestName = "VerifyHeadingUsesDeclaredShortName")]
+        [TestCase(" ", " ", "Qualified", "short", TestName = "VerifyHeadingPrefersShortNameToQualifiedPath")]
         [TestCase("Declared", "Name", "Qualified", "Declared", TestName = "VerifyHeadingPreservesNamePrecedence")]
         public void VerifyHeadingDisplayName(
             string declaredName,
@@ -202,16 +258,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         }
 
         /// <summary>
-        /// Verifies the runtime type supplies the heading when an element has no available name.
+        /// Verifies an unnamed namespace uses its semantic fallback without root context.
         /// </summary>
         [Test]
-        public void VerifyHeadingUsesRuntimeTypeFallback()
+        public void VerifyUnnamedNamespaceUsesSemanticFallback()
         {
             this.SetSelectedElement(new Namespace { DeclaredName = " " });
             var component = this.Render<DetailsPanelComponent>();
 
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
-                Is.EqualTo(nameof(Namespace)));
+                Is.EqualTo("Namespace"));
         }
 
         /// <summary>
@@ -235,7 +291,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 {
                     Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
                         Is.EqualTo("First"));
-                    Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("first-id"));
+                    Assert.That(component.Instance.ViewModel.Presentation.Element, Is.SameAs(firstElement));
                 }
             });
 
@@ -247,7 +303,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 {
                     Assert.That(component.Find(".mb-details-panel__element-name").TextContent.Trim(),
                         Is.EqualTo("Second"));
-                    Assert.That(component.Find("dl dd").TextContent.Trim(), Is.EqualTo("second-id"));
+                    Assert.That(component.Instance.ViewModel.Presentation.Element, Is.SameAs(secondElement));
                 }
             });
 
@@ -275,10 +331,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await this.DisposeComponentsAsync();
             var renderCountAfterDisposal = component.RenderCount;
 
-            await this.Renderer.Dispatcher.InvokeAsync(() =>
-            {
-                this.SetSelectedElement(new Namespace());
-            });
+            await this.Renderer.Dispatcher.InvokeAsync(() => { this.SetSelectedElement(new Namespace()); });
 
             using (Assert.EnterMultipleScope())
             {
@@ -307,7 +360,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(section.ClassList, Does.Contain("custom-details"));
                 Assert.That(section.GetAttribute("data-testid"), Is.EqualTo("details-panel"));
                 Assert.That(headingId, Is.Not.Empty);
-                Assert.That(component.Find($"#{headingId}").TextContent.Trim(), Is.EqualTo("Details"));
+                Assert.That(component.Find($"#{headingId}").TextContent.Trim(), Is.EqualTo("Properties"));
                 Assert.That(section.QuerySelectorAll("dl"), Has.Length.EqualTo(1));
                 Assert.That(section.QuerySelectorAll("dl > div"), Has.Length.EqualTo(4));
             }
@@ -319,10 +372,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         /// <param name="element">The newly selected element.</param>
         private void SetSelectedElement(IElement element)
         {
-            this.selectedElement = element;
-            this.selectionService.Raise(
-                service => service.PropertyChanged += null,
-                new PropertyChangedEventArgs(nameof(IElementSelectionService.SelectedElement)));
+            this.selectionService.SelectedElement = element;
         }
 
         /// <summary>

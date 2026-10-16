@@ -10,8 +10,8 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using ReactiveUI;
-
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Exceptions;
 
     /// <summary>
     /// Represents one SysML element node in the project browser tree.
@@ -22,6 +22,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// A value indicating whether the node is expanded.
         /// </summary>
         private bool isExpanded;
+
+        /// <summary>
+        /// The hidden elements whose local navigation target is this node.
+        /// </summary>
+        private readonly IReadOnlyList<IElement> hiddenElements;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectBrowserNodeViewModel" /> class.
@@ -43,8 +48,19 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.ElementId = metadata.ElementId;
             this.QualifiedName = metadata.QualifiedName;
             this.ElementType = metadata.SourceElement.GetType();
+            this.Presentation = ProjectBrowserElementPresentation.For(this.ElementType, metadata.IsModelRoot);
             this.Children = children;
             this.SourceElement = metadata.SourceElement;
+            this.hiddenElements = metadata.HiddenElements;
+            this.UiDisplayLabel = metadata.UiDisplayLabel;
+            try
+            {
+                this.Multiplicity = ElementPresentation.GetMultiplicity(this.SourceElement);
+            }
+            catch (IncompleteModelException)
+            {
+                this.Multiplicity = null;
+            }
         }
 
         /// <summary>
@@ -73,6 +89,16 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         public Type ElementType { get; }
 
         /// <summary>
+        /// Gets the semantic kind, supported stereotype and icon for the row.
+        /// </summary>
+        public ProjectBrowserElementPresentation Presentation { get; }
+
+        /// <summary>
+        /// Gets a UI-provided fallback label, when this node represents an unnamed model root.
+        /// </summary>
+        public string UiDisplayLabel { get; }
+
+        /// <summary>
         /// Gets the child nodes built from the SysML owned element hierarchy.
         /// </summary>
         public IReadOnlyList<ProjectBrowserNodeViewModel> Children { get; }
@@ -81,6 +107,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the source SysML element represented by the node.
         /// </summary>
         public IElement SourceElement { get; }
+
+        /// <summary>
+        /// Gets the resolved multiplicity annotation, when available.
+        /// </summary>
+        public string Multiplicity { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the node is expanded.
@@ -105,9 +136,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(element);
 
-            if (ReferenceEquals(this.SourceElement, element)
-                || (!string.IsNullOrWhiteSpace(element.ElementId)
-                    && string.Equals(this.ElementId, element.ElementId, StringComparison.Ordinal)))
+            if (MatchesIdentity(this.SourceElement, element)
+                || this.hiddenElements.Any(hidden => MatchesIdentity(hidden, element)))
             {
                 return [this];
             }
@@ -119,6 +149,16 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return childPath is null
                 ? Array.Empty<ProjectBrowserNodeViewModel>()
                 : [this, .. childPath];
+        }
+
+        /// <summary>
+        /// Compares canonical references or available model identifiers.
+        /// </summary>
+        private static bool MatchesIdentity(IElement candidate, IElement target)
+        {
+            return ReferenceEquals(candidate, target)
+                   || (!string.IsNullOrWhiteSpace(target.ElementId)
+                       && string.Equals(candidate.ElementId, target.ElementId, StringComparison.Ordinal));
         }
     }
 }

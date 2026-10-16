@@ -22,7 +22,7 @@ RUN grep -q "css/app.css" /app/publish/Mycelium.Bloom.staticwebassets.endpoints.
 RUN test -s /app/publish/wwwroot/_framework/blazor.web.js
 RUN test -s "/app/publish/Resources/Domain Libraries/Quantities and Units/Quantities.json"
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.11-noble AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble AS final
 
 WORKDIR /app
 

@@ -1,0 +1,175 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ExpressionGroup.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Icons.Lucide.Components
+
+@{
+    var path = this.Node.DisplayPath;
+    var summary = path[^1];
+    var canExpand = summary.Children.Count > 0 || summary.Notice is not null
+        || this.Depth == 0 && (this.Node.Element is not null || this.Node.Membership is not null);
+    RenderFragment caption = @<span class="value-group__caption">
+        <span class="value-group__role">@this.Node.Role</span>
+        <span class="value-group__summary">
+            @if (!string.IsNullOrWhiteSpace(summary.Operator))
+            {
+                <code class="value-group__operator">@summary.Operator</code>
+            }
+            @if (summary.LiteralText is { } literal)
+            {
+                <code class="value-group__name">@literal</code>
+            }
+            else if (summary.ReferenceLabel is { } referenceLabel)
+            {
+                <span class="value-group__name" title="@referenceLabel">@referenceLabel</span>
+            }
+            else if (string.IsNullOrWhiteSpace(summary.Operator) && summary.HasSummaryLabel)
+            {
+                <span class="value-group__name" title="@summary.Label">@summary.Label</span>
+            }
+        </span>
+        @if (summary.ValueState is { } state)
+        {
+            <span class="value-group__state">@state</span>
+        }
+    </span>;
+}
+
+<div class="value-group @(this.Depth == 0 ? "value-group--root" : "value-group--branch")" data-expression-role="@this.Node.Role" data-element-id="@this.Node.Element?.ElementId">
+    <BbCollapsible DefaultOpen="@(this.Depth == 0)">
+        <div class="value-group__heading">
+            @if (canExpand)
+            {
+              <BbCollapsibleTrigger AsChild="true">
+                <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                          Size="BlazorBlueprint.Components.ButtonSize.Small"
+                          Class="value-group__trigger"
+                          AriaLabel="@($"Expand or collapse {this.Node.Role}: {this.Node.Label}")">
+                <span class="value-group__chevron" aria-hidden="true">
+                    <LucideIcon Name="chevron-right" Size="12" />
+                </span>
+                @caption
+                </BbButton>
+              </BbCollapsibleTrigger>
+            }
+            else
+            {
+                <div class="value-group__leaf">
+                    <span class="value-group__chevron" aria-hidden="true"></span>
+                    @caption
+                </div>
+            }
+            @if (summary.ReferenceRole is { } referenceRole && !ReferenceEquals(summary.Reference, this.SelectedElement))
+            {
+                <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                          Class="value-group__inspect"
+                          Disabled="@(summary.Reference is null)"
+                          AriaLabel="@($"Inspect {referenceRole.ToLowerInvariant()}: {summary.ReferenceLabel}")"
+                          title="@($"Show {summary.ReferenceLabel} in Properties; browser highlight stays unchanged")"
+                          OnClick="@(() => this.InspectAsync(summary.Reference))">
+                    <LucideIcon Name="arrow-up-right" Size="14" aria-hidden="true" />
+                </BbButton>
+            }
+        </div>
+        @if (canExpand)
+        {
+          <BbCollapsibleContent ForceMount="false">
+            <div class="value-group__body">
+                @if (summary.Notice is { } notice)
+                {
+                    <p class="value-group__notice">@notice</p>
+                }
+                <div class="value-group__children">
+                    @foreach (var child in summary.Children)
+                    {
+                        <ExpressionGroup Node="child" SelectedElement="this.SelectedElement" Depth="@(this.Depth + 1)" InspectRequested="this.InspectRequested" />
+                    }
+                </div>
+                @if (this.Depth == 0 && (this.Node.Element is not null || this.Node.Membership is not null))
+                {
+                    <BbCollapsible>
+                        <BbCollapsibleTrigger AsChild="true">
+                            <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                                      Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                      Class="value-group__details-trigger"
+                                      AriaLabel="@($"Advanced metadata for {this.Node.Role}: {this.Node.Label}")">
+                                <span class="value-group__chevron" aria-hidden="true"><LucideIcon Name="chevron-right" Size="12" /></span>
+                                Advanced metadata
+                            </BbButton>
+                        </BbCollapsibleTrigger>
+                        <BbCollapsibleContent ForceMount="false">
+                            @if (this.SelectedProperties.Count > 0)
+                            {
+                                <dl class="value-group__properties">
+                                    @foreach (var property in this.SelectedProperties)
+                                    {
+                                        <div><dt>@property.Key</dt><dd>@property.Value</dd></div>
+                                    }
+                                </dl>
+                            }
+                            @foreach (var item in this.Node.OwnedGroups)
+                            {
+                                var inspectElement = item.CanInspectElement && !ReferenceEquals(item.Element, this.SelectedElement);
+                                var inspectMembership = item.CanInspectMembership && !ReferenceEquals(item.Membership, this.SelectedElement);
+                                <dl class="value-group__properties value-group__identity" data-metadata-element-id="@item.Element?.ElementId">
+                                    <div><dt>@item.Role</dt><dd>@item.Label</dd></div>
+                                    @if (item.ReferenceRole is { } role)
+                                    {
+                                        <div><dt>@role</dt><dd>@item.ReferenceLabel</dd></div>
+                                    }
+                                    @foreach (var property in item.Properties)
+                                    {
+                                        <div><dt>@property.Key</dt><dd>@property.Value</dd></div>
+                                    }
+                                    @if (item.Element is { } element)
+                                    {
+                                        <div><dt>Element ID</dt><dd>@element.ElementId</dd></div>
+                                        @if (element.Id.ToString() != element.ElementId)
+                                        {
+                                            <div><dt>SDK ID</dt><dd>@element.Id</dd></div>
+                                        }
+                                    }
+                                    @if (item.Membership is { } membership)
+                                    {
+                                        <div><dt>Membership ID</dt><dd>@membership.ElementId</dd></div>
+                                        @if (membership.Id.ToString() != membership.ElementId)
+                                        {
+                                            <div><dt>Membership SDK ID</dt><dd>@membership.Id</dd></div>
+                                        }
+                                    }
+                                </dl>
+                                @if (inspectElement || inspectMembership)
+                                {
+                                  <div class="value-group__actions">
+                                @if (inspectElement)
+                                {
+                                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                              AriaLabel="@($"Inspect {item.Role}: {item.Label}")"
+                                              title="Show this element in Properties; use Back to return"
+                                              OnClick="@(() => this.InspectAsync(item.Element))">Inspect element</BbButton>
+                                }
+                                @if (inspectMembership)
+                                {
+                                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                              AriaLabel="@($"Inspect membership of {item.Role}")"
+                                              title="Show this membership in Properties; use Back to return"
+                                              OnClick="@(() => this.InspectAsync(item.Membership))">Inspect membership</BbButton>
+                                }
+                                  </div>
+                                }
+                            }
+                        </BbCollapsibleContent>
+                    </BbCollapsible>
+                }
+
+            </div>
+          </BbCollapsibleContent>
+        }
+    </BbCollapsible>
+</div>
