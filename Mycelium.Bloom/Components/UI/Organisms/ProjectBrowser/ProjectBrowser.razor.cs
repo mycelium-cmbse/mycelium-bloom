@@ -12,11 +12,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using System.Reactive;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
-
     using DynamicData.Binding;
-
     using Microsoft.AspNetCore.Components;
-
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -380,9 +377,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// Handles node selection and forwards the selected node to the parent component.
-        /// </summary>
+        /// <summary>Selects a node and forwards the selection without changing disclosure state.</summary>
         /// <param name="node">The selected project browser node.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleNodeSelectedAsync(ProjectBrowserNodeViewModel node)
@@ -394,13 +389,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             var viewModel = this.RequiredViewModel;
 
-            if (node.HasChildren && !viewModel.FilterPresentation.IsActive)
-            {
-                viewModel.ToggleNode(node);
-            }
-
             viewModel.SelectNode(node);
             await this.SelectedNodeChanged.InvokeAsync(node);
+        }
+
+        /// <summary>Toggles disclosure for one node without changing canonical selection.</summary>
+        /// <param name="node">The node whose disclosure state is requested.</param>
+        /// <returns>A completed task.</returns>
+        private Task HandleNodeExpansionToggledAsync(ProjectBrowserNodeViewModel node)
+        {
+            if (node != null && !this.isDisposed)
+            {
+                this.RequiredViewModel.ToggleNode(node);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

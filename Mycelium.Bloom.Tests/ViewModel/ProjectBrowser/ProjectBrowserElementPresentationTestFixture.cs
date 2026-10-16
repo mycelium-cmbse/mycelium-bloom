@@ -10,15 +10,15 @@
 namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-
     using Moq;
-
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-
+    using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
     using SysML2.NET.Core.POCO.Kernel.Associations;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Packages;
@@ -101,16 +101,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [Test]
         public async Task VerifyUnnamedRootRetainsCanonicalIdentity()
         {
-            var root = new Namespace { ElementId = "root" };
+            var nested = CreateElement<Namespace>("nested", null);
+            var root = CreateElement<Namespace>("root", null, nested);
             var loader = new Mock<IModelLoaderService>();
             loader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
             var selection = new ContextAwareService();
             using var browser = new ProjectBrowserViewModel(loader.Object, selection);
+            using var details = new DetailsPanelViewModel(selection);
 
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var node = browser.RootNodes[0];
             browser.SelectNode(node);
-            browser.FocusElement(root);
+            var identity = details.Presentation.Sections.Single(section => section.Title == "Identity")
+                .Properties.ToDictionary(property => property.Key, property => property.Value);
+            var nestedNode = node.Children.Single();
 
             using (Assert.EnterMultipleScope())
             {
@@ -119,6 +123,88 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(selection.SelectedElement, Is.SameAs(root));
                 Assert.That(browser.SelectedNode, Is.SameAs(node));
                 Assert.That(root.DeclaredName, Is.Null);
+                Assert.That(node.Presentation.IsModelRoot, Is.True);
+                Assert.That(node.Presentation.Kind, Is.EqualTo("Namespace"));
+                Assert.That(node.Presentation.IconName, Is.EqualTo("network"));
+                Assert.That(nestedNode.DisplayName, Is.EqualTo("Namespace"));
+                Assert.That(nestedNode.SourceElement, Is.SameAs(nested));
+                Assert.That(nestedNode.Presentation.IsModelRoot, Is.False);
+                Assert.That(identity["Declared name"], Is.EqualTo("Not declared"));
+                Assert.That(details.Presentation.DisplayName, Is.EqualTo("Namespace"));
+                Assert.That(details.Presentation.AdvancedProperties
+                    .Single(property => property.Key == "Model kind").Value, Is.EqualTo("Namespace"));
+                Assert.That(details.Presentation.AdvancedProperties
+                    .Single(property => property.Key == "Element ID").Value, Is.EqualTo(root.ElementId));
+            }
+
+            details.Inspect(nested);
+            details.GoBack();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(root));
+                Assert.That(details.Presentation.DisplayName, Is.EqualTo("Namespace"));
+            }
+
+            browser.SelectNode(nestedNode);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(details.Presentation.DisplayName, Is.EqualTo("Namespace"));
+            }
+        }
+
+        /// <summary>
+        /// Verifies that a named model root keeps its SDK name rather than receiving the UI fallback.
+        /// </summary>
+        /// <returns>The asynchronous test operation.</returns>
+        [Test]
+        public async Task VerifyNamedRootPreservesSdkName()
+        {
+            var root = new Namespace { ElementId = "named-root", DeclaredName = "Model Context" };
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
+            using var browser = new ProjectBrowserViewModel(loader.Object, new ContextAwareService());
+
+            Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
+            var node = browser.RootNodes[0];
+            browser.SelectNode(node);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.DisplayName, Is.EqualTo("Model Context"));
+                Assert.That(node.Presentation.IsModelRoot, Is.True);
+                Assert.That(node.Presentation.IconName, Is.EqualTo("network"));
+                Assert.That(node.UiDisplayLabel, Is.Null);
+            }
+        }
+
+        /// <summary>
+        /// Verifies an effective SDK name on the loaded root is not replaced with the UI fallback.
+        /// </summary>
+        /// <returns>The asynchronous test operation.</returns>
+        [Test]
+        public async Task VerifyEffectiveRootNamePreservesSdkName()
+        {
+            var root = new Mock<INamespace>();
+            root.SetupGet(element => element.ElementId).Returns("effective-root");
+            root.SetupGet(element => element.DeclaredName).Returns((string)null);
+            root.SetupGet(element => element.DeclaredShortName).Returns((string)null);
+            root.SetupGet(element => element.name).Returns("SDK model name");
+            root.SetupGet(element => element.shortName).Returns((string)null);
+            root.SetupGet(element => element.qualifiedName).Returns((string)null);
+            root.SetupGet(element => element.ownedElement).Returns([]);
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(root.Object);
+            using var browser = new ProjectBrowserViewModel(loader.Object, new ContextAwareService());
+
+            Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
+            var node = browser.RootNodes[0];
+            browser.SelectNode(node);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.DisplayName, Is.EqualTo("SDK model name"));
+                Assert.That(node.SourceElement, Is.SameAs(root.Object));
+                Assert.That(node.UiDisplayLabel, Is.Null);
             }
         }
     }

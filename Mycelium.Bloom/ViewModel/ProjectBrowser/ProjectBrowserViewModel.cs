@@ -15,20 +15,15 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Globalization;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
-
     using DynamicData;
     using DynamicData.Binding;
-
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
-
     using ReactiveUI;
-
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Exceptions;
-
     using IMultiplicity = SysML2.NET.Core.POCO.Core.Types.IMultiplicity;
 
     /// <summary>
@@ -110,9 +105,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// The node selected locally in this project browser.
         /// </summary>
-        [AllowNull]
-        [MaybeNull]
-        private ProjectBrowserNodeViewModel selectedNode;
+        [AllowNull][MaybeNull] private ProjectBrowserNodeViewModel selectedNode;
 
         /// <summary>
         /// The model identity waiting to be reconciled with this browser's materialized tree.
@@ -294,7 +287,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     "root",
                     stagedNodeIds,
                     stagedAvailableElementTypes,
-                    initializationToken);
+                    initializationToken,
+                    isModelRoot: true);
 
                 initializationToken.ThrowIfCancellationRequested();
 
@@ -521,13 +515,15 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
         /// <param name="stagedElementTypes">The distinct navigable types found while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
+        /// <param name="isModelRoot">Whether the element is the authoritative loaded model root.</param>
         /// <returns>The project browser node for the provided SysML element.</returns>
         private ProjectBrowserNodeViewModel BuildNode(
             IElement element,
             string fallbackId,
             HashSet<string> stagedNodeIds,
             HashSet<Type> stagedElementTypes,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool isModelRoot = false)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -555,15 +551,22 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 qualifiedName = string.Empty;
             }
+
+            var displayName = ProjectBrowserElementProjection.GetDisplayName(
+                element,
+                isModelRoot,
+                out var uiDisplayLabel);
             var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
                 qualifiedName,
                 element,
-                hiddenElements);
+                hiddenElements,
+                isModelRoot,
+                uiDisplayLabel);
 
             return new ProjectBrowserNodeViewModel(
                 nodeId,
-                GetDisplayName(element),
+                displayName,
                 metadata,
                 children);
         }
@@ -744,6 +747,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 .Where(relationship => relationship != null
                                        && !ProjectBrowserElementProjection.IsNavigable(relationship)) ?? []);
 
+            if (ProjectBrowserElementProjection.IsLeafReferenceExpression(element)
+                || ProjectBrowserElementProjection.IsReferenceValuedFeature(element))
+            {
+                AddOwnedDescendants(element, hiddenElements);
+                return children;
+            }
+
             if (element.ownedElement == null)
             {
                 return children;
@@ -781,6 +791,23 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
+        /// Associates suppressed reference-value structure with its canonical visible feature node.
+        /// </summary>
+        private static void AddOwnedDescendants(IElement element, ICollection<IElement> hiddenElements)
+        {
+            foreach (var child in element.ownedElement ?? [])
+            {
+                if (child == null)
+                {
+                    continue;
+                }
+
+                hiddenElements.Add(child);
+                AddOwnedDescendants(child, hiddenElements);
+            }
+        }
+
+        /// <summary>
         /// Creates an identifier that is unique within the staged tree.
         /// </summary>
         /// <param name="stagedNodeIds">The identifiers already assigned.</param>
@@ -803,16 +830,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
 
             return candidateId;
-        }
-
-        /// <summary>
-        /// Gets the best available display name for a SysML element.
-        /// </summary>
-        /// <param name="element">The SysML element to describe.</param>
-        /// <returns>The display name for the SysML element.</returns>
-        private static string GetDisplayName(IElement element)
-        {
-            return ElementPresentation.GetDisplayName(element);
         }
     }
 }

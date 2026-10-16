@@ -162,7 +162,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>Collects declared and SDK-derived identity with naming provenance.</summary>
         private static void AddIdentityProperties(IElement element, List<KeyValuePair<string, string>> identity, List<KeyValuePair<string, string>> advanced)
         {
-            Add(identity, "Declared name", element.DeclaredName);
+            Add(identity, "Declared name",
+                string.IsNullOrWhiteSpace(element.DeclaredName) ? "Not declared" : element.DeclaredName);
             Add(identity, "Declared short name", element.DeclaredShortName);
             var effectiveName = Read(() => element.name, out var incompleteName);
             var effectiveShortName = Read(() => element.shortName, out var incompleteShortName);

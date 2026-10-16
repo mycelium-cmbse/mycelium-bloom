@@ -10,9 +10,7 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
     using System.Globalization;
-
     using Microsoft.AspNetCore.Components;
-
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -58,6 +56,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> OnNodeSelected { get; set; }
 
+        /// <summary>Gets or sets the callback invoked by the separate disclosure control.</summary>
+        [Parameter]
+        public EventCallback<ProjectBrowserNodeViewModel> OnNodeExpansionToggled { get; set; }
+
         /// <summary>
         /// Invokes the node selection callback for the current node.
         /// </summary>
@@ -72,6 +74,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             await this.OnNodeSelected.InvokeAsync(viewModel);
+        }
+
+        /// <summary>Invokes the disclosure callback without selecting this node.</summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task ToggleNodeAsync()
+        {
+            var viewModel = this.ViewModel;
+
+            if (viewModel != null)
+            {
+                await this.OnNodeExpansionToggled.InvokeAsync(viewModel);
+            }
         }
 
         /// <summary>
@@ -130,6 +144,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private (
             IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
             bool HasVisibleChildren,
+            bool CanToggle,
             bool IsExpanded) GetNodePresentation()
         {
             var viewModel = this.RequiredViewModel;
@@ -141,7 +156,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             var isExpanded = hasVisibleChildren
                              && (filterPresentation.IsActive || viewModel.IsExpanded);
 
-            return (visibleChildren, hasVisibleChildren, isExpanded);
+            return (visibleChildren, hasVisibleChildren, hasVisibleChildren && !filterPresentation.IsActive,
+                isExpanded);
+        }
+
+        /// <summary>Gets a stateful accessible label for the disclosure control.</summary>
+        /// <param name="nodePresentation">The effective presentation used by the current render.</param>
+        /// <returns>The action available for the node's children.</returns>
+        private string GetDisclosureLabel((
+            IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
+            bool HasVisibleChildren,
+            bool CanToggle,
+            bool IsExpanded) nodePresentation)
+        {
+            var action = nodePresentation.IsExpanded ? "Collapse" : "Expand";
+            return $"{action} {this.RequiredViewModel.DisplayName}";
         }
 
         /// <summary>
@@ -152,6 +181,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private static string GetAriaExpanded((
             IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
             bool HasVisibleChildren,
+            bool CanToggle,
             bool IsExpanded) nodePresentation)
         {
             if (!nodePresentation.HasVisibleChildren)

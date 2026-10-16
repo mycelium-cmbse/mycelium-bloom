@@ -32,6 +32,26 @@ namespace Mycelium.Bloom.ViewModel
         /// <returns>An SDK name, semantic role, or explicit incomplete-name state.</returns>
         public static string GetDisplayName(IElement element)
         {
+            ArgumentNullException.ThrowIfNull(element);
+            return GetDisplayName(element, ProjectBrowserElementPresentation.For(element.GetType()), out _);
+        }
+
+        /// <summary>
+        /// Gets an SDK name or the contextual semantic fallback for an element.
+        /// </summary>
+        /// <param name="element">The element to describe.</param>
+        /// <param name="presentation">The semantic presentation for the element.</param>
+        /// <param name="isFallbackLabel">Whether the result is a UI-provided fallback rather than an SDK name.</param>
+        /// <returns>An SDK name, semantic role, or explicit incomplete-name state.</returns>
+        public static string GetDisplayName(
+            IElement element,
+            ProjectBrowserElementPresentation presentation,
+            out bool isFallbackLabel)
+        {
+            ArgumentNullException.ThrowIfNull(element);
+            ArgumentNullException.ThrowIfNull(presentation);
+
+            isFallbackLabel = false;
             if (!string.IsNullOrWhiteSpace(element.DeclaredName)) return element.DeclaredName;
             if (!string.IsNullOrWhiteSpace(element.DeclaredShortName)) return element.DeclaredShortName;
             var incomplete = false;
@@ -47,7 +67,8 @@ namespace Mycelium.Bloom.ViewModel
                     incomplete = true;
                 }
             }
-            var role = ProjectBrowserElementPresentation.For(element.GetType()).UnnamedLabel;
+            var role = presentation.UnnamedLabel;
+            isFallbackLabel = !incomplete;
             return incomplete ? $"{role} (name unresolved)" : role;
         }
 

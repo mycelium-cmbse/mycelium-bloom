@@ -155,6 +155,40 @@ namespace Mycelium.Bloom.Tests.ViewModel
         }
 
         [Test]
+        public void VerifySynchronousSelectionObserverCanReplaceAnInspectedElement()
+        {
+            var initial = new Namespace { DeclaredName = "Initial" };
+            var inspected = new Namespace { DeclaredName = "Inspected" };
+            var replacement = new Namespace { DeclaredName = "Replacement" };
+            var selection = new ContextAwareService { SelectedElement = initial };
+            using var viewModel = new DetailsPanelViewModel(selection);
+            var selectionChanges = 0;
+            selection.PropertyChanged += (_, eventArgs) =>
+            {
+                if (eventArgs.PropertyName != nameof(selection.SelectedElement))
+                {
+                    return;
+                }
+
+                selectionChanges++;
+                if (ReferenceEquals(selection.SelectedElement, inspected))
+                {
+                    selection.SelectedElement = replacement;
+                }
+            };
+
+            viewModel.Inspect(inspected);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectionChanges, Is.EqualTo(2));
+                Assert.That(selection.SelectedElement, Is.SameAs(replacement));
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(replacement));
+                Assert.That(viewModel.CanGoBack, Is.False);
+            }
+        }
+
+        [Test]
         public void VerifyDisposeDetachesOnlyOwnedSubscriptions()
         {
             var selection = new ContextAwareService { SelectedElement = new Namespace { DeclaredName = "Initial" } };
