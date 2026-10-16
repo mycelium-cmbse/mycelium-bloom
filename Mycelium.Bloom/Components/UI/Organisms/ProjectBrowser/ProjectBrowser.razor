@@ -31,7 +31,8 @@
     {
         <div class="mb-project-browser__tree-viewport">
             <div class="mb-project-browser__tree">
-                <div class="mb-project-browser__state mb-project-browser__state--error" role="alert" aria-live="assertive">
+                <div class="mb-project-browser__state mb-project-browser__state--error" role="alert"
+                     aria-live="assertive">
                     <strong class="mb-project-browser__state-title">
                         Unable to load project browser
                     </strong>
@@ -66,7 +67,7 @@
                     IsOpenChanged="this.HandleSearchAssistantOpenChanged"
                     ContainsCommitted="this.HandleContainsCommittedAsync"
                     ContainsRemoved="this.HandleContainsRemovedAsync"
-                    ElementTypeToggled="this.HandleElementTypeFilterToggledAsync" />
+                    ElementTypeToggled="this.HandleElementTypeFilterToggledAsync"/>
             </div>
 
             <div class="mb-project-browser__filter-trigger-host">
@@ -88,7 +89,7 @@
                                         StrokeWidth="1.75"
                                         role="presentation"
                                         aria-hidden="true"
-                                        focusable="false" />
+                                        focusable="false"/>
 
                             @if (activeDrawerFilterCount > 0)
                             {
@@ -145,7 +146,7 @@
                                                 StrokeWidth="1.75"
                                                 role="presentation"
                                                 aria-hidden="true"
-                                                focusable="false" />
+                                                focusable="false"/>
                                 </BbButton>
                             </header>
 
@@ -186,7 +187,7 @@
                                                                 StrokeWidth="2"
                                                                 role="presentation"
                                                                 aria-hidden="true"
-                                                                focusable="false" />
+                                                                focusable="false"/>
                                                 }
                                                 <span>@(GetElementTypeLabel(elementType))</span>
                                             </BbButton>
@@ -235,7 +236,8 @@
                             SelectedNode="@(this.RequiredViewModel.SelectedNode)"
                             Depth="0"
                             FilterPresentation="filterPresentation"
-                            OnNodeSelected="this.HandleNodeSelectedAsync"/>
+                            OnNodeSelected="this.HandleNodeSelectedAsync"
+                            OnNodeExpansionToggled="this.HandleNodeExpansionToggledAsync"/>
                     }
                 }
             </div>

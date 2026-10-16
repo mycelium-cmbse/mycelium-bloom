@@ -10,7 +10,6 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using ReactiveUI;
-
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Exceptions;
 
@@ -49,10 +48,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.ElementId = metadata.ElementId;
             this.QualifiedName = metadata.QualifiedName;
             this.ElementType = metadata.SourceElement.GetType();
-            this.Presentation = ProjectBrowserElementPresentation.For(this.ElementType);
+            this.Presentation = ProjectBrowserElementPresentation.For(this.ElementType, metadata.IsModelRoot);
             this.Children = children;
             this.SourceElement = metadata.SourceElement;
             this.hiddenElements = metadata.HiddenElements;
+            this.UiDisplayLabel = metadata.UiDisplayLabel;
             try
             {
                 this.Multiplicity = ElementPresentation.GetMultiplicity(this.SourceElement);
@@ -92,6 +92,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the semantic kind, supported stereotype and icon for the row.
         /// </summary>
         public ProjectBrowserElementPresentation Presentation { get; }
+
+        /// <summary>
+        /// Gets a UI-provided fallback label, when this node represents an unnamed model root.
+        /// </summary>
+        public string UiDisplayLabel { get; }
 
         /// <summary>
         /// Gets the child nodes built from the SysML owned element hierarchy.

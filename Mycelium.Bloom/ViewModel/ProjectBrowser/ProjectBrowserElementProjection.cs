@@ -21,9 +21,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using SysML2.NET.Core.Core.Types;
     using SysML2.NET.Core.Root.Namespaces;
-    using SysML2.NET.Exceptions;
 
     /// <summary>
     /// Separates navigable model elements from relationship and property representations.
@@ -42,28 +42,112 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 null => false,
                 IPackage or IClassifier or IUsage or IConnector => true,
                 IRelationship or IDocumentation or IMultiplicity => false,
-                IFeature feature when IsEmptyExpressionSupport(feature) => false,
+                IFeature feature when IsExpressionSupportFeature(feature) => false,
                 _ => true
             };
         }
 
         /// <summary>
-        /// Identifies anonymous expression parameter wrappers whose remaining content survives descendant traversal.
+        /// Determines whether a feature owns only a direct reference value that belongs in Properties.
         /// </summary>
-        private static bool IsEmptyExpressionSupport(IFeature feature)
+        /// <param name="element">The canonical SDK element.</param>
+        /// <returns>Whether the element is a reference-valued feature without expression-support ownership.</returns>
+        public static bool IsReferenceValuedFeature(IElement element)
         {
-            if (feature is IExpression || !IsAnonymous(feature) || !HasExpressionSupportRole(feature)
+            if (element is not IFeature feature
+                || feature.owningMembership is IParameterMembership
+                || IsExpressionSupportFeature(feature))
+            {
+                return false;
+            }
+
+            var relationships = feature.OwnedRelationship;
+            var values = relationships?.OfType<IFeatureValue>().ToArray() ?? [];
+            var hasRedefinition = relationships?.Any(relationship => relationship is IRedefinition) == true;
+            return values.Length > 0
+                   && relationships is not null
+                   && relationships.All(relationship => relationship is IFeatureValue or IRedefinition)
+                   && values.All(value =>
+                       (value.value is IFeatureReferenceExpression or IFeatureChainExpression)
+                       && (hasRedefinition
+                           ? !HasOwnedCompoundExpression(value.value)
+                           : IsReferenceExpressionStructure(value.value)));
+        }
+
+        /// <summary>
+        /// Gets an operator or reference label from the SDK without deriving model names locally.
+        /// </summary>
+        /// <param name="element">The canonical SDK element.</param>
+        /// <returns>A semantic operator, serialized reference, or ordinary element label.</returns>
+        public static string GetDisplayName(IElement element)
+        {
+            return GetDisplayName(element, false, out _);
+        }
+
+        /// <summary>
+        /// Gets the display label using the element's known position in the loaded model.
+        /// </summary>
+        /// <param name="element">The canonical SDK element.</param>
+        /// <param name="isModelRoot">Whether the element is the loaded model root.</param>
+        /// <param name="uiDisplayLabel">The UI fallback label, when one was required for the model root.</param>
+        /// <returns>A semantic operator, serialized reference, SDK name, or contextual fallback label.</returns>
+        public static string GetDisplayName(IElement element, bool isModelRoot, out string uiDisplayLabel)
+        {
+            ArgumentNullException.ThrowIfNull(element);
+
+            uiDisplayLabel = null;
+            if (element is IOperatorExpression { Operator: { Length: > 0 } operatorText })
+            {
+                return $"Operator {operatorText}";
+            }
+
+            if (element is IExpression expression
+                && expression is (IFeatureReferenceExpression or IFeatureChainExpression)
+                && SdkExpressionText.Create(expression).Text is { Length: > 0 } notation)
+            {
+                return notation;
+            }
+
+            var presentation = ProjectBrowserElementPresentation.For(element.GetType(), isModelRoot);
+            var displayName = ElementPresentation.GetDisplayName(element, presentation, out var isFallbackLabel);
+            if (isModelRoot && isFallbackLabel)
+            {
+                uiDisplayLabel = displayName;
+            }
+
+            return displayName;
+        }
+
+        /// <summary>
+        /// Determines whether an element is a direct feature-reference expression.
+        /// </summary>
+        /// <param name="element">The canonical SDK element.</param>
+        /// <returns>Whether the element is a feature-reference expression.</returns>
+        public static bool IsLeafReferenceExpression(IElement element)
+        {
+            return element is IFeatureReferenceExpression && !HasOwnedCompoundExpression(element);
+        }
+
+        /// <summary>
+        /// Identifies unnamed expression parameter wrappers whose expressions survive descendant traversal.
+        /// </summary>
+        private static bool IsExpressionSupportFeature(IFeature feature)
+        {
+            if (feature is IExpression || !IsDeclaredAnonymous(feature) || !HasExpressionSupportRole(feature)
                 || feature.IsAbstract || feature.IsComposite || feature.IsDerived || feature.IsEnd
                 || feature.IsOrdered || !feature.IsUnique || feature.IsConstant || feature.IsVariable
                 || feature.IsPortion || feature.IsSufficient || feature.IsImpliedIncluded
                 || feature.multiplicity != null || feature.type?.Count > 0
                 || feature.documentation?.Count > 0 || feature.textualRepresentation?.Count > 0
                 || feature.ownedAnnotation?.Count > 0 || feature.AliasIds?.Count > 0
-                || feature.owningMembership?.Visibility != VisibilityKind.Public
+                || (feature.owningMembership?.Visibility != VisibilityKind.Public
+                    && feature.owningMembership is not IParameterMembership
+                    && feature.owningMembership is not IReturnParameterMembership)
                 || feature.OwnedRelationship?.Any(relationship => relationship switch
                 {
-                    IFeatureValue value => value.IsDefault || value.IsInitial || !IsAnonymous(value),
-                    IFeatureMembership membership => membership.Visibility != VisibilityKind.Public || !IsAnonymous(membership),
+                    IFeatureValue value => !IsExpressionSupportValue(value),
+                    IFeatureMembership membership => membership.Visibility != VisibilityKind.Public
+                                                     || !IsDeclaredAnonymous(membership),
                     _ => true
                 }) == true)
             {
@@ -74,6 +158,60 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
+        /// Retains only ordinary, unnamed expression values on structural parameter features.
+        /// </summary>
+        private static bool IsExpressionSupportValue(IFeatureValue value)
+        {
+            return !value.IsDefault
+                   && !value.IsInitial
+                   && value.OwnedRelatedElement is { Count: > 0 } members
+                   && members.All(member => member switch
+                   {
+                       IExpression expression => IsDeclaredAnonymous(expression),
+                       IFeature feature => IsExpressionSupportFeature(feature),
+                       _ => false
+                   });
+        }
+
+        /// <summary>
+        /// Ensures a reference-valued feature does not own additional inspectable model elements.
+        /// </summary>
+        private static bool IsReferenceExpressionStructure(IElement element)
+        {
+            if (element is IFeatureReferenceExpression)
+            {
+                return !HasOwnedCompoundExpression(element);
+            }
+
+            if (element is IExpression and not IFeatureChainExpression)
+            {
+                return false;
+            }
+
+            if (element is IFeature feature
+                && element is not IFeatureChainExpression
+                && !IsExpressionSupportFeature(feature))
+            {
+                return false;
+            }
+
+            if (element is not IRelationship and not IFeature and not IFeatureChainExpression)
+            {
+                return false;
+            }
+
+            return (element.ownedElement ?? []).All(IsReferenceExpressionStructure);
+        }
+
+        /// <summary>Finds meaningful nested expressions without interpreting SDK ownership as syntax.</summary>
+        private static bool HasOwnedCompoundExpression(IElement element)
+        {
+            return (element.ownedElement ?? []).Any(child =>
+                child is IExpression and not IFeatureReferenceExpression
+                || HasOwnedCompoundExpression(child));
+        }
+
+        /// <summary>
         /// Requires SDK ownership and membership roles specific to an embedded expression's parameters or chain target.
         /// </summary>
         private static bool HasExpressionSupportRole(IFeature feature)
@@ -81,14 +219,21 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return feature.owningMembership switch
             {
                 IReturnParameterMembership when feature.Direction == FeatureDirectionKind.Out
-                    && feature.owner is IExpression expression => IsEmbeddedExpression(expression),
-                IParameterMembership and not IReturnParameterMembership when feature.Direction == FeatureDirectionKind.In
-                    && feature.owner is IExpression expression => IsEmbeddedExpression(expression),
+                                                && feature.owner is IExpression expression => IsEmbeddedExpression(
+                    expression),
+                IParameterMembership and not IReturnParameterMembership when feature.Direction ==
+                                                                             FeatureDirectionKind.In
+                                                                             && feature.owner is IExpression expression
+                    => IsEmbeddedExpression(expression),
                 IFeatureMembership when feature.Direction == null && feature.owner is IFeature
                 {
                     owningMembership: IParameterMembership,
                     owner: IFeatureChainExpression chain
                 } => IsEmbeddedExpression(chain),
+                IFeatureValue when feature.Direction == null && feature.owner is IFeature ownerFeature
+                    => HasExpressionSupportRole(ownerFeature),
+                IFeatureMembership when feature.Direction == null && feature.owner is IFeature ownerFeature
+                    => HasExpressionSupportRole(ownerFeature),
                 _ => false
             };
         }
@@ -98,32 +243,23 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private static bool IsEmbeddedExpression(IExpression expression)
         {
-            if (expression is IUsage or IClassifier || !IsAnonymous(expression))
+            if (expression is IUsage || !IsDeclaredAnonymous(expression))
             {
                 return false;
             }
 
             return expression.owningMembership is IFeatureValue or IResultExpressionMembership
-                || (expression.owningMembership is IFeatureMembership
-                    && expression.owner is IExpression owner && IsEmbeddedExpression(owner));
+                   || (expression.owningMembership is IFeatureMembership
+                       && expression.owner is IExpression owner && IsEmbeddedExpression(owner));
         }
 
         /// <summary>
-        /// Requires both declared and SDK-resolved names to be absent before treating an element as structural.
+        /// Checks declared names without treating the SDK's generated metaclass label as a model name.
         /// </summary>
-        private static bool IsAnonymous(IElement element)
+        private static bool IsDeclaredAnonymous(IElement element)
         {
-            try
-            {
-                return string.IsNullOrWhiteSpace(element.DeclaredName)
-                    && string.IsNullOrWhiteSpace(element.DeclaredShortName)
-                    && string.IsNullOrWhiteSpace(element.name)
-                    && string.IsNullOrWhiteSpace(element.shortName);
-            }
-            catch (IncompleteModelException)
-            {
-                return false;
-            }
+            return string.IsNullOrWhiteSpace(element.DeclaredName)
+                   && string.IsNullOrWhiteSpace(element.DeclaredShortName);
         }
     }
 }

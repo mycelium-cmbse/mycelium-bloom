@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Projects shared selection into cached panel state without owning model objects.</summary>
-    public sealed class DetailsPanelViewModel : ReactiveObject, IDetailsPanelViewModel
+    public sealed class DetailsPanelViewModel : BloomBaseViewModel, IDetailsPanelViewModel
     {
         /// <summary>The circuit-owned selection authority.</summary>
         private readonly IElementSelectionService selection;
@@ -32,9 +32,6 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
         /// <summary>Publishes one coherent presentation for each relevant change.</summary>
         private readonly ObservableAsPropertyHelper<DetailsPanelPresentation> presentation;
-
-        /// <summary>Serializes panel transitions, projection and disposal across selection publishers.</summary>
-        private readonly object gate = new();
 
         /// <summary>Retains at most thirty-two canonical predecessors for this panel.</summary>
         private readonly SourceList<IElement> history = new();
@@ -57,10 +54,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             this.subscriptions.Add(this.history);
             this.presentation = selection.WhenAnyValue(context => context.SelectedElement)
                 .DistinctUntilChanged<IElement>(ReferenceEqualityComparer.Instance)
-                .Synchronize(this.gate)
                 .Do(this.ObserveSelection)
                 .Merge(this.invalidations)
-                .Synchronize(this.gate)
                 .Select(element => element is null ? null : new DetailsPanelPresentation(element))
                 .ToProperty(this, viewModel => viewModel.Presentation, scheduler: Sequencer.Immediate);
             this.subscriptions.Add(this.presentation);
@@ -78,43 +73,34 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         public void Inspect(IElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            lock (this.gate)
+            if (this.subscriptions.IsDisposed || ReferenceEquals(element, this.selection.SelectedElement)) return;
+            var previous = this.selection.SelectedElement;
+            this.history.Edit(items =>
             {
-                if (this.subscriptions.IsDisposed || ReferenceEquals(element, this.selection.SelectedElement)) return;
-                var previous = this.selection.SelectedElement;
-                this.history.Edit(items =>
+                var index = Enumerable.Range(0, items.Count).FirstOrDefault(i => ReferenceEquals(items[i], element), -1);
+                if (index >= 0) items.RemoveRange(index, items.Count - index);
+                else if (previous is not null)
                 {
-                    var index = Enumerable.Range(0, items.Count).FirstOrDefault(i => ReferenceEquals(items[i], element), -1);
-                    if (index >= 0) items.RemoveRange(index, items.Count - index);
-                    else if (previous is not null)
-                    {
-                        if (items.Count == 32) items.RemoveAt(0);
-                        items.Add(previous);
-                    }
-                });
-                this.SelectInspectedElement(element);
-            }
+                    if (items.Count == 32) items.RemoveAt(0);
+                    items.Add(previous);
+                }
+            });
+            this.SelectInspectedElement(element);
         }
 
         /// <summary>Restores the previous canonical selection without adding a forward entry.</summary>
         public void GoBack()
         {
-            lock (this.gate)
-            {
-                if (this.subscriptions.IsDisposed || this.history.Count == 0) return;
-                var previous = this.history.Items[this.history.Count - 1];
-                this.history.Edit(items => items.RemoveAt(items.Count - 1));
-                this.SelectInspectedElement(previous);
-            }
+            if (this.subscriptions.IsDisposed || this.history.Count == 0) return;
+            var previous = this.history.Items[this.history.Count - 1];
+            this.history.Edit(items => items.RemoveAt(items.Count - 1));
+            this.SelectInspectedElement(previous);
         }
 
         /// <summary>Starts a new external inspection context without changing canonical selection.</summary>
         public void ResetInspectionHistory()
         {
-            lock (this.gate)
-            {
-                if (!this.subscriptions.IsDisposed) this.history.Clear();
-            }
+            if (!this.subscriptions.IsDisposed) this.history.Clear();
         }
 
         /// <summary>Distinguishes this panel's one-shot Inspect intention from external selection.</summary>
@@ -135,31 +121,22 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>Clears the canonical selection without changing workspace region visibility.</summary>
         public void ClearSelection()
         {
-            lock (this.gate)
-            {
-                if (this.subscriptions.IsDisposed) return;
-                this.history.Clear();
-                this.selection.SelectedElement = null;
-            }
+            if (this.subscriptions.IsDisposed) return;
+            this.history.Clear();
+            this.selection.SelectedElement = null;
         }
 
         /// <summary>Refreshes the selected element without requiring a selection change.</summary>
         public void Refresh()
         {
-            lock (this.gate)
-            {
-                if (this.subscriptions.IsDisposed) return;
-                this.invalidations.OnNext(this.selection.SelectedElement);
-            }
+            if (this.subscriptions.IsDisposed) return;
+            this.invalidations.OnNext(this.selection.SelectedElement);
         }
 
         /// <summary>Detaches the panel from shared state without disposing the shared authority.</summary>
         public void Dispose()
         {
-            lock (this.gate)
-            {
-                this.subscriptions.Dispose();
-            }
+            this.subscriptions.Dispose();
         }
     }
 }
