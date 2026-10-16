@@ -44,6 +44,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     public sealed class ProjectBrowserExpressionProjectionTestFixture
     {
         private static readonly string[] ExpectedConstraintNames = ["orderSum", "boundMatch"];
+        private static readonly string[] ExpectedCompoundExpressionReferences =
+        [
+            "contravariantOrder",
+            "covariantOrder",
+            "order"
+        ];
 
         [Test]
         public void VerifyQuantitiesHidesOnlyEmptyExpressionSupport()
@@ -64,7 +70,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(hiddenFeatures.Length, Is.GreaterThanOrEqualTo(22));
+                Assert.That(hiddenFeatures, Has.Length.GreaterThanOrEqualTo(22));
                 Assert.That(hiddenFeatures.OfType<IExpression>(), Is.Empty);
                 Assert.That(hiddenFeatures.Any(feature => feature.owningMembership is IReturnParameterMembership),
                     Is.True);
@@ -121,12 +127,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(Flatten([orderSum]).Where(node => node.SourceElement is IFeatureReferenceExpression)
                         .Select(node => GetReferenceName(node.DisplayName))
                         .Where(label => label is "contravariantOrder" or "covariantOrder" or "order"),
-                    Is.EqualTo(new[]
-                    {
-                        "contravariantOrder",
-                        "covariantOrder",
-                        "order"
-                    }));
+                    Is.EqualTo(ExpectedCompoundExpressionReferences));
                 Assert.That(genericParameterNodes, Is.Empty);
                 Assert.That(boundMatch.HasChildren, Is.True);
                 Assert.That(Flatten([boundMatch]).Select(node => node.DisplayName),
