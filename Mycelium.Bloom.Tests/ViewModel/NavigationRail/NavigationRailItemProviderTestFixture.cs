@@ -13,8 +13,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
 
     using BlazorBlueprint.Icons.Lucide.Data;
 
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
@@ -145,7 +145,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         public void VerifyGetNavigationItemsReturnsExpectedInventory()
         {
             var provider = new NavigationRailItemProvider();
-            var navigationItems = provider.GetNavigationItems(ProjectLifecycleState.Preparation, null);
+            var navigationItems = provider.GetNavigationItems(ProjectLifecycleKind.Preparation, null);
 
             using (Assert.EnterMultipleScope())
             {
@@ -163,15 +163,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             }
         }
 
-        [TestCase(ProjectLifecycleState.Preparation)]
-        [TestCase(ProjectLifecycleState.Open)]
-        [TestCase(ProjectLifecycleState.Review)]
-        [TestCase(ProjectLifecycleState.Archived)]
+        [TestCase(ProjectLifecycleKind.Preparation)]
+        [TestCase(ProjectLifecycleKind.Open)]
+        [TestCase(ProjectLifecycleKind.Review)]
+        [TestCase(ProjectLifecycleKind.Archived)]
         public void VerifyGetNavigationItemsIsInvariantAcrossLifecycleStates(
-            ProjectLifecycleState lifecycleState)
+            ProjectLifecycleKind lifecycleState)
         {
             var provider = new NavigationRailItemProvider();
-            var expectedItems = provider.GetNavigationItems(ProjectLifecycleState.Preparation, null);
+            var expectedItems = provider.GetNavigationItems(ProjectLifecycleKind.Preparation, null);
 
             Assert.That(provider.GetNavigationItems(lifecycleState, null), Is.SameAs(expectedItems));
         }
@@ -180,10 +180,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
         public void VerifyGetNavigationItemsIsInvariantAcrossSelectedElements()
         {
             var provider = new NavigationRailItemProvider();
-            var expectedItems = provider.GetNavigationItems(ProjectLifecycleState.Open, null);
+            var expectedItems = provider.GetNavigationItems(ProjectLifecycleKind.Open, null);
 
             Assert.That(
-                provider.GetNavigationItems(ProjectLifecycleState.Open, new Namespace()),
+                provider.GetNavigationItems(ProjectLifecycleKind.Open, new Namespace()),
                 Is.SameAs(expectedItems));
         }
     }

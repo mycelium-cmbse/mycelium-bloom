@@ -24,6 +24,8 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
+    using MyceliumJson = Mycelium.SDK.Serializer.Json;
+
     using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
 
@@ -96,6 +98,22 @@ namespace Mycelium.Bloom.Extensions
             return services;
         }
 
+            /// <summary>
+            /// Adds the stateless Mycelium SDK JSON services for platform DTOs.
+            /// </summary>
+            /// <returns>The configured service collection.</returns>
+            /// <exception cref="ArgumentNullException">Thrown when <paramref name="services" /> is null.</exception>
+            public IServiceCollection AddMyceliumSdkServices()
+            {
+                ArgumentNullException.ThrowIfNull(services);
+
+                services.AddLogging();
+                services.AddSingleton<MyceliumJson.ISerializer, MyceliumJson.Serializer>();
+                services.AddSingleton<MyceliumJson.IDeSerializer, MyceliumJson.DeSerializer>();
+
+                return services;
+            }
+
         /// <summary>
         /// Adds the Mycelium Bloom application services to the provided service collection.
         /// </summary>
@@ -107,6 +125,7 @@ namespace Mycelium.Bloom.Extensions
         {
             ArgumentNullException.ThrowIfNull(services);
 
+                services.AddMyceliumSdkServices();
             services.AddScoped<IAssembler, Assembler>();
             services.AddScoped<IDeSerializer, DeSerializer>();
             services.AddScoped<IModelLoaderService, ModelLoaderService>();
