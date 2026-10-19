@@ -37,6 +37,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -442,7 +443,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             });
 
             notificationCount = 0;
-            this.context.LifecycleState = ProjectLifecycleState.Open;
+            this.context.LifecycleState = ProjectLifecycleKind.Open;
 
             using (Assert.EnterMultipleScope())
             {

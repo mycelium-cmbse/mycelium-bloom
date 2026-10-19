@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     using ReactiveUI;
 
@@ -155,7 +156,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// <param name="lifecycleState">The current project lifecycle state.</param>
         /// <param name="selectedElement">The currently selected model element, or <see langword="null" />.</param>
         private void ApplyContext(
-            ProjectLifecycleState lifecycleState,
+            ProjectLifecycleKind lifecycleState,
             IElement selectedElement)
         {
             if (this.isDisposed)

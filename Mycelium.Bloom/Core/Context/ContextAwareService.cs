@@ -11,7 +11,7 @@ namespace Mycelium.Bloom.Core.Context
 {
     using System.ComponentModel;
 
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     using ReactiveUI;
 
@@ -40,18 +40,18 @@ namespace Mycelium.Bloom.Core.Context
         }
 
         /// <inheritdoc />
-        public ProjectLifecycleState LifecycleState
+        public ProjectLifecycleKind LifecycleState
         {
             get;
             set
             {
                 if (!Enum.IsDefined(value))
                 {
-                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(ProjectLifecycleState));
+                    throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(ProjectLifecycleKind));
                 }
 
                 this.RaiseAndSetIfChanged(ref field, value);
             }
-        } = ProjectLifecycleState.Preparation;
+        } = ProjectLifecycleKind.Preparation;
     }
 }

@@ -12,7 +12,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
     using System.Collections.ObjectModel;
 
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -72,7 +72,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
 
         /// <inheritdoc />
         public IReadOnlyList<NavigationRailItem> GetNavigationItems(
-            ProjectLifecycleState lifecycleState,
+            ProjectLifecycleKind lifecycleState,
             IElement selectedElement)
         {
             return NavigationItems;

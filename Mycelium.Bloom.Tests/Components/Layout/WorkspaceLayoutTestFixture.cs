@@ -36,6 +36,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.SDK;
 
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
@@ -366,7 +367,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
             layout.Dispose();
             notificationCount = 0;
-            this.context.LifecycleState = ProjectLifecycleState.Open;
+            this.context.LifecycleState = ProjectLifecycleKind.Open;
 
             using (Assert.EnterMultipleScope())
             {

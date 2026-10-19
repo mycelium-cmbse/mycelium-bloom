@@ -10,7 +10,7 @@
 namespace Mycelium.Bloom.Core.Context
 {
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     /// <summary>
     /// Provides the circuit-scoped application context used by context-aware features.
@@ -20,6 +20,6 @@ namespace Mycelium.Bloom.Core.Context
         /// <summary>
         /// Gets or sets the current project lifecycle state.
         /// </summary>
-        ProjectLifecycleState LifecycleState { get; set; }
+        ProjectLifecycleKind LifecycleState { get; set; }
     }
 }
