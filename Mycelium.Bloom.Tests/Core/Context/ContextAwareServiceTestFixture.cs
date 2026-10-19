@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     using ReactiveUI;
 
@@ -32,11 +32,11 @@ namespace Mycelium.Bloom.Tests.Core.Context
         private static readonly string[] ExpectedFirstSelectionCallbacks =
             ["changing:null", "changed:selected"];
 
-        private static readonly ProjectLifecycleState[] ExpectedLifecycleStates =
+        private static readonly ProjectLifecycleKind[] ExpectedLifecycleStates =
         [
-            ProjectLifecycleState.Preparation,
-            ProjectLifecycleState.Open,
-            ProjectLifecycleState.Review
+            ProjectLifecycleKind.Preparation,
+            ProjectLifecycleKind.Open,
+            ProjectLifecycleKind.Review
         ];
 
         [Test]
@@ -44,7 +44,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
         {
             var service = new ContextAwareService();
             var observedElements = new List<IElement>();
-            var observedLifecycleStates = new List<ProjectLifecycleState>();
+            var observedLifecycleStates = new List<ProjectLifecycleKind>();
 
             using var selectionSubscription = System.ObservableExtensions.Subscribe(
                 service.WhenAnyValue(context => context.SelectedElement),
@@ -56,10 +56,10 @@ namespace Mycelium.Bloom.Tests.Core.Context
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(service.SelectedElement, Is.Null);
-                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleState.Preparation));
+                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleKind.Preparation));
                 Assert.That(observedElements, Is.EqualTo(new IElement[] { null }));
                 Assert.That(observedLifecycleStates,
-                    Is.EqualTo(new[] { ProjectLifecycleState.Preparation }));
+                    Is.EqualTo(new[] { ProjectLifecycleKind.Preparation }));
             }
         }
 
@@ -227,19 +227,19 @@ namespace Mycelium.Bloom.Tests.Core.Context
         public void VerifyLifecycleStatePublishesDistinctValidValues()
         {
             var service = new ContextAwareService();
-            var observedValues = new List<ProjectLifecycleState>();
+            var observedValues = new List<ProjectLifecycleKind>();
 
             using var subscription = System.ObservableExtensions.Subscribe(
                 service.WhenAnyValue(context => context.LifecycleState),
                 observedValues.Add);
 
-            service.LifecycleState = ProjectLifecycleState.Open;
-            service.LifecycleState = ProjectLifecycleState.Open;
-            service.LifecycleState = ProjectLifecycleState.Review;
+            service.LifecycleState = ProjectLifecycleKind.Open;
+            service.LifecycleState = ProjectLifecycleKind.Open;
+            service.LifecycleState = ProjectLifecycleKind.Review;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleState.Review));
+                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleKind.Review));
                 Assert.That(observedValues, Is.EqualTo(ExpectedLifecycleStates));
             }
         }
@@ -250,12 +250,12 @@ namespace Mycelium.Bloom.Tests.Core.Context
             var service = new ContextAwareService();
 
             var exception = Assert.Throws<InvalidEnumArgumentException>(() =>
-                service.LifecycleState = (ProjectLifecycleState)999);
+                service.LifecycleState = (ProjectLifecycleKind)999);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(exception.ParamName, Is.EqualTo("value"));
-                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleState.Preparation));
+                Assert.That(service.LifecycleState, Is.EqualTo(ProjectLifecycleKind.Preparation));
             }
         }
 
@@ -280,7 +280,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
             var element = new Namespace();
 
             selectionService.SelectedElement = element;
-            contextService.LifecycleState = ProjectLifecycleState.Open;
+            contextService.LifecycleState = ProjectLifecycleKind.Open;
 
             using (Assert.EnterMultipleScope())
             {
@@ -289,9 +289,9 @@ namespace Mycelium.Bloom.Tests.Core.Context
                 Assert.That(secondContextService, Is.Not.SameAs(concreteService));
                 Assert.That(contextService.SelectedElement, Is.SameAs(element));
                 Assert.That(selectionService.SelectedElement, Is.SameAs(element));
-                Assert.That(concreteService.LifecycleState, Is.EqualTo(ProjectLifecycleState.Open));
+                Assert.That(concreteService.LifecycleState, Is.EqualTo(ProjectLifecycleKind.Open));
                 Assert.That(secondContextService.SelectedElement, Is.Null);
-                Assert.That(secondContextService.LifecycleState, Is.EqualTo(ProjectLifecycleState.Preparation));
+                Assert.That(secondContextService.LifecycleState, Is.EqualTo(ProjectLifecycleKind.Preparation));
             }
         }
 

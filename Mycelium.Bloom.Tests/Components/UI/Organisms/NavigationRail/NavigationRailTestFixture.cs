@@ -32,6 +32,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -318,7 +319,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             using var component = this.Render<NavigationRailComponent>(parameters => parameters
                 .Add(rail => rail.ViewModel, viewModel));
 
-            contextService.LifecycleState = ProjectLifecycleState.Open;
+            contextService.LifecycleState = ProjectLifecycleKind.Open;
 
             component.WaitForAssertion(() =>
             {
@@ -706,7 +707,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 .Single(button => button.Instance.AriaLabel == "Overview")
                 .Instance;
 
-            contextService.LifecycleState = ProjectLifecycleState.Review;
+            contextService.LifecycleState = ProjectLifecycleKind.Review;
 
             component.WaitForAssertion(() =>
             {
@@ -749,7 +750,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
             component.Render(parameters => parameters.Add(rail => rail.ViewModel, secondViewModel));
             var renderCountAfterReplacement = component.RenderCount;
 
-            firstContextService.LifecycleState = ProjectLifecycleState.Open;
+            firstContextService.LifecycleState = ProjectLifecycleKind.Open;
 
             using (Assert.EnterMultipleScope())
             {
@@ -758,7 +759,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                     .Select(link => link.GetAttribute("aria-label")), Is.EqualTo(ExpectedReviewOnlyLabels));
             }
 
-            secondContextService.LifecycleState = ProjectLifecycleState.Open;
+            secondContextService.LifecycleState = ProjectLifecycleKind.Open;
 
             component.WaitForAssertion(() =>
                 Assert.That(component.FindAll(".mb-navigation-rail__link")
@@ -807,7 +808,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
 
             component.Dispose();
 
-            Assert.DoesNotThrow(() => contextService.LifecycleState = ProjectLifecycleState.Open);
+            Assert.DoesNotThrow(() => contextService.LifecycleState = ProjectLifecycleKind.Open);
 
             using (Assert.EnterMultipleScope())
             {
@@ -1067,16 +1068,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         private static IReadOnlyList<NavigationRailItem> SelectItemsByLifecycleState(
-            ProjectLifecycleState lifecycleState,
+            ProjectLifecycleKind lifecycleState,
             IReadOnlyList<NavigationRailItem> preparationItems,
             IReadOnlyList<NavigationRailItem> nonPreparationItems)
         {
             return lifecycleState switch
             {
-                ProjectLifecycleState.Preparation => preparationItems,
-                ProjectLifecycleState.Open => nonPreparationItems,
-                ProjectLifecycleState.Review => nonPreparationItems,
-                ProjectLifecycleState.Archived => nonPreparationItems,
+                ProjectLifecycleKind.Preparation => preparationItems,
+                ProjectLifecycleKind.Open => nonPreparationItems,
+                ProjectLifecycleKind.Review => nonPreparationItems,
+                ProjectLifecycleKind.Archived => nonPreparationItems,
                 _ => throw new ArgumentOutOfRangeException(nameof(lifecycleState), lifecycleState, null)
             };
         }
@@ -1088,13 +1089,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
         }
 
         private static INavigationRailItemProvider CreateNavigationRailItemProvider(
-            Func<ProjectLifecycleState, IElement, IReadOnlyList<NavigationRailItem>> selector)
+            Func<ProjectLifecycleKind, IElement, IReadOnlyList<NavigationRailItem>> selector)
         {
             ArgumentNullException.ThrowIfNull(selector);
 
             var provider = new Mock<INavigationRailItemProvider>(MockBehavior.Strict);
             provider.Setup(x => x.GetNavigationItems(
-                    It.IsAny<ProjectLifecycleState>(),
+                    It.IsAny<ProjectLifecycleKind>(),
                     It.IsAny<IElement>()))
                 .Returns(selector);
 

@@ -22,6 +22,7 @@ namespace Mycelium.Bloom.Components.Pages
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -400,7 +401,7 @@ namespace Mycelium.Bloom.Components.Pages
 
             this.navigationRailPreviewContext = new ContextAwareService
             {
-                LifecycleState = ProjectLifecycleState.Open,
+                LifecycleState = ProjectLifecycleKind.Open,
                 SelectedElement = null
             };
 
@@ -1034,7 +1035,7 @@ namespace Mycelium.Bloom.Components.Pages
 
             /// <inheritdoc />
             public IReadOnlyList<NavigationRailItem> GetNavigationItems(
-                ProjectLifecycleState lifecycleState,
+                ProjectLifecycleKind lifecycleState,
                 IElement selectedElement)
             {
                 return this.navigationItems;

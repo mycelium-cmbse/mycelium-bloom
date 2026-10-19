@@ -10,7 +10,7 @@
 namespace Mycelium.Bloom.ViewModel.NavigationRail
 {
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -26,7 +26,7 @@ namespace Mycelium.Bloom.ViewModel.NavigationRail
         /// <param name="selectedElement">The currently selected model element, or <see langword="null" />.</param>
         /// <returns>The navigation destinations in display order.</returns>
         IReadOnlyList<NavigationRailItem> GetNavigationItems(
-            ProjectLifecycleState lifecycleState,
+            ProjectLifecycleKind lifecycleState,
             IElement selectedElement);
     }
 }
