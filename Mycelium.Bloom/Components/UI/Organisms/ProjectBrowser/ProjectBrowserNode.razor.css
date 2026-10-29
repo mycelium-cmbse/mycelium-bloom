@@ -204,6 +204,14 @@
     white-space: nowrap;
 }
 
+/* Ordinary selected text must meet WCAG 1.4.3 even when the design's muted colour does not. */
+.mb-project-browser-node__row--selected :is(.mb-project-browser-node__multiplicity,
+    .mb-project-browser-node__stereotype, .mb-project-browser-node__type,
+    .mb-project-browser-node__value, .mb-project-browser-node__visibility,
+    .mb-project-browser-node__indicator) {
+    color: light-dark(var(--primary-strong), var(--muted-foreground));
+}
+
 .mb-project-browser-node__row ::deep .mb-project-browser-node__verdict {
     flex: 0 0 auto;
     padding: var(--spacing-2) var(--spacing-4);

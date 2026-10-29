@@ -1,3 +1,9 @@
+## Live review — 2026-10-29
+
+Live MCP context and hierarchy now verify Browser 3250:2, unified filter 8563:22, Part Tree 3250:411 and active Tree Node 22:121 within 22:179. The earlier quota statements below are historical. The Browser screenshot response unexpectedly showed Part Tree (300×800 versus the 300×992 Browser hierarchy); therefore no exact Browser screenshot-parity claim is made. Context confirms name-first rows, 12px text, 12px icons, NAME/OWN and the unified filter. Fixed examples do not establish responsive breakpoints. Preserve 32px interaction targets and existing semantic notation; Add and Part Tree workflows remain outside scope.
+
+The active-state variables confirm #64748b on #e8f7f2 (4.31:1). Selected secondary text now uses existing primary-strong #0f766e: 4.9566:1 light; dark remains 6.3337:1. This is a scoped accessibility adjustment under [WCAG 2.2 SC 1.4.3](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), not a global token change. [Chromium computed-colour evidence](evidence/project-browser-80/contrast-review.json) tests all six affected classes using branch CSS/tokens in an isolated DOM after theme transitions. No semantic or navigation changes; prior screenshots predate this adjustment.
+
 # Project Browser placement and Properties handoff
 
 Browser work: [#80](https://github.com/mycelium-cmbse/mycelium-bloom/issues/80).
