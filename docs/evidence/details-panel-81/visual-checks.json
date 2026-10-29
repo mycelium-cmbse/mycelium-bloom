@@ -1,0 +1,530 @@
+{
+  "errors": [],
+  "assets": [],
+  "captures": [
+    {
+      "item": "Part",
+      "theme": "light",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 824,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Connection",
+      "theme": "light",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Imports",
+      "theme": "light",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "false"
+          },
+          {
+            "name": "Relations",
+            "selected": "true"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 824,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Connection",
+      "theme": "dark",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "true"
+          },
+          {
+            "name": "Relations",
+            "selected": "false"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "item": "Imports",
+      "theme": "dark",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "tabs": [
+          {
+            "name": "Properties",
+            "selected": "false"
+          },
+          {
+            "name": "Relations",
+            "selected": "true"
+          },
+          {
+            "name": "Comments",
+            "selected": "false"
+          },
+          {
+            "name": "Attachments",
+            "selected": "false"
+          }
+        ],
+        "body": [
+          {
+            "height": 709,
+            "scrollHeight": 709,
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    }
+  ],
+  "interactions": {
+    "errors": [],
+    "checks": [
+      {
+        "keyboardFocus": {
+          "visible": true,
+          "outline": "solid",
+          "width": "3px"
+        }
+      },
+      "ArrowRight, End and Home move focus and activate the corresponding tab",
+      {
+        "theme": "light",
+        "item": "Part",
+        "geometry": {
+          "width": 320,
+          "scrollWidth": 320,
+          "body": [
+            {
+              "width": 320,
+              "scrollWidth": 320
+            }
+          ]
+        }
+      },
+      {
+        "theme": "light",
+        "item": "Attribute",
+        "geometry": {
+          "width": 320,
+          "scrollWidth": 320,
+          "body": [
+            {
+              "width": 320,
+              "scrollWidth": 320
+            }
+          ]
+        }
+      },
+      {
+        "theme": "light",
+        "item": "State",
+        "geometry": {
+          "width": 320,
+          "scrollWidth": 320,
+          "body": [
+            {
+              "width": 320,
+              "scrollWidth": 320
+            }
+          ]
+        }
+      },
+      {
+        "theme": "light",
+        "item": "Part",
+        "geometry": {
+          "width": 540,
+          "scrollWidth": 540,
+          "body": [
+            {
+              "width": 540,
+              "scrollWidth": 540
+            }
+          ]
+        }
+      },
+      {
+        "theme": "light",
+        "item": "Attribute",
+        "geometry": {
+          "width": 540,
+          "scrollWidth": 540,
+          "body": [
+            {
+              "width": 540,
+              "scrollWidth": 540
+            }
+          ]
+        }
+      },
+      {
+        "theme": "light",
+        "item": "State",
+        "geometry": {
+          "width": 540,
+          "scrollWidth": 540,
+          "body": [
+            {
+              "width": 540,
+              "scrollWidth": 540
+            }
+          ]
+        }
+      },
+      {
+        "theme": "dark",
+        "item": "Part",
+        "geometry": {
+          "width": 320,
+          "scrollWidth": 320,
+          "body": [
+            {
+              "width": 320,
+              "scrollWidth": 320
+            }
+          ]
+        }
+      },
+      {
+        "theme": "dark",
+        "item": "Attribute",
+        "geometry": {
+          "width": 320,
+          "scrollWidth": 320,
+          "body": [
+            {
+              "width": 320,
+              "scrollWidth": 320
+            }
+          ]
+        }
+      },
+      {
+        "theme": "dark",
+        "item": "State",
+        "geometry": {
+          "width": 320,
+          "scrollWidth": 320,
+          "body": [
+            {
+              "width": 320,
+              "scrollWidth": 320
+            }
+          ]
+        }
+      },
+      {
+        "theme": "dark",
+        "item": "Part",
+        "geometry": {
+          "width": 540,
+          "scrollWidth": 540,
+          "body": [
+            {
+              "width": 540,
+              "scrollWidth": 540
+            }
+          ]
+        }
+      },
+      {
+        "theme": "dark",
+        "item": "Attribute",
+        "geometry": {
+          "width": 540,
+          "scrollWidth": 540,
+          "body": [
+            {
+              "width": 540,
+              "scrollWidth": 540
+            }
+          ]
+        }
+      },
+      {
+        "theme": "dark",
+        "item": "State",
+        "geometry": {
+          "width": 540,
+          "scrollWidth": 540,
+          "body": [
+            {
+              "width": 540,
+              "scrollWidth": 540
+            }
+          ]
+        }
+      },
+      "Value reference activates the canonical kilogram element",
+      "Show in Browser dispatches the selected harness canonical ID",
+      "Close dispatches its callback without mutating selection"
+    ]
+  }
+}

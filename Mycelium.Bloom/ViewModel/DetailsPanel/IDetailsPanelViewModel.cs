@@ -18,15 +18,6 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>Gets the current immutable presentation, or null for an empty selection.</summary>
         DetailsPanelPresentation Presentation { get; }
 
-        /// <summary>Gets whether the panel has a previous inspected element.</summary>
-        bool CanGoBack { get; }
-
-        /// <summary>Restores the previous inspected canonical element through shared selection.</summary>
-        void GoBack();
-
-        /// <summary>Discards the panel-local trail when an explicit external selection starts a new context.</summary>
-        void ResetInspectionHistory();
-
         /// <summary>Inspects a canonical element through the shared selection authority.</summary>
         /// <param name="element">The canonical element to inspect.</param>
         void Inspect(IElement element);

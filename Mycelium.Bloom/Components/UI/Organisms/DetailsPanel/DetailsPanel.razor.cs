@@ -10,7 +10,6 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
     using Microsoft.AspNetCore.Components;
-
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -34,15 +33,31 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <summary>The ViewModel constructed and disposed by this panel.</summary>
         private IDetailsPanelViewModel ownedViewModel;
 
+        /// <summary>The design's fixed semantic tabs.</summary>
+        private static readonly string[] Tabs = ["Properties", "Relations", "Comments", "Attachments"];
+
+        /// <summary>The tab selected in this component instance.</summary>
+        private string activeTab = "Properties";
+
+        /// <summary>Gets or sets the composition-owned Browser reveal action.</summary>
+        [Parameter]
+        public EventCallback<IElement> ShowInBrowserRequested { get; set; }
+
+        /// <summary>Gets or sets the composition-owned close action, which preserves canonical selection.</summary>
+        [Parameter]
+        public EventCallback CloseRequested { get; set; }
+
         /// <summary>Constructs panel state once while preserving a caller-supplied ViewModel's ownership.</summary>
         protected override void OnInitialized()
         {
             if (this.ViewModel is null)
             {
                 this.ownedViewModel = this.ViewModelFactory()
-                    ?? throw new InvalidOperationException("The Details Panel ViewModel factory returned null.");
+                                      ?? throw new InvalidOperationException(
+                                          "The Details Panel ViewModel factory returned null.");
                 this.ViewModel = this.ownedViewModel;
             }
+
             base.OnInitialized();
         }
 
@@ -54,6 +69,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
                 this.ownedViewModel.Dispose();
                 this.ownedViewModel = null;
             }
+
             base.OnParametersSet();
         }
 
@@ -70,28 +86,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         }
 
         /// <summary>Inspects the exact canonical target without revealing or selecting a browser row.</summary>
+        /// <param name="element">The canonical target captured by the component.</param>
         private void InspectElement(IElement element)
         {
             this.ViewModel.Inspect(element);
         }
 
-        /// <summary>Adds namespace boundary wrap opportunities while preserving the property's text.</summary>
-        /// <param name="text">The SDK-backed property text.</param>
-        /// <returns>Escaped text with optional line breaks between namespace segments.</returns>
-        private static RenderFragment RenderPropertyText(string text) => builder =>
+        /// <summary>Captures the header close event before delegating workspace visibility.</summary>
+        /// <returns>The composition callback completion.</returns>
+        private Task ClosePanel()
         {
-            var segments = text.Split("::", StringSplitOptions.None);
-            for (var index = 0; index < segments.Length; index++)
-            {
-                if (index > 0)
-                {
-                    builder.AddContent(0, "::");
-                    builder.OpenElement(1, "wbr");
-                    builder.CloseElement();
-                }
-                builder.AddContent(2, segments[index]);
-            }
-        };
+            return this.CloseRequested.InvokeAsync();
+        }
+
+        /// <summary>Changes only the local presentation tab.</summary>
+        /// <param name="tab">The selected tab.</param>
+        private void ChangeTab(string tab)
+        {
+            this.activeTab = tab;
+        }
+
+        /// <summary>Requests a local Browser reveal without changing canonical selection.</summary>
+        /// <returns>The composition callback completion.</returns>
+        private Task ShowInBrowser()
+        {
+            return this.ShowInBrowserRequested.InvokeAsync(this.ViewModel.Presentation.Element);
+        }
 
         /// <summary>
         /// Gets the final CSS class list applied to the details panel.
@@ -101,6 +121,5 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         {
             return this.BuildRootCssClass("mb-details-panel");
         }
-
     }
 }

@@ -1,0 +1,371 @@
+{
+  "canonicalElementId": "adacf513-a227-5c98-8cf0-666c25aa6b2f",
+  "errors": [],
+  "assets": [],
+  "checks": [
+    {
+      "theme": "light",
+      "requestedWidth": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 320,
+      "tab": "Relations",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 320,
+      "tab": "Comments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 540,
+      "tab": "Properties",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 540,
+      "tab": "Relations",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 540,
+      "tab": "Comments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "requestedWidth": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 320,
+      "tab": "Relations",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 320,
+      "tab": "Comments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 540,
+      "tab": "Properties",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 540,
+      "tab": "Relations",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 540,
+      "tab": "Comments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "requestedWidth": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "navigatedType": "ScalarQuantityValue"
+    },
+    "Close/reopen retains selection; Show in Browser reveals the canonical node; Relations keyboard activation and typing navigation preserve Browser local selection"
+  ]
+}

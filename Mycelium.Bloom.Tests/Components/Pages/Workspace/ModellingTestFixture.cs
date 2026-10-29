@@ -89,7 +89,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                         composition.Context.SelectedElement = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "inspection-origin" };
                         panelViewModel.Inspect(node.SourceElement);
                     });
-                    Assert.That(panelViewModel.CanGoBack, Is.True);
                     await component.Find("[data-testid='properties-collapse']").ClickAsync();
                     Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
                     await browser.Find(rowSelector).ClickAsync();
@@ -100,7 +99,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                             Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
                             Assert.That(composition.Context.SelectedElement, Is.SameAs(node.SourceElement));
                             Assert.That(panelViewModel.Presentation.Element, Is.SameAs(node.SourceElement));
-                            Assert.That(panelViewModel.CanGoBack, Is.False);
                         }
                     });
                 }
@@ -110,11 +108,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             {
                 browser.Verify(viewModel => viewModel.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Exactly(2));
             }
-            await component.Find("[data-testid='properties-clear-selection']").ClickAsync();
+            var retainedSelection = composition.Context.SelectedElement;
+            await component.Find("[data-testid='properties-close']").ClickAsync();
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(composition.Context.SelectedElement, Is.Null);
-                Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+                Assert.That(composition.Context.SelectedElement, Is.SameAs(retainedSelection));
+                Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
             }
         }
 
@@ -1193,9 +1192,41 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Assert.That(composition.Context.SelectedElement,
                         Is.SameAs(composition.ProjectBrowserNodes[0].SourceElement));
                     Assert.That(component.FindAll(".mb-details-panel__empty"), Is.Empty);
-                    Assert.That(component.FindAll(".mb-details-panel__properties"), Has.Count.EqualTo(1));
+                    Assert.That(component.FindAll("section[aria-label='Identity']"), Has.Count.EqualTo(1));
                 }
             });
+        }
+
+        /// <summary>Verifies the Properties footer uses the existing deterministic Browser reveal contract.</summary>
+        [Test]
+        public async Task VerifyPropertiesFooterRevealsOnlyFocusedBrowserWithoutChangingSelectionOrFilters()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            var focusedGroup = composition.Editor.Groups[2];
+            await this.OpenProjectBrowserAsync(modelling, focusedGroup.Id);
+            composition.ProjectBrowsers[0].Object.FilterText = "first filter";
+            composition.ProjectBrowsers[1].Object.FilterText = "target filter";
+            var selected = new Namespace { ElementId = "canonical-details-selection" };
+            await component.InvokeAsync(() => composition.Context.SelectedElement = selected);
+            await component.InvokeAsync(component.FindComponent<WorkspaceShellComponent>().Instance.RevealRightPanel);
+
+            await component.FindAll("button").Single(button => button.TextContent.Trim() == "Show in Browser").ClickAsync();
+
+            composition.ProjectBrowsers[1].Verify(viewModel => viewModel.FocusElement(selected), Times.Once);
+            composition.ProjectBrowsers[0].Verify(viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()), Times.Never);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.Context.SelectedElement, Is.SameAs(selected));
+                Assert.That(composition.Editor.FocusedGroup, Is.SameAs(focusedGroup));
+                Assert.That(composition.ProjectBrowsers[0].Object.FilterText, Is.EqualTo("first filter"));
+                Assert.That(composition.ProjectBrowsers[1].Object.FilterText, Is.EqualTo("target filter"));
+                Assert.That(component.FindAll(".mb-workspace-shell__pane-button").Single(button => button.TextContent.Trim() == "Content")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+            }
+            await component.InvokeAsync(modelling.Instance.Dispose);
+            Assert.That(component.FindAll("button").Any(button => button.TextContent.Trim() == "Show in Browser"), Is.False);
         }
 
         /// <summary>

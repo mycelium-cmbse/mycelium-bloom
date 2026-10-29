@@ -8,159 +8,54 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @using BlazorBlueprint.Icons.Lucide.Components
-
 @using Mycelium.Bloom.ViewModel.DetailsPanel
 @inherits BloomReactiveComponentBase<IDetailsPanelViewModel>
 
-@{
-    var presentation = this.ViewModel.Presentation;
-}
-
-<section class="@(this.GetCssClass())"
-         aria-labelledby="@(this.headingId)"
-         @attributes="this.AdditionalAttributes">
+<section class="@(this.GetCssClass())" aria-labelledby="@(this.headingId)" @attributes="this.AdditionalAttributes">
     <header class="mb-details-panel__header">
-        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
-                  Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                  Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-                  Disabled="@(!this.ViewModel.CanGoBack)"
-                  AriaLabel="Back to previous inspected element"
-                  title="Back to previous inspected element"
-                  OnClick="this.ViewModel.GoBack">
-            <LucideIcon Name="arrow-left" Size="16" aria-hidden="true" />
-        </BbButton>
-        <div class="mb-details-panel__heading-content">
-            <h2 id="@(this.headingId)" class="mb-details-panel__title">
-                Properties
-            </h2>
-        </div>
-    </header>
-
-    @if (presentation is not null)
-    {
-        <div class="mb-details-panel__summary">
-            <p class="mb-details-panel__element-name">@(presentation.DisplayName)</p>
-            <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
-                      Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+        <span class="mb-details-panel__icon"><LucideIcon Name="align-left" Size="16" aria-hidden="true" /></span>
+        <h2 id="@(this.headingId)" class="mb-details-panel__title">Properties</h2>
+        @if (this.CloseRequested.HasDelegate)
+        {
+            <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                       Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-                      Class="mb-details-panel__close"
-                      AriaLabel="Clear selection"
-                      data-testid="properties-clear-selection"
-                      title="Clear selection"
-                      OnClick="this.ViewModel.ClearSelection">
-                <LucideIcon Name="x" Size="16" StrokeWidth="1.75"
-                            role="presentation" aria-hidden="true" focusable="false" />
+                      AriaLabel="Close Properties" title="Close Properties"
+                      Class="mb-properties-close" data-testid="properties-close" OnClick="this.ClosePanel">
+                <LucideIcon Name="x" Size="14" aria-hidden="true" />
             </BbButton>
-        </div>
-    }
-    @if (presentation is null)
+        }
+    </header>
+    @if (this.ViewModel.Presentation is null)
     {
-        <p class="mb-details-panel__empty">
-            Select an element to display its details.
-        </p>
+        <p class="mb-details-panel__empty">Select an element to display its details.</p>
     }
     else
     {
-        @if (presentation.Expressions.Count > 0)
-        {
-            <section class="mb-details-panel__section" aria-label="Expression" @key="presentation.Element">
-                <h3 class="mb-details-panel__section-title">Expression</h3>
-                @foreach (var notation in presentation.ExpressionNotations.Select(group => group.TextualNotation))
+        <BbTabs Value="@this.activeTab" ValueChanged="this.ChangeTab" Class="mb-properties-tabs">
+            <BbTabsList AriaLabel="Element detail sections" Class="mb-properties-tabs__list">
+                @foreach (var tab in Tabs)
                 {
-                    <div class="mb-details-panel__notation">
-                        <p class="mb-details-panel__notation-label">SDK textual notation</p>
-                        @if (notation.Text is { } text)
-                        {
-                            <pre class="mb-details-panel__notation-text"><code>@text</code></pre>
-                        }
-                        else
-                        {
-                            <p class="mb-details-panel__documentation">@notation.UnavailableReason</p>
-                        }
-                    </div>
+                    <BbTabsTrigger Value="@tab" Class="mb-properties-tabs__trigger"
+                                   aria-selected="@(this.activeTab == tab ? "true" : "false")">@tab</BbTabsTrigger>
                 }
-                @foreach (var expression in presentation.Expressions)
-                {
-                    <ExpressionGroup Node="expression" SelectedElement="presentation.Element" InspectRequested="this.InspectElement"
-                                     SelectedProperties="@(ReferenceEquals(expression, presentation.Expressions[0]) ? presentation.ExpressionAdvancedProperties : [])" />
-                }
-            </section>
-        }
-        @foreach (var section in presentation.Sections)
+            </BbTabsList>
+            @foreach (var tab in Tabs)
+            {
+                <BbTabsContent Value="@tab" Class="mb-properties-tabs__content">
+                    @if (this.ViewModel.Presentation.ShowSelectionSummary)
+                    {
+                        <PropertiesSummary Presentation="this.ViewModel.Presentation" />
+                    }
+                    <PropertiesSections Sections="this.ViewModel.Presentation.DisplaySections" Tab="@tab"
+                                        SelectedElement="this.ViewModel.Presentation.Element" InspectRequested="this.InspectElement" />
+                </BbTabsContent>
+            }
+        </BbTabs>
+        @if (this.ShowInBrowserRequested.HasDelegate)
         {
-            <section class="mb-details-panel__section" aria-label="@section.Title">
-                <h3 class="mb-details-panel__section-title">@section.Title</h3>
-                @if (section.Properties.Count > 0)
-                {
-                    <dl class="mb-details-panel__properties">
-                        @foreach (var property in section.Properties)
-                        {
-                            <div class="mb-details-panel__property">
-                                <dt class="mb-details-panel__label">@property.Key</dt>
-                                <dd class="mb-details-panel__value">@RenderPropertyText(property.Value)</dd>
-                            </div>
-                        }
-                    </dl>
-                }
-                @foreach (var body in section.Paragraphs)
-                {
-                    <p class="mb-details-panel__documentation">@body</p>
-                }
-            </section>
-        }
-        @if (presentation.ModelLinks.Count > 0)
-        {
-            <BbCollapsible @key="presentation.ModelLinks">
-                <BbCollapsibleTrigger AsChild="true">
-                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                              Size="BlazorBlueprint.Components.ButtonSize.Small"
-                              AriaLabel="Advanced model links">Advanced model links</BbButton>
-                </BbCollapsibleTrigger>
-                <BbCollapsibleContent ForceMount="false">
-                    <p class="mb-details-panel__documentation">Canonical ownership and relationships. Additional type-specific properties may not yet have a dedicated presentation.</p>
-                    <dl class="mb-details-panel__properties">
-                        @foreach (var link in presentation.ModelLinks)
-                        {
-                            <div class="mb-details-panel__property" data-element-id="@link.Element?.ElementId">
-                                <dt class="mb-details-panel__label">@link.Role</dt>
-                                <dd class="mb-details-panel__value mb-details-panel__model-link">
-                                    <span>@link.Label</span>
-                                    @if (link.Element is not null && !ReferenceEquals(link.Element, presentation.Element))
-                                    {
-                                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                                                  Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                                  AriaLabel="@($"Inspect {link.Role}: {link.Label}")"
-                                                  OnClick="@(() => this.InspectElement(link.Element))">
-                                            <LucideIcon Name="external-link" Size="14" aria-hidden="true" /> Inspect
-                                        </BbButton>
-                                    }
-                                </dd>
-                            </div>
-                        }
-                    </dl>
-                </BbCollapsibleContent>
-            </BbCollapsible>
-        }
-        @if (presentation.Expressions.Count == 0 && presentation.AdvancedProperties.Count > 0)
-        {
-            <BbCollapsible @key="(presentation.Element, true)">
-                <BbCollapsibleTrigger AsChild="true">
-                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                              Size="BlazorBlueprint.Components.ButtonSize.Small"
-                              AriaLabel="Advanced metadata for selected element">Advanced metadata</BbButton>
-                </BbCollapsibleTrigger>
-                <BbCollapsibleContent ForceMount="false">
-                    <dl class="mb-details-panel__properties">
-                        @foreach (var property in presentation.AdvancedProperties)
-                        {
-                            <div class="mb-details-panel__property">
-                                <dt class="mb-details-panel__label">@property.Key</dt>
-                                <dd class="mb-details-panel__value">@property.Value</dd>
-                            </div>
-                        }
-                    </dl>
-                </BbCollapsibleContent>
-            </BbCollapsible>
+            <footer class="mb-details-panel__footer">
+                <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" OnClick="this.ShowInBrowser">Show in Browser</BbButton>
+            </footer>
         }
     }
 </section>

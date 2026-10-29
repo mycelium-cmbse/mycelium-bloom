@@ -138,7 +138,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
 
             details.Inspect(nested);
-            details.GoBack();
+            details.Inspect(root);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selection.SelectedElement, Is.SameAs(root));

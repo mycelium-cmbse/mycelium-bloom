@@ -1,0 +1,1674 @@
+{
+  "canonicalElementId": "334779bf-6357-5adf-a7c5-ffb32c2ffd17",
+  "themeControl": "Application theme toggle, asserted after every tab render",
+  "errors": [],
+  "assets": [],
+  "checks": [
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 166,
+        "valueScrollWidth": 166,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 61.625,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 118.25,
+            "height": 15,
+            "top": 259
+          },
+          {
+            "text": "dimensions",
+            "width": 62.03125,
+            "height": 15,
+            "top": 274
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "valueWidth": 166,
+        "valueScrollWidth": 166,
+        "segmentHeight": 180
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 226,
+        "valueScrollWidth": 226,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 61.625,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 118.25,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "dimensions",
+            "width": 62.03125,
+            "height": 15,
+            "top": 259
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "valueWidth": 226,
+        "valueScrollWidth": 226,
+        "segmentHeight": 135
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 386,
+        "valueScrollWidth": 386,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 61.625,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 118.25,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "dimensions",
+            "width": 62.03125,
+            "height": 15,
+            "top": 216
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "valueWidth": 386,
+        "valueScrollWidth": 386,
+        "segmentHeight": 90
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 166,
+        "valueScrollWidth": 166,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 61.625,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 118.25,
+            "height": 15,
+            "top": 259
+          },
+          {
+            "text": "dimensions",
+            "width": 62.03125,
+            "height": 15,
+            "top": 274
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "valueWidth": 166,
+        "valueScrollWidth": 166,
+        "segmentHeight": 180
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 226,
+        "valueScrollWidth": 226,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 61.625,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 118.25,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "dimensions",
+            "width": 62.03125,
+            "height": 15,
+            "top": 259
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "valueWidth": 226,
+        "valueScrollWidth": 226,
+        "segmentHeight": 135
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 386,
+        "valueScrollWidth": 386,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 61.625,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 118.25,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "dimensions",
+            "width": 62.03125,
+            "height": 15,
+            "top": 216
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "valueWidth": 386,
+        "valueScrollWidth": 386,
+        "segmentHeight": 90
+      }
+    },
+    {
+      "expressionSummary": "Feature chain",
+      "canonicalNavigation": "Value expression opens the original feature-chain expression and leaves Browser local selection on dimensions"
+    }
+  ],
+  "typography": [
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Relations",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Identity",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": "[data-property-name=\"name\"] dd",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Specializations / Type hierarchy",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 32
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-relation-kind--specialization",
+      "computed": {
+        "text": "Redefinition",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "9px",
+        "lineHeight": "11px",
+        "color": "color(srgb 0.1686 0.4 0.7882)",
+        "background": "color(srgb 0.9098 0.949 1)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 12
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-relation-identity > span",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Comments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Attachments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Relations",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Identity",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": "[data-property-name=\"name\"] dd",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Specializations / Type hierarchy",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 32
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-relation-kind--specialization",
+      "computed": {
+        "text": "Redefinition",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "9px",
+        "lineHeight": "11px",
+        "color": "color(srgb 0.433515 0.588055 0.845845)",
+        "background": "color(srgb 0.10276 0.1584 0.25804)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 12
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-relation-identity > span",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Comments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Attachments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Segoe UI Semibold",
+          "postScriptName": "SegoeUI-Semibold",
+          "isCustomFont": false,
+          "glyphCount": 11
+        }
+      ]
+    }
+  ]
+}

@@ -24,7 +24,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
     /// <summary>
     /// Projects a selected element into read-only property groups supported by the SDK.
     /// </summary>
-    public sealed class DetailsPanelPresentation
+    public sealed partial class DetailsPanelPresentation
     {
         /// <summary>Identifies multiplicity consistently across properties and canonical links.</summary>
         private const string MultiplicityLabel = "Multiplicity";
@@ -34,6 +34,39 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
         /// <summary>Describes an owned value whose expression cannot be resolved.</summary>
         private const string UnresolvedValue = "Unresolved value";
+
+        /// <summary>
+        /// Gets the selected element's heading.
+        /// </summary>
+        public string DisplayName { get; }
+
+        /// <summary>Gets the canonical element described by this snapshot.</summary>
+        public IElement Element { get; }
+
+        /// <summary>Gets direct canonical links, including structures omitted from the browser.</summary>
+        public IReadOnlyList<ElementLinkPresentation> ModelLinks { get; }
+
+        /// <summary>Gets preserved identity and feature facts used by the semantic section projection.</summary>
+        public IReadOnlyList<KeyValuePair<string, string>> AdvancedProperties { get; }
+
+        /// <summary>Gets selected-element metadata without repeating identity already retained by expression groups.</summary>
+        public IReadOnlyList<KeyValuePair<string, string>> ExpressionAdvancedProperties { get; }
+
+        /// <summary>Gets the selected element's owned expression structure.</summary>
+        public IReadOnlyList<ExpressionPresentation> Expressions { get; }
+
+        /// <summary>Gets the outermost SDK notation groups without repeating nested literal text.</summary>
+        public IReadOnlyList<ExpressionPresentation> ExpressionNotations { get; }
+
+        /// <summary>
+        /// Gets the populated property groups in display order.
+        /// </summary>
+        public IReadOnlyList<PropertySectionPresentation> Sections { get; }
+
+        /// <summary>
+        /// Gets the selected element's documentation bodies as plain text.
+        /// </summary>
+        public IReadOnlyList<string> Documentation { get; }
 
         /// <summary>
         /// Initializes a property snapshot for the current selection.
@@ -48,11 +81,15 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             this.Expressions = ExpressionPresentation.Create(element);
             this.ExpressionNotations = this.Expressions.SelectMany(GetNotationRoots).ToArray();
             this.DisplayName = this.Expressions.FirstOrDefault(node => ReferenceEquals(node.Element, element))?.Label
-                ?? GetDisplayName(element);
+                               ?? GetDisplayName(element);
             var identity = new List<KeyValuePair<string, string>>();
             var advanced = new List<KeyValuePair<string, string>>();
             Add(advanced, "Element ID", element.ElementId);
-            if (element.Id.ToString() != element.ElementId) Add(advanced, "SDK ID", element.Id.ToString());
+            if (element.Id.ToString() != element.ElementId)
+            {
+                Add(advanced, "SDK ID", element.Id.ToString());
+            }
+
             AddIdentityProperties(element, identity, advanced);
 
             var classification = GetClassification(element, advanced);
@@ -77,8 +114,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             var documents = Read(() => element is IDocumentation documentation
-                    ? new[] { documentation }
-                    : element.documentation?.ToArray() ?? [], out var incompleteDocumentation);
+                ? new[] { documentation }
+                : element.documentation?.ToArray() ?? [], out var incompleteDocumentation);
             this.Documentation = (documents ?? [])
                 .Where(document => document != null)
                 .Select(document => document.Body)
@@ -87,15 +124,16 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
             var annotation = GetAnnotation(element);
 
-            this.Sections = new (string Title, IReadOnlyList<KeyValuePair<string, string>> Properties, IReadOnlyList<string> Paragraphs)[]
+            this.Sections = new PropertySectionPresentation[]
             {
-                ("Identity", identity.ToArray(), []),
-                ("Attributes", attributes.ToArray(), []),
-                ("Annotation", annotation.ToArray(), []),
-                ("Documentation", incompleteDocumentation
-                    ? [new("Documentation", IncompleteProperty)] : [], this.Documentation),
-                ("Value", value.ToArray(), []),
-                ("Classification", classification.ToArray(), [])
+                new("Identity", identity.ToArray(), []),
+                new("Attributes", attributes.ToArray(), []),
+                new("Annotation", annotation.ToArray(), []),
+                new("Documentation", incompleteDocumentation
+                    ? [new("Documentation", IncompleteProperty)]
+                    : [], this.Documentation),
+                new("Value", value.ToArray(), []),
+                new("Classification", classification.ToArray(), [])
             }.Where(section => section.Properties.Count > 0 || section.Paragraphs.Count > 0).ToArray();
             this.AdvancedProperties = advanced.ToArray();
             var identityInExpression = this.Expressions.SelectMany(node => node.OwnedGroups)
@@ -103,17 +141,25 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             this.ExpressionAdvancedProperties = identityInExpression
                 ? this.AdvancedProperties.Where(property => property.Key is not "Element ID" and not "SDK ID").ToArray()
                 : this.AdvancedProperties;
+            this.ContentSections = this.BuildContentSections();
+            this.DisplaySections = this.BuildDisplaySections();
         }
 
         /// <summary>Collects SDK classification and feature flags without resolving model semantics locally.</summary>
-        private List<KeyValuePair<string, string>> GetClassification(IElement element, List<KeyValuePair<string, string>> advanced)
+        /// <param name="element">The canonical selected element.</param>
+        /// <param name="advanced">The retained identity and feature facts.</param>
+        /// <returns>Available classification fields.</returns>
+        private List<KeyValuePair<string, string>> GetClassification(IElement element,
+            List<KeyValuePair<string, string>> advanced)
         {
             var classification = new List<KeyValuePair<string, string>>();
             Add(classification, MultiplicityLabel, ReadText(() => ElementPresentation.GetMultiplicity(element)));
-            if (element is IType && this.ModelLinks.Any(link => link.Role == MultiplicityLabel && link.Element is not null)
+            if (element is IType && this.ModelLinks.Any(link =>
+                                     link.Role == MultiplicityLabel && link.Element is not null)
                                  && !classification.Any(property => property.Key == MultiplicityLabel))
             {
-                Add(classification, MultiplicityLabel, "Nonliteral or unresolved bounds; inspect Multiplicity in model links");
+                Add(classification, MultiplicityLabel,
+                    "Nonliteral or unresolved bounds; inspect Multiplicity in model links");
             }
 
             if (element is IType type)
@@ -124,10 +170,12 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             if (element is IFeature feature)
             {
                 var types = Read(() => feature.type, out var incompleteTypes);
-                Add(classification, "Typed by", incompleteTypes ? IncompleteProperty
+                Add(classification, "Typed by", incompleteTypes
+                    ? IncompleteProperty
                     : string.Join(", ", (types ?? []).Where(candidate => candidate != null)
                         .Select(candidate => ReadText(() => string.IsNullOrWhiteSpace(candidate.qualifiedName)
-                            ? GetDisplayName(candidate) : candidate.qualifiedName))));
+                            ? GetDisplayName(candidate)
+                            : candidate.qualifiedName))));
                 Add(classification, "Composition", feature.IsComposite ? "composite" : "reference");
                 Add(advanced, "Is ordered", feature.IsOrdered.ToString().ToLowerInvariant());
                 Add(advanced, "Is unique", feature.IsUnique.ToString().ToLowerInvariant());
@@ -142,6 +190,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         }
 
         /// <summary>Preserves comment and textual representation content.</summary>
+        /// <param name="element">The canonical annotation.</param>
+        /// <returns>Available annotation fields.</returns>
         private static List<KeyValuePair<string, string>> GetAnnotation(IElement element)
         {
             var annotation = new List<KeyValuePair<string, string>>();
@@ -150,6 +200,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 Add(annotation, "Body", comment.Body);
                 Add(annotation, "Locale", comment.Locale);
             }
+
             if (element is ITextualRepresentation representation)
             {
                 Add(annotation, "Body", representation.Body);
@@ -160,7 +211,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         }
 
         /// <summary>Collects declared and SDK-derived identity with naming provenance.</summary>
-        private static void AddIdentityProperties(IElement element, List<KeyValuePair<string, string>> identity, List<KeyValuePair<string, string>> advanced)
+        /// <param name="element">The canonical selection.</param>
+        /// <param name="identity">The identity field collection.</param>
+        /// <param name="advanced">The retained identifiers and feature facts.</param>
+        private static void AddIdentityProperties(IElement element, List<KeyValuePair<string, string>> identity,
+            List<KeyValuePair<string, string>> advanced)
         {
             Add(identity, "Declared name",
                 string.IsNullOrWhiteSpace(element.DeclaredName) ? "Not declared" : element.DeclaredName);
@@ -168,10 +223,15 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var effectiveName = Read(() => element.name, out var incompleteName);
             var effectiveShortName = Read(() => element.shortName, out var incompleteShortName);
             Add(identity, "Effective name", incompleteName ? "Unresolved (incomplete model)" : effectiveName);
-            Add(identity, "Effective short name", incompleteShortName ? "Unresolved (incomplete model)" : effectiveShortName);
+            Add(identity, "Effective short name",
+                incompleteShortName ? "Unresolved (incomplete model)" : effectiveShortName);
             Add(advanced, "Model kind", ElementPresentation.GetKindName(element.GetType()));
             Add(advanced, "Aliases", string.Join(", ", element.AliasIds ?? []));
-            if (element is IRelationship relationship) Add(advanced, "Is implied", relationship.IsImplied.ToString().ToLowerInvariant());
+            if (element is IRelationship relationship)
+            {
+                Add(advanced, "Is implied", relationship.IsImplied.ToString().ToLowerInvariant());
+            }
+
             if (element is IFeature namedFeature)
             {
                 var namingFeature = Read(namedFeature.NamingFeature, out var incompleteNaming);
@@ -181,11 +241,13 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     _ when !string.IsNullOrWhiteSpace(element.DeclaredShortName) => "Declared short name",
                     _ when namingFeature is not null => "SDK naming feature (see model links)",
                     _ when incompleteNaming || incompleteName || incompleteShortName => "Unresolved name",
-                    _ when !string.IsNullOrWhiteSpace(effectiveName) || !string.IsNullOrWhiteSpace(effectiveShortName) => "SDK effective name",
+                    _ when !string.IsNullOrWhiteSpace(effectiveName) || !string.IsNullOrWhiteSpace(effectiveShortName)
+                        => "SDK effective name",
                     _ => "Anonymous feature"
                 };
                 Add(identity, "Name source", source);
             }
+
             Add(identity, "Qualified name", ReadText(() => element.qualifiedName));
 
             var membership = Read(() => element.owningMembership, out var incompleteMembership);
@@ -195,52 +257,25 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
             else if (element is IMembership || membership is not null)
             {
-                Add(identity, "Visibility", (element as IMembership ?? membership).Visibility.ToString().ToLowerInvariant());
+                Add(identity, "Visibility",
+                    (element as IMembership ?? membership).Visibility.ToString().ToLowerInvariant());
             }
         }
 
-        /// <summary>
-        /// Gets the selected element's heading.
-        /// </summary>
-        public string DisplayName { get; }
-
-        /// <summary>Gets the canonical element described by this snapshot.</summary>
-        public IElement Element { get; }
-
-        /// <summary>Gets direct canonical links, including structures omitted from the browser.</summary>
-        public IReadOnlyList<ElementLinkPresentation> ModelLinks { get; }
-
-        /// <summary>Gets preserved identifiers and low-level flags shown only on request.</summary>
-        public IReadOnlyList<KeyValuePair<string, string>> AdvancedProperties { get; }
-
-        /// <summary>Gets selected-element metadata without repeating identity already retained by expression groups.</summary>
-        public IReadOnlyList<KeyValuePair<string, string>> ExpressionAdvancedProperties { get; }
-
-        /// <summary>Gets the selected element's owned expression structure.</summary>
-        public IReadOnlyList<ExpressionPresentation> Expressions { get; }
-
-        /// <summary>Gets the outermost SDK notation groups without repeating nested literal text.</summary>
-        public IReadOnlyList<ExpressionPresentation> ExpressionNotations { get; }
-
         /// <summary>Collects notation already produced by the SDK adapter in presentation order.</summary>
+        /// <param name="node">The expression projection root.</param>
+        /// <returns>The outermost groups with stored notation.</returns>
         private static IEnumerable<ExpressionPresentation> GetNotationRoots(ExpressionPresentation node)
         {
             return node.TextualNotation is not null ? [node] : node.Children.SelectMany(GetNotationRoots);
         }
 
         /// <summary>
-        /// Gets the populated property groups in display order.
-        /// </summary>
-        public IReadOnlyList<(string Title, IReadOnlyList<KeyValuePair<string, string>> Properties, IReadOnlyList<string> Paragraphs)> Sections { get; }
-
-        /// <summary>
-        /// Gets the selected element's documentation bodies as plain text.
-        /// </summary>
-        public IReadOnlyList<string> Documentation { get; }
-
-        /// <summary>
         /// Adds an available SDK value to a property group.
         /// </summary>
+        /// <param name="properties">The destination fields.</param>
+        /// <param name="label">The field label.</param>
+        /// <param name="value">The optional stored value.</param>
         private static void Add(List<KeyValuePair<string, string>> properties, string label, string value)
         {
             if (!string.IsNullOrWhiteSpace(value))
@@ -252,27 +287,36 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>
         /// Describes every owned value without evaluating expressions or concealing absent scalar values.
         /// </summary>
+        /// <param name="element">The feature owning the values.</param>
+        /// <returns>Stored values with their binding kinds, or an explicit absence state.</returns>
         private string GetValue(IElement element)
         {
-            var values = Read(() => element.OwnedRelationship?.OfType<IFeatureValue>().ToArray() ?? [], out var incomplete);
+            var values = Read(() => element.OwnedRelationship?.OfType<IFeatureValue>().ToArray() ?? [],
+                out var incomplete);
             if (incomplete)
             {
                 return UnresolvedValue;
             }
+
             if (values.Length == 0)
             {
                 return "No local value; inherited/default values not resolved";
             }
+
             var descriptions = new List<string>();
             foreach (var value in values)
             {
                 AddValueDescriptions(value, descriptions);
             }
-            return descriptions.Count == 1 ? descriptions[0]
+
+            return descriptions.Count == 1
+                ? descriptions[0]
                 : $"Multiple values ({descriptions.Count}): {string.Join("; ", descriptions.Select((value, index) => $"{index + 1}: {value}"))}";
         }
 
         /// <summary>Preserves each owned value and its stored binding, default or initialization flags.</summary>
+        /// <param name="value">The canonical feature value.</param>
+        /// <param name="descriptions">The destination descriptions.</param>
         private void AddValueDescriptions(IFeatureValue value, List<string> descriptions)
         {
             var origin = (value.IsInitial, value.IsDefault) switch
@@ -294,26 +338,44 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             else
             {
                 var expression = Read(() => value.value, out var incompleteValue);
-                descriptions.Add(incompleteValue || expression is null ? UnresolvedValue : $"{origin}: {this.DescribeValue(expression)}");
+                descriptions.Add(incompleteValue || expression is null
+                    ? UnresolvedValue
+                    : $"{origin}: {this.DescribeValue(expression)}");
             }
         }
 
         /// <summary>Distinguishes unsupported notation from an absent or incomplete value.</summary>
+        /// <param name="expression">The canonical value expression.</param>
+        /// <returns>The available literal, bounded notation or unsupported state.</returns>
         private string DescribeValue(IExpression expression)
         {
             var value = Read(() => ElementPresentation.GetLiteral(expression), out var incomplete);
-            if (incomplete) return UnresolvedValue;
-            if (value is not null) return value;
+            if (incomplete)
+            {
+                return UnresolvedValue;
+            }
+
+            if (value is not null)
+            {
+                return value;
+            }
+
             var notation = this.Expressions.SelectMany(node => node.OwnedGroups)
-                .FirstOrDefault(node => ReferenceEquals(node.Element, expression) && node.TextualNotation is not null)?.TextualNotation
-                ?? SdkExpressionText.Create(expression);
+                               .FirstOrDefault(node =>
+                                   ReferenceEquals(node.Element, expression) && node.TextualNotation is not null)
+                               ?.TextualNotation
+                           ?? SdkExpressionText.Create(expression);
             return notation.Text ?? notation.UnavailableReason;
         }
 
         /// <summary>Uses available SDK names without eagerly resolving names for declared elements.</summary>
+        /// <param name="element">The canonical element.</param>
+        /// <returns>The available name or semantic fallback.</returns>
         private static string GetDisplayName(IElement element) => ElementPresentation.GetDisplayName(element);
 
         /// <summary>Reads one textual property without suppressing unrelated exceptions.</summary>
+        /// <param name="read">The SDK property accessor.</param>
+        /// <returns>The stored text or an incomplete-model explanation.</returns>
         private static string ReadText(Func<string> read)
         {
             var value = Read(read, out var incomplete);
@@ -321,6 +383,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         }
 
         /// <summary>Isolates an incomplete SDK property from valid sibling properties.</summary>
+        /// <typeparam name="T">The property value type.</typeparam>
+        /// <param name="read">The SDK property accessor.</param>
+        /// <param name="incomplete">Whether the SDK reported an incomplete model.</param>
+        /// <returns>The value, or its default when incomplete.</returns>
         private static T Read<T>(Func<T> read, out bool incomplete)
         {
             try
@@ -338,13 +404,18 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>
         /// Traverses owned members through relationship intermediaries without entering nested features.
         /// </summary>
-        private static IEnumerable<IElement> GetOwnedMembers(IElement element, List<KeyValuePair<string, string>> notices)
+        /// <param name="element">The owner whose direct members are projected.</param>
+        /// <param name="notices">Incomplete-property explanations.</param>
+        /// <returns>Canonical members in ownership order.</returns>
+        private static IEnumerable<IElement> GetOwnedMembers(IElement element,
+            List<KeyValuePair<string, string>> notices)
         {
             var children = Read(() => element.ownedElement, out var incomplete);
             if (incomplete)
             {
                 notices.Add(new("Owned attributes", IncompleteProperty));
             }
+
             foreach (var child in children ?? [])
             {
                 if (child is IRelationship and not IType)

@@ -135,6 +135,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
             }
         }
 
+        /// <summary>Reveals the main workspace after an explicit navigation action from a compact side pane.</summary>
+        public void RevealMainContent()
+        {
+            if (!this.isDisposed)
+            {
+                this.ActiveNarrowPane = NarrowPane.Main;
+                this.StateHasChanged();
+            }
+        }
+
         /// <summary>Forwards a bounded user resize to the sole preferred-width authority.</summary>
         /// <param name="width">The measured user-selected width in CSS pixels.</param>
         /// <returns>The controlled width callback.</returns>

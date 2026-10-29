@@ -1,0 +1,33 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PropertiesSummary.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.ViewModel.DetailsPanel
+
+<div class="mb-properties-summary">
+    <p class="mb-details-panel__element-name">@this.Presentation.DisplayName</p>
+    <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-properties-summary__kind">@this.Presentation.Kind</BbBadge>
+    @if (!string.IsNullOrWhiteSpace(this.Presentation.Composition))
+    {
+        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-properties-summary__composition">@this.Presentation.Composition</BbBadge>
+    }
+    @if (this.Presentation.AttributeCount > 0)
+    {
+        <span class="mb-properties-summary__count">@this.Presentation.AttributeCount attributes</span>
+    }
+    else if (!string.IsNullOrWhiteSpace(this.Presentation.Summary))
+    {
+        <span class="@(this.Presentation.HasValueSummary ? "mb-properties-summary__value" : "mb-properties-summary__detail")">@(this.Presentation.HasValueSummary ? "= " : "")@this.Presentation.Summary</span>
+    }
+</div>
+
+@code {
+    /// <summary>Gets or sets the cached semantic selection summary.</summary>
+    [Parameter, EditorRequired]
+    public DetailsPanelPresentation Presentation { get; set; }
+}
