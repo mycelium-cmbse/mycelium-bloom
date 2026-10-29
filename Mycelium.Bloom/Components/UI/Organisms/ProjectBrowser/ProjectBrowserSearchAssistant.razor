@@ -19,10 +19,11 @@
             <SearchInput
                 @ref="this.searchInputReference"
                 Value="@(this.draftSearchText)"
+                Disabled="this.isAcceptingCriterion"
                 ValueChanged="this.HandleDraftSearchTextChangedAsync"
                 InputType="BlazorBlueprint.Components.InputType.Text"
                 FullWidth="true"
-                Placeholder="Search elements..."
+                Placeholder="Filter elements..."
                 AriaLabel="Filter project browser by name or qualified name"
                 EnableShortcut="false"
                 ShowShortcut="false"
@@ -31,6 +32,7 @@
                 ForwardTriggerFocus="false"
                 OnBlur="this.HandleSearchBlurAsync"
                 OnKeyDown="this.HandleSearchKeyDownAsync"
+                @onclick="this.HandleSearchClickAsync"
                 role="combobox"
                 aria-autocomplete="list"
                 aria-haspopup="listbox"
@@ -100,37 +102,59 @@
             </SearchInput>
         </BbPopoverTrigger>
 
-        <BbPopoverContent Class="mb-project-browser__search-assistant-popover"
-                          Side="BlazorBlueprint.Primitives.PopoverSide.Bottom"
-                          Align="BlazorBlueprint.Primitives.PopoverAlign.Start"
-                          Offset="4"
-                          MatchTriggerWidth="true"
-                          CloseOnEscape="true"
-                          CloseOnClickOutside="true"
-                          OnEscapeKeyDown="this.HandleEscapeAsync"
-                          role="region"
-                          aria-label="Project browser search suggestions">
-            <section class="mb-project-browser-search-assistant__surface"
-                     aria-label="Search suggestions">
-                <header class="mb-project-browser-search-assistant__header">
-                    Search suggestions
-                </header>
+        @* Dispose the dismissed suggestion surface while retaining the native input and its criteria. *@
+        @if (this.IsOpen)
+        {
+            <BbPopoverContent Class="mb-project-browser__search-assistant-popover"
+                              Side="BlazorBlueprint.Primitives.PopoverSide.Bottom"
+                              Align="BlazorBlueprint.Primitives.PopoverAlign.Start"
+                              Offset="4"
+                              MatchTriggerWidth="true"
+                              CloseOnEscape="true"
+                              CloseOnClickOutside="true"
+                              OnEscapeKeyDown="this.HandleEscapeAsync"
+                              OnContentReady="this.HandleContentReadyAsync"
+                              role="region"
+                              aria-label="Project browser search suggestions">
+                <section class="mb-project-browser-search-assistant__surface"
+                         aria-label="Search suggestions">
+                    <header class="mb-project-browser-search-assistant__header">
+                        <span>Search suggestions</span>
+                        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                                  Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                  Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                  Class="mb-project-browser-search-assistant__close"
+                                  aria-label="Close project browser filters"
+                                  OnClick="this.HandleEscapeAsync">
+                            <LucideIcon Name="x" Size="12" aria-hidden="true" />
+                        </BbButton>
+                    </header>
 
-                <BbCommand Id="@(this.suggestionListId)"
-                           Class="mb-project-browser-search-assistant__command"
-                           SearchQuery="@(this.Query)"
-                           FilterFunction="ProjectBrowserSearchSuggestionList.ShouldIncludeSuggestion"
-                           CloseOnSelect="false"
-                           aria-label="Search suggestions">
-                    <ProjectBrowserSearchSuggestionList
-                        @ref="this.suggestionListReference"
-                        SelectedElementTypes="@(this.SelectedElementTypes)"
-                        Query="@(this.Query)"
-                        ElementTypeOptions="@(this.ElementTypeOptions)"
-                        ContainsAccepted="this.HandleContainsAcceptedAsync"
-                        ElementTypeAccepted="this.HandleElementTypeAcceptedAsync" />
-                </BbCommand>
-            </section>
-        </BbPopoverContent>
+                    <BbCommand Id="@(this.suggestionListId)"
+                               Class="mb-project-browser-search-assistant__command"
+                               SearchQuery="@(this.Query)"
+                               FilterFunction="ProjectBrowserSearchSuggestionList.ShouldIncludeSuggestion"
+                               CloseOnSelect="false"
+                               aria-label="Search suggestions">
+                        <ProjectBrowserSearchSuggestionList
+                            @ref="this.suggestionListReference"
+                            SelectedElementTypes="@(this.SelectedElementTypes)"
+                            Query="@(this.Query)"
+                            ElementTypeOptions="@(this.ElementTypeOptions)"
+                            ContainsAccepted="this.HandleContainsAcceptedAsync"
+                            ElementTypeAccepted="this.HandleElementTypeAcceptedAsync" />
+                    </BbCommand>
+                    <footer class="mb-project-browser-search-assistant__footer">
+                        <span>@(this.SelectedElementTypes.Count) type filters</span>
+                        <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                                  Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                                  Size="BlazorBlueprint.Components.ButtonSize.Small"
+                                  Class="mb-project-browser__clear-all"
+                                  Disabled="@(!this.HasCommittedCriteria())"
+                                  OnClick="this.HandleClearRequestedAsync">Clear all</BbButton>
+                    </footer>
+                </section>
+            </BbPopoverContent>
+        }
     </BbPopover>
 </div>

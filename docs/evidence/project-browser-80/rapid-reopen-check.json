@@ -1,0 +1,19 @@
+{
+  "status": "failed",
+  "componentLibrary": "BlazorBlueprint 3.17.0",
+  "scenario": [
+    "Open the unified field and select Type part.",
+    "Wait only for its active criterion token, without waiting for the preceding popover surface to detach.",
+    "Immediately click the field again, then Clear all."
+  ],
+  "observed": "Clear all briefly resolves as an enabled button, becomes unstable, then detaches when the popover closes. Chromium click times out.",
+  "control": "The corresponding scenario passes when the preceding popover has detached before reopening.",
+  "debuggerEvidence": {
+    "method": "ProjectBrowserSearchAssistant.HandleContentReadyAsync",
+    "isOpen": true,
+    "pendingNavigationDirection": 1,
+    "focusedIndexAfterMove": 0,
+    "registeredItems": 14
+  },
+  "acceptance": "Incomplete Browser filtering/lifecycle behavior. A further pinned-popover lifecycle correction and passing immediate-reopen test are required. This remains #80."
+}

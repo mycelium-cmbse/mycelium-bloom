@@ -21,10 +21,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using ReactiveUI;
-    using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Exceptions;
-    using IMultiplicity = SysML2.NET.Core.POCO.Core.Types.IMultiplicity;
 
     /// <summary>
     /// Provides tree, filter, and local selection state for the project browser.
@@ -385,7 +384,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(node);
 
-            if (!this.IsDisposed)
+            if (!this.IsDisposed && node.IsGroup)
+            {
+                this.ToggleNode(node);
+            }
+            else if (!this.IsDisposed)
             {
                 this.SelectedNode = node;
                 this.elementSelectionService.SelectedElement = node.SourceElement;
@@ -516,6 +519,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="stagedElementTypes">The distinct navigable types found while staging.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
         /// <param name="isModelRoot">Whether the element is the authoritative loaded model root.</param>
+        /// <param name="membership">The membership describing this particular occurrence.</param>
+        /// <param name="ancestors">The canonical identities on this occurrence's path, to stop reference cycles.</param>
+        /// <param name="isImported">Whether the SDK identifies this occurrence as an imported membership.</param>
+        /// <param name="importingNamespace">The namespace defining effective import visibility.</param>
         /// <returns>The project browser node for the provided SysML element.</returns>
         private ProjectBrowserNodeViewModel BuildNode(
             IElement element,
@@ -523,7 +530,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             HashSet<string> stagedNodeIds,
             HashSet<Type> stagedElementTypes,
             CancellationToken cancellationToken,
-            bool isModelRoot = false)
+            bool isModelRoot = false,
+            IMembership membership = null,
+            HashSet<IElement> ancestors = null,
+            bool isImported = false,
+            INamespace importingNamespace = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -536,12 +547,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 stagedNodeIds,
                 string.IsNullOrWhiteSpace(elementId) ? fallbackId : elementId);
             var hiddenElements = new List<IElement>();
-            var children = this.BuildChildren(
+            var path = new HashSet<IElement>(ancestors ?? [], ReferenceEqualityComparer.Instance);
+            var children = path.Add(element) ? this.BuildChildren(
                 element,
                 nodeId,
                 stagedNodeIds,
                 stagedElementTypes,
-                hiddenElements, cancellationToken);
+                hiddenElements, cancellationToken, path) : [];
             string qualifiedName;
             try
             {
@@ -556,6 +568,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 element,
                 isModelRoot,
                 out var uiDisplayLabel);
+            if (membership is not IOwningMembership && !string.IsNullOrWhiteSpace(membership?.MemberName))
+            {
+                displayName = membership.MemberName;
+            }
             var metadata = new ProjectBrowserNodeMetadata(
                 elementId,
                 qualifiedName,
@@ -568,7 +584,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 nodeId,
                 displayName,
                 metadata,
-                children);
+                children, membership, isImported, importingNamespace);
         }
 
         /// <summary>
@@ -655,7 +671,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             ImmutableHashSet<ProjectBrowserNodeViewModel>.Builder visibleNodes,
             bool ancestorDisplayNameMatches)
         {
-            var displayNameMatches = ContainsText(node.DisplayName, matchingText);
+            var displayNameMatches = !node.IsGroup && ContainsText(node.DisplayName, matchingText);
             var hasVisibleDescendant = false;
 
             foreach (var childNode in node.Children)
@@ -707,7 +723,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                               || (!ancestorDisplayNameMatches
                                   && ContainsText(node.QualifiedName, matchingText));
 
-            return textMatches
+            return !node.IsGroup && textMatches
                    && (selectedElementTypes.Count == 0 || selectedElementTypes.Contains(node.ElementType));
         }
 
@@ -732,7 +748,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="stagedElementTypes">The distinct navigable types found while staging.</param>
         /// <param name="hiddenElements">Elements associated with the nearest visible ancestor.</param>
         /// <param name="cancellationToken">Cancels staged tree construction.</param>
-        /// <param name="insideMultiplicity">Whether traversal is within a multiplicity representation.</param>
+        /// <param name="membership">The transparent membership for this occurrence.</param>
+        /// <param name="ancestors">The canonical identities already visited on this occurrence's path.</param>
         /// <returns>The child nodes for the provided element.</returns>
         private List<ProjectBrowserNodeViewModel> BuildChildren(IElement element,
             string parentNodeId,
@@ -740,28 +757,26 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             HashSet<Type> stagedElementTypes,
             List<IElement> hiddenElements,
             CancellationToken cancellationToken,
-            bool insideMultiplicity = false)
+            HashSet<IElement> ancestors,
+            IMembership membership = null)
         {
             var children = new List<ProjectBrowserNodeViewModel>();
             hiddenElements.AddRange(element.OwnedRelationship?
                 .Where(relationship => relationship != null
                                        && !ProjectBrowserElementProjection.IsNavigable(relationship)) ?? []);
 
-            if (ProjectBrowserElementProjection.IsLeafReferenceExpression(element)
-                || ProjectBrowserElementProjection.IsReferenceValuedFeature(element))
-            {
-                AddOwnedDescendants(element, hiddenElements);
-                return children;
-            }
-
-            if (element.ownedElement == null)
-            {
-                return children;
-            }
-
             var index = 0;
+            var ownedElements = element.ownedElement ?? [];
+            var occurrences = ownedElements.Concat(element.OwnedRelationship?
+                .OfType<IMembership>().Where(candidate => candidate is not IOwningMembership
+                    && candidate.MemberElement != null && !ownedElements.Contains(candidate)) ?? []);
+            if (element is IMembership and not IOwningMembership && membership?.MemberElement is { } member
+                && !ownedElements.Contains(member))
+            {
+                occurrences = occurrences.Append(member);
+            }
 
-            foreach (var childElement in element.ownedElement)
+            foreach (var childElement in occurrences)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -769,32 +784,94 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 {
                     var childId = string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}");
 
-                    if (ProjectBrowserElementProjection.IsNavigable(childElement)
-                        && !(insideMultiplicity && childElement is IExpression))
+                    var occurrenceMembership = element as IMembership ?? membership ?? childElement.owningMembership;
+                    if (ProjectBrowserElementProjection.IsExcluded(childElement, occurrenceMembership))
                     {
-                        children.Add(this.BuildNode(
-                            childElement, childId, stagedNodeIds, stagedElementTypes, cancellationToken));
+                        hiddenElements.Add(childElement);
+                        AddOwnedDescendants(childElement, hiddenElements);
                     }
-                    else
+                    else if (ProjectBrowserElementProjection.IsElidedMembership(childElement))
                     {
                         hiddenElements.Add(childElement);
                         children.AddRange(this.BuildChildren(
                             childElement, childId, stagedNodeIds, stagedElementTypes,
-                            hiddenElements, cancellationToken, insideMultiplicity || childElement is IMultiplicity));
+                            hiddenElements, cancellationToken, ancestors, childElement as IMembership));
+                    }
+                    else
+                    {
+                        children.Add(this.BuildNode(childElement, childId, stagedNodeIds, stagedElementTypes,
+                            cancellationToken, membership: occurrenceMembership, ancestors: ancestors));
                     }
                 }
 
                 index++;
             }
 
-            return children;
+            if (element is INamespace modelNamespace)
+            {
+                foreach (var imported in GetImportedMemberships(modelNamespace))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var importedElement = imported.MemberElement;
+                    if (importedElement == null || element.OwnedRelationship?.Contains(imported) == true)
+                    {
+                        continue;
+                    }
+                    if (ProjectBrowserElementProjection.IsExcluded(importedElement, imported))
+                    {
+                        hiddenElements.Add(imported);
+                        hiddenElements.Add(importedElement);
+                        AddOwnedDescendants(importedElement, hiddenElements);
+                        continue;
+                    }
+                    var childId = $"{parentNodeId}/import/{index++}";
+                    children.Add(this.BuildNode(importedElement, childId, stagedNodeIds, stagedElementTypes,
+                        cancellationToken, membership: imported, ancestors: ancestors, isImported: true,
+                        importingNamespace: modelNamespace));
+                }
+            }
+
+            // Group once at the visible owner, after traversing transparent memberships.
+            if (element is IMembership)
+            {
+                return children;
+            }
+
+            var result = children.Where(child => child.Group == null).ToList();
+            foreach (var group in children.Where(child => child.Group != null).GroupBy(child => child.Group))
+            {
+                var groupId = CreateUniqueNodeId(stagedNodeIds, $"{parentNodeId}/group/{group.Key}");
+                result.Add(new ProjectBrowserNodeViewModel(groupId, group.Key, group.ToArray()));
+            }
+            return result;
+        }
+
+        /// <summary>Reads resolved imported memberships without inventing targets for incomplete imports.</summary>
+        /// <param name="modelNamespace">The namespace supplying imported member occurrences.</param>
+        /// <returns>The SDK's resolved imported memberships, or an empty set if unresolved.</returns>
+        private static IReadOnlyList<IMembership> GetImportedMemberships(INamespace modelNamespace)
+        {
+            try
+            {
+                return modelNamespace.importedMembership ?? [];
+            }
+            catch (IncompleteModelException)
+            {
+                return [];
+            }
         }
 
         /// <summary>
-        /// Associates suppressed reference-value structure with its canonical visible feature node.
+        /// Associates an excluded subtree and its relationships with its canonical visible owner.
         /// </summary>
+        /// <param name="element">The root of the excluded subtree.</param>
+        /// <param name="hiddenElements">The owner's hidden navigation identities.</param>
         private static void AddOwnedDescendants(IElement element, ICollection<IElement> hiddenElements)
         {
+            foreach (var relationship in element.OwnedRelationship ?? [])
+            {
+                hiddenElements.Add(relationship);
+            }
             foreach (var child in element.ownedElement ?? [])
             {
                 if (child == null)

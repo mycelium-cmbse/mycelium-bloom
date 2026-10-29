@@ -124,7 +124,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(root.ElementType, Is.EqualTo(typeof(Namespace)));
                 Assert.That(root.Presentation.IsModelRoot, Is.True);
                 Assert.That(root.Presentation.IconName, Is.EqualTo("network"));
-                Assert.That(quantities.Presentation.Kind, Is.EqualTo("Package"));
+                Assert.That(quantities.Presentation.Kind, Is.EqualTo("Library package"));
                 Assert.That(quantities.Presentation.IconName, Is.EqualTo("folder"));
                 Assert.That(identity["Declared name"], Is.EqualTo("Not declared"));
                 Assert.That(details.Presentation.DisplayName, Is.EqualTo("Namespace"));

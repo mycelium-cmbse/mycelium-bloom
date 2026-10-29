@@ -23,24 +23,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
     {
         /// <summary>
-        /// The unique identifier of the filter drawer heading.
-        /// </summary>
-        private readonly string filterDrawerHeadingId = $"mb-project-browser-filter-heading-{Guid.NewGuid():N}";
-
-        /// <summary>
-        /// The unique identifier of the Type filter section heading.
-        /// </summary>
-        private readonly string typeFilterHeadingId = $"mb-project-browser-type-filter-heading-{Guid.NewGuid():N}";
-
-        /// <summary>
         /// Replaces the collection-change subscription when the caller supplies another ViewModel.
         /// </summary>
         private readonly SerialDisposable collectionChangesSubscription = new();
-
-        /// <summary>
-        /// The focus target inside the portalled filter drawer.
-        /// </summary>
-        private ElementReference filterDrawerReference;
 
         /// <summary>
         /// The presentation-only reset signal for the search assistant's transient draft.
@@ -51,11 +36,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// A value indicating whether the component has been disposed.
         /// </summary>
         private bool isDisposed;
-
-        /// <summary>
-        /// A value indicating whether this rendered browser's filter drawer is open.
-        /// </summary>
-        private bool isFilterDrawerOpen;
 
         /// <summary>
         /// A value indicating whether this rendered browser's transient search assistant is open.
@@ -152,7 +132,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.isDisposed = true;
-            this.isFilterDrawerOpen = false;
             this.isSearchAssistantOpen = false;
             this.collectionChangesSubscription.Dispose();
 
@@ -210,15 +189,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the number of active selectable values represented in the filter drawer.
-        /// </summary>
-        /// <returns>The number of selected element types.</returns>
-        private int GetActiveDrawerFilterCount()
-        {
-            return this.RequiredViewModel.SelectedElementTypes.Count;
-        }
-
-        /// <summary>
         /// Gets the Figma-aligned notation for a concrete model element type.
         /// </summary>
         /// <param name="elementType">The concrete model element type.</param>
@@ -232,47 +202,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets a value indicating whether an element type is selected in the owning ViewModel.
-        /// </summary>
-        /// <param name="elementType">The element type to inspect.</param>
-        /// <returns><see langword="true" /> when the type is selected; otherwise, <see langword="false" />.</returns>
-        private bool IsElementTypeSelected(Type elementType)
-        {
-            return this.RequiredViewModel.SelectedElementTypes.Contains(elementType);
-        }
-
-        /// <summary>
-        /// Tracks controlled open-state changes requested by the anchored filter popover.
-        /// </summary>
-        /// <param name="isOpen">Whether the filter drawer should be open.</param>
-        private void HandleFilterDrawerOpenChanged(bool isOpen)
-        {
-            if (!this.isDisposed)
-            {
-                this.isFilterDrawerOpen = isOpen;
-
-                if (isOpen)
-                {
-                    this.isSearchAssistantOpen = false;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Closes the search assistant before Blueprint toggles the complete filter drawer.
-        /// </summary>
-        /// <returns>A completed task.</returns>
-        private Task HandleFilterDrawerTriggerClickAsync()
-        {
-            if (!this.isDisposed)
-            {
-                this.isSearchAssistantOpen = false;
-            }
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
         /// Tracks controlled open-state changes requested by the search assistant.
         /// </summary>
         /// <param name="isOpen">Whether the search assistant should be open.</param>
@@ -281,38 +210,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             if (!this.isDisposed)
             {
                 this.isSearchAssistantOpen = isOpen;
-
-                if (isOpen)
-                {
-                    this.isFilterDrawerOpen = false;
-                }
             }
-        }
-
-        /// <summary>
-        /// Moves keyboard focus into the drawer after Blueprint has mounted and positioned its content.
-        /// </summary>
-        /// <returns>A task representing the focus operation.</returns>
-        private async Task HandleFilterDrawerContentReadyAsync()
-        {
-            if (!this.isDisposed && this.isFilterDrawerOpen)
-            {
-                await this.filterDrawerReference.FocusAsync(preventScroll: true);
-            }
-        }
-
-        /// <summary>
-        /// Closes the transient filter drawer while retaining ViewModel-owned criteria.
-        /// </summary>
-        /// <returns>A completed task.</returns>
-        private Task HandleFilterDrawerCloseAsync()
-        {
-            if (!this.isDisposed)
-            {
-                this.isFilterDrawerOpen = false;
-            }
-
-            return Task.CompletedTask;
         }
 
         /// <summary>

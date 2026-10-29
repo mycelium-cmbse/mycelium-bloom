@@ -33,6 +33,8 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
         [TestCase(null, 4, "[4]")]
         [TestCase(0, 4, "[0..4]")]
+        [TestCase(4, 4, "[4]")]
+        [TestCase(0, 0, "[0]")]
         [TestCase(0, null, "[0..*]")]
         [TestCase(null, null, "[*]")]
         [TestCase(-1, 4, null)]

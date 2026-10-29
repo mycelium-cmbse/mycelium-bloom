@@ -118,7 +118,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Attach<OwningMembership>(feature, range);
             Attach<OwningMembership>(range, bound);
             bound.AssignOwnership(new Membership { MemberElement = referenced });
-            Assert.That(ElementPresentation.GetMultiplicity(feature), Is.Null);
+            Assert.That(ElementPresentation.GetMultiplicity(feature), Is.EqualTo("[capacity]"));
             var selection = new ContextAwareService { SelectedElement = feature };
             using var panel = new DetailsPanelViewModel(selection);
             var link = panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Multiplicity");

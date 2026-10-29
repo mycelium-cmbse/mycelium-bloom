@@ -1,0 +1,3461 @@
+{
+  "fixture": "Controlled SDK model rendered by real interactive ProjectBrowser and ViewModel",
+  "references": [
+    "3250:2 primary (live context blocked)",
+    "8563:22 unified filter (live context blocked)",
+    "Bloom.pdf export page 47 supporting composition",
+    "54:490 supporting column",
+    "22:179 supporting states only"
+  ],
+  "checks": [
+    "Pointer and ArrowDown open the one unified field; Escape dismisses; ArrowDown highlights a mounted option.",
+    "Type suggestion commits a removable criterion; Clear all clears criteria and draft.",
+    "Enter on a group expands it without changing the selected model occurrence.",
+    "Real SDK memberships supply the protected imported occurrence; canonical model values supply Initial, Verdict: pass, unit notation and expression bounds.",
+    "Model rows and disclosure controls remain native keyboard buttons; Tab/Shift+Tab exposes the focus ring.",
+    "Contains filtering keeps exactly Model / Connections / powerLink; the active filter preserves the ancestor/group path.",
+    "Clearing the filter restores the prior expansion and selected mass occurrence."
+  ],
+  "captures": [
+    {
+      "path": "collapsed-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 799,
+        "selected": [
+          "operating"
+        ]
+      }
+    },
+    {
+      "path": "collapsed-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 799,
+        "selected": [
+          "operating"
+        ]
+      }
+    },
+    {
+      "path": "unified-filters-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 799,
+        "selected": [
+          "operating"
+        ]
+      }
+    },
+    {
+      "path": "unified-filters-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 799,
+        "selected": [
+          "operating"
+        ]
+      }
+    },
+    {
+      "path": "expanded-selected-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "type": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "metadata-scrolled-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "type": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "expanded-selected-light-1100.png",
+      "viewport": {
+        "width": 1100,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 1100,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 1092,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "type": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 1100,
+        "scrollWidth": 1100,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "expanded-selected-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "type": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "metadata-scrolled-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292.28125,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "type": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "expanded-selected-dark-1100.png",
+      "viewport": {
+        "width": 1100,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 1100,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 1092,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 1092,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "type": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 1100,
+        "scrollWidth": 1100,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "keyboard-focus-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "type": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "keyboard-focus-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "type": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "hover-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "name": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          },
+          "kind": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "type": {
+            "rgb": [
+              100,
+              116,
+              139
+            ],
+            "contrast": 4.309614305841654
+          },
+          "icon": {
+            "rgb": [
+              15,
+              118,
+              110
+            ],
+            "contrast": 4.9565824930307
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "hover-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 300,
+            "text": ""
+          }
+        ],
+        "colors": {
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "name": {
+            "rgb": [
+              236,
+              239,
+              243
+            ],
+            "contrast": 14.028819565048241
+          },
+          "kind": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "type": {
+            "rgb": [
+              153,
+              163,
+              176
+            ],
+            "contrast": 6.333719698816601
+          },
+          "icon": {
+            "rgb": [
+              15,
+              158,
+              140
+            ],
+            "contrast": 4.846258498008481
+          }
+        },
+        "viewportWidth": 300,
+        "scrollWidth": 805,
+        "selected": [
+          "mass"
+        ]
+      }
+    },
+    {
+      "path": "filtered-light-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "light",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 292,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292,
+            "text": ""
+          }
+        ],
+        "colors": null,
+        "viewportWidth": 300,
+        "scrollWidth": 300,
+        "selected": []
+      }
+    },
+    {
+      "path": "filtered-dark-300.png",
+      "viewport": {
+        "width": 300,
+        "height": 900
+      },
+      "theme": "dark",
+      "geometry": {
+        "width": 300,
+        "rows": [
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          },
+          {
+            "height": 32,
+            "font": "12px"
+          }
+        ],
+        "header": [
+          {
+            "text": "NAME",
+            "right": 43.703125,
+            "width": 27.703125
+          },
+          {
+            "text": "OWN",
+            "right": 292,
+            "width": 40
+          }
+        ],
+        "ownCells": [
+          {
+            "width": 40,
+            "right": 292,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292,
+            "text": ""
+          },
+          {
+            "width": 40,
+            "right": 292,
+            "text": ""
+          }
+        ],
+        "colors": null,
+        "viewportWidth": 300,
+        "scrollWidth": 300,
+        "selected": []
+      }
+    }
+  ],
+  "errors": [],
+  "failedAssets": [],
+  "additionalFailureEvidence": "rapid-reopen-check.json",
+  "scope": "These passing checks cover settled interactions; they do not override the separate failing immediate-reopen case or outstanding ownership, expression and design-acceptance gaps."
+}

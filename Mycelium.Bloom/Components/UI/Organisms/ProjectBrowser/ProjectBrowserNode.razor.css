@@ -6,19 +6,38 @@
 
 .mb-project-browser-node__line {
     display: flex;
+    align-items: center;
     width: max-content;
     min-width: 100%;
+    border-radius: var(--radius-4);
+}
+
+.mb-project-browser-node__line:has(> .mb-project-browser-node__row--selected) {
+    background: var(--accent);
+}
+
+.mb-project-browser-node__ownership {
+    position: sticky;
+    right: 0;
+    flex: 0 0 var(--spacing-40);
+    align-self: stretch;
+    margin-left: var(--spacing-8);
+    background: var(--card);
+}
+
+.mb-project-browser-node__line:has(> .mb-project-browser-node__row--selected) > .mb-project-browser-node__ownership {
+    background: var(--accent);
 }
 
 .mb-project-browser-node__row {
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: var(--spacing-8);
+    gap: var(--spacing-6);
     width: max-content;
     min-width: 0;
     flex: 1 0 auto;
-    height: var(--spacing-30);
+    height: var(--spacing-32);
     padding: 0 var(--spacing-8);
     border: 0;
     border-radius: var(--radius-4);
@@ -49,8 +68,8 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: var(--spacing-30);
-    height: var(--spacing-30);
+    width: var(--spacing-20);
+    height: var(--spacing-32);
     padding: 0;
     border: 0;
     border-radius: var(--radius-4);
@@ -70,8 +89,8 @@
 }
 
 .mb-project-browser-node__row--selected .mb-project-browser-node__title {
-    color: var(--primary);
-    font-weight: var(--typography-typography-body-sm-medium-font-weight);
+    color: light-dark(var(--primary-strong), var(--accent-foreground));
+    font-weight: var(--typography-typography-body-md-medium-font-weight);
 }
 
 .mb-project-browser-node__indent {
@@ -85,8 +104,8 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: var(--spacing-30);
-    height: var(--spacing-30);
+    width: var(--spacing-20);
+    height: var(--spacing-32);
     color: var(--muted-foreground);
 }
 
@@ -110,13 +129,19 @@
     color: var(--muted-foreground);
 }
 
+.mb-project-browser-node__fallback-icon {
+    align-items: center;
+    justify-content: center;
+}
+
 .mb-project-browser-node__element-icon {
     background: currentColor;
     mask: var(--project-browser-node-icon) center / contain no-repeat;
 }
 
-.mb-project-browser-node__row--selected .mb-project-browser-node__element-icon {
-    color: var(--primary);
+.mb-project-browser-node__row--selected .mb-project-browser-node__element-icon,
+.mb-project-browser-node__row--selected .mb-project-browser-node__fallback-icon {
+    color: light-dark(var(--primary-strong), var(--primary));
 }
 
 .mb-project-browser-node__title {
@@ -141,8 +166,56 @@
 
 .mb-project-browser-node__multiplicity {
     flex: 0 0 auto;
-    color: var(--muted-foreground);
+    color: light-dark(var(--collaborator-c12), var(--muted-foreground));
     font-family: var(--font-mono), monospace;
     font-size: var(--text-10);
     white-space: nowrap;
+}
+
+.mb-project-browser-node__stereotype,
+.mb-project-browser-node__type,
+.mb-project-browser-node__value,
+.mb-project-browser-node__visibility,
+.mb-project-browser-node__indicator {
+    flex: 0 0 auto;
+    color: light-dark(var(--collaborator-c12), var(--muted-foreground));
+    font-family: var(--font-mono), monospace;
+    font-size: var(--typography-typography-mono-xs-font-size);
+    line-height: var(--typography-typography-mono-xs-line-height);
+    white-space: nowrap;
+}
+
+.mb-project-browser-node__row ::deep .mb-project-browser-node__verdict {
+    flex: 0 0 auto;
+    padding: var(--spacing-2) var(--spacing-4);
+    border-color: var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    font-family: var(--font-mono), monospace;
+    font-size: var(--text-10);
+    line-height: var(--spacing-14);
+}
+
+.mb-project-browser-node__stereotype,
+.mb-project-browser-node__visibility {
+    font-family: var(--font-sans), sans-serif;
+    font-size: var(--text-10);
+}
+
+.mb-project-browser-node__type {
+    font-family: var(--font-sans), sans-serif;
+    font-size: var(--typography-typography-body-sm-font-size);
+}
+
+.mb-project-browser-node__indicator {
+    display: inline-flex;
+    align-items: center;
+}
+
+.mb-project-browser-node__documentation {
+    display: inline-block;
+    width: var(--spacing-12);
+    height: var(--spacing-12);
+    background: currentColor;
+    mask: url("/icons/project-browser/message-square.svg") center / contain no-repeat;
 }

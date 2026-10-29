@@ -44,25 +44,25 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         /// <param name="kind">The human-readable kind.</param>
         /// <param name="stereotype">The supported inline notation.</param>
         /// <param name="icon">The established tree icon.</param>
-        [TestCase(typeof(LibraryPackage), "Package", "«package»", "folder")]
+        [TestCase(typeof(LibraryPackage), "Library package", "«library package»", "folder")]
         [TestCase(typeof(IPackage), "Package", "«package»", "folder")]
         [TestCase(typeof(PartDefinition), "Part definition", "«part def»", "box")]
         [TestCase(typeof(PartUsage), "Part", "«part»", "component")]
         [TestCase(typeof(IPartUsage), "Part", "«part»", "component")]
         [TestCase(typeof(PortUsage), "Port", "«port»", "port")]
         [TestCase(typeof(AttributeUsage), "Attribute", "«attribute»", null)]
-        [TestCase(typeof(AttributeDefinition), "Attribute definition", null, null)]
-        [TestCase(typeof(ViewUsage), "View", null, "network")]
-        [TestCase(typeof(ViewDefinition), "View definition", null, null)]
-        [TestCase(typeof(Association), "Association", null, null)]
-        [TestCase(typeof(ConnectionDefinition), "Connection definition", null, null)]
-        [TestCase(typeof(ConnectionUsage), "Connection", null, null)]
-        [TestCase(typeof(FlowDefinition), "Flow definition", null, null)]
-        [TestCase(typeof(FlowUsage), "Flow", null, null)]
-        [TestCase(typeof(SuccessionFlowUsage), "Succession flow", null, null)]
-        [TestCase(typeof(FeatureChainExpression), "Feature chain", null, null)]
-        [TestCase(typeof(FeatureReferenceExpression), "Feature reference", null, null)]
-        [TestCase(typeof(OperatorExpression), "Operator expression", null, null)]
+        [TestCase(typeof(AttributeDefinition), "Attribute definition", "«attribute def»", null)]
+        [TestCase(typeof(ViewUsage), "View", "«view»", "network")]
+        [TestCase(typeof(ViewDefinition), "View definition", "«view def»", null)]
+        [TestCase(typeof(Association), "Association", "«association»", null)]
+        [TestCase(typeof(ConnectionDefinition), "Connection definition", "«connection def»", null)]
+        [TestCase(typeof(ConnectionUsage), "Connection", "«connection»", null)]
+        [TestCase(typeof(FlowDefinition), "Flow definition", "«flow def»", null)]
+        [TestCase(typeof(FlowUsage), "Flow", "«flow»", null)]
+        [TestCase(typeof(SuccessionFlowUsage), "Succession flow", "«succession flow»", null)]
+        [TestCase(typeof(FeatureChainExpression), "Feature chain", "«feature chain»", null)]
+        [TestCase(typeof(FeatureReferenceExpression), "Feature reference", "«feature reference»", null)]
+        [TestCase(typeof(OperatorExpression), "Operator expression", "«operator expression»", null)]
         public void VerifyFor(Type type, string kind, string stereotype, string icon)
         {
             var presentation = ProjectBrowserElementPresentation.For(type);
@@ -89,7 +89,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 Assert.That(presentation.Kind, Is.EqualTo("Element"));
                 Assert.That(presentation.UnnamedLabel, Is.EqualTo("Element"));
-                Assert.That(presentation.Stereotype, Is.Null);
+                Assert.That(presentation.Stereotype, Is.EqualTo("«element»"));
                 Assert.That(presentation.IconName, Is.Null);
             }
         }

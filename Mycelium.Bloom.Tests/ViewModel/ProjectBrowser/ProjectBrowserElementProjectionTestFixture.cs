@@ -136,7 +136,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
                 Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
             });
-            var node = first.RootNodes[0].Children.Single();
+            var node = first.RootNodes[0].FindPathTo(element).Last();
             var leafNode = node.Children.Single();
 
             using (Assert.EnterMultipleScope())
