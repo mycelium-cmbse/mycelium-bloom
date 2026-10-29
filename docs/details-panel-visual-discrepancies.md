@@ -4,6 +4,8 @@ The [review checkpoint report](details-panel-checkpoint.md) adds the final ident
 typography measurements, expression-placement decision, 876-test inventory reconciliation and
 current real-application screenshots. Its evidence supersedes the earlier totals and workspace
 dark-theme claims below; the supplied-reference mapping remains applicable.
+The subsequent Inter delivery section in that report closes the font gap and links refreshed
+captures. Images below used fallback fonts and remain historical variant/layout evidence.
 
 The supplied `Figma_Details_Complete_Reference_Pack.zip` supersedes the earlier PDF approximations.
 SHA-256: `111ce2314b5c1e9a8ece3a31cb12fe1da8ff076b88ca1dd0557f76fb8f2abedb`.

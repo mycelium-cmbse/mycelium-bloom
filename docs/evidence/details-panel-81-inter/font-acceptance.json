@@ -1,0 +1,2755 @@
+{
+  "baseCheckpoint": "ae2782ba38d7de3d3374defdb477ce9058ab8d3a",
+  "application": "Release publish, Production environment",
+  "browser": "153.0.8010.12",
+  "localInterAvailable": false,
+  "fontFaces": [
+    {
+      "family": "Inter",
+      "status": "loaded",
+      "weight": "100 900",
+      "style": "normal"
+    },
+    {
+      "family": "Inter",
+      "status": "loaded",
+      "weight": "100 900",
+      "style": "italic"
+    }
+  ],
+  "fontResponses": [
+    {
+      "path": "/fonts/inter/InterVariable.woff2",
+      "status": 200,
+      "contentType": "font/woff2",
+      "bytes": 352240,
+      "sha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3"
+    },
+    {
+      "path": "/fonts/inter/InterVariable-Italic.woff2",
+      "status": 200,
+      "contentType": "font/woff2",
+      "bytes": 387976,
+      "sha256": "e564f652916db6c139570fefb9524a77c4d48f30c92928de9db19b6b5c7a262a"
+    }
+  ],
+  "canonicalElementId": "334779bf-6357-5adf-a7c5-ffb32c2ffd17",
+  "themeControl": "Application theme toggle, asserted after every tab render",
+  "errors": [],
+  "assets": [],
+  "checks": [
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 166,
+        "valueScrollWidth": 166,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 65.484375,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 127.59375,
+            "height": 15,
+            "top": 259
+          },
+          {
+            "text": "dimensions",
+            "width": 65.796875,
+            "height": 15,
+            "top": 274
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 320,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "width": 166,
+        "scrollWidth": 166,
+        "height": 195
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 226,
+        "valueScrollWidth": 226,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 65.484375,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 127.59375,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "dimensions",
+            "width": 65.796875,
+            "height": 15,
+            "top": 259
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 380,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "width": 226,
+        "scrollWidth": 226,
+        "height": 150
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 386,
+        "valueScrollWidth": 386,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 65.484375,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 127.59375,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "dimensions",
+            "width": 65.796875,
+            "height": 15,
+            "top": 216
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "light",
+        "background": "color(srgb 1 1 1)",
+        "dark": false,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "light",
+      "width": 540,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "width": 386,
+        "scrollWidth": 386,
+        "height": 90
+      }
+    },
+    {
+      "theme": "light",
+      "browserRows": [
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        }
+      ],
+      "workspaceTabs": [
+        {
+          "label": "Project Browser",
+          "selected": "true"
+        },
+        {
+          "label": "Editor 2",
+          "selected": "true"
+        },
+        {
+          "label": "Editor 3",
+          "selected": "true"
+        }
+      ],
+      "browserKeyboard": "ArrowDown/ArrowUp/Enter and Show in Browser preserve canonical dimensions selection"
+    },
+    {
+      "theme": "light",
+      "shortViewportFocus": {
+        "text": "Relations",
+        "outline": "solid",
+        "width": "3px"
+      },
+      "scroll": {
+        "top": 315,
+        "height": 260,
+        "scrollHeight": 575
+      },
+      "footerStable": true
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 166,
+        "valueScrollWidth": 166,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 65.484375,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 127.59375,
+            "height": 15,
+            "top": 259
+          },
+          {
+            "text": "dimensions",
+            "width": 65.796875,
+            "height": 15,
+            "top": 274
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 320,
+            "scrollWidth": 320
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 320,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "width": 166,
+        "scrollWidth": 166,
+        "height": 195
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 226,
+        "valueScrollWidth": 226,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 65.484375,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 127.59375,
+            "height": 15,
+            "top": 244
+          },
+          {
+            "text": "dimensions",
+            "width": 65.796875,
+            "height": 15,
+            "top": 259
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 380,
+            "scrollWidth": 380
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 380,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "width": 226,
+        "scrollWidth": 226,
+        "height": 150
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      },
+      "wrapping": {
+        "fullText": "Quantities::TensorQuantityValue::dimensions",
+        "labelWidth": 112,
+        "valueWidth": 386,
+        "valueScrollWidth": 386,
+        "segments": [
+          {
+            "text": "Quantities::",
+            "width": 65.484375,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "TensorQuantityValue::",
+            "width": 127.59375,
+            "height": 15,
+            "top": 216
+          },
+          {
+            "text": "dimensions",
+            "width": 65.796875,
+            "height": 15,
+            "top": 216
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 540,
+        "scrollWidth": 540,
+        "colorScheme": "dark",
+        "background": "color(srgb 0.0863 0.098 0.1255)",
+        "dark": true,
+        "headerHeight": 46,
+        "tabsHeight": 38,
+        "footerHeight": 56,
+        "footerBottomGap": 0,
+        "body": [
+          {
+            "width": 540,
+            "scrollWidth": 540
+          }
+        ]
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 540,
+      "domOnlyLongIdentifierFallback": {
+        "length": 345,
+        "width": 386,
+        "scrollWidth": 386,
+        "height": 90
+      }
+    },
+    {
+      "theme": "dark",
+      "browserRows": [
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        },
+        {
+          "height": 32,
+          "width": 259,
+          "scrollWidth": 259
+        }
+      ],
+      "workspaceTabs": [
+        {
+          "label": "Project Browser",
+          "selected": "true"
+        },
+        {
+          "label": "Editor 2",
+          "selected": "true"
+        },
+        {
+          "label": "Editor 3",
+          "selected": "true"
+        }
+      ],
+      "browserKeyboard": "ArrowDown/ArrowUp/Enter and Show in Browser preserve canonical dimensions selection"
+    },
+    {
+      "theme": "dark",
+      "shortViewportFocus": {
+        "text": "Relations",
+        "outline": "solid",
+        "width": "3px"
+      },
+      "scroll": {
+        "top": 315,
+        "height": 260,
+        "scrollHeight": 575
+      },
+      "footerStable": true
+    },
+    {
+      "canonicalExpressionNavigation": true
+    }
+  ],
+  "typography": [
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Relations",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Identity",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Properties",
+      "selector": "[data-property-name=\"name\"] dd",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Relations",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Specializations / Type hierarchy",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 32
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-relation-kind--specialization",
+      "computed": {
+        "text": "Redefinition",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "9px",
+        "lineHeight": "11px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1686 0.4 0.7882)",
+        "background": "color(srgb 0.9098 0.949 1)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 12
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Relations",
+      "selector": ".mb-relation-identity > span",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Comments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Comments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Comments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Attachments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.95765 0.92 0.99176)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "tab": "Attachments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Attachments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.451 0.5098 0.5804)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "selector": "[role=treeitem][aria-selected=true] > .mb-project-browser-node__line .mb-project-browser-node__title",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "18px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.4627 0.4314)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "selector": ".mb-editor-workspace__tab-label",
+      "computed": {
+        "text": "Project Browser",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 15
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Relations",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Identity",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Properties",
+      "selector": "[data-property-name=\"name\"] dd",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Relations",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 9
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Specializations / Type hierarchy",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 32
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-relation-kind--specialization",
+      "computed": {
+        "text": "Redefinition",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "9px",
+        "lineHeight": "11px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.433515 0.588055 0.845845)",
+        "background": "color(srgb 0.10276 0.1584 0.25804)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 12
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Relations",
+      "selector": ".mb-relation-identity > span",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Comments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Comments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Comments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 8
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"inactive\"]",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-properties-tabs__trigger[data-state=\"active\"]",
+      "computed": {
+        "text": "Attachments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "16px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.0588 0.6196 0.549)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__title",
+      "computed": {
+        "text": "Properties",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "14px",
+        "lineHeight": "17px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-details-panel__element-name",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "18px",
+        "lineHeight": "22px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-properties-summary__kind",
+      "computed": {
+        "text": "«attribute»",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.5765 0.2 0.9176)",
+        "background": "color(srgb 0.13532 0.1082 0.20471)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "tab": "Attachments",
+      "selector": ".mb-property-section h3",
+      "computed": {
+        "text": "Attachments",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontWeight": "600",
+        "fontSize": "10px",
+        "lineHeight": "12px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.6 0.6392 0.6902)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 11
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "selector": "[role=treeitem][aria-selected=true] > .mb-project-browser-node__line .mb-project-browser-node__title",
+      "computed": {
+        "text": "dimensions",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontWeight": "500",
+        "fontSize": "12px",
+        "lineHeight": "18px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "selector": ".mb-editor-workspace__tab-label",
+      "computed": {
+        "text": "Project Browser",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontWeight": "600",
+        "fontSize": "12px",
+        "lineHeight": "15px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.9255 0.9373 0.9529)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 15
+        }
+      ]
+    }
+  ],
+  "weightProbes": [
+    {
+      "style": "normal",
+      "weight": 100,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "100",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Thin",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 200,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "200",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-ExtraLight",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 300,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "300",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Light",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 400,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "400",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 500,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "500",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Medium",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 600,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "600",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 700,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "700",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Bold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 800,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "800",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-ExtraBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "normal",
+      "weight": 900,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "900",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "normal",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-Black",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 100,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "100",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-Thin-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 200,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "200",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-ExtraLight-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 300,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "300",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-Light-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 400,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "400",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 500,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "500",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-Medium-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 600,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "600",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-SemiBold-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 700,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "700",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-Bold-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 800,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "800",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-ExtraBold-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    },
+    {
+      "style": "italic",
+      "weight": 900,
+      "selector": "#font-delivery-probe",
+      "computed": {
+        "text": "Inter 0123",
+        "fontFamily": "Inter",
+        "fontWeight": "900",
+        "fontSize": "16px",
+        "lineHeight": "20px",
+        "fontStyle": "italic",
+        "color": "color(srgb 0.1608 0.2 0.2588)",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariableItalic-Text-Black-Italic",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ]
+    }
+  ]
+}
