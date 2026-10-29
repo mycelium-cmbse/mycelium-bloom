@@ -71,6 +71,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             }
             await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Attachments").ClickAsync();
             Assert.That(component.Find("[role='tabpanel']").TextContent, Does.Contain("Attachments are not available for this model."));
+            Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
+            await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Comments").ClickAsync();
+            Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
+            await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Relations").ClickAsync();
+            Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
             await component.Find("[aria-label='Close Properties']").ClickAsync();
             Assert.That(closed, Is.True);
             this.viewModel.Verify(vm => vm.ClearSelection(), Times.Never);

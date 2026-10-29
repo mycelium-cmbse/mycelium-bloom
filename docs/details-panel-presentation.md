@@ -6,13 +6,7 @@ ownership, unsupported-expression and primary-Figma dependencies remain outside 
 
 ## Current visual acceptance
 
-The supplied 14-frame PNG/CSS pack now replaces the earlier PDF approximations as visual authority.
-See [the visual discrepancy matrix and final evidence](details-panel-visual-discrepancies.md) for
-the complete mapping and corrected layouts. The [review checkpoint report](details-panel-checkpoint.md)
-records the final corrections, 876 passing tests, exact inventory reconciliation and current
-running-application validation.
-The State Properties layout is now supported by its supplied PNG/CSS pair. The earlier acceptance
-record below is retained as history; its Figma/State limitations and screenshot measurements are superseded.
+Live Figma MCP now supplies the primary references. See [the live comparison](details-panel-visual-discrepancies.md) for exact nodes, remaining decisions and current validation. The following implementation history predates restored access; its quota, fallback-font and missing-State statements are historical only.
 
 ## Review and design mapping
 
@@ -125,14 +119,14 @@ Saved evidence in [evidence/details-panel-81](evidence/details-panel-81):
 
 | Render | Light | Dark |
 | --- | --- | --- |
-| Part, 380px | [image](evidence/details-panel-81/part-light-380.png) | [image](evidence/details-panel-81/part-dark-380.png) |
-| Attribute, 380px | [image](evidence/details-panel-81/attribute-light-380.png) | [image](evidence/details-panel-81/attribute-dark-380.png) |
-| State, 380px (semantic evidence only) | [image](evidence/details-panel-81/state-light-380.png) | [image](evidence/details-panel-81/state-dark-380.png) |
+| Part, 380px | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/part-light-380.png) | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/part-dark-380.png) |
+| Attribute, 380px | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/attribute-light-380.png) | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/attribute-dark-380.png) |
+| State, 380px (semantic evidence only) | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/state-light-380.png) | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/state-dark-380.png) |
 | Relationship ends, 380px | [image](evidence/details-panel-81/connection-light-380.png) | [image](evidence/details-panel-81/connection-dark-380.png) |
 | Imports, 380px | [image](evidence/details-panel-81/imports-light-380.png) | [image](evidence/details-panel-81/imports-dark-380.png) |
-| Comments, 380px | [image](evidence/details-panel-81/comments-light-380.png) | [image](evidence/details-panel-81/comments-dark-380.png) |
+| Comments, 380px | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/comments-light-380.png) | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/comments-dark-380.png) |
 | Scrolled metadata, 380px | [image](evidence/details-panel-81/part-metadata-light-380.png) | [image](evidence/details-panel-81/part-metadata-dark-380.png) |
-| Part, 320px | [image](evidence/details-panel-81/part-light-320.png) | [image](evidence/details-panel-81/part-dark-320.png) |
+| Part, 320px | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/part-light-320.png) | [image](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/part-dark-320.png) |
 
 [Measured browser checks](evidence/details-panel-81/visual-checks.json) record ten 380px renders and
 twelve additional Part/Attribute/State checks at 320/540px across both themes, with no horizontal
@@ -140,7 +134,7 @@ overflow. ArrowRight/Home/End activate and focus the expected tabs, `aria-select
 true/false values, canonical unit links navigate, the footer dispatches the selected element and
 Close preserves selection. There were no browser exceptions or failed asset requests. This is
 interaction evidence, not a screen-reader conformance audit.
-The [keyboard-focus render](evidence/details-panel-81/keyboard-focus-light-380.png) verifies a visible
+The [keyboard-focus render](https://github.com/mycelium-cmbse/mycelium-bloom/blob/c4ab9ae06de9695edd984dbec780f9e071b2c068/docs/evidence/details-panel-81/keyboard-focus-light-380.png) verifies a visible
 tab outline. After the final scoped focus CSS adjustment, the app was republished, browser captures
 and interaction checks were refreshed, and all 37 token checks passed again. The earlier complete
 .NET results remain applicable because no C# or Razor logic changed afterward.
