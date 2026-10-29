@@ -1,14 +1,14 @@
 .mb-project-browser-node {
     box-sizing: border-box;
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    min-width: 0;
 }
 
 .mb-project-browser-node__line {
     display: flex;
     align-items: center;
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    min-width: 0;
     border-radius: var(--radius-4);
 }
 
@@ -17,8 +17,6 @@
 }
 
 .mb-project-browser-node__ownership {
-    position: sticky;
-    right: 0;
     flex: 0 0 var(--spacing-40);
     align-self: stretch;
     margin-left: var(--spacing-8);
@@ -34,9 +32,9 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-6);
-    width: max-content;
+    width: 0;
     min-width: 0;
-    flex: 1 0 auto;
+    flex: 1 1 auto;
     height: var(--spacing-32);
     padding: 0 var(--spacing-8);
     border: 0;
@@ -60,6 +58,27 @@
 .mb-project-browser-node__row:focus-visible {
     outline: var(--spacing-2) solid var(--ring);
     outline-offset: calc(-1 * var(--spacing-2));
+}
+
+.mb-project-browser-node:focus-visible {
+    outline: none;
+}
+
+.mb-project-browser-node:focus-visible > .mb-project-browser-node__line {
+    outline: var(--spacing-2) solid var(--ring);
+    outline-offset: calc(-1 * var(--spacing-2));
+}
+
+.mb-project-browser-node__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-project-browser-node__label > span + span {
+    margin-inline-start: var(--spacing-4);
 }
 
 .mb-project-browser-node__disclosure {
@@ -146,7 +165,7 @@
 
 .mb-project-browser-node__title {
     flex: 0 0 auto;
-    min-width: max-content;
+    min-width: 0;
     color: var(--foreground);
     font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--typography-typography-body-sm-font-size);
@@ -160,8 +179,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-1);
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    min-width: 0;
 }
 
 .mb-project-browser-node__multiplicity {

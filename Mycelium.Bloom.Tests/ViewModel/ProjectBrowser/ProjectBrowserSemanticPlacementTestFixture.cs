@@ -43,6 +43,43 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserSemanticPlacementTestFixture
     {
+        /// <summary>Verifies known sequencing relationships cannot reach the broad connector/usage fallback.</summary>
+        [TestCase(TypeArgs = [typeof(Succession)])]
+        [TestCase(TypeArgs = [typeof(SuccessionAsUsage)])]
+        [TestCase(TypeArgs = [typeof(SysML2.NET.Core.POCO.Kernel.Interactions.SuccessionFlow)])]
+        public void VerifyGenericSuccessionsAreOwnerInformation<TElement>() where TElement : class, IElement, new()
+        {
+            var element = new TElement();
+            Assert.That(element, Is.InstanceOf<ISuccession>());
+            Assert.That(ProjectBrowserElementProjection.IsExcluded(element), Is.True);
+            Assert.That(ProjectBrowserElementProjection.IsNavigable(element), Is.False);
+            Assert.That(ProjectBrowserElementProjection.IsNavigable(new SuccessionFlowUsage()), Is.True);
+        }
+
+        /// <summary>Preserves the canonical initial-state semantics and hidden succession navigation.</summary>
+        [Test]
+        public async Task VerifyHiddenStateSuccessionRevealsOwnerAndPreservesInitialMarker()
+        {
+            var model = Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory.CreateStates();
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(model.Owner);
+            var selection = new ContextAwareService();
+            using var browser = new ProjectBrowserViewModel(loader.Object, selection);
+            Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
+            var owner = browser.RootNodes.Single();
+            Assert.That(owner.Children.Select(node => node.SourceElement), Is.EqualTo(new[] { model.First, model.Initial }));
+            Assert.That(owner.Children[1].Row.Indicators, Does.Contain("Initial"));
+            Assert.That(owner.Children[1].SourceElement, Is.SameAs(model.Initial));
+            Assert.That(model.Succession.sourceFeature, Is.SameAs(model.Owner.entryAction));
+            Assert.That(model.Succession.targetFeature.Single(), Is.SameAs(model.Initial));
+            selection.SelectedElement = model.Succession;
+            browser.FocusElement(model.Succession);
+            Assert.That(browser.SelectedNode, Is.SameAs(owner));
+            Assert.That(selection.SelectedElement, Is.SameAs(model.Succession));
+            browser.FocusElement(model.Succession.ownedElement.First());
+            Assert.That(browser.SelectedNode, Is.SameAs(owner));
+        }
+
         [TestCase(TypeArgs = [typeof(PartDefinition)])]
         [TestCase(TypeArgs = [typeof(PartUsage)])]
         [TestCase(TypeArgs = [typeof(ActionUsage)])]

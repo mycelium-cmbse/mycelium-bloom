@@ -68,8 +68,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         private int appliedDraftResetVersion;
 
-        /// <summary>Prevents reopening the field during an asynchronous criterion acceptance.</summary>
-        private bool isAcceptingCriterion;
+        /// <summary>The stable field anchor, independent of each portalled suggestion lifetime.</summary>
+        private ElementReference searchAnchor;
+
+        /// <summary>The current trigger ID used by Blueprint to exclude the field from outside clicks.</summary>
+        private string searchAnchorId;
+
+        /// <summary>Synchronizes the persistent field with the current opening's trigger identity.</summary>
+        /// <param name="triggerId">The current Blueprint trigger ID.</param>
+        private void HandleSearchAnchorIdChanged(string triggerId)
+        {
+            this.searchAnchorId = triggerId;
+        }
+
+        /// <summary>The presentation identity of the current popover opening.</summary>
+        private long popoverGeneration;
+
+        /// <summary>The last controlled open state received from the Browser.</summary>
+        private bool wasOpen;
 
         /// <summary>
         /// Gets or sets the committed per-tab Contains criterion.
@@ -150,18 +166,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The criterion acceptance operation.</returns>
         private async Task AcceptCriterionAsync(Func<Task> commit)
         {
-            this.isAcceptingCriterion = true;
-            try
-            {
-                await this.SetOpenAsync(false);
-                await this.ResetDraftInteractionAsync();
-                await commit();
-            }
-            finally
-            {
-                this.isAcceptingCriterion = false;
-                this.shouldRestoreSearchFocusAfterRender = true;
-            }
+            await this.SetOpenAsync(false);
+            await this.ResetDraftInteractionAsync();
+            await commit();
+            this.shouldRestoreSearchFocusAfterRender = !this.IsOpen;
         }
 
         /// <summary>
@@ -175,6 +183,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
+
+            if (this.IsOpen && !this.wasOpen)
+            {
+                this.popoverGeneration++;
+            }
+            this.wasOpen = this.IsOpen;
 
             if (this.appliedDraftResetVersion == this.DraftResetVersion)
             {
@@ -247,6 +261,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return this.IsOpenChanged.InvokeAsync(isOpen);
         }
 
+        /// <summary>Ignores callbacks from a disposed opening without suppressing current dismissals.</summary>
+        /// <returns>A controlled-state handler bound to this opening's identity.</returns>
+        private Func<bool, Task> GetPopoverOpenChangedHandler()
+        {
+            var generation = this.popoverGeneration;
+            return isOpen => generation == this.popoverGeneration
+                ? this.HandleOpenChanged(isOpen) : Task.CompletedTask;
+        }
+
         /// <summary>
         /// Updates the transient draft and opens only after a real edit produces useful content.
         /// </summary>
@@ -254,7 +277,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the callbacks.</returns>
         private async Task HandleDraftSearchTextChangedAsync(string updatedDraftText)
         {
-            this.draftSearchText = updatedDraftText ?? string.Empty;
+            var updatedText = updatedDraftText ?? string.Empty;
+            // ClearAsync synchronizes Blueprint through a native input event; its echo is not another edit.
+            if (updatedText == this.draftSearchText)
+            {
+                return;
+            }
+            this.draftSearchText = updatedText;
             this.hasEditedDraftInCurrentFocusSession = !string.IsNullOrWhiteSpace(this.Query);
             this.ResetSuggestionNavigation();
 

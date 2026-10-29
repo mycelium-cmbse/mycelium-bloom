@@ -19,7 +19,7 @@ Live design-context reads of all three newly supplied frames, and read-only Plug
 
 Node creation/modification metadata and Figma version history were unavailable through the quota-blocked tools; the PDF has no creation/modification metadata. No chronological relationship is asserted or inferred from node IDs.
 
-Rows retain 32px interaction targets with 12px names, 16px indentation, compact secondary notation, specific exported/Lucide symbols, a continuous selected background and visible focus outlines. The 40px OWN cells are reserved and aligned with their heading, without invented domain values. Horizontal scrolling, complete labels, filtering, local expansion and independent instances remain. No inert Add control is introduced.
+Rows retain 32px interaction targets with 12px names, 16px indentation, compact secondary notation, specific exported/Lucide symbols, a continuous selected background and visible focus outlines. The 40px OWN cells are reserved and aligned with their heading, without invented domain values. The NAME column now stays within the available width and ellipsizes long notation, consistent with the supporting exported Browser composition (page 47, ReactionWheelAs…); the full notation remains in the treeitem accessible name and native hover tooltip. Filtering, local expansion and independent instances remain. This is supporting evidence for the bounded layout, not verification of the unavailable primary frame. No inert Add control is introduced.
 
 ## Placement matrix
 
@@ -46,6 +46,7 @@ Membership role is evaluated before broad SDK interfaces. Exclusion suppresses a
 | FeatureValue, ResultExpressionMembership | Excluded subtree | Supported scalar attribute literal inline on owner | Owning feature/calculation: Values/Expressions |
 | Expression/literal not a domain usage | Excluded subtree | No independent row | Owning feature/constraint/calculation: Values/Expressions |
 | Multiplicity/MultiplicityRange and bound expressions | Excluded subtree | Supported multiplicity inline on owner | Owning type/feature: Multiplicity |
+| Succession, SuccessionAsUsage, kernel SuccessionFlow (except domain SuccessionFlowUsage) | Excluded subtree | Initial-state marker remains derived from the canonical succession on its target state | Owning state/action/feature: Control sequencing/Relationships |
 | TransitionUsage | Excluded subtree | No independent row | Owning state: State behaviour/Transitions |
 | EnumerationUsage owned by EnumerationDefinition (SDK representation of an enum literal) | Excluded subtree, including variant membership | No independent row | EnumerationDefinition: Enumeration values, ordinal, documentation |
 | Comment, Documentation, TextualRepresentation | Excluded subtree | Documentation indicator on annotated/owning element | Annotated/owning element: Comments/documentation/text |
@@ -57,11 +58,15 @@ Membership role is evaluated before broad SDK interfaces. Exclusion suppresses a
 
 Constraint and calculation usages can also implement IExpression; this alone never excludes a domain usage. An EnumerationUsage is an enum-typed attribute in SDK 0.23.0; only values owned by an EnumerationDefinition are treated as enum literals.
 
+The pinned SDK makes ISuccessionAsUsage an IUsage, IConnector and ISuccession; kernel SuccessionFlow is also ISuccession. A broad connector/usage fallback previously exposed these relationships. Antoine explicitly groups **SuccessionFlowUsage** in Flows, but does not explicitly list plain Succession in Tier A/B. Treating generic sequencing as Tier C is an interpretation of his non-structural relationship rule, corroborated by SSS-PA-BEH-Q4N (Succession relates features in execution order). The projection now checks IFlowUsage and ISuccession before broad fallbacks. Tests assert exact state children, unchanged initial target/source references and reveal of both hidden succession and its end to the visible owner without replacing shared canonical selection.
+
 ## Navigation and state contract
 
 Groups are presentation-only nodes: SourceElement, ElementId and ElementType are null. They are collapsed by default and toggled without publishing application selection. Filtering shows a group only when it contains a visible model row; temporary filtered expansion does not overwrite stored expansion.
 
 Every model occurrence retains the canonical SDK element. Aliases/imports can repeat that identity with unique Browser occurrence IDs. Alias/import reference cycles end at a repeated ancestor occurrence. Hidden elements and their owned relationships remain indexed against their nearest visible owner. Focus expands the path and selects that local owner without changing shared selection or clearing filter criteria; a nonmatching active filter can still hide the focused row. No model elements are deleted or reparented.
+
+The [W3C Tree View pattern](https://www.w3.org/WAI/ARIA/apg/patterns/treeview/) governs local keyboard behavior: one roving treeitem tab stop; Up/Down through rendered rows; Right expands or enters the first child; Left collapses or reaches the parent; Home/End reach the first/last visible row; Enter/Space activate the established component handler. Type-ahead searches visible names. Focus movement does not publish model selection. Presentation-only group activation toggles expansion only. Active filters continue to force the matching ancestor/group path open; Left on such a row reaches its parent instead of overwriting stored expansion. A removed focused descendant falls back to its nearest surviving ancestor. Listeners are local to each instance and disposed with the component. Pointer handlers are retained; internal buttons no longer add duplicate Tab stops.
 
 The two Browser inline comments are addressed by a named NodeState record and the single-line ProjectBrowserElementPresentation record declaration. Component handlers retain responsibility for dispatching callbacks.
 
@@ -103,14 +108,14 @@ Current screenshots and measured checks are committed in [evidence/project-brows
 | --- | --- | --- |
 | [collapsed light](evidence/project-browser-80/collapsed-light-300.png) / [dark](evidence/project-browser-80/collapsed-dark-300.png) | 300 × 900 | NAME/OWN, name-first rows, kind symbols, collapsed Connections |
 | [selected light](evidence/project-browser-80/expanded-selected-light-1100.png) / [dark](evidence/project-browser-80/expanded-selected-dark-1100.png) | 1100 × 900 | Full long row, expression bounds, 3[SI::kg], initial-state and verdict markers, protected imported occurrence |
-| [selected light](evidence/project-browser-80/expanded-selected-light-300.png) / [dark](evidence/project-browser-80/expanded-selected-dark-300.png) | 300 × 900 | Narrow-sidebar density and horizontal overflow |
-| [scrolled light](evidence/project-browser-80/metadata-scrolled-light-300.png) / [dark](evidence/project-browser-80/metadata-scrolled-dark-300.png) | 300 × 900 | Long-row metadata remains reachable after horizontal scrolling |
+| [selected light](evidence/project-browser-80/expanded-selected-light-300.png) / [dark](evidence/project-browser-80/expanded-selected-dark-300.png) | 300 × 900 | Narrow-sidebar density, ellipsis and persistent NAME/OWN alignment |
+| Historical metadata-scrolled light/dark files | 300 × 900 | Retained previous-checkpoint evidence only; superseded by constrained rows and complete accessible/hover notation |
 | [unified filters light](evidence/project-browser-80/unified-filters-light-300.png) / [dark](evidence/project-browser-80/unified-filters-dark-300.png) | 300 × 900 | Single field, model Type options and Clear all |
-| [keyboard focus light](evidence/project-browser-80/keyboard-focus-light-300.png) / [dark](evidence/project-browser-80/keyboard-focus-dark-300.png) | 300 × 900 | Native row keyboard target and visible focus ring |
+| [keyboard focus light](evidence/project-browser-80/keyboard-focus-light-300.png) / [dark](evidence/project-browser-80/keyboard-focus-dark-300.png) | 300 × 900 | Roving treeitem keyboard target and visible focus ring |
 | [hover light](evidence/project-browser-80/hover-light-300.png) / [dark](evidence/project-browser-80/hover-dark-300.png) | 300 × 900 | Hovered model row alongside the selected row |
 | [filtered light](evidence/project-browser-80/filtered-light-300.png) / [dark](evidence/project-browser-80/filtered-dark-300.png) | 300 × 900 | Exactly Model → Connections → powerLink |
 
-The JSON records viewport/row/header/OWN geometry, interactions, console errors and failed asset requests. Checks wait for Blazor's asynchronous criteria and popover transitions to settle. Pointer/ArrowDown opening, Escape, type selection, Clear all, Enter on a group without changing model selection, row selection, Tab/Shift+Tab focus, filter paths and restored expansion/selection were exercised in Chromium. Component tests retain repeated composition, remount, independent-instance and canonical-selection coverage. This is keyboard interaction evidence, not a full assistive-technology conformance audit. Native tree controls remain in Tab order; no roving arrow-key tree redesign is introduced.
+The JSON records viewport/row/header/OWN geometry, full accessible notation, interactions, console errors and failed asset requests. The Chromium stress run passed **101 immediate Type-accept / reopen / Clear-all cycles**, waiting only for the committed criterion token before reopening, without waiting for portal detachment or introducing delays. Pointer/ArrowDown opening, Escape, group activation without model selection, arrows, Home/End, row selection, visible keyboard focus, filter paths and restored expansion/selection were exercised. Both 300px and 1100px viewports have scrollWidth equal to clientWidth. The final visual rerun passed another 21 cycles after the focus-outline CSS correction. Fourteen current light/dark screenshots were inspected; the two historical metadata-scrolled screenshots are not current acceptance evidence. Component and DOM tests retain canonical selection, repeated occurrences, independent instances, focus recovery and disposal coverage. This is keyboard interaction evidence, not a screen-reader conformance audit. Native title supplies pointer hover text; the complete treeitem accessible name supplies keyboard/assistive-technology metadata.
 
 Earlier static-render screenshots and Figma exports remain outside the repository at %TEMP%/bloom-80-evidence/ as historical supporting artifacts. The bundled Quantities model cannot demonstrate state, verdict, unit or ownership facets.
 
@@ -118,41 +123,41 @@ Measured selected name contrast is 4.96:1 light / 14.03:1 dark; symbol contrast 
 
 The supporting Tree Node's exact light selected mono pair remains #64748b on #e8f7f2, **4.31:1**, below 4.5:1 for small text. Selected names and symbols use contrasting existing light/dark tokens. The mono contrast remains an explicit design decision, not a completed acceptance claim. Populated OWN cells and exact comparison with the unavailable primary frames remain incomplete.
 
-## Remaining unified-filter interaction defect
+## Resolved unified-filter lifecycle race
 
-[rapid-reopen-check.json](evidence/project-browser-80/rapid-reopen-check.json) records an additional failing live scenario with pinned BlazorBlueprint 3.17.0: select a Type, then immediately click the field again as soon as its token appears, before the previous popover surface has disappeared, and attempt Clear all. The button can briefly resolve and then detach as the popover is dismissed; the action times out. Waiting for the preceding popover to disappear makes the ordinary scenario pass. This is a **remaining Browser implementation/lifecycle defect**, not a missing SysML SDK API or a Properties handoff.
+[rapid-reopen-check.json](evidence/project-browser-80/rapid-reopen-check.json) retains the reproduced failing baseline and records the corrected scenario. Inspection of BlazorBlueprint 3.17.0 found that BbFloatingPortal.CleanupAsync awaits positioning/exit teardown before unregistering its portal ID. Reusing a popover context ID allowed the previous cleanup to unregister newly opened content. DOM evidence showed aria-expanded=true while the portal disappeared; this was not simply an absent Type or a legitimate close callback.
 
-Investigation included a real Chromium reproduction, the input/popover handlers, pinned command APIs, and a debugger attached only to the controlled fixture host. At ProjectBrowserSearchAssistant.HandleContentReadyAsync, IsOpen was true, pendingNavigationDirection was 1, and command navigation reached FocusedIndex 0 with 14 registered items. This rules out assuming that all failures are absent Type data. Criterion acceptance now serializes native draft clearing and temporarily disables the input; closed suggestion content is disposed while preserving the input instance. Focused atomic-acceptance and remount tests pass, but these changes **do not establish a fix for the immediate-reopen dismissal**. The pinned popover's asynchronous close/open callbacks need a further isolated lifecycle correction and a passing rapid-reopen interaction case. Shared canonical selection is unaffected in the passing settled scenario.
+Each opening now receives a distinct keyed popover/context/portal identity, with generation-bound callbacks rejecting stale close notifications. The SearchInput stays mounted and enabled; asynchronous owner callbacks cannot close the user's next opening. ProjectBrowserSearchAnchor registers the persistent element for positioning and synchronizes its DOM ID with the current Blueprint TriggerId so the field is also recognized by outside-click exclusion. A preliminary stress run exposed an intermittent outside-click callback exception before that trigger identity was connected; the final 101-cycle run passed with no browser exceptions or failed assets. No delay, click throttling, input disabling or dependency upgrade was introduced.
+
+VerifyRapidReopenSurvivesPreviousPortalCleanup deterministically holds positioning disposal open, reopens before release, confirms a distinct portal ID and matching trigger ID, releases old cleanup, verifies the new surface survives, invokes a stale close callback and verifies Clear all still works. VerifyUnifiedFieldAcceptsInputWhileCriterionOwnerCompletes keeps an owner callback pending and verifies the next draft and the exact native input component instance survive. The real-browser script exercises the previously failing sequence without waiting for old content to detach.
 
 ## Validation and separate Properties handoff
 
-Focused Browser/formatter/consumer checks, the complete .NET suite with dotnet-coverage, the CI-style Release build, local publish, committed-CSS verification and token-consumer tests were run. Existing JavaScript interop/coverage results remain applicable because their implementation inputs did not change. Docker was not retried while its daemon remained unavailable. No dependency versions were changed. app.css was regenerated through RegenerateMyceliumStyles because new icon-name strings affect Tailwind source scanning.
+Follow-up validation used the existing ignored bin/browser-80-validation artifact directory, preserving the running application and all earlier semantic changes. Docker was not retried while its daemon remained unavailable. No dependencies changed. Styles were generated/verified through the repository MSBuild targets.
 
-Final checkpoint checks:
-
-- 295 focused Browser/formatter tests passed; 880 full .NET tests passed with dotnet-coverage.
-- Release build with --no-incremental /p:ContinuousIntegrationBuild=true: zero warnings/errors. Local publish passed.
-- VerifyMyceliumStyles passed after normal regeneration; 37 token-consumer checks passed. JavaScript coverage pipeline passed (10 converter tests, 59 interop/token tests; 95.81% line coverage); no JavaScript implementation changed afterward.
-- 16 real-component light/dark screenshots and settled-flow Chromium interaction checks passed, with no console errors or failed asset requests. The separate immediate-reopen case failed as documented above.
-- A running local application held the default Debug output files. It was preserved; validation used the ignored bin/browser-80-validation artifact directory. An initial external artifact directory could not satisfy TestRepository's ancestor lookup, so final tests used an ignored output location inside the repository. A token-check attempt overlapped CSS regeneration and failed its byte-preservation assertion; the final serialized run passed all 37 checks.
+- 298 focused Browser/formatter/consumer tests passed; the final complete .NET suite passed 883 tests under dotnet-coverage.
+- CI-style Release build (--no-incremental /p:ContinuousIntegrationBuild=true): zero warnings/errors; local publish passed.
+- VerifyMyceliumStyles passed; 37 token-consumer tests passed. JavaScript coverage pipeline passed: 10 converter tests, 62 interop/token tests, 96.56% line coverage overall and 100% for the new Browser module.
+- Fourteen current real-component screenshots and 101 immediate-reopen cycles passed in Chromium; no console errors or failed assets. Keyboard and narrow-layout assertions passed as described above.
+- The interrupted session left a malformed partial test edit; it was repaired before validation. The first new deferred-cleanup test registered services after its portal host had initialized; it now uses an isolated context with services registered before rendering. These intermediate failures are not claimed as successful checks.
 
 Commands used from the repository root (MSBuild style and npm commands from Mycelium.Bloom):
 
 ~~~powershell
-dotnet test Mycelium.Bloom.Tests/Mycelium.Bloom.Tests.csproj --artifacts-path "$PWD/Mycelium.Bloom.Tests/bin/browser-80-validation" --no-restore --filter 'FullyQualifiedName~ProjectBrowser|FullyQualifiedName~ElementPresentation|FullyQualifiedName~ElementSemantics' --logger 'trx;LogFileName=browser-visual.trx' --results-directory "$env:TEMP/bloom-80-results" --verbosity minimal
+dotnet test Mycelium.Bloom.Tests/Mycelium.Bloom.Tests.csproj --artifacts-path "$PWD/Mycelium.Bloom.Tests/bin/browser-80-validation" --no-restore --filter 'FullyQualifiedName~ProjectBrowser|FullyQualifiedName~ElementPresentation|FullyQualifiedName~ElementSemantics' --verbosity minimal
 dotnet build Mycelium.Bloom.sln --artifacts-path "$PWD/Mycelium.Bloom.Tests/bin/browser-80-validation" --configuration Release --no-restore --no-incremental /p:ContinuousIntegrationBuild=true
-dotnet-coverage collect "dotnet test Mycelium.Bloom.sln --artifacts-path $PWD/Mycelium.Bloom.Tests/bin/browser-80-validation --configuration Release --no-restore --no-build --verbosity minimal" -f xml -o "$env:TEMP/bloom-80-results/visual-coverage.xml"
+dotnet-coverage collect "dotnet test Mycelium.Bloom.sln --artifacts-path $PWD/Mycelium.Bloom.Tests/bin/browser-80-validation --configuration Release --no-restore --no-build --verbosity minimal" -f xml -o "$env:TEMP/bloom-80-results/followup-coverage.xml"
 dotnet publish Mycelium.Bloom/Mycelium.Bloom.csproj --artifacts-path "$PWD/Mycelium.Bloom.Tests/bin/browser-80-validation" --configuration Release --no-restore --no-build --output "$env:TEMP/bloom-80-final-publish"
 dotnet msbuild Mycelium.Bloom.csproj -t:RegenerateMyceliumStyles
 dotnet msbuild Mycelium.Bloom.csproj -t:VerifyMyceliumStyles
 npm run test:tokens
 npm run test:coverage:sonar
-node "$env:TEMP/bloom-80-interactive/check.cjs"
-node "$env:TEMP/bloom-80-interactive/fast-check.cjs"
+node "$env:TEMP/bloom-80-interactive/followup-stress.cjs"
+node "$env:TEMP/bloom-80-interactive/followup-check.cjs"
 ~~~
 
-The external fixture host and Chromium drivers are local validation tools; the canonical fixture factory, screenshots, measured results and failing scenario are in this checkpoint. The SDK fixture deliberately exercises explicit stored data, without domain ownership or evaluated results.
+The external fixture host and Chromium drivers are local validation tools; the canonical fixture factory, screenshots, measured results and the baseline/corrected scenario are in this checkpoint. The SDK fixture deliberately exercises explicit stored data, without domain ownership or evaluated results.
 
 Properties implementation remains unchanged. #81 still receives ends, state behaviour, enum values, imports, annotations, expression detail and relationship sections from the placement matrix. Ownership badges, Browser initial/verdict markers, inline units and expression multiplicity remain requirements of **#80**, not substitutes in #81.
 
-**Browser #80 is not fully accepted:** ownership presentation still requires its domain contract/provider, unsupported expression shapes remain outside full SSS-PA-VIS-U7M coverage, the selected mono contrast needs an explicit design decision, exact parity with the new primary frames is blocked by access, and immediate Type-filter reopening still has a live lifecycle failure. Passing automated tests does not close these criteria.
+**Browser #80 is not fully accepted:** ownership presentation still requires its domain contract/provider, unsupported expression shapes remain outside full SSS-PA-VIS-U7M coverage, the selected mono contrast needs an explicit design decision, exact parity with the new primary frames is blocked by access. Passing automated tests does not close these criteria.

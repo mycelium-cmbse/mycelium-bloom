@@ -788,3 +788,86 @@ function flushAnimationFrames() {
 async function settleMutationObserver() {
     await new Promise(resolve => setTimeout(resolve, 0));
 }
+import { registerTree, disposeTree } from "../../Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js";
+
+function createBrowserTree() {
+    const root = document.createElement("div");
+    root.setAttribute("role", "tree");
+    function item(name, children = "") {
+        return `<div role="treeitem" tabindex="-1" aria-selected="false" ${children ? 'aria-expanded="true"' : ''}>
+            <div class="mb-project-browser-node__line">${children ? '<button tabindex="-1" class="mb-project-browser-node__disclosure"></button>' : ''}<button tabindex="-1" class="mb-project-browser-node__row"><span class="mb-project-browser-node__title">${name}</span></button></div>${children ? `<div role="group">${children}</div>` : ''}</div>`;
+    }
+    root.innerHTML = item("Model", item("Alpha") + item("Beta")) + item("Connections");
+    document.body.append(root);
+    registerTree(root);
+    return root;
+}
+
+function treeKey(key, options = {}) {
+    const event = new window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...options });
+    document.activeElement.dispatchEvent(event);
+    return event;
+}
+
+test("Browser tree moves focus independently of activation and has one tab stop", () => {
+    const root = createBrowserTree();
+    const [model, alpha, beta, group] = root.querySelectorAll('[role="treeitem"]');
+    let activations = 0;
+    root.addEventListener("click", event => { if (event.target.closest('.mb-project-browser-node__row')) { activations++; } });
+    registerTree(root);
+    model.focus();
+    treeKey("ArrowRight"); assert.equal(document.activeElement, alpha);
+    treeKey("ArrowDown"); assert.equal(document.activeElement, beta);
+    treeKey("ArrowUp"); assert.equal(document.activeElement, alpha);
+    treeKey("ArrowLeft"); assert.equal(document.activeElement, model);
+    treeKey("End"); assert.equal(document.activeElement, group);
+    treeKey("ArrowDown"); assert.equal(document.activeElement, group);
+    treeKey("Home"); assert.equal(document.activeElement, model);
+    treeKey("ArrowUp"); assert.equal(document.activeElement, model);
+    assert.equal(activations, 0);
+    treeKey("Enter"); treeKey(" "); assert.equal(activations, 2);
+    assert.equal(root.querySelectorAll('[role="treeitem"][tabindex="0"]').length, 1);
+    assert.equal(treeKey("Tab").defaultPrevented, false);
+    assert.equal(treeKey("ArrowDown", { ctrlKey: true }).defaultPrevented, false);
+    assert.equal(treeKey("ArrowDown", { isComposing: true }).defaultPrevented, false);
+    disposeTree(root);
+    treeKey("ArrowDown"); assert.equal(document.activeElement, model);
+    disposeTree(root); registerTree(null);
+});
+
+test("Browser tree expands and collapses through disclosure and recovers removed focus", async () => {
+    const root = createBrowserTree();
+    const [model, alpha] = root.querySelectorAll('[role="treeitem"]');
+    const children = model.querySelector('[role="group"]');
+    model.querySelector('.mb-project-browser-node__disclosure').addEventListener("click", () => {
+        const expanded = model.getAttribute("aria-expanded") === "true";
+        model.setAttribute("aria-expanded", String(!expanded));
+        if (expanded) { children.remove(); } else { model.append(children); }
+    });
+    model.focus(); treeKey("ArrowLeft"); assert.equal(model.getAttribute("aria-expanded"), "false");
+    treeKey("ArrowRight"); assert.equal(model.getAttribute("aria-expanded"), "true");
+    treeKey("ArrowRight"); assert.equal(document.activeElement, alpha);
+    children.remove(); await Promise.resolve();
+    assert.equal(document.activeElement, model);
+    assert.equal(model.tabIndex, 0);
+    disposeTree(root);
+});
+
+test("Browser tree type-ahead, selection changes and independent instances preserve local focus", async () => {
+    const first = createBrowserTree(), second = createBrowserTree();
+    const [model, alpha, beta, group] = first.querySelectorAll('[role="treeitem"]');
+    model.focus(); treeKey("b"); assert.equal(document.activeElement, beta);
+    treeKey("b"); assert.equal(document.activeElement, beta);
+    treeKey("Home"); treeKey("c"); treeKey("o"); assert.equal(document.activeElement, group);
+    treeKey("Home");
+    const secondModel = second.querySelector('[role="treeitem"]'); secondModel.focus();
+    alpha.setAttribute("aria-selected", "true"); await Promise.resolve();
+    assert.equal(document.activeElement, secondModel);
+    assert.equal(alpha.tabIndex, 0);
+    assert.equal(secondModel.tabIndex, 0);
+    beta.querySelector('.mb-project-browser-node__row').click(); assert.equal(document.activeElement, beta);
+    alpha.setAttribute("aria-selected", "false"); group.setAttribute("aria-selected", "true"); await Promise.resolve();
+    assert.equal(document.activeElement, beta);
+    assert.equal(beta.tabIndex, 0);
+    disposeTree(first); disposeTree(second);
+});

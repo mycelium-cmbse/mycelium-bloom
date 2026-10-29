@@ -14,14 +14,96 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using System.Reactive.Linq;
     using DynamicData.Binding;
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
+    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>, IAsyncDisposable
     {
+        /// <summary>The DOM tree whose focus belongs only to this Browser.</summary>
+        private ElementReference treeRoot;
+
+        /// <summary>The collocated tree keyboard and focus module.</summary>
+        private IJSObjectReference treeModule;
+
+        /// <summary>The shared in-flight module import, including disposal during initialization.</summary>
+        private Task treeInitialization;
+
+        /// <summary>Gets or sets the browser runtime used for local DOM focus.</summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>Registers local keyboard behavior after the loaded tree has rendered.</summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        /// <returns>The module initialization and root registration.</returns>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+            if (this.isDisposed || string.IsNullOrEmpty(this.treeRoot.Id))
+            {
+                return;
+            }
+            this.treeInitialization ??= this.InitializeTreeModuleAsync();
+            await this.treeInitialization;
+            if (!this.isDisposed && this.treeModule is { } module)
+            {
+                await module.InvokeVoidAsync("registerTree", this.treeRoot);
+            }
+        }
+
+        /// <summary>Imports the module without retaining a resource created after disposal.</summary>
+        /// <returns>The import operation.</returns>
+        private async Task InitializeTreeModuleAsync()
+        {
+            var module = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import",
+                "./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js");
+            if (this.isDisposed && module != null)
+            {
+                await module.DisposeAsync();
+            }
+            else
+            {
+                this.treeModule = module;
+            }
+        }
+
+        /// <summary>Releases local DOM listeners and the module without disposing the caller's ViewModel.</summary>
+        /// <returns>The asynchronous resource cleanup.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            this.Dispose();
+            try
+            {
+                if (this.treeInitialization != null)
+                {
+                    await this.treeInitialization;
+                }
+                if (this.treeModule is { } module)
+                {
+                    this.treeModule = null;
+                    try
+                    {
+                        await module.InvokeVoidAsync("disposeTree", this.treeRoot);
+                    }
+                    finally
+                    {
+                        await module.DisposeAsync();
+                    }
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit ended before browser cleanup could complete.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The browser reference was already released during initialization.
+            }
+        }
+
         /// <summary>
         /// Replaces the collection-change subscription when the caller supplies another ViewModel.
         /// </summary>
@@ -222,7 +304,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
-                this.isSearchAssistantOpen = false;
                 this.RequiredViewModel.FilterText = filterText ?? string.Empty;
             }
 
@@ -252,7 +333,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
-                this.isSearchAssistantOpen = false;
                 this.RequiredViewModel.ToggleElementTypeFilter(elementType);
             }
 
@@ -267,7 +347,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
-                this.isSearchAssistantOpen = false;
                 this.searchAssistantDraftResetVersion++;
                 this.RequiredViewModel.ClearFilter();
             }

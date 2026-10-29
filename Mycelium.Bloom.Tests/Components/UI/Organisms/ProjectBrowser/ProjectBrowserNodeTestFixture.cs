@@ -10,7 +10,6 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 {
     using System;
-    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
     using Bunit;
@@ -142,7 +141,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Find("[aria-label='Documentation']"), Is.Not.Null);
                 Assert.That(component.Markup, Does.Not.Contain("SYS"));
                 Assert.That(component.FindAll(".mb-project-browser-node__visibility"), Is.Empty);
-                var facets = component.Find(".mb-project-browser-node__row").Children.Select(child => child.ClassName).ToArray();
+                var facets = component.Find(".mb-project-browser-node__label").Children.Select(child => child.ClassName).ToArray();
                 Assert.That(Array.IndexOf(facets, "mb-project-browser-node__title"),
                     Is.LessThan(Array.IndexOf(facets, "mb-project-browser-node__type")));
                 Assert.That(Array.IndexOf(facets, "mb-project-browser-node__value"),
@@ -210,7 +209,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Find(".mb-project-browser-node__element-icon").GetAttribute("style"),
                     Does.Contain("icons/project-browser/folder.svg"));
                 Assert.That(component.Find("button.mb-project-browser-node__row").GetAttribute("title"),
-                    Is.EqualTo("Quantities - Library package"));
+                    Does.Contain("Quantities - Library package"));
                 Assert.That(component.FindAll("[data-testid='project-browser-node-disclosure']"), Is.Empty);
                 Assert.That(component.Find("[role='treeitem']").GetAttribute("aria-expanded"), Is.Null);
                 Assert.That(component.Markup, Does.Not.Contain("LibraryPackage"));
@@ -308,44 +307,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies node rows retain intrinsic content width for Project Browser horizontal scrolling.
+        /// Verifies the constrained visual row retains full semantic information for hover and assistive technology.
         /// </summary>
         [Test]
-        public void VerifyNodeStylePreservesIntrinsicWidthWithoutTitleEllipsis()
+        public void VerifyTruncatedRowRetainsFullAccessibleNotation()
         {
-            var repositoryRoot = TestRepository.GetRootPath();
-            var componentDirectory = Path.Combine(
-                repositoryRoot,
-                "Mycelium.Bloom",
-                "Components",
-                "UI",
-                "Organisms",
-                "ProjectBrowser");
-            var style = File.ReadAllText(Path.Combine(componentDirectory, "ProjectBrowserNode.razor.css"));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
-                    style,
-                    Does.Match(
-                        @"(?s)\.mb-project-browser-node\s*\{[^}]*box-sizing:\s*border-box;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
-                Assert.That(
-                    style,
-                    Does.Match(
-                        @"(?s)\.mb-project-browser-node__line\s*\{[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
-                Assert.That(
-                    style,
-                    Does.Match(
-                        @"(?s)\.mb-project-browser-node__title\s*\{[^}]*flex:\s*0\s+0\s+auto;[^}]*min-width:\s*max-content;[^}]*white-space:\s*nowrap;"));
-                Assert.That(
-                    style,
-                    Does.Not.Match(
-                        @"(?s)\.mb-project-browser-node__title\s*\{[^}]*text-overflow:"));
-                Assert.That(
-                    style,
-                    Does.Match(
-                        @"(?s)\.mb-project-browser-node__children\s*\{[^}]*width:\s*max-content;[^}]*min-width:\s*100%;"));
-            }
+            var model = BrowserAcceptanceModelTestFactory.CreateQuantity();
+            var node = new ProjectBrowserNodeViewModel("mass", model.Attribute.DeclaredName,
+                new ProjectBrowserNodeMetadata("mass", null, model.Attribute), []);
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
+                .Add(value => value.ViewModel, node));
+            var accessibleLabel = component.Find("[role='treeitem']").GetAttribute("aria-label");
+            Assert.That(accessibleLabel, Does.Contain(model.Attribute.DeclaredName).And.Contain("3[SI::kg]").And.Contain("«attribute»"));
+            Assert.That(component.Find(".mb-project-browser-node__row").GetAttribute("title"), Does.StartWith(accessibleLabel));
+            Assert.That(component.Find(".mb-project-browser-node__label").TextContent, Does.Contain(model.Attribute.DeclaredName));
+            Assert.That(component.Find(".mb-project-browser-node__row").GetAttribute("tabindex"), Is.EqualTo("-1"));
         }
 
         /// <summary>

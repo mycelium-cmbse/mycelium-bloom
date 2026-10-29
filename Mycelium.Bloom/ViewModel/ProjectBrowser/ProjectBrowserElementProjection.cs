@@ -79,6 +79,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 IComment or ITextualRepresentation or IMetadataUsage or ITransitionUsage
                     or IMultiplicity or IImport => true,
+                // The review explicitly groups SuccessionFlowUsage as a flow. Plain successions
+                // describe control sequencing on their owner, even when they also implement IUsage/IConnector.
+                IFlowUsage => false,
+                ISuccession => true,
                 // Domain usages (including constraints and calculations) may also be expressions.
                 // Their owning role and explicit detail-only kinds have already been checked.
                 IClassifier or IUsage or IConnector => false,

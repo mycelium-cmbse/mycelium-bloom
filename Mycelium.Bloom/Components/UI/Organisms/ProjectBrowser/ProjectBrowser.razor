@@ -77,7 +77,7 @@
             <span class="mb-project-browser__ownership-heading">OWN</span>
         </div>
         <div class="mb-project-browser__tree-viewport">
-            <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
+            <div @ref="this.treeRoot" class="mb-project-browser__tree" role="tree" aria-label="Project browser">
                 @if (this.RequiredViewModel.RootNodes.Count == 0)
                 {
                     <div class="mb-project-browser__empty">
@@ -95,6 +95,7 @@
                     @foreach (var node in visibleRootNodes)
                     {
                         <ProjectBrowserNode
+                            @key="node.Id"
                             ViewModel="node"
                             SelectedNode="@(this.RequiredViewModel.SelectedNode)"
                             Depth="0"

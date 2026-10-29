@@ -21,6 +21,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using BlazorBlueprint.Primitives.Services;
     using Bunit;
     using Microsoft.AspNetCore.Components.Web;
+    using Microsoft.AspNetCore.Components;
+    using Microsoft.Extensions.DependencyInjection;
     using Moq;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -205,7 +207,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         /// Verifies the tree retains its accessible semantics inside the independent scroll viewport.
         /// </summary>
         [Test]
-        public void VerifyTreeViewportPreservesAccessibleTreeAndIntrinsicWidthContract()
+        public void VerifyTreeViewportPreservesAccessibleTreeAndConstrainedWidth()
         {
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode(
                 "quantities/long",
@@ -263,7 +265,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-project-browser__tree\s*\{[^}]*flex:\s*0\s+0\s+auto;[^}]*width:\s*max-content;[^}]*min-width:\s*100%;[^}]*background:\s*transparent;"));
+                        @"(?s)\.mb-project-browser__tree\s*\{[^}]*flex:\s*0\s+0\s+auto;[^}]*width:\s*100%;[^}]*min-width:\s*0;[^}]*background:\s*transparent;"));
                 Assert.That(style, Does.Contain(".mb-project-browser__tree-viewport::-webkit-scrollbar-button"));
                 Assert.That(
                     overlayStyle,
@@ -1107,10 +1109,84 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Verifies native input cannot accept another interaction while an asynchronous criterion is committing.
+        /// Verifies delayed portal cleanup and callbacks from a previous opening cannot destroy the new opening.
         /// </summary>
         [Test]
-        public async Task VerifyUnifiedFieldWaitsForCriterionAcceptance()
+        public async Task VerifyRapidReopenSurvivesPreviousPortalCleanup()
+        {
+            await using var context = new BunitContext();
+            BlueprintTestSetup.Configure(context);
+            var cleanup = new DeferredPositioningCleanup();
+            var positioning = new Mock<IPositioningService>();
+            positioning.Setup(service => service.ComputePositionAsync(It.IsAny<ElementReference>(),
+                It.IsAny<ElementReference>(), It.IsAny<PositioningOptions>()))
+                .ReturnsAsync(new PositionResult { Placement = "bottom-start" });
+            positioning.Setup(service => service.ApplyPositionAsync(It.IsAny<ElementReference>(),
+                It.IsAny<PositionResult>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
+            positioning.Setup(service => service.HidePositionAsync(It.IsAny<ElementReference>())).Returns(Task.CompletedTask);
+            positioning.Setup(service => service.AutoUpdateAsync(It.IsAny<ElementReference>(),
+                It.IsAny<ElementReference>(), It.IsAny<PositioningOptions>())).ReturnsAsync(cleanup);
+            context.Services.AddSingleton(positioning.Object);
+            using var portal = context.Render<BbPortalHost>();
+            using var viewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+
+            using var component = context.Render<ProjectBrowserComponent>(parameters => parameters.Add(browser => browser.ViewModel, viewModel));
+            var persistentInput = component.FindComponent<SearchInputComponent>().Instance;
+            await component.Find("input[role='combobox']").ClickAsync();
+            await portal.WaitForElementAsync("[role='option']");
+            var previousId = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
+                .Instance.Popover.ContentId;
+            var previousCallback = GetSearchAssistantPopover(component).Instance.OpenChanged;
+            await portal.FindAll("[role='option']")
+                .Single(option => option.TextContent.Contains("«part»", StringComparison.Ordinal)).ClickAsync();
+            try
+            {
+                await cleanup.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                await component.Find("input[role='combobox']").ClickAsync();
+                var currentId = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
+                    .Instance.Popover.ContentId;
+                Assert.That(currentId, Is.Not.EqualTo(previousId));
+                Assert.That(component.Find(".mb-project-browser-search-assistant").Id,
+                    Is.EqualTo(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
+                        .Instance.Popover.TriggerId));
+                await portal.WaitForAssertionAsync(() =>
+                    Assert.That(portal.FindAll($"#{currentId}"), Has.Count.EqualTo(1)));
+                cleanup.Released.TrySetResult();
+                await portal.WaitForAssertionAsync(() =>
+                {
+                    Assert.That(portal.FindAll($"#{previousId}"), Is.Empty);
+                    Assert.That(portal.FindAll($"#{currentId}"), Has.Count.EqualTo(1));
+                });
+                await component.InvokeAsync(() => previousCallback.InvokeAsync(false));
+                Assert.That(component.Find("input[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(persistentInput));
+                await portal.Find($"#{currentId} button.mb-project-browser__clear-all").ClickAsync();
+                Assert.That(viewModel.SelectedElementTypes, Is.Empty);
+            }
+            finally
+            {
+                cleanup.Released.TrySetResult();
+            }
+        }
+
+        /// <summary>Holds only positioning teardown, reproducing the pinned portal's asynchronous unmount window.</summary>
+        private sealed class DeferredPositioningCleanup : IAsyncDisposable
+        {
+            public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public TaskCompletionSource Released { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public ValueTask DisposeAsync()
+            {
+                this.Started.TrySetResult();
+                return new ValueTask(this.Released.Task);
+            }
+        }
+
+        /// <summary>
+        /// Verifies a slow owner operation does not suppress the user's next input.
+        /// </summary>
+        [Test]
+        public async Task VerifyUnifiedFieldAcceptsInputWhileCriterionOwnerCompletes()
         {
             var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             using var assistant = this.Render<ProjectBrowserSearchAssistantComponent>(parameters => parameters
@@ -1123,8 +1199,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
             try
             {
-                await assistant.WaitForAssertionAsync(() =>
-                    Assert.That(assistant.Find("input[role='combobox']").HasAttribute("disabled"), Is.True));
+                Assert.That(assistant.Find("input[role='combobox']").HasAttribute("disabled"), Is.False);
+                await assistant.InvokeAsync(() => search.Instance.ValueChanged.InvokeAsync("next criterion"));
             }
             finally
             {
@@ -1132,6 +1208,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
             await acceptance;
             Assert.That(assistant.Find("input[role='combobox']").HasAttribute("disabled"), Is.False);
+            Assert.That(assistant.FindComponent<SearchInputComponent>().Instance, Is.SameAs(search.Instance));
+            Assert.That(assistant.Find("input[role='combobox']").GetAttribute("value"), Is.EqualTo("next criterion"));
         }
 
         /// <summary>
@@ -1155,7 +1233,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
             await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
             Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
-            Assert.That(component.FindComponents<BbPopoverContent>(), Is.Empty);
+            Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty);
             await component.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll("[role='option'][data-focused='true']"), Has.Count.EqualTo(1)));

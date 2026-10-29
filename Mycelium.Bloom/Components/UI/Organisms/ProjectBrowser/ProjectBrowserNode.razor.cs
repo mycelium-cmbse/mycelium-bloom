@@ -160,15 +160,36 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
             if (!string.IsNullOrWhiteSpace(viewModel.QualifiedName))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.QualifiedName} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{this.GetRowLabel()}\n{viewModel.QualifiedName} - {suffix}");
             }
 
             if (!string.IsNullOrWhiteSpace(viewModel.ElementId))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.ElementId} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{this.GetRowLabel()}\n{viewModel.ElementId} - {suffix}");
             }
 
-            return suffix;
+            return this.GetRowLabel();
+        }
+
+        /// <summary>Preserves full row information for assistive technology and the native hover tooltip.</summary>
+        /// <returns>The untruncated model notation, without invented values.</returns>
+        private string GetRowLabel()
+        {
+            var node = this.RequiredViewModel;
+            if (node.IsGroup)
+            {
+                return node.DisplayName;
+            }
+            var facets = new[]
+            {
+                node.DisplayName,
+                string.IsNullOrEmpty(node.Row.TypeLabel) ? null : $": {node.Row.TypeLabel}",
+                node.Multiplicity,
+                node.Row.ValueLabel == null ? null : $"= {node.Row.ValueLabel}",
+                node.Presentation.Stereotype,
+                node.Row.Visibility
+            };
+            return string.Join(" ", facets.Where(value => !string.IsNullOrEmpty(value)).Concat(node.Row.Indicators));
         }
 
         /// <summary>
