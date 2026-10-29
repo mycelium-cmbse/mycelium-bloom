@@ -1,0 +1,184 @@
+{
+  "checks": [
+    {
+      "theme": "light",
+      "sample": [
+        {
+          "class": "mb-project-browser-node__multiplicity",
+          "foreground": [
+            15,
+            118,
+            110
+          ],
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "ratio": 4.9565824930307
+        },
+        {
+          "class": "mb-project-browser-node__stereotype",
+          "foreground": [
+            15,
+            118,
+            110
+          ],
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "ratio": 4.9565824930307
+        },
+        {
+          "class": "mb-project-browser-node__type",
+          "foreground": [
+            15,
+            118,
+            110
+          ],
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "ratio": 4.9565824930307
+        },
+        {
+          "class": "mb-project-browser-node__value",
+          "foreground": [
+            15,
+            118,
+            110
+          ],
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "ratio": 4.9565824930307
+        },
+        {
+          "class": "mb-project-browser-node__visibility",
+          "foreground": [
+            15,
+            118,
+            110
+          ],
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "ratio": 4.9565824930307
+        },
+        {
+          "class": "mb-project-browser-node__indicator",
+          "foreground": [
+            15,
+            118,
+            110
+          ],
+          "background": [
+            232,
+            247,
+            242
+          ],
+          "ratio": 4.9565824930307
+        }
+      ]
+    },
+    {
+      "theme": "dark",
+      "sample": [
+        {
+          "class": "mb-project-browser-node__multiplicity",
+          "foreground": [
+            153,
+            163,
+            176
+          ],
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "ratio": 6.333719698816601
+        },
+        {
+          "class": "mb-project-browser-node__stereotype",
+          "foreground": [
+            153,
+            163,
+            176
+          ],
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "ratio": 6.333719698816601
+        },
+        {
+          "class": "mb-project-browser-node__type",
+          "foreground": [
+            153,
+            163,
+            176
+          ],
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "ratio": 6.333719698816601
+        },
+        {
+          "class": "mb-project-browser-node__value",
+          "foreground": [
+            153,
+            163,
+            176
+          ],
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "ratio": 6.333719698816601
+        },
+        {
+          "class": "mb-project-browser-node__visibility",
+          "foreground": [
+            153,
+            163,
+            176
+          ],
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "ratio": 6.333719698816601
+        },
+        {
+          "class": "mb-project-browser-node__indicator",
+          "foreground": [
+            153,
+            163,
+            176
+          ],
+          "background": [
+            18,
+            36,
+            31
+          ],
+          "ratio": 6.333719698816601
+        }
+      ]
+    }
+  ],
+  "method": "Chromium computed colours using branch CSS and tokens in isolated DOM after theme transition",
+  "sourceRevision": "cc737cb + uncommitted selected-text CSS correction"
+}
