@@ -43,6 +43,69 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserSemanticPlacementTestFixture
     {
+        private static readonly string[] ExpectedMixedChildIds = ["root/0", "root/5", "root/group/Connections", "root/group/Interfaces"];
+        private static readonly string[] ExpectedConnectionOccurrenceIds = ["root/1", "root/import/6"];
+        private static readonly string[] ExpectedAliasOccurrenceNames = ["Alias", "Imported alias"];
+        private static readonly string[] ExpectedAliasOccurrenceVisibilities = ["private", "protected"];
+
+        /// <summary>Preserves fallback indices and owner-local group order across owned, skipped and imported occurrences.</summary>
+        [Test]
+        public async Task VerifyMixedTraversalOrderAndFallbackIdentifiers()
+        {
+            var connection = new ConnectionUsage();
+            var hidden = new FeatureValue();
+            var root = new Mock<INamespace>();
+            root.SetupGet(element => element.ElementId).Returns("root");
+            root.SetupGet(element => element.ownedElement)
+                .Returns([new PartUsage(), connection, null, new InterfaceUsage(), hidden, new PartUsage()]);
+            root.SetupGet(element => element.importedMembership).Returns([
+                Mock.Of<IMembership>(), new Membership { MemberElement = hidden }, new Membership { MemberElement = connection }
+            ]);
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(root.Object);
+            using var browser = new ProjectBrowserViewModel(loader.Object, new ContextAwareService());
+            Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
+            var owner = browser.RootNodes.Single();
+            Assert.That(owner.Children.Select(child => child.Id), Is.EqualTo(ExpectedMixedChildIds));
+            var connections = owner.Children[2];
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(connections.Children.Select(child => child.Id), Is.EqualTo(ExpectedConnectionOccurrenceIds));
+                Assert.That(connections.Children.All(child => ReferenceEquals(child.SourceElement, connection)), Is.True);
+                Assert.That(connections.Children[0].Row.Indicators, Does.Not.Contain("Imported"));
+                Assert.That(connections.Children[1].Row.Indicators, Does.Contain("Imported"));
+                Assert.That(owner.FindPathTo(hidden), Is.EqualTo(new[] { owner }));
+            }
+        }
+
+        /// <summary>Prevents staged nodes and filter types from escaping when cancellation occurs during construction.</summary>
+        [Test]
+        public async Task VerifyCancellationDuringStagedConstructionDoesNotPublish()
+        {
+            using var cancellation = new CancellationTokenSource();
+            var root = new Mock<INamespace>();
+            root.SetupGet(element => element.ElementId).Returns("root");
+            root.SetupGet(element => element.ownedElement).Returns(() =>
+            {
+                cancellation.Cancel();
+                return [new PartUsage()];
+            });
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(root.Object);
+            var selection = new ContextAwareService();
+            using var browser = new ProjectBrowserViewModel(loader.Object, selection);
+            var initialized = await browser.InitializeAsync(cancellation.Token);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(initialized, Is.False);
+                Assert.That(browser.RootNodes, Is.Empty);
+                Assert.That(browser.AvailableElementTypes, Is.Empty);
+                Assert.That(browser.SelectedNode, Is.Null);
+                Assert.That(selection.SelectedElement, Is.Null);
+                Assert.That(browser.ErrorMessage, Is.Empty);
+            }
+        }
+
         /// <summary>Verifies known sequencing relationships cannot reach the broad connector/usage fallback.</summary>
         [TestCase(TypeArgs = [typeof(Succession)])]
         [TestCase(TypeArgs = [typeof(SuccessionAsUsage)])]
@@ -50,10 +113,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyGenericSuccessionsAreOwnerInformation<TElement>() where TElement : class, IElement, new()
         {
             var element = new TElement();
-            Assert.That(element, Is.InstanceOf<ISuccession>());
-            Assert.That(ProjectBrowserElementProjection.IsExcluded(element), Is.True);
-            Assert.That(ProjectBrowserElementProjection.IsNavigable(element), Is.False);
-            Assert.That(ProjectBrowserElementProjection.IsNavigable(new SuccessionFlowUsage()), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(element, Is.InstanceOf<ISuccession>());
+                Assert.That(ProjectBrowserElementProjection.IsExcluded(element), Is.True);
+                Assert.That(ProjectBrowserElementProjection.IsNavigable(element), Is.False);
+                Assert.That(ProjectBrowserElementProjection.IsNavigable(new SuccessionFlowUsage()), Is.True);
+            }
         }
 
         /// <summary>Preserves the canonical initial-state semantics and hidden succession navigation.</summary>
@@ -68,14 +134,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var owner = browser.RootNodes.Single();
             Assert.That(owner.Children.Select(node => node.SourceElement), Is.EqualTo(new[] { model.First, model.Initial }));
-            Assert.That(owner.Children[1].Row.Indicators, Does.Contain("Initial"));
-            Assert.That(owner.Children[1].SourceElement, Is.SameAs(model.Initial));
-            Assert.That(model.Succession.sourceFeature, Is.SameAs(model.Owner.entryAction));
-            Assert.That(model.Succession.targetFeature.Single(), Is.SameAs(model.Initial));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Children[1].Row.Indicators, Does.Contain("Initial"));
+                Assert.That(owner.Children[1].SourceElement, Is.SameAs(model.Initial));
+                Assert.That(model.Succession.sourceFeature, Is.SameAs(model.Owner.entryAction));
+                Assert.That(model.Succession.targetFeature.Single(), Is.SameAs(model.Initial));
+            }
             selection.SelectedElement = model.Succession;
             browser.FocusElement(model.Succession);
-            Assert.That(browser.SelectedNode, Is.SameAs(owner));
-            Assert.That(selection.SelectedElement, Is.SameAs(model.Succession));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browser.SelectedNode, Is.SameAs(owner));
+                Assert.That(selection.SelectedElement, Is.SameAs(model.Succession));
+            }
             browser.FocusElement(model.Succession.ownedElement.First());
             Assert.That(browser.SelectedNode, Is.SameAs(owner));
         }
@@ -135,9 +207,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
 
             first.SelectNode(group);
-            Assert.That(selection.SelectedElement, Is.Null);
-            Assert.That(group.IsExpanded, Is.True);
-            Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.Null);
+                Assert.That(group.IsExpanded, Is.True);
+                Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
+            }
             first.ToggleNode(group);
             first.ToggleElementTypeFilter(typeof(TElement));
             first.FilterText = "Needle";
@@ -294,23 +369,29 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var nodes = browser.RootNodes[0].Children;
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(nodes.Select(node => node.DisplayName), Is.EqualTo(new[] { "Alias", "Imported alias" }));
+                Assert.That(nodes.Select(node => node.DisplayName), Is.EqualTo(ExpectedAliasOccurrenceNames));
                 Assert.That(nodes.All(node => ReferenceEquals(node.SourceElement, shared)), Is.True);
                 Assert.That(nodes.Select(node => node.Id).Distinct().Count(), Is.EqualTo(2));
                 Assert.That(nodes[1].Row.Indicators, Does.Contain("Imported"));
                 Assert.That(nodes[0].Row.Indicators, Does.Not.Contain("Imported"));
                 Assert.That(nodes[0].OccurrenceMembership, Is.SameAs(alias));
                 Assert.That(nodes[1].OccurrenceMembership, Is.SameAs(imported));
-                Assert.That(nodes.Select(node => node.Row.Visibility), Is.EqualTo(new[] { "private", "protected" }));
+                Assert.That(nodes.Select(node => node.Row.Visibility), Is.EqualTo(ExpectedAliasOccurrenceVisibilities));
                 Assert.That(imported.Visibility, Is.EqualTo(SysML2.NET.Core.Root.Namespaces.VisibilityKind.Public));
             }
             browser.SelectNode(nodes[1]);
-            Assert.That(selection.SelectedElement, Is.SameAs(shared));
-            Assert.That(browser.SelectedNode, Is.SameAs(nodes[1]));
-            Assert.That(shared.DeclaredName, Is.EqualTo("Original"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(shared));
+                Assert.That(browser.SelectedNode, Is.SameAs(nodes[1]));
+                Assert.That(shared.DeclaredName, Is.EqualTo("Original"));
+            }
             browser.FocusElement(shared);
-            Assert.That(browser.SelectedNode, Is.SameAs(nodes[0]));
-            Assert.That(selection.SelectedElement, Is.SameAs(shared));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browser.SelectedNode, Is.SameAs(nodes[0]));
+                Assert.That(selection.SelectedElement, Is.SameAs(shared));
+            }
         }
 
         [Test]

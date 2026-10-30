@@ -39,6 +39,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserExpressionProjectionTestFixture
     {
+        private static readonly string[] ExpectedPublicOccurrenceVisibilities = ["public", "public"];
+
         [TestCase(TypeArgs = [typeof(Expression)])]
         [TestCase(TypeArgs = [typeof(OperatorExpression)])]
         [TestCase(TypeArgs = [typeof(FeatureChainExpression)])]
@@ -115,7 +117,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     Assert.That(canonical.SourceElement.owner, Is.SameAs(canonicalOwner.SourceElement));
                     Assert.That(aliasChild.OccurrenceMembership, Is.SameAs(canonical.OccurrenceMembership));
                     Assert.That(occurrences.Select(path => path[^1].Row.Visibility),
-                        Is.EqualTo(new[] { "public", "public" }));
+                        Is.EqualTo(ExpectedPublicOccurrenceVisibilities));
                     Assert.That(occurrences.All(path => !path[^1].Row.Indicators.Contains("Imported")), Is.True);
                 }
                 browser.SelectNode(aliasChild);
@@ -125,9 +127,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             var dimensionsNode = canonicalOwner.Children.Single(node => node.DisplayName == "dimensions");
             var dimensions = (IAttributeUsage)dimensionsNode.SourceElement;
-            Assert.That(dimensions.ElementId, Is.EqualTo("334779bf-6357-5adf-a7c5-ffb32c2ffd17"));
-            Assert.That(new DetailsPanelPresentation(dimensions).ExpressionNotations
-                .Select(expression => expression.TextualNotation.Text), Does.Contain("mRef.dimensions"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(dimensions.ElementId, Is.EqualTo("334779bf-6357-5adf-a7c5-ffb32c2ffd17"));
+                Assert.That(new DetailsPanelPresentation(dimensions).ExpressionNotations
+                    .Select(expression => expression.TextualNotation.Text), Does.Contain("mRef.dimensions"));
+            }
             var expression = Descendants(dimensions).OfType<IFeatureChainExpression>().Single();
             browser.FilterText = "dimensions";
             browser.FocusElement(expression);
@@ -174,9 +179,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     Assert.That(second.FilterText, Is.Empty);
                 }
             }
-            Assert.That(first.AvailableElementTypes, Does.Not.Contain(typeof(FeatureChainExpression)));
-            Assert.That(attribute.ownedElement, Does.Contain(chain));
-            Assert.That(input.ownedElement, Does.Contain(port));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.AvailableElementTypes, Does.Not.Contain(typeof(FeatureChainExpression)));
+                Assert.That(attribute.ownedElement, Does.Contain(chain));
+                Assert.That(input.ownedElement, Does.Contain(port));
+            }
         }
 
         private static IEnumerable<IElement> Descendants(IElement element)

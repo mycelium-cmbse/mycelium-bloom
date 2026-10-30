@@ -10,6 +10,9 @@
 namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 {
     using System.Linq;
+    using SysML2.NET.Core.POCO.Root.Annotations;
+    using SysML2.NET.Core.POCO.Systems.Metadata;
+    using SysML2.NET.Exceptions;
     using Moq;
     using Mycelium.Bloom.ViewModel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -31,6 +34,38 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserAcceptanceFacetsTestFixture
     {
+        private static readonly string[] ExpectedAnnotatedStateIndicators = ["Imported", "Documentation", "Metadata", "Variation", "Parallel"];
+        private static readonly string[] ExpectedIncompleteStateIndicators = ["Imported", "Metadata", "Variation", "Parallel"];
+
+        /// <summary>Keeps indicator order and valid sibling facets when documentation cannot be resolved.</summary>
+        [Test]
+        public void VerifyIndicatorOrderAndIndependentIncompleteFacets()
+        {
+            var state = new Mock<IStateUsage>();
+            state.SetupGet(element => element.IsVariation).Returns(true);
+            state.SetupGet(element => element.IsParallel).Returns(true);
+            state.SetupGet(element => element.documentation).Returns([new Documentation()]);
+            state.SetupGet(element => element.ownedElement).Returns([new MetadataUsage()]);
+            var membership = new Membership { Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private };
+            var importingNamespace = new Mock<INamespace>();
+            importingNamespace.Setup(element => element.VisibilityOf(membership))
+                .Returns(SysML2.NET.Core.Root.Namespaces.VisibilityKind.Protected);
+            var row = ProjectBrowserRowPresentation.For(state.Object, membership, true, importingNamespace.Object);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(row.Indicators, Is.EqualTo(ExpectedAnnotatedStateIndicators));
+                Assert.That(row.Visibility, Is.EqualTo("protected"));
+            }
+
+            state.SetupGet(element => element.documentation).Throws(new IncompleteModelException("Missing documentation"));
+            row = ProjectBrowserRowPresentation.For(state.Object, membership, true, importingNamespace.Object);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(row.Indicators, Is.EqualTo(ExpectedIncompleteStateIndicators));
+                Assert.That(row.Visibility, Is.EqualTo("protected"));
+            }
+        }
+
         [Test]
         public void VerifyInitialStateComesFromEntrySuccessionRatherThanNameOrOrder()
         {
@@ -82,9 +117,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             owner.SetupGet(element => element.ownedElement).Returns([model.Succession, transition.Object]);
             var state = new Mock<IStateUsage>();
             state.SetupGet(element => element.owner).Returns(owner.Object);
-            Assert.That(ProjectBrowserRowPresentation.For(state.Object).Indicators, Does.Not.Contain("Initial"));
-            Assert.That(ProjectBrowserRowPresentation.For(new StateUsage { DeclaredName = "Initial" }).Indicators,
-                Does.Not.Contain("Initial"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ProjectBrowserRowPresentation.For(state.Object).Indicators, Does.Not.Contain("Initial"));
+                Assert.That(ProjectBrowserRowPresentation.For(new StateUsage { DeclaredName = "Initial" }).Indicators,
+                    Does.Not.Contain("Initial"));
+            }
         }
 
         [TestCase("pass")]
@@ -128,10 +166,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var model = CreateVerification("pass");
             Own<FeatureValue>(model.Verification.result, new FeatureReferenceExpression());
-            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator =>
-                indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
-            Assert.That(ProjectBrowserRowPresentation.For(new VerificationCaseUsage()).Indicators.Any(indicator =>
-                indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator =>
+                    indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+                Assert.That(ProjectBrowserRowPresentation.For(new VerificationCaseUsage()).Indicators.Any(indicator =>
+                    indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+            }
         }
 
         [Test]

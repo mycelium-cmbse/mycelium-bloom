@@ -281,13 +281,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
                 var stagedNodeIds = new HashSet<string>(StringComparer.Ordinal);
                 var stagedAvailableElementTypes = new HashSet<Type>();
-                var rootNode = this.BuildNode(
-                    model,
-                    "root",
-                    stagedNodeIds,
-                    stagedAvailableElementTypes,
-                    initializationToken,
-                    isModelRoot: true);
+                var builder = new StagedTreeBuilder(stagedNodeIds, stagedAvailableElementTypes, initializationToken);
+                var rootNode = builder.BuildNode(model, "root", isModelRoot: true);
 
                 initializationToken.ThrowIfCancellationRequested();
 
@@ -511,83 +506,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Builds a project browser node without mutating published state.
-        /// </summary>
-        /// <param name="element">The SysML element represented by the node.</param>
-        /// <param name="fallbackId">The fallback identifier used when the element has no identifier.</param>
-        /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementTypes">The distinct navigable types found while staging.</param>
-        /// <param name="cancellationToken">Cancels staged tree construction.</param>
-        /// <param name="isModelRoot">Whether the element is the authoritative loaded model root.</param>
-        /// <param name="membership">The membership describing this particular occurrence.</param>
-        /// <param name="ancestors">The canonical identities on this occurrence's path, to stop reference cycles.</param>
-        /// <param name="isImported">Whether the SDK identifies this occurrence as an imported membership.</param>
-        /// <param name="importingNamespace">The namespace defining effective import visibility.</param>
-        /// <returns>The project browser node for the provided SysML element.</returns>
-        private ProjectBrowserNodeViewModel BuildNode(
-            IElement element,
-            string fallbackId,
-            HashSet<string> stagedNodeIds,
-            HashSet<Type> stagedElementTypes,
-            CancellationToken cancellationToken,
-            bool isModelRoot = false,
-            IMembership membership = null,
-            HashSet<IElement> ancestors = null,
-            bool isImported = false,
-            INamespace importingNamespace = null)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var elementType = element.GetType();
-
-            stagedElementTypes.Add(elementType);
-
-            var elementId = element.ElementId.ToDisplayString();
-            var nodeId = CreateUniqueNodeId(
-                stagedNodeIds,
-                string.IsNullOrWhiteSpace(elementId) ? fallbackId : elementId);
-            var hiddenElements = new List<IElement>();
-            var path = new HashSet<IElement>(ancestors ?? [], ReferenceEqualityComparer.Instance);
-            var children = path.Add(element) ? this.BuildChildren(
-                element,
-                nodeId,
-                stagedNodeIds,
-                stagedElementTypes,
-                hiddenElements, cancellationToken, path) : [];
-            string qualifiedName;
-            try
-            {
-                qualifiedName = element.qualifiedName.ToDisplayString();
-            }
-            catch (IncompleteModelException)
-            {
-                qualifiedName = string.Empty;
-            }
-
-            var displayName = ProjectBrowserElementProjection.GetDisplayName(
-                element,
-                isModelRoot,
-                out var uiDisplayLabel);
-            if (membership is not IOwningMembership && !string.IsNullOrWhiteSpace(membership?.MemberName))
-            {
-                displayName = membership.MemberName;
-            }
-            var metadata = new ProjectBrowserNodeMetadata(
-                elementId,
-                qualifiedName,
-                element,
-                hiddenElements,
-                isModelRoot,
-                uiDisplayLabel);
-
-            return new ProjectBrowserNodeViewModel(
-                nodeId,
-                displayName,
-                metadata,
-                children, membership, isImported, importingNamespace);
-        }
-
-        /// <summary>
         /// Clears the materialized tree after an initialization failure.
         /// </summary>
         private void ResetTree()
@@ -739,113 +657,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                    && source?.Contains(matchingText, StringComparison.OrdinalIgnoreCase) == true;
         }
 
-        /// <summary>
-        /// Builds child nodes from a SysML element's owned elements.
-        /// </summary>
-        /// <param name="element">The element whose owned elements are mapped.</param>
-        /// <param name="parentNodeId">The parent node identifier.</param>
-        /// <param name="stagedNodeIds">The node identifiers assigned while staging.</param>
-        /// <param name="stagedElementTypes">The distinct navigable types found while staging.</param>
-        /// <param name="hiddenElements">Elements associated with the nearest visible ancestor.</param>
-        /// <param name="cancellationToken">Cancels staged tree construction.</param>
-        /// <param name="membership">The transparent membership for this occurrence.</param>
-        /// <param name="ancestors">The canonical identities already visited on this occurrence's path.</param>
-        /// <returns>The child nodes for the provided element.</returns>
-        private List<ProjectBrowserNodeViewModel> BuildChildren(IElement element,
-            string parentNodeId,
-            HashSet<string> stagedNodeIds,
-            HashSet<Type> stagedElementTypes,
-            List<IElement> hiddenElements,
-            CancellationToken cancellationToken,
-            HashSet<IElement> ancestors,
-            IMembership membership = null)
-        {
-            var children = new List<ProjectBrowserNodeViewModel>();
-            hiddenElements.AddRange(element.OwnedRelationship?
-                .Where(relationship => relationship != null
-                                       && !ProjectBrowserElementProjection.IsNavigable(relationship)) ?? []);
-
-            var index = 0;
-            var ownedElements = element.ownedElement ?? [];
-            var occurrences = ownedElements.Concat(element.OwnedRelationship?
-                .OfType<IMembership>().Where(candidate => candidate is not IOwningMembership
-                    && candidate.MemberElement != null && !ownedElements.Contains(candidate)) ?? []);
-            if (element is IMembership and not IOwningMembership && membership?.MemberElement is { } member
-                && !ownedElements.Contains(member))
-            {
-                occurrences = occurrences.Append(member);
-            }
-
-            foreach (var childElement in occurrences)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (childElement != null)
-                {
-                    var childId = string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}");
-
-                    var occurrenceMembership = element as IMembership ?? membership ?? childElement.owningMembership;
-                    if (ProjectBrowserElementProjection.IsExcluded(childElement, occurrenceMembership))
-                    {
-                        hiddenElements.Add(childElement);
-                        AddOwnedDescendants(childElement, hiddenElements);
-                    }
-                    else if (ProjectBrowserElementProjection.IsElidedMembership(childElement))
-                    {
-                        hiddenElements.Add(childElement);
-                        children.AddRange(this.BuildChildren(
-                            childElement, childId, stagedNodeIds, stagedElementTypes,
-                            hiddenElements, cancellationToken, ancestors, childElement as IMembership));
-                    }
-                    else
-                    {
-                        children.Add(this.BuildNode(childElement, childId, stagedNodeIds, stagedElementTypes,
-                            cancellationToken, membership: occurrenceMembership, ancestors: ancestors));
-                    }
-                }
-
-                index++;
-            }
-
-            if (element is INamespace modelNamespace)
-            {
-                foreach (var imported in GetImportedMemberships(modelNamespace))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var importedElement = imported.MemberElement;
-                    if (importedElement == null || element.OwnedRelationship?.Contains(imported) == true)
-                    {
-                        continue;
-                    }
-                    if (ProjectBrowserElementProjection.IsExcluded(importedElement, imported))
-                    {
-                        hiddenElements.Add(imported);
-                        hiddenElements.Add(importedElement);
-                        AddOwnedDescendants(importedElement, hiddenElements);
-                        continue;
-                    }
-                    var childId = $"{parentNodeId}/import/{index++}";
-                    children.Add(this.BuildNode(importedElement, childId, stagedNodeIds, stagedElementTypes,
-                        cancellationToken, membership: imported, ancestors: ancestors, isImported: true,
-                        importingNamespace: modelNamespace));
-                }
-            }
-
-            // Group once at the visible owner, after traversing transparent memberships.
-            if (element is IMembership)
-            {
-                return children;
-            }
-
-            var result = children.Where(child => child.Group == null).ToList();
-            foreach (var group in children.Where(child => child.Group != null).GroupBy(child => child.Group))
-            {
-                var groupId = CreateUniqueNodeId(stagedNodeIds, $"{parentNodeId}/group/{group.Key}");
-                result.Add(new ProjectBrowserNodeViewModel(groupId, group.Key, group.ToArray()));
-            }
-            return result;
-        }
-
         /// <summary>Reads resolved imported memberships without inventing targets for incomplete imports.</summary>
         /// <param name="modelNamespace">The namespace supplying imported member occurrences.</param>
         /// <returns>The SDK's resolved imported memberships, or an empty set if unresolved.</returns>
@@ -907,6 +718,236 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
 
             return candidateId;
+        }
+
+        /// <summary>Owns mutable staging state for one construction, never published until the build succeeds.</summary>
+        private sealed class StagedTreeBuilder
+        {
+            /// <summary>The identifiers assigned during this build.</summary>
+            private readonly HashSet<string> stagedNodeIds;
+
+            /// <summary>The distinct navigable types encountered during this build.</summary>
+            private readonly HashSet<Type> stagedElementTypes;
+
+            /// <summary>Cancels construction without exposing partially built nodes.</summary>
+            private readonly CancellationToken cancellationToken;
+
+            /// <summary>Creates a builder confined to one initialization attempt.</summary>
+            /// <param name="stagedNodeIds">The build's unique occurrence identifiers.</param>
+            /// <param name="stagedElementTypes">The build's available filter types.</param>
+            /// <param name="cancellationToken">The initialization and lifetime cancellation token.</param>
+            public StagedTreeBuilder(HashSet<string> stagedNodeIds, HashSet<Type> stagedElementTypes, CancellationToken cancellationToken)
+            {
+                this.stagedNodeIds = stagedNodeIds;
+                this.stagedElementTypes = stagedElementTypes;
+                this.cancellationToken = cancellationToken;
+            }
+
+            /// <summary>
+            /// Builds a project browser node without mutating published state.
+            /// </summary>
+            /// <param name="element">The SysML element represented by the node.</param>
+            /// <param name="fallbackId">The fallback identifier used when the element has no identifier.</param>
+            /// <param name="isModelRoot">Whether the element is the authoritative loaded model root.</param>
+            /// <param name="membership">The membership describing this particular occurrence.</param>
+            /// <param name="ancestors">The canonical identities on this occurrence's path, to stop reference cycles.</param>
+            /// <param name="isImported">Whether the SDK identifies this occurrence as an imported membership.</param>
+            /// <param name="importingNamespace">The namespace defining effective import visibility.</param>
+            /// <returns>The project browser node for the provided SysML element.</returns>
+            public ProjectBrowserNodeViewModel BuildNode(
+                IElement element,
+                string fallbackId,
+                bool isModelRoot = false,
+                IMembership membership = null,
+                HashSet<IElement> ancestors = null,
+                bool isImported = false,
+                INamespace importingNamespace = null)
+            {
+                this.cancellationToken.ThrowIfCancellationRequested();
+
+                var elementType = element.GetType();
+
+                this.stagedElementTypes.Add(elementType);
+
+                var elementId = element.ElementId.ToDisplayString();
+                var nodeId = CreateUniqueNodeId(
+                    this.stagedNodeIds,
+                    string.IsNullOrWhiteSpace(elementId) ? fallbackId : elementId);
+                var hiddenElements = new List<IElement>();
+                var path = new HashSet<IElement>(ancestors ?? [], ReferenceEqualityComparer.Instance);
+                var children = path.Add(element) ? this.BuildChildren(
+                    element,
+                    nodeId,
+                    hiddenElements, path) : [];
+                string qualifiedName;
+                try
+                {
+                    qualifiedName = element.qualifiedName.ToDisplayString();
+                }
+                catch (IncompleteModelException)
+                {
+                    qualifiedName = string.Empty;
+                }
+
+                var displayName = ProjectBrowserElementProjection.GetDisplayName(
+                    element,
+                    isModelRoot,
+                    out var uiDisplayLabel);
+                if (membership is not IOwningMembership && !string.IsNullOrWhiteSpace(membership?.MemberName))
+                {
+                    displayName = membership.MemberName;
+                }
+                var metadata = new ProjectBrowserNodeMetadata(
+                    elementId,
+                    qualifiedName,
+                    element,
+                    hiddenElements,
+                    isModelRoot,
+                    uiDisplayLabel);
+
+                return new ProjectBrowserNodeViewModel(
+                    nodeId,
+                    displayName,
+                    metadata,
+                    children, membership, isImported, importingNamespace);
+            }
+
+            /// <summary>Traverses owned occurrences before imports and groups once at the visible owner.</summary>
+            /// <param name="element">The owner or transparent membership being traversed.</param>
+            /// <param name="parentNodeId">The parent occurrence identifier.</param>
+            /// <param name="hiddenElements">The visible owner's hidden navigation identities.</param>
+            /// <param name="ancestors">Canonical identities on this occurrence's path.</param>
+            /// <param name="membership">The transparent membership for this occurrence.</param>
+            /// <returns>The ordered children, grouped only for a visible owner.</returns>
+            private List<ProjectBrowserNodeViewModel> BuildChildren(IElement element,
+                string parentNodeId,
+                List<IElement> hiddenElements,
+                HashSet<IElement> ancestors,
+                IMembership membership = null)
+            {
+                var children = new List<ProjectBrowserNodeViewModel>();
+                hiddenElements.AddRange(element.OwnedRelationship?
+                    .Where(relationship => relationship != null
+                                           && !ProjectBrowserElementProjection.IsNavigable(relationship)) ?? []);
+
+                var index = this.AddOwnedChildren(element, parentNodeId, hiddenElements, ancestors, membership, children);
+                if (element is INamespace modelNamespace)
+                {
+                    this.AddImportedChildren(modelNamespace, parentNodeId, hiddenElements, ancestors, children, index);
+                }
+
+                // Group once at the visible owner, after traversing transparent memberships.
+                return element is IMembership ? children : this.GroupChildren(children, parentNodeId);
+            }
+
+            /// <summary>Enumerates owned elements, aliases and a transparent membership's referenced target in SDK order.</summary>
+            /// <param name="element">The owner or membership being traversed.</param>
+            /// <param name="membership">The transparent membership for this occurrence.</param>
+            /// <returns>The owned occurrences without collapsing repeated canonical identities.</returns>
+            private static IEnumerable<IElement> GetOwnedOccurrences(IElement element, IMembership membership)
+            {
+                var ownedElements = element.ownedElement ?? [];
+                var occurrences = ownedElements.Concat(element.OwnedRelationship?
+                    .OfType<IMembership>().Where(candidate => candidate is not IOwningMembership
+                        && candidate.MemberElement != null && !ownedElements.Contains(candidate)) ?? []);
+                if (element is IMembership and not IOwningMembership && membership?.MemberElement is { } member
+                    && !ownedElements.Contains(member))
+                {
+                    occurrences = occurrences.Append(member);
+                }
+
+                return occurrences;
+            }
+
+            /// <summary>Builds owned occurrences and associates excluded structure with the visible owner.</summary>
+            /// <param name="element">The owner or transparent membership being traversed.</param>
+            /// <param name="parentNodeId">The parent occurrence identifier.</param>
+            /// <param name="hiddenElements">The visible owner's hidden navigation identities.</param>
+            /// <param name="ancestors">Canonical identities on this occurrence's path.</param>
+            /// <param name="membership">The transparent membership for this occurrence.</param>
+            /// <param name="children">The ordered children being assembled.</param>
+            /// <returns>The next fallback index, including null and excluded owned occurrences.</returns>
+            private int AddOwnedChildren(IElement element, string parentNodeId, List<IElement> hiddenElements,
+                HashSet<IElement> ancestors, IMembership membership, List<ProjectBrowserNodeViewModel> children)
+            {
+                var index = 0;
+                foreach (var childElement in GetOwnedOccurrences(element, membership))
+                {
+                    this.cancellationToken.ThrowIfCancellationRequested();
+
+                    if (childElement != null)
+                    {
+                        var childId = string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}");
+
+                        var occurrenceMembership = element as IMembership ?? membership ?? childElement.owningMembership;
+                        if (ProjectBrowserElementProjection.IsExcluded(childElement, occurrenceMembership))
+                        {
+                            hiddenElements.Add(childElement);
+                            AddOwnedDescendants(childElement, hiddenElements);
+                        }
+                        else if (ProjectBrowserElementProjection.IsElidedMembership(childElement))
+                        {
+                            hiddenElements.Add(childElement);
+                            children.AddRange(this.BuildChildren(
+                                childElement, childId, hiddenElements, ancestors, childElement as IMembership));
+                        }
+                        else
+                        {
+                            children.Add(this.BuildNode(childElement, childId, membership: occurrenceMembership, ancestors: ancestors));
+                        }
+                    }
+
+                    index++;
+                }
+
+                return index;
+            }
+
+            /// <summary>Appends resolved imported occurrences with their effective namespace visibility.</summary>
+            /// <param name="modelNamespace">The namespace supplying imported memberships.</param>
+            /// <param name="parentNodeId">The parent occurrence identifier.</param>
+            /// <param name="hiddenElements">The visible owner's hidden navigation identities.</param>
+            /// <param name="ancestors">Canonical identities on this occurrence's path.</param>
+            /// <param name="children">The ordered children being assembled.</param>
+            /// <param name="index">The next fallback index after owned traversal.</param>
+            private void AddImportedChildren(INamespace modelNamespace, string parentNodeId, List<IElement> hiddenElements,
+                HashSet<IElement> ancestors, List<ProjectBrowserNodeViewModel> children, int index)
+            {
+                foreach (var imported in GetImportedMemberships(modelNamespace))
+                {
+                    this.cancellationToken.ThrowIfCancellationRequested();
+                    var importedElement = imported.MemberElement;
+                    if (importedElement == null || modelNamespace.OwnedRelationship?.Contains(imported) == true)
+                    {
+                        continue;
+                    }
+                    if (ProjectBrowserElementProjection.IsExcluded(importedElement, imported))
+                    {
+                        hiddenElements.Add(imported);
+                        hiddenElements.Add(importedElement);
+                        AddOwnedDescendants(importedElement, hiddenElements);
+                        continue;
+                    }
+                    var childId = $"{parentNodeId}/import/{index++}";
+                    children.Add(this.BuildNode(importedElement, childId, membership: imported, ancestors: ancestors, isImported: true,
+                        importingNamespace: modelNamespace));
+                }
+            }
+
+            /// <summary>Places structural children first, then synthetic groups in first-occurrence order.</summary>
+            /// <param name="children">The owned and imported children in traversal order.</param>
+            /// <param name="parentNodeId">The visible owner's occurrence identifier.</param>
+            /// <returns>The ordered structural rows and groups.</returns>
+            private List<ProjectBrowserNodeViewModel> GroupChildren(List<ProjectBrowserNodeViewModel> children, string parentNodeId)
+            {
+                var result = children.Where(child => child.Group == null).ToList();
+                foreach (var group in children.Where(child => child.Group != null).GroupBy(child => child.Group))
+                {
+                    var groupId = CreateUniqueNodeId(this.stagedNodeIds, $"{parentNodeId}/group/{group.Key}");
+                    result.Add(new ProjectBrowserNodeViewModel(groupId, group.Key, group.ToArray()));
+                }
+                return result;
+            }
         }
     }
 }

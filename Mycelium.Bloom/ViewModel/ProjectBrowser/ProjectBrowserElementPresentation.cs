@@ -46,6 +46,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     /// <param name="IsModelRoot">Whether this is the loaded model root.</param>
     public sealed record ProjectBrowserElementPresentation(string Kind, string Stereotype = null, string IconName = null, bool HasLeadingStereotype = false, bool IsModelRoot = false)
     {
+        private const string FolderIconName = "folder";
+
         /// <summary>Gets the contextual label for an unnamed element.</summary>
         public string UnnamedLabel => this.IsModelRoot && this.Kind == "Namespace" ? "Model" : this.Kind;
 
@@ -72,7 +74,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             "Action" or "Action definition" or "Perform action" => "activity",
             "Constraint" or "Constraint definition" or "Constraint assertion" => "square-equal",
             "Feature" => "diamond",
-            "Namespace" => "folder",
+            "Namespace" => FolderIconName,
             _ => "shapes"
         };
 
@@ -86,8 +88,8 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             ProjectBrowserElementPresentation presentation = elementType switch
             {
-                _ when typeof(ILibraryPackage).IsAssignableFrom(elementType) => new("Library package", "«library package»", "folder"),
-                _ when typeof(IPackage).IsAssignableFrom(elementType) => new("Package", "«package»", "folder"),
+                _ when typeof(ILibraryPackage).IsAssignableFrom(elementType) => new("Library package", "«library package»", FolderIconName),
+                _ when typeof(IPackage).IsAssignableFrom(elementType) => new("Package", "«package»", FolderIconName),
                 _ when typeof(IInterfaceDefinition).IsAssignableFrom(elementType) => new("Interface definition", "«interface def»"),
                 _ when typeof(IInterfaceUsage).IsAssignableFrom(elementType) => new("Interface", "«interface»"),
                 _ when typeof(IFlowDefinition).IsAssignableFrom(elementType) => new("Flow definition", "«flow def»"),
@@ -146,7 +148,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return presentation with
             {
                 Stereotype = stereotype,
-                HasLeadingStereotype = presentation.IconName is "folder" or "box",
+                HasLeadingStereotype = presentation.IconName is FolderIconName or "box",
                 IsModelRoot = isModelRoot
             };
         }

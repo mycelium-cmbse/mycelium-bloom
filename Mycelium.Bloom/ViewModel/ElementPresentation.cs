@@ -186,33 +186,10 @@ namespace Mycelium.Bloom.ViewModel
                 {
                     var arguments = operation.OwnedRelationship?.OfType<IParameterMembership>()
                         .Where(membership => membership is not IReturnParameterMembership).ToArray() ?? [];
-                    var count = arguments.Length;
-                    var validArity = operation.Operator switch
-                    {
-                        "+" or "-" => count is 1 or 2,
-                        "not" or "~" => count == 1,
-                        "if" => count == 3,
-                        "[" => count == 1 && operation.OwnedRelationship.OfType<IFeatureMembership>()
-                            .Any(member => member is not IParameterMembership
-                                && member.OwnedRelatedElement?.OfType<IExpression>().Count() == 1),
-                        "*" or "/" or "**" or "%" or "^" or "and" or "or" or "xor"
-                            or "==" or "!=" or "===" or "!==" or "<" or ">" or "<=" or ">="
-                            or "|" or "&" or ".." or "??" or "implies" => count == 2,
-                        "as" or "istype" or "hastype" or "@" or "@@" or "meta" => count is 1 or 2,
-                        "all" => count == 1,
-                        _ => false
-                    };
+                    var validArity = HasSupportedOperatorArity(operation, arguments.Length);
                     var acceptsTypeArgument = operation.Operator is "as" or "istype" or "hastype" or "@" or "@@" or "meta" or "all";
                     var hasDeferredArguments = operation.Operator is "??" or "or" or "and" or "implies" or "if";
-                    if (!validArity || arguments.Any(argument =>
-                        argument.ownedMemberParameter?.OwnedRelationship?.OfType<IFeatureValue>().ToArray() is not [{ value: not null }]
-                        && !(acceptsTypeArgument && argument.ownedMemberParameter?.OwnedRelationship?
-                            .OfType<IFeatureTyping>().Count(typing => typing.Type != null) == 1))
-                        || (hasDeferredArguments && arguments.Skip(1).Any(argument =>
-                            argument.ownedMemberParameter?.OwnedRelationship?.OfType<IFeatureValue>().FirstOrDefault()?.value
-                                is not IFeatureReferenceExpression deferred
-                            || deferred.OwnedRelationship?.OfType<IFeatureMembership>()
-                                .Any(member => member.OwnedRelatedElement?.OfType<IExpression>().Count() == 1) != true)))
+                    if (!validArity || !HasCompleteArguments(arguments, acceptsTypeArgument, hasDeferredArguments))
                     {
                         return false;
                     }
@@ -223,6 +200,47 @@ namespace Mycelium.Bloom.ViewModel
             {
                 path.Remove(element);
             }
+        }
+
+        /// <summary>Checks supported operator arity, including the separate quantity operand.</summary>
+        /// <param name="operation">The canonical operator expression.</param>
+        /// <param name="count">The number of non-return parameter memberships.</param>
+        /// <returns>Whether the operator has a supported operand structure.</returns>
+        private static bool HasSupportedOperatorArity(IOperatorExpression operation, int count)
+        {
+            return operation.Operator switch
+            {
+                "+" or "-" => count is 1 or 2,
+                "not" or "~" => count == 1,
+                "if" => count == 3,
+                "[" => count == 1 && operation.OwnedRelationship.OfType<IFeatureMembership>()
+                    .Any(member => member is not IParameterMembership
+                        && member.OwnedRelatedElement?.OfType<IExpression>().Count() == 1),
+                "*" or "/" or "**" or "%" or "^" or "and" or "or" or "xor"
+                    or "==" or "!=" or "===" or "!==" or "<" or ">" or "<=" or ">="
+                    or "|" or "&" or ".." or "??" or "implies" => count == 2,
+                "as" or "istype" or "hastype" or "@" or "@@" or "meta" => count is 1 or 2,
+                "all" => count == 1,
+                _ => false
+            };
+        }
+
+        /// <summary>Checks ordinary arguments before inspecting any deferred argument bodies.</summary>
+        /// <param name="arguments">The non-return parameter memberships in SDK order.</param>
+        /// <param name="acceptsTypeArgument">Whether a single resolved typing can supply an argument.</param>
+        /// <param name="hasDeferredArguments">Whether arguments after the first require deferred bodies.</param>
+        /// <returns>Whether every required value, type or deferred body is available.</returns>
+        private static bool HasCompleteArguments(IParameterMembership[] arguments, bool acceptsTypeArgument, bool hasDeferredArguments)
+        {
+            return !arguments.Any(argument =>
+                argument.ownedMemberParameter?.OwnedRelationship?.OfType<IFeatureValue>().ToArray() is not [{ value: not null }]
+                && !(acceptsTypeArgument && argument.ownedMemberParameter?.OwnedRelationship?
+                    .OfType<IFeatureTyping>().Count(typing => typing.Type != null) == 1))
+                && !(hasDeferredArguments && arguments.Skip(1).Any(argument =>
+                    argument.ownedMemberParameter?.OwnedRelationship?.OfType<IFeatureValue>().FirstOrDefault()?.value
+                        is not IFeatureReferenceExpression deferred
+                    || deferred.OwnedRelationship?.OfType<IFeatureMembership>()
+                        .Any(member => member.OwnedRelatedElement?.OfType<IExpression>().Count() == 1) != true));
         }
 
         /// <summary>

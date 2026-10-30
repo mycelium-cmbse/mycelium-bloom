@@ -144,7 +144,7 @@ export function registerTree(root) {
             case " ":
                 row(item)?.click();
                 break;
-            default:
+            default: {
                 if (event.key.length !== 1 || event.key.trim().length === 0) {
                     return;
                 }
@@ -157,6 +157,7 @@ export function registerTree(root) {
                 event.preventDefault();
                 setActive(target, true);
                 return;
+            }
         }
         prefix = "";
         event.preventDefault();

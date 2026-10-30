@@ -43,7 +43,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <returns>A read-only row snapshot.</returns>
         public static ProjectBrowserRowPresentation For(IElement element, IMembership membership = null, bool isImported = false, INamespace importingNamespace = null)
         {
-            var indicators = new List<string>();
             var typeLabel = Read(() => element is IFeature feature
                 ? string.Join(", ", (feature.type ?? []).Select(ElementPresentation.GetDisplayName))
                 : null);
@@ -53,23 +52,58 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var occurrenceMembership = membership ?? element.owningMembership;
             var visibility = Read(() => occurrenceMembership == null ? null
                 : (importingNamespace?.VisibilityOf(occurrenceMembership) ?? occurrenceMembership.Visibility).ToString().ToLowerInvariant());
+            return new(typeLabel, valueLabel, visibility, CreateIndicators(element, isImported));
+        }
+
+        /// <summary>Assembles supported indicators in their presentation order, retaining independent facet guards.</summary>
+        /// <param name="element">The canonical model element.</param>
+        /// <param name="isImported">Whether this occurrence is imported.</param>
+        /// <returns>The ordered model-backed indicators.</returns>
+        private static List<string> CreateIndicators(IElement element, bool isImported)
+        {
+            var indicators = new List<string>();
             if (isImported)
             {
                 indicators.Add("Imported");
             }
-
-            if (Read(() => element.documentation?.Count > 0
-                || element.ownedElement?.Any(child => child is IComment or ITextualRepresentation) == true
-                || element.ownedAnnotation?.Any(annotation =>
-                    annotation.annotatingElement is IComment or ITextualRepresentation) == true))
+            if (Read(() => HasDocumentation(element)))
             {
                 indicators.Add("Documentation");
             }
-            if (Read(() => element.ownedElement?.Any(child => child is IMetadataUsage) == true
-                || element.ownedAnnotation?.Any(annotation => annotation.annotatingElement is IMetadataUsage) == true))
+            if (Read(() => HasMetadata(element)))
             {
                 indicators.Add("Metadata");
             }
+            AddLibraryAndVariationIndicators(element, indicators);
+            AddBehaviorIndicators(element, indicators);
+            return indicators;
+        }
+
+        /// <summary>Recognizes documentation, comments and textual representations attached to the element.</summary>
+        /// <param name="element">The canonical model element.</param>
+        /// <returns>Whether a documentation facet is available.</returns>
+        private static bool HasDocumentation(IElement element)
+        {
+            return element.documentation?.Count > 0
+                || element.ownedElement?.Any(child => child is IComment or ITextualRepresentation) == true
+                || element.ownedAnnotation?.Any(annotation =>
+                    annotation.annotatingElement is IComment or ITextualRepresentation) == true;
+        }
+
+        /// <summary>Recognizes owned or annotated metadata usages.</summary>
+        /// <param name="element">The canonical model element.</param>
+        /// <returns>Whether a metadata facet is available.</returns>
+        private static bool HasMetadata(IElement element)
+        {
+            return element.ownedElement?.Any(child => child is IMetadataUsage) == true
+                || element.ownedAnnotation?.Any(annotation => annotation.annotatingElement is IMetadataUsage) == true;
+        }
+
+        /// <summary>Adds library and variation facets without treating enumerations as variations.</summary>
+        /// <param name="element">The canonical model element.</param>
+        /// <param name="indicators">The ordered indicators being assembled.</param>
+        private static void AddLibraryAndVariationIndicators(IElement element, List<string> indicators)
+        {
             if (element is ILibraryPackage library)
             {
                 indicators.Add("Library");
@@ -83,6 +117,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 indicators.Add("Variation");
             }
+        }
+
+        /// <summary>Adds conjugation, state and verification facets with their independent SDK guards.</summary>
+        /// <param name="element">The canonical model element.</param>
+        /// <param name="indicators">The ordered indicators being assembled.</param>
+        private static void AddBehaviorIndicators(IElement element, List<string> indicators)
+        {
             if (element is IPortUsage port && Read(() => port.isConjugated))
             {
                 indicators.Add("Conjugated");
@@ -100,8 +141,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 indicators.Add($"Verdict: {verdict}");
             }
-
-            return new(typeLabel, valueLabel, visibility, indicators);
         }
 
         /// <summary>Reads a single explicit value; multiple or absent values are not guessed.</summary>

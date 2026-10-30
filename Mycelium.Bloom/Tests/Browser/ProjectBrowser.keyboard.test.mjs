@@ -6,9 +6,11 @@ import { after, before, test } from "node:test";
 
 const { chromium } = createRequire(import.meta.url)(process.env.BLOOM_PLAYWRIGHT_MODULE || "playwright");
 const url = process.env.BLOOM_URL;
-assert.ok(url, "Set BLOOM_URL to the running published app");
 let browser;
-before(async () => { browser = await chromium.launch({ executablePath: process.env.BLOOM_CHROMIUM }); });
+before(async () => {
+    assert.ok(url, "Set BLOOM_URL to the running published app");
+    browser = await chromium.launch({ executablePath: process.env.BLOOM_CHROMIUM });
+});
 after(async () => { await browser?.close(); });
 
 async function open(t, delayed = false) {

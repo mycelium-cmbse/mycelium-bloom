@@ -238,7 +238,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindComponent<BlazorBlueprint.Icons.Lucide.Components.LucideIcon>().Instance.Name, Is.EqualTo(symbol));
-                Assert.That(component.Find(".mb-project-browser-node__fallback-icon svg").Children.Length, Is.GreaterThan(0));
+                Assert.That(component.Find(".mb-project-browser-node__fallback-icon svg").Children, Has.Length.GreaterThan(0));
                 Assert.That(component.Find(".mb-project-browser-node__stereotype").TextContent, Is.EqualTo(node.Presentation.Stereotype));
                 Assert.That(component.Find("[title='Visibility: private'] .sr-only").TextContent, Is.EqualTo("private"));
                 Assert.That(component.Find("[title='Visibility: private'] [aria-hidden='true']").TextContent, Is.EqualTo("−"));
@@ -321,10 +321,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
             var accessibleLabel = component.Find("[role='treeitem']").GetAttribute("aria-label");
-            Assert.That(accessibleLabel, Does.Contain(model.Attribute.DeclaredName).And.Contain("3[SI::kg]").And.Contain("«attribute»"));
-            Assert.That(component.Find(".mb-project-browser-node__row").GetAttribute("title"), Does.StartWith(accessibleLabel));
-            Assert.That(component.Find(".mb-project-browser-node__label").TextContent, Does.Contain(model.Attribute.DeclaredName));
-            Assert.That(component.Find(".mb-project-browser-node__row").GetAttribute("tabindex"), Is.EqualTo("-1"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(accessibleLabel, Does.Contain(model.Attribute.DeclaredName).And.Contain("3[SI::kg]").And.Contain("«attribute»"));
+                Assert.That(component.Find(".mb-project-browser-node__row").GetAttribute("title"), Does.StartWith(accessibleLabel));
+                Assert.That(component.Find(".mb-project-browser-node__label").TextContent, Does.Contain(model.Attribute.DeclaredName));
+                Assert.That(component.Find(".mb-project-browser-node__row").GetAttribute("tabindex"), Is.EqualTo("-1"));
+            }
         }
 
         /// <summary>

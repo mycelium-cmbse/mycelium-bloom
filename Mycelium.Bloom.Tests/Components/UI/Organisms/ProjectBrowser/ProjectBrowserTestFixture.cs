@@ -942,8 +942,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Single(item => item.TextContent.Contains("«part def»", StringComparison.Ordinal));
             Assert.That(option.TextContent, Does.Not.Contain("Selected type filter"));
             await option.ClickAsync();
-            Assert.That(selectedTypes, Is.EquivalentTo(new[] { typeof(PartDefinition) }));
-            Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion--type"), Has.Count.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectedTypes, Is.EquivalentTo(new[] { typeof(PartDefinition) }));
+                Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion--type"), Has.Count.EqualTo(1));
+            }
         }
 
         /// <summary>
@@ -1145,21 +1148,30 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 await component.Find("input[role='combobox']").ClickAsync();
                 var currentId = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
                     .Instance.Popover.ContentId;
-                Assert.That(currentId, Is.Not.EqualTo(previousId));
-                Assert.That(component.Find(".mb-project-browser-search-assistant").Id,
-                    Is.EqualTo(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
-                        .Instance.Popover.TriggerId));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(currentId, Is.Not.EqualTo(previousId));
+                    Assert.That(component.Find(".mb-project-browser-search-assistant").Id,
+                        Is.EqualTo(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
+                            .Instance.Popover.TriggerId));
+                }
                 await portal.WaitForAssertionAsync(() =>
                     Assert.That(portal.FindAll($"#{currentId}"), Has.Count.EqualTo(1)));
                 cleanup.Released.TrySetResult();
                 await portal.WaitForAssertionAsync(() =>
                 {
-                    Assert.That(portal.FindAll($"#{previousId}"), Is.Empty);
-                    Assert.That(portal.FindAll($"#{currentId}"), Has.Count.EqualTo(1));
+                    using (Assert.EnterMultipleScope())
+                    {
+                        Assert.That(portal.FindAll($"#{previousId}"), Is.Empty);
+                        Assert.That(portal.FindAll($"#{currentId}"), Has.Count.EqualTo(1));
+                    }
                 });
                 await component.InvokeAsync(() => previousCallback.InvokeAsync(false));
-                Assert.That(component.Find("input[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
-                Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(persistentInput));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.Find("input[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                    Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(persistentInput));
+                }
                 await portal.Find($"#{currentId} button.mb-project-browser__clear-all").ClickAsync();
                 Assert.That(viewModel.SelectedElementTypes, Is.Empty);
             }
@@ -1207,9 +1219,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 completion.SetResult();
             }
             await acceptance;
-            Assert.That(assistant.Find("input[role='combobox']").HasAttribute("disabled"), Is.False);
-            Assert.That(assistant.FindComponent<SearchInputComponent>().Instance, Is.SameAs(search.Instance));
-            Assert.That(assistant.Find("input[role='combobox']").GetAttribute("value"), Is.EqualTo("next criterion"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(assistant.Find("input[role='combobox']").HasAttribute("disabled"), Is.False);
+                Assert.That(assistant.FindComponent<SearchInputComponent>().Instance, Is.SameAs(search.Instance));
+                Assert.That(assistant.Find("input[role='combobox']").GetAttribute("value"), Is.EqualTo("next criterion"));
+            }
         }
 
         /// <summary>
@@ -1232,8 +1247,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(content.Instance.CloseOnClickOutside, Is.True);
             }
             await this.portalHost.Find("button[aria-label='Close project browser filters']").ClickAsync();
-            Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
-            Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
+                Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty);
+            }
             await component.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "ArrowDown" });
             await this.portalHost.WaitForAssertionAsync(() =>
                 Assert.That(this.portalHost.FindAll("[role='option'][data-focused='true']"), Has.Count.EqualTo(1)));
@@ -1302,8 +1320,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 await this.portalHost.FindAll("[role='option']")
                     .Single(option => option.TextContent.Contains(label, StringComparison.Ordinal)).ClickAsync();
             }
-            Assert.That(viewModel.SelectedElementTypes, Has.Count.EqualTo(2));
-            Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(3));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.SelectedElementTypes, Has.Count.EqualTo(2));
+                Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(3));
+            }
             await this.OpenUnifiedFiltersAsync(component);
             await this.portalHost.Find("button.mb-project-browser__clear-all").ClickAsync();
             using (Assert.EnterMultipleScope())
