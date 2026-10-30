@@ -111,6 +111,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             component.WaitForAssertion(() => Assert.That(component.FindAll("dl"), Is.Empty));
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void VerifySelfAndUnresolvedReferencesAreNotKeyboardControls(bool isSelfReference)
+        {
+            var selected = new PartUsage { DeclaredName = "Harness" };
+            var link = new ElementLinkPresentation("Target", isSelfReference ? selected : null, "Harness");
+            var component = this.Render<Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.PropertyReference>(parameters => parameters
+                .Add(reference => reference.Link, link)
+                .Add(reference => reference.SelectedElement, selected)
+                .Add(reference => reference.InspectRequested, _ => Assert.Fail("A read-only reference cannot navigate.")));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("span").TextContent.Trim(), Is.EqualTo("Harness"));
+                Assert.That(component.FindAll("button, a, [tabindex], [role='button']"), Is.Empty);
+            }
+        }
+
         [Test]
         public async Task VerifyOwnedAndCallerSuppliedViewModelLifetimes()
         {
