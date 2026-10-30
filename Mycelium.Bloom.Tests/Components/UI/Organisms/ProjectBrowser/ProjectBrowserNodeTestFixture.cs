@@ -35,6 +35,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectBrowserNodeTestFixture : BunitContext
     {
+        /// <summary>
+        /// The visible node titles expected for a deep filtered match.
+        /// </summary>
+        private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
+
         [Test]
         public void VerifyRecordedVerdictRendersAsAnAccessibleBadge()
         {
@@ -168,11 +173,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// The visible node titles expected for a deep filtered match.
-        /// </summary>
-        private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
-
-        /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
         [TearDown]
@@ -226,8 +226,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         public void VerifySemanticKindSymbols(System.Type elementType, string symbol)
         {
             var element = (IElement)Activator.CreateInstance(elementType);
-            var membership = new Membership { MemberElement = element,
-                Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private };
+            var membership = new Membership
+            {
+                MemberElement = element,
+                Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private
+            };
             var node = new ProjectBrowserNodeViewModel("element", "Readable name",
                 new ProjectBrowserNodeMetadata("element", null, element), [], membership);
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
