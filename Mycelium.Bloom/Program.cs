@@ -41,6 +41,7 @@ namespace Mycelium.Bloom
 
             builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
             builder.Services.AddReverseProxyOptions(builder.Configuration);
+            builder.Services.AddOrganizationServices(builder.Configuration);
 
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))

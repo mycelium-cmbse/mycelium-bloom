@@ -1,0 +1,38 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="OrganizationContextView.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.Components.UI.Molecules.ApplicationErrorState
+@using Mycelium.Bloom.ViewModel.Organization
+@inherits BloomReactiveComponentBase<IOrganizationContextViewModel>
+
+@if (this.ViewModel is { } viewModel)
+{
+    switch (viewModel.State)
+    {
+        case OrganizationContextState.Ready:
+            @(this.ChildContent)
+            break;
+        case OrganizationContextState.NotFound:
+            <ApplicationErrorState ViewModel="this.NotFoundViewModel" />
+            break;
+        case OrganizationContextState.Error:
+            <ApplicationErrorState ViewModel="this.ErrorViewModel" />
+            break;
+        case OrganizationContextState.Loading:
+            <div class="@(this.BuildRootCssClass("mb-organization-context-view"))"
+                 role="status"
+                 aria-live="polite"
+                 aria-busy="true">
+                <BbSkeleton Width="40%" Height="28px" />
+                <BbSkeleton Width="100%" Height="160px" />
+                <span class="sr-only">Loading</span>
+            </div>
+            break;
+    }
+}
