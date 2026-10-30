@@ -20,95 +20,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
     public sealed class DetailsPanelViewModelTestFixture
     {
         [Test]
-        public void VerifyBackPreservesCanonicalIdentityAndRepeatedInspectionDoesNotLoop()
-        {
-            var first = new Namespace { DeclaredName = "First" };
-            var second = new Namespace { DeclaredName = "Second", Id = first.Id };
-            var third = new Namespace { DeclaredName = "Third" };
-            var selection = new ContextAwareService { SelectedElement = first };
-            using var viewModel = new DetailsPanelViewModel(selection);
-            viewModel.Inspect(second);
-            viewModel.Inspect(second);
-            viewModel.Inspect(third);
-            viewModel.GoBack();
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(selection.SelectedElement, Is.SameAs(second));
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(second));
-                Assert.That(viewModel.CanGoBack, Is.True);
-            }
-            viewModel.Inspect(first);
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(selection.SelectedElement, Is.SameAs(first));
-                Assert.That(viewModel.CanGoBack, Is.False);
-            }
-            viewModel.GoBack();
-            Assert.That(selection.SelectedElement, Is.SameAs(first));
-        }
-
-        [Test]
-        public void VerifyExternalSelectionClearAndExplicitReselectionResetOnlyLocalHistory()
-        {
-            var first = new Namespace();
-            var second = new Namespace();
-            var external = new Namespace();
-            var selection = new ContextAwareService { SelectedElement = first };
-            using var viewModel = new DetailsPanelViewModel(selection);
-            using var other = new DetailsPanelViewModel(selection);
-            viewModel.Inspect(second);
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.CanGoBack, Is.True);
-                Assert.That(other.CanGoBack, Is.False);
-            }
-            viewModel.Refresh();
-            Assert.That(viewModel.CanGoBack, Is.True);
-            selection.SelectedElement = external;
-            Assert.That(viewModel.CanGoBack, Is.False);
-            viewModel.Inspect(first);
-            viewModel.ResetInspectionHistory();
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.CanGoBack, Is.False);
-                Assert.That(selection.SelectedElement, Is.SameAs(first));
-            }
-            viewModel.Inspect(second);
-            viewModel.ClearSelection();
-            viewModel.GoBack();
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.CanGoBack, Is.False);
-                Assert.That(selection.SelectedElement, Is.Null);
-            }
-        }
-
-        [Test]
-        public void VerifyInspectionHistoryIsBoundedAndDisposedPanelCannotNavigate()
-        {
-            var elements = Enumerable.Range(0, 40).Select(index => new Namespace { DeclaredName = $"Element {index}" }).ToArray();
-            var selection = new ContextAwareService { SelectedElement = elements[0] };
-            using var viewModel = new DetailsPanelViewModel(selection);
-            foreach (var element in elements.Skip(1)) viewModel.Inspect(element);
-            var count = 0;
-            while (viewModel.CanGoBack)
-            {
-                viewModel.GoBack();
-                Assert.That(++count, Is.LessThanOrEqualTo(32));
-            }
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(count, Is.EqualTo(32));
-                Assert.That(selection.SelectedElement, Is.SameAs(elements[7]));
-            }
-            viewModel.Inspect(elements[39]);
-            viewModel.Dispose();
-            viewModel.GoBack();
-            viewModel.ResetInspectionHistory();
-            Assert.That(selection.SelectedElement, Is.SameAs(elements[39]));
-        }
-
-        [Test]
         public void VerifyPresentationCachesSelectionAndSupportsExplicitRefresh()
         {
             var element = new Namespace { DeclaredName = "Initial" };
@@ -184,7 +95,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(selectionChanges, Is.EqualTo(2));
                 Assert.That(selection.SelectedElement, Is.SameAs(replacement));
                 Assert.That(viewModel.Presentation.Element, Is.SameAs(replacement));
-                Assert.That(viewModel.CanGoBack, Is.False);
             }
         }
 

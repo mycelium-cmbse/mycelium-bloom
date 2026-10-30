@@ -1,0 +1,42 @@
+{
+  "checks": [
+    {
+      "theme": "light",
+      "scroll": 513,
+      "fixedHeaderAndFooter": true,
+      "summaryScrollsWithBody": true
+    },
+    {
+      "theme": "light",
+      "keyboardFocus": {
+        "visible": true,
+        "style": "solid",
+        "width": "3px"
+      },
+      "keys": [
+        "ArrowRight",
+        "End",
+        "Home"
+      ]
+    },
+    {
+      "theme": "dark",
+      "scroll": 513,
+      "fixedHeaderAndFooter": true,
+      "summaryScrollsWithBody": true
+    },
+    {
+      "theme": "dark",
+      "keyboardFocus": {
+        "visible": true,
+        "style": "solid",
+        "width": "3px"
+      },
+      "keys": [
+        "ArrowRight",
+        "End",
+        "Home"
+      ]
+    }
+  ]
+}

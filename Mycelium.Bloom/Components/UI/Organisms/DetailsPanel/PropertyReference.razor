@@ -1,0 +1,41 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PropertyReference.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.ViewModel.DetailsPanel
+@using SysML2.NET.Core.POCO.Root.Elements
+
+@if (this.Link.Element is not null && !ReferenceEquals(this.Link.Element, this.SelectedElement))
+{
+    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Link" Class="@this.Class"
+              AriaLabel="@($"Inspect {this.Link.Role}: {this.Link.Label}")" OnClick="this.Inspect">
+        @if (this.ChildContent is not null) { @this.ChildContent } else { @this.Link.Label }
+    </BbButton>
+}
+else
+{
+    <span class="@this.Class">
+        @if (this.ChildContent is not null) { @this.ChildContent } else { @this.Link.Label }
+    </span>
+}
+
+@code {
+    /// <summary>Gets or sets the presentation's unchanged canonical reference.</summary>
+    [Parameter, EditorRequired] public ElementLinkPresentation Link { get; set; }
+    /// <summary>Gets or sets the selected element to suppress self-navigation.</summary>
+    [Parameter] public IElement SelectedElement { get; set; }
+    /// <summary>Gets or sets the visual treatment supplied by the parent.</summary>
+    [Parameter] public string Class { get; set; } = "mb-property-link";
+    /// <summary>Gets or sets optional rich link content.</summary>
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    /// <summary>Gets or sets the component-owned navigation callback.</summary>
+    [Parameter] public EventCallback<IElement> InspectRequested { get; set; }
+    /// <summary>Dispatches the captured canonical reference.</summary>
+    /// <returns>The navigation callback completion.</returns>
+    private Task Inspect() => this.InspectRequested.InvokeAsync(this.Link.Element);
+}

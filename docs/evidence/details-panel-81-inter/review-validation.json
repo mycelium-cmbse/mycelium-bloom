@@ -1,0 +1,422 @@
+{
+  "errors": [],
+  "sourceRevision": "c4ab9ae; production component restored unchanged; additional tab regression assertions",
+  "checks": [
+    {
+      "kind": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": "review-part-properties-light-380.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "mass\n    «attribute»ref= 3[SI::kg]"
+      ],
+      "file": "review-attribute-properties-light-380.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [],
+      "file": "review-state-properties-light-380.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "Part",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "width": 320,
+        "scrollWidth": 320,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": "review-part-properties-dark-320.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": "review-part-relations-light-380.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "Part",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "Part",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "Power_Harness\n    «part»composite3 attributes"
+      ],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "mass\n    «attribute»ref= 3[SI::kg]"
+      ],
+      "file": "review-attribute-comments-light-380.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "mass\n    «attribute»ref= 3[SI::kg]"
+      ],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "Attribute",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "mass\n    «attribute»ref= 3[SI::kg]"
+      ],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "Attribute",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [
+        "mass\n    «attribute»ref= 3[SI::kg]"
+      ],
+      "file": "review-attribute-attachments-dark-380.png",
+      "retainedCapture": true
+    },
+    {
+      "kind": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "State",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [],
+      "file": null,
+      "retainedCapture": false
+    },
+    {
+      "kind": "State",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "width": 380,
+        "scrollWidth": 380,
+        "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "inter": true
+      },
+      "fonts": [
+        {
+          "familyName": "Inter Variable",
+          "postScriptName": "InterVariable-Text-SemiBold",
+          "isCustomFont": true,
+          "glyphCount": 10
+        }
+      ],
+      "summary": [],
+      "file": null,
+      "retainedCapture": false
+    }
+  ],
+  "fixture": "Existing DetailsFixture POCOs with production components and self-hosted Inter"
+}

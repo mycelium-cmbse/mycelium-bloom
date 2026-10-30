@@ -45,8 +45,37 @@ namespace Mycelium.Bloom.Components.Layout
         /// <summary>The generic shell rendered by this layout.</summary>
         private WorkspaceShell workspaceShell;
 
-        /// <summary>The mounted Properties feature receiving explicit browser-selection intentions.</summary>
-        private Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel propertiesPanel;
+        /// <summary>The routed component owning the current Browser reveal callback.</summary>
+        private object browserRevealOwner;
+
+        /// <summary>The composition-owned callback exposed in the Properties footer.</summary>
+        private EventCallback<SysML2.NET.Core.POCO.Root.Elements.IElement> browserReveal;
+
+        /// <summary>Registers or releases a routed component's existing Browser navigation handler.</summary>
+        /// <param name="owner">The component owning the callback.</param>
+        /// <param name="callback">The reveal callback, or an empty value when the owner is disposed.</param>
+        private void RegisterBrowserReveal(object owner, EventCallback<SysML2.NET.Core.POCO.Root.Elements.IElement> callback)
+        {
+            if (this.isDisposed || !callback.HasDelegate && !ReferenceEquals(owner, this.browserRevealOwner))
+            {
+                return;
+            }
+            this.browserRevealOwner = callback.HasDelegate ? owner : null;
+            this.browserReveal = callback;
+            _ = this.InvokeAsync(this.StateHasChanged);
+        }
+
+        /// <summary>Reveals the chosen Browser and makes its workspace pane visible at compact widths.</summary>
+        /// <param name="element">The canonical element requested by Properties.</param>
+        /// <returns>The Browser reveal callback completion.</returns>
+        private async Task ShowInBrowser(SysML2.NET.Core.POCO.Root.Elements.IElement element)
+        {
+            await this.browserReveal.InvokeAsync(element);
+            if (!this.isDisposed)
+            {
+                this.workspaceShell?.RevealMainContent();
+            }
+        }
 
         /// <summary>Gets the region preferences owned solely by this layout.</summary>
         private WorkspaceLayoutViewModel LayoutState { get; } = new();
@@ -269,7 +298,6 @@ namespace Mycelium.Bloom.Components.Layout
         {
             if (!this.isDisposed)
             {
-                this.propertiesPanel?.ViewModel.ResetInspectionHistory();
                 this.LayoutState.PropertiesCollapsed = false;
                 this.workspaceShell?.RevealRightPanel();
             }

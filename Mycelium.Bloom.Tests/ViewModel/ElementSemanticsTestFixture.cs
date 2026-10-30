@@ -55,6 +55,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(identity["Effective name"], Is.EqualTo("dimensions"));
                 Assert.That(identity["Effective short name"], Is.EqualTo("dim"));
                 Assert.That(identity["Name source"], Does.Contain("SDK naming feature"));
+                var displayedIdentity = snapshot.ContentSections.Single(section => section.Title == "Identity").Properties.ToDictionary();
+                Assert.That(displayedIdentity["name"], Is.EqualTo("dimensions"));
+                Assert.That(displayedIdentity["shortName"], Is.EqualTo("dim"));
+                Assert.That(displayedIdentity["declaredName"], Is.EqualTo("Not declared"));
+                Assert.That(displayedIdentity["declaredShortName"], Is.EqualTo("Not declared"));
                 Assert.That(snapshot.ModelLinks.Single(link => link.Role == "Naming feature").Element, Is.SameAs(general));
                 Assert.That(specific.DeclaredName, Is.Null);
                 Assert.That(specific.DeclaredShortName, Is.Null);
@@ -80,17 +85,48 @@ namespace Mycelium.Bloom.Tests.ViewModel
         {
             var elements = Descendants(LoadQuantities()).OfType<IFeature>().ToArray();
             var dimensions = elements.Single(element => element.name == "dimensions");
+            var snapshot = new DetailsPanelPresentation(dimensions);
+            var value = dimensions.OwnedRelationship.OfType<IFeatureValue>().Single().value;
             var order = elements.Single(element => element.name == "order");
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(dimensions.DeclaredName, Is.Null);
                 Assert.That(dimensions.NamingFeature().name, Is.EqualTo("dimensions"));
                 Assert.That(dimensions.ownedRedefinition.Single().RedefinedFeature, Is.SameAs(dimensions.NamingFeature()));
+                Assert.That(snapshot.DisplayName, Is.EqualTo(ElementPresentation.GetDisplayName(dimensions)));
+                var identity = snapshot.ContentSections.Single(section => section.Title == "Identity").Properties.ToDictionary();
+                Assert.That(identity["name"], Is.EqualTo(dimensions.name));
+                Assert.That(identity["declaredName"], Is.EqualTo("Not declared"));
+                Assert.That(identity["qualifiedName"], Is.EqualTo("Quantities::TensorQuantityValue::dimensions"));
+                Assert.That(snapshot.DisplaySections.Where(section => section.Tab == "Relations" && section.Title == "Owned features")
+                    .SelectMany(section => section.Links).Any(link => ReferenceEquals(link.Element, value)), Is.False);
+                var references = snapshot.ContentSections.Single(section => section.Title == "Value references").Links;
+                Assert.That(references.Single(link => link.Role == "Value expression").Element, Is.SameAs(value));
+                Assert.That(references.Single(link => link.Role == "Value expression").Label, Is.EqualTo("mRef.dimensions"));
+                Assert.That(references.Single(link => link.Role == "Target").Element, Is.SameAs(dimensions.NamingFeature()));
+                Assert.That(references.Single(link => link.Role == "Reference").Label, Is.EqualTo("mRef"));
+                Assert.That(snapshot.DisplaySections.Single(section => section.Title == "Specializations / Type hierarchy")
+                    .Links.Single().Category, Is.EqualTo("specialization"));
                 Assert.That(new DetailsPanelPresentation(dimensions).Sections.Single(section => section.Title == "Value")
                     .Properties.Single().Value, Is.EqualTo("Local binding: mRef.dimensions"));
                 Assert.That(order.DeclaredName, Is.EqualTo("order"));
                 Assert.That(order.ownedRedefinition.Single().RedefinedFeature.name, Is.EqualTo("rank"));
                 Assert.That(ElementPresentation.GetDisplayName(order), Is.EqualTo("order"));
+            }
+        }
+
+        [Test]
+        public void VerifyAnonymousIdentityDoesNotUseADisplayFallbackAsAnSdkName()
+        {
+            var element = new AttributeUsage();
+            var presentation = new DetailsPanelPresentation(element);
+            var identity = presentation.ContentSections.Single(section => section.Title == "Identity").Properties.ToDictionary();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(identity["name"], Is.EqualTo("No effective name"));
+                Assert.That(identity["declaredName"], Is.EqualTo("Not declared"));
+                Assert.That(element.DeclaredName, Is.Null);
+                Assert.That(element.name, Is.Null);
             }
         }
 
@@ -130,9 +166,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(selection.SelectedElement, Is.SameAs(bound));
                 Assert.That(panel.Presentation.Expressions.Single().Reference, Is.SameAs(referenced));
             }
-            panel.GoBack();
+            panel.Inspect(range);
             Assert.That(selection.SelectedElement, Is.SameAs(range));
-            panel.GoBack();
+            panel.Inspect(feature);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selection.SelectedElement, Is.SameAs(feature));

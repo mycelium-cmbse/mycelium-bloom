@@ -1,0 +1,2796 @@
+{
+  "errors": [],
+  "assets": [],
+  "captures": [
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "light",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "light",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "light",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 380,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 380,
+          "height": 1000
+        },
+        "header": {
+          "width": 380,
+          "height": 46
+        },
+        "tabs": {
+          "width": 380,
+          "height": 38
+        },
+        "footer": {
+          "width": 380,
+          "height": 56
+        },
+        "scrollWidth": 380,
+        "body": {
+          "width": 380,
+          "height": 860,
+          "clientWidth": 380,
+          "scrollWidth": 380,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 320,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 320,
+          "height": 1000
+        },
+        "header": {
+          "width": 320,
+          "height": 46
+        },
+        "tabs": {
+          "width": 320,
+          "height": 38
+        },
+        "footer": {
+          "width": 320,
+          "height": 56
+        },
+        "scrollWidth": 320,
+        "body": {
+          "width": 320,
+          "height": 860,
+          "clientWidth": 320,
+          "scrollWidth": 320,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Part",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "Attribute",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Properties",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": {
+          "width": 112,
+          "height": 13,
+          "font": "11px"
+        },
+        "value": {
+          "font": "12px",
+          "lineHeight": "15px"
+        },
+        "selectedTabs": [
+          "Properties"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Relations",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Relations"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Comments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Comments"
+        ]
+      }
+    },
+    {
+      "item": "State",
+      "theme": "dark",
+      "width": 540,
+      "tab": "Attachments",
+      "geometry": {
+        "panel": {
+          "width": 540,
+          "height": 1000
+        },
+        "header": {
+          "width": 540,
+          "height": 46
+        },
+        "tabs": {
+          "width": 540,
+          "height": 38
+        },
+        "footer": {
+          "width": 540,
+          "height": 56
+        },
+        "scrollWidth": 540,
+        "body": {
+          "width": 540,
+          "height": 860,
+          "clientWidth": 540,
+          "scrollWidth": 540,
+          "scrollHeight": 860
+        },
+        "label": null,
+        "value": null,
+        "selectedTabs": [
+          "Attachments"
+        ]
+      }
+    }
+  ]
+}
