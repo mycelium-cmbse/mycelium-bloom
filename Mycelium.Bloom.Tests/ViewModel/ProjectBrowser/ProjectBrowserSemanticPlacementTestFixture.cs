@@ -268,16 +268,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public async Task VerifyAliasAndImportedOccurrencesKeepCanonicalIdentityAndMembershipData()
         {
             var shared = new PartUsage { ElementId = "shared", DeclaredName = "Original" };
-            var alias = new Membership { ElementId = "alias", MemberElement = shared, MemberName = "Alias",
-                Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private };
+            var alias = new Membership
+            {
+                ElementId = "alias",
+                MemberElement = shared,
+                MemberName = "Alias",
+                Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private
+            };
             var imported = new Membership { ElementId = "import", MemberElement = shared, MemberName = "Imported alias" };
             var source = CreateElement<SysML2.NET.Core.POCO.Kernel.Packages.Package>("source", "Library", shared);
             Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory.AddRelationship(source, imported);
             var root = new Namespace { ElementId = "root", DeclaredName = "Model" };
             Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory.AddRelationship(root, alias);
             Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory.AddRelationship(root,
-                new MembershipImport { ImportedMembership = imported,
-                    Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Protected });
+                new MembershipImport
+                {
+                    ImportedMembership = imported,
+                    Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Protected
+                });
             var loader = new Mock<IModelLoaderService>();
             loader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
             var selection = new ContextAwareService();
@@ -328,6 +336,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
+        /// <summary>Connects an owner to a child through the SDK containment collections of a new relationship.</summary>
+        /// <typeparam name="TMembership">The relationship type to instantiate.</typeparam>
+        /// <param name="owner">The element whose owned relationships receive the new relationship.</param>
+        /// <param name="child">The element added to the relationship's owned related elements.</param>
+        /// <returns>The attached relationship, allowing the test to configure its semantic role.</returns>
         private static TMembership Attach<TMembership>(IElement owner, IElement child)
             where TMembership : IRelationship, new()
         {
