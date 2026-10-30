@@ -53,13 +53,20 @@
                    ItemSelected="this.HandleItemSelectedAsync"
                    Compact="true" />;
 
+    RenderFragment navigation = presentation.Kind switch
+    {
+        OrganizationLocationKind.Organization => organizationSegments,
+        OrganizationLocationKind.Account => accountSegment,
+        _ => null
+    };
+
     @* The logo leads to the account dashboard, the home of an account. The segments and the account menu are
        empty until the context is ready, so nothing of a previous organization is shown while another loads. *@
     <div class="mb-organization-header">
         <AppHeader Compact="true"
                    AriaLabel="Bloom application header"
                    NavigationAriaLabel="Page navigation"
-                   NavigationContent="@(presentation.Kind == OrganizationLocationKind.Organization ? organizationSegments : presentation.Kind == OrganizationLocationKind.Account ? accountSegment : null)"
+                   NavigationContent="@(navigation)"
                    UserContent="@(presentation.HasAccount ? user : null)">
             <BrandContent>
                 <a class="mb-organization-header__brand" href="@(OrganizationRoutes.AccountPath)">

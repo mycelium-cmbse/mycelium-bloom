@@ -18,11 +18,6 @@ namespace Mycelium.Bloom.Core.Organization
     public static class OrganizationRoutes
     {
         /// <summary>
-        /// The route of the account dashboard.
-        /// </summary>
-        public const string AccountPath = "/" + AccountSegment;
-
-        /// <summary>
         /// The segment of the account dashboard.
         /// </summary>
         private const string AccountSegment = "account";
@@ -47,6 +42,11 @@ namespace Mycelium.Bloom.Core.Organization
             [OrganizationSection.Members] = "members",
             [OrganizationSection.Settings] = "settings"
         };
+
+        /// <summary>
+        /// Gets the route of the account dashboard.
+        /// </summary>
+        public static string AccountPath { get; } = $"/{AccountSegment}";
 
         /// <summary>
         /// Builds the route of a page of an organization.
