@@ -1,0 +1,27 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="OrganizationLayout.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Primitives.Services
+@inherits LayoutComponentBase
+
+@* The layout owns the organization context and its header state, and cascades the context to the pages.
+   The portal host is required by the menus of the header. *@
+<CascadingValue Value="this.ViewModel" IsFixed="true">
+    <div class="mb-organization-layout">
+        <OrganizationHeader ViewModel="this.HeaderViewModel" />
+
+        <main class="mb-organization-layout__main">
+            <OrganizationContextView ViewModel="this.ViewModel">
+                @(this.Body)
+            </OrganizationContextView>
+        </main>
+    </div>
+</CascadingValue>
+
+<BbPortalHost />

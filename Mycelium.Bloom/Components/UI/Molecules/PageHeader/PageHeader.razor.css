@@ -1,0 +1,38 @@
+.mb-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-16);
+    width: 100%;
+    min-width: 0;
+}
+
+.mb-page-header__text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    min-width: 0;
+}
+
+/* The Figma title is 28 px and semibold on a 40 px line; no single typography token carries all three yet. */
+.mb-page-header__title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: var(--text-28);
+    font-weight: var(--typography-typography-heading-md-font-weight);
+    line-height: var(--typography-typography-display-xl-line-height);
+}
+
+.mb-page-header__subtitle {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-body-sm-font-size);
+    font-weight: var(--typography-typography-body-sm-font-weight);
+}
+
+.mb-page-header__actions {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: var(--spacing-8);
+}

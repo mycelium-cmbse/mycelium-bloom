@@ -82,9 +82,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.BrandMark
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(svg, Does.Contain("viewBox=\"0 0 475 342\""));
+                Assert.That(svg, Does.Contain("viewBox=\"0 0 22 20\""));
                 Assert.That(svg, Does.Contain("fill=\"#0D9488\""));
-                Assert.That(svg, Does.Contain("M166.95 0.191986"));
+                Assert.That(svg, Does.Contain("M20.7499 3.55169"));
                 Assert.That(app, Does.Contain("type=\"image/svg+xml\""));
                 Assert.That(app, Does.Contain("this.Assets[\"brand/bloom-mark.svg\"]"));
             }
