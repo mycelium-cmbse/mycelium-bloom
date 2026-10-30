@@ -683,7 +683,7 @@ test("editor workspace key guards stay root-scoped and detach cleanly", () => {
     assert.equal(dispatchKey(splitter, "ArrowLeft").defaultPrevented, true);
     assert.equal(dispatchKey(input, "ArrowRight").defaultPrevented, false);
     assert.equal(dispatchKey(externalTab, "ArrowRight").defaultPrevented, false);
-    assert.equal(documentListenerCount, 0);
+    assert.equal(documentListenerCount, 1); // The Add tab fallback follows the owned trigger into its portal.
 
     unregisterWorkspaceGuards("workspace");
 
@@ -692,6 +692,72 @@ test("editor workspace key guards stay root-scoped and detach cleanly", () => {
 
     assert.equal(registerKeydownGuards("missing-workspace"), false);
 });
+
+test("Add tab opening fallback preserves End and activation, skips disabled items and detaches", () => {
+    createAddTabMenu();
+    registerWorkspaceGuards("workspace");
+    registerWorkspaceGuards("workspace");
+    const menu = document.getElementById("add-menu");
+    const last = document.getElementById("browser-action");
+    let selections = 0;
+    last.addEventListener("click", () => selections++);
+    menu.focus();
+    assert.equal(dispatchKey(menu, "End").defaultPrevented, true);
+    assert.equal(document.activeElement, last);
+    assert.equal(dispatchKey(last, "Enter").defaultPrevented, true);
+    assert.equal(selections, 1);
+    assert.equal(dispatchKey(last, " ").defaultPrevented, true);
+    assert.equal(selections, 2);
+    unregisterWorkspaceGuards("workspace");
+    menu.focus();
+    assert.equal(dispatchKey(menu, "End").defaultPrevented, false);
+    assert.equal(document.activeElement, menu);
+    assert.equal(dispatchKey(last, "Enter").defaultPrevented, false);
+    assert.equal(selections, 2);
+});
+
+test("Add tab fallback yields to Blueprint and excludes unrelated, stale and closed menus", () => {
+    createAddTabMenu();
+    registerWorkspaceGuards("workspace");
+    const menu = document.getElementById("add-menu");
+    const trigger = document.getElementById("add-trigger");
+    const first = document.getElementById("empty-action");
+    menu.focus();
+    menu.addEventListener("keydown", event => { event.preventDefault(); first.focus(); }, { once: true });
+    dispatchKey(menu, "End");
+    assert.equal(document.activeElement, first);
+    let selections = 0;
+    first.addEventListener("click", () => selections++);
+    menu.addEventListener("keydown", event => { event.preventDefault(); first.click(); }, { once: true });
+    dispatchKey(first, "Enter");
+    assert.equal(selections, 1);
+    trigger.setAttribute("aria-controls", "different-menu");
+    assert.equal(dispatchKey(menu, "End").defaultPrevented, false);
+    trigger.setAttribute("aria-controls", "add-menu");
+    trigger.setAttribute("aria-expanded", "false");
+    assert.equal(dispatchKey(menu, "End").defaultPrevented, false);
+    trigger.setAttribute("aria-expanded", "true");
+    trigger.parentElement.removeAttribute("data-testid");
+    assert.equal(dispatchKey(menu, "End").defaultPrevented, false);
+    trigger.parentElement.setAttribute("data-testid", "editor-workspace-add-tab-host");
+    assert.equal(dispatchKey(menu, "End", { ctrlKey: true }).defaultPrevented, false);
+    assert.equal(dispatchKey(document.getElementById("disabled-action"), "Enter").defaultPrevented, false);
+    document.body.append(trigger.parentElement);
+    assert.equal(dispatchKey(menu, "End").defaultPrevented, false);
+});
+
+function createAddTabMenu() {
+    document.body.innerHTML = `
+        <section id="workspace"><div data-testid="editor-workspace-add-tab-host">
+            <button id="add-trigger" aria-controls="add-menu" aria-expanded="true">Add tab</button>
+        </div></section>
+        <div id="add-menu" role="menu" aria-labelledby="add-trigger" tabindex="-1">
+            <div id="empty-action" role="menuitem" tabindex="-1">Empty editor</div>
+            <div id="browser-action" role="menuitem" tabindex="-1">Project Browser</div>
+            <div id="disabled-action" role="menuitem" aria-disabled="true" tabindex="-1">Unavailable</div>
+        </div>
+    `;
+}
 
 function registerSearch(registrationId, inputId, shortcut) {
     searchRegistrationIds.add(registrationId);
