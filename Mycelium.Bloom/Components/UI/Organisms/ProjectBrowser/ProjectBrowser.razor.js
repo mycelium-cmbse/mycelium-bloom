@@ -16,6 +16,38 @@ export function registerTree(root) {
     let ancestors = [];
     let prefix = "";
     let lastTyped = 0;
+    const pendingDisclosures = new WeakMap();
+
+    function toggleDisclosure(item) {
+        const button = disclosure(item);
+        const expanded = item.getAttribute("aria-expanded");
+        const pending = pendingDisclosures.get(item);
+        if (!button || (pending?.button === button && pending.expanded === expanded)) {
+            return;
+        }
+        // Blazor updates aria-expanded asynchronously. Repeating an arrow before
+        // that render must not enqueue a second toggle that reverses the first.
+        // A replacement disclosure (for example after filtering) starts fresh.
+        pendingDisclosures.set(item, { button, expanded });
+        button.click();
+    }
+
+    function revealRow(item) {
+        const viewport = root.closest('.mb-project-browser__tree-viewport');
+        const bounds = row(item)?.getBoundingClientRect();
+        if (!viewport || !bounds) {
+            return;
+        }
+        // Restrict scrolling to this Browser. A treeitem includes its descendants,
+        // and scrollIntoView can also move the surrounding workspace or document.
+        const top = viewport.getBoundingClientRect().top + viewport.clientTop;
+        const bottom = top + viewport.clientHeight;
+        if (bounds.top < top) {
+            viewport.scrollTop += bounds.top - top;
+        } else if (bounds.bottom > bottom) {
+            viewport.scrollTop += bounds.bottom - bottom;
+        }
+    }
 
     function setActive(item, moveFocus = false) {
         if (!item || !root.contains(item)) {
@@ -31,15 +63,18 @@ export function registerTree(root) {
         }
         if (moveFocus) {
             item.focus({ preventScroll: true });
-            item.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+            revealRow(item);
         }
     }
 
-    function repair() {
+    function repair(selectionChanged = false) {
         const visible = items();
         const focused = hasFocus || root.contains(document.activeElement);
-        if (active && root.contains(active) && focused) {
+        if (active && root.contains(active) && (focused || !selectionChanged)) {
             setActive(active);
+            if (focused) {
+                revealRow(active);
+            }
             return;
         }
         const target = focused
@@ -53,6 +88,7 @@ export function registerTree(root) {
         const item = event.target.closest('[role="treeitem"]');
         if (item && root.contains(item)) {
             setActive(item);
+            revealRow(item);
         }
     }
 
@@ -64,8 +100,16 @@ export function registerTree(root) {
     }
 
     function onFocusOut(event) {
-        if (!root.contains(event.relatedTarget) && (event.relatedTarget || event.target.isConnected)) {
-            hasFocus = false;
+        if (event.relatedTarget) {
+            hasFocus = root.contains(event.relatedTarget);
+        } else {
+            // Chromium fires blur before detaching a focused row. Check after
+            // removal so repair can recover its ancestor without stealing a Tab exit.
+            queueMicrotask(() => {
+                if (event.target.isConnected && !root.contains(document.activeElement)) {
+                    hasFocus = false;
+                }
+            });
         }
     }
 
@@ -84,14 +128,14 @@ export function registerTree(root) {
             case "End": target = visible.at(-1); break;
             case "ArrowRight":
                 if (item.getAttribute("aria-expanded") === "false") {
-                    disclosure(item)?.click();
+                    toggleDisclosure(item);
                 } else {
                     target = item.querySelector(':scope > [role="group"] > [role="treeitem"]');
                 }
                 break;
             case "ArrowLeft":
                 if (item.getAttribute("aria-expanded") === "true" && disclosure(item)) {
-                    disclosure(item).click();
+                    toggleDisclosure(item);
                 } else {
                     target = parent(item);
                 }
@@ -116,11 +160,20 @@ export function registerTree(root) {
         }
         prefix = "";
         event.preventDefault();
-        setActive(target, true);
+        setActive(target ?? item, true);
     }
 
-    const observer = new MutationObserver(repair);
-    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-selected"] });
+    const observer = new MutationObserver(records => {
+        for (const record of records) {
+            if (record.attributeName === "aria-expanded") {
+                pendingDisclosures.delete(record.target);
+            }
+        }
+        // Disclosure/content renders must retain the Tab return point. A genuine
+        // external selection may still choose a new entry point while focus is outside.
+        repair(records.some(record => record.attributeName === "aria-selected"));
+    });
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-selected", "aria-expanded"] });
     root.addEventListener("keydown", onKey);
     root.addEventListener("focusin", onFocus);
     root.addEventListener("focusout", onFocusOut);

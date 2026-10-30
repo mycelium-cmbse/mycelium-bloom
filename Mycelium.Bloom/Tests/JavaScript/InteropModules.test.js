@@ -871,3 +871,105 @@ test("Browser tree type-ahead, selection changes and independent instances prese
     assert.equal(beta.tabIndex, 0);
     disposeTree(first); disposeTree(second);
 });
+
+test("Browser arrow disclosure waits for the Blazor expansion render", async () => {
+    const root = createBrowserTree();
+    const model = root.querySelector('[role="treeitem"]');
+    let toggles = 0;
+    model.querySelector('.mb-project-browser-node__disclosure').addEventListener("click", () => toggles++);
+    model.focus();
+    treeKey("ArrowLeft"); treeKey("ArrowLeft");
+    assert.equal(toggles, 1, "repeated collapse must not enqueue an expansion");
+    model.setAttribute("aria-expanded", "false");
+    await Promise.resolve();
+    treeKey("ArrowRight"); treeKey("ArrowRight");
+    assert.equal(toggles, 2, "repeated expansion must not enqueue a collapse");
+    model.setAttribute("aria-expanded", "true");
+    await Promise.resolve();
+    treeKey("ArrowRight");
+    assert.equal(document.activeElement, model.querySelector('[role="treeitem"]'));
+    disposeTree(root);
+});
+
+test("Browser row reveal scrolls only its viewport and leaves visible rows stationary", () => {
+    const root = createBrowserTree();
+    const viewport = document.createElement("div");
+    viewport.className = "mb-project-browser__tree-viewport";
+    root.replaceWith(viewport); viewport.append(root);
+    viewport.getBoundingClientRect = () => ({ top: 100 });
+    Object.defineProperty(viewport, "clientHeight", { value: 100 });
+    viewport.scrollTop = 400;
+    const model = root.querySelector('[role="treeitem"]');
+    model.scrollIntoView = () => assert.fail("scrolling the subtree can leave its heading above the viewport");
+    const row = model.querySelector('.mb-project-browser-node__row');
+    row.scrollIntoView = () => assert.fail("scrollIntoView may also move workspace ancestors");
+    row.getBoundingClientRect = () => ({ top: 300 - viewport.scrollTop, bottom: 332 - viewport.scrollTop });
+    model.focus();
+    assert.equal(viewport.scrollTop, 200, "Tab/programmatic entry reveals a row above the viewport");
+    viewport.scrollTop = 0;
+    treeKey("Home");
+    assert.equal(viewport.scrollTop, 132, "Home reveals a row below the viewport");
+    treeKey("ArrowUp");
+    assert.equal(viewport.scrollTop, 132, "a boundary key must not disturb a visible row");
+    assert.equal(document.activeElement, model);
+    disposeTree(root);
+});
+
+test("Browser late content renders preserve the Tab return point without stealing outside focus", async () => {
+    const root = createBrowserTree();
+    const [model, alpha] = root.querySelectorAll('[role="treeitem"]');
+    model.setAttribute("aria-selected", "true");
+    await Promise.resolve();
+    alpha.focus();
+    const outside = document.createElement("button");
+    document.body.append(outside); outside.focus();
+    model.querySelector('.mb-project-browser-node__title').textContent = "Updated model";
+    await Promise.resolve();
+    assert.equal(document.activeElement, outside);
+    assert.equal(alpha.tabIndex, 0);
+    assert.equal(model.tabIndex, -1);
+    assert.equal(root.querySelectorAll('[tabindex="0"]').length, 1);
+    disposeTree(root);
+});
+
+test("Browser disclosure guards survive unrelated renders but not replaced controls or disposal", async () => {
+    const root = createBrowserTree();
+    const model = root.querySelector('[role="treeitem"]');
+    let toggles = 0;
+    root.addEventListener("click", event => {
+        if (event.target.matches('.mb-project-browser-node__disclosure')) { toggles++; }
+    });
+    model.focus(); treeKey("ArrowLeft");
+    model.setAttribute("aria-selected", "true");
+    await Promise.resolve();
+    treeKey("ArrowLeft");
+    assert.equal(toggles, 1, "an unrelated render does not release an in-flight toggle");
+    const button = model.querySelector('.mb-project-browser-node__disclosure');
+    // Filtering can remove a disclosure while its effective aria-expanded remains true.
+    button.replaceWith(button.cloneNode(true));
+    await Promise.resolve();
+    treeKey("ArrowLeft");
+    assert.equal(toggles, 2, "a newly rendered disclosure must not inherit stale pending state");
+    disposeTree(root); registerTree(root);
+    treeKey("ArrowLeft");
+    assert.equal(toggles, 3, "a fresh registration has no previous in-flight request");
+    disposeTree(root);
+});
+
+test("Browser focus recovery distinguishes pre-removal blur from leaving the tree", async () => {
+    const root = createBrowserTree();
+    const [model, alpha] = root.querySelectorAll('[role="treeitem"]');
+    alpha.focus();
+    // Chromium emits focusout while the removed target is still connected.
+    alpha.dispatchEvent(new window.FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
+    alpha.remove();
+    await Promise.resolve();
+    assert.equal(document.activeElement, model);
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    outside.focus();
+    model.setAttribute("aria-expanded", "false");
+    await Promise.resolve();
+    assert.equal(document.activeElement, outside, "an external focus target must not be stolen");
+    disposeTree(root);
+});
