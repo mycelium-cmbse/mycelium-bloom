@@ -47,7 +47,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 sections.Insert(0, new("Typing", [], [])
                 {
-                    Tab = "Relations", Layout = "relations", Count = typing.Count, Links = typing
+                    Tab = "Relations",
+                    Layout = "relations",
+                    Count = typing.Count,
+                    Links = typing
                 });
                 var hierarchy = sections.FindIndex(section => section.Title == "Specializations / Type hierarchy");
                 if (hierarchy >= 0)
@@ -65,7 +68,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 sections.Add(new("Owned features", [], [])
                 {
-                    Tab = "Relations", Layout = "relations", Links = ownedFeatures, Count = ownedFeatures.Length
+                    Tab = "Relations",
+                    Layout = "relations",
+                    Links = ownedFeatures,
+                    Count = ownedFeatures.Length
                 });
             }
 
@@ -99,7 +105,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var ordinary = states.Where(link => link.Element is IStateUsage { IsParallel: false }).ToArray();
             machine.Add(new("State usages", [], [])
             {
-                Layout = "cards", Count = ordinary.Length,
+                Layout = "cards",
+                Count = ordinary.Length,
                 Cards = ordinary.Select(link => CreateStateCard(link,
                     initial.Any(candidate => ReferenceEquals(candidate.Element, link.Element)))).ToArray()
             });
@@ -109,13 +116,16 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     .Where(state => state is not ITransitionUsage).ToArray();
                 machine.Add(new($"Parallel region · {region.Label}", [], [])
                 {
-                    Layout = "cards", Count = children.Length, Links = [region],
+                    Layout = "cards",
+                    Count = children.Length,
+                    Links = [region],
                     Cards = children.Select(state => CreateStateCard(Link("Nested state", state), false)).ToArray()
                 });
             }
             machine.Add(new("Transitions", [], [])
             {
-                Layout = "cards", Count = transitions.Length,
+                Layout = "cards",
+                Count = transitions.Length,
                 Cards = transitions.Select(section => new PropertyCardPresentation(section.Links[0], section.Links.Skip(1).ToArray())).ToArray()
             });
             sections.RemoveAll(section => section.Title is "State structure" or "Transitions");

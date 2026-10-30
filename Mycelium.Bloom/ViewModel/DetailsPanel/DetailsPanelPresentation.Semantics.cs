@@ -192,7 +192,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 structure.AddRange(states.Select(state => Link("Nested state", state)));
                 sections.Add(new("State structure", [new("Execution", parallel ? "Parallel" : "Exclusive")],
                         initial.Length == 0 && !parallel ? ["No unconditional initial state resolved"] : [])
-                    { Links = structure });
+                { Links = structure });
                 var actions = new List<ElementLinkPresentation>();
                 AddLink(actions, "Entry",
                     () => this.Element is IStateDefinition state
@@ -282,14 +282,14 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     sections.Add(new("Comments",
                             string.IsNullOrWhiteSpace(comment.Locale) ? [] : [new("Locale", comment.Locale)],
                             [comment.Body ?? ""])
-                        { Tab = "Comments", Links = [Link("Comment", comment)] });
+                    { Tab = "Comments", Links = [Link("Comment", comment)] });
                 }
 
                 if (annotation is ITextualRepresentation text)
                 {
                     sections.Add(new("Textual representation", [new("Language", text.Language ?? "Not specified")],
                             [text.Body ?? ""])
-                        { Tab = "Comments", Links = [Link("Representation", text)] });
+                    { Tab = "Comments", Links = [Link("Representation", text)] });
                 }
 
                 if (annotation is IMetadataUsage metadata)
@@ -321,7 +321,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     new("Recursive", import.IsRecursive.ToString().ToLowerInvariant()),
                     new("Import all", import.IsImportAll.ToString().ToLowerInvariant()),
                     new("Visibility", import.Visibility.ToString().ToLowerInvariant())
-                ], []) { Links = links, Tab = "Relations" });
+                ], [])
+                { Links = links, Tab = "Relations" });
             }
 
             var generalizations = new List<ElementLinkPresentation>();
@@ -344,7 +345,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             sections.Add(new("Specializations / Type hierarchy", [], hierarchyNotices)
-                { Links = generalizations, Tab = "Relations" });
+            { Links = generalizations, Tab = "Relations" });
             if (this.Element is IType conjugated && Read(() => conjugated.ownedConjugator, out _) is not null)
             {
                 var inherited = Read(() => conjugated.inheritedFeature, out var incomplete);
@@ -377,7 +378,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     sections.Add(new("Enumeration values", properties,
                             (documentation ?? []).Select(document => document.Body)
                             .Where(body => !string.IsNullOrWhiteSpace(body)).ToArray())
-                        { Links = [Link("Name", value)] });
+                    { Links = [Link("Name", value)] });
                 }
             }
 

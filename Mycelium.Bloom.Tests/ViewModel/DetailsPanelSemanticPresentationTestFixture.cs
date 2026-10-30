@@ -154,8 +154,13 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var root = new Namespace { DeclaredName = "Model" };
             Own<OwningMembership>(root, general);
             Own<OwningMembership>(root, owner);
-            AddRelationship(owner, new NamespaceImport { ImportedNamespace = imported, IsRecursive = true, IsImportAll = true,
-                Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private });
+            AddRelationship(owner, new NamespaceImport
+            {
+                ImportedNamespace = imported,
+                IsRecursive = true,
+                IsImportAll = true,
+                Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private
+            });
             AddRelationship(owner, new Specialization { General = general, Specific = owner });
             var sections = new DetailsPanelPresentation(owner).ContentSections;
             var import = sections.Single(section => section.Title == "Imports");
@@ -244,6 +249,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
             }
         }
 
+        /// <summary>Adds an owned end feature to a succession and links it to the target through reference subsetting.</summary>
+        /// <param name="succession">The succession that owns the new end through an end-feature membership.</param>
+        /// <param name="target">The canonical feature referenced by the new end.</param>
         private static void AddEnd(SuccessionAsUsage succession, IFeature target)
         {
             var end = new Feature { IsEnd = true };
