@@ -68,6 +68,25 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         private int appliedDraftResetVersion;
 
+        /// <summary>The stable field anchor, independent of each portalled suggestion lifetime.</summary>
+        private ElementReference searchAnchor;
+
+        /// <summary>The current trigger ID used by Blueprint to exclude the field from outside clicks.</summary>
+        private string searchAnchorId;
+
+        /// <summary>Synchronizes the persistent field with the current opening's trigger identity.</summary>
+        /// <param name="triggerId">The current Blueprint trigger ID.</param>
+        private void HandleSearchAnchorIdChanged(string triggerId)
+        {
+            this.searchAnchorId = triggerId;
+        }
+
+        /// <summary>The presentation identity of the current popover opening.</summary>
+        private long popoverGeneration;
+
+        /// <summary>The last controlled open state received from the Browser.</summary>
+        private bool wasOpen;
+
         /// <summary>
         /// Gets or sets the committed per-tab Contains criterion.
         /// </summary>
@@ -124,6 +143,35 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public EventCallback<Type> ElementTypeToggled { get; set; }
 
+        /// <summary>Gets or sets the callback that clears all ViewModel-owned criteria.</summary>
+        [Parameter]
+        public EventCallback ClearRequested { get; set; }
+
+        /// <summary>Opens the unified filter suggestions on deliberate pointer interaction.</summary>
+        /// <returns>The controlled open-state operation.</returns>
+        private Task HandleSearchClickAsync()
+        {
+            return this.SetOpenAsync(true);
+        }
+
+        /// <summary>Clears durable criteria and the draft, then returns focus to the unified field.</summary>
+        /// <returns>The reset and focus operation.</returns>
+        private Task HandleClearRequestedAsync()
+        {
+            return this.AcceptCriterionAsync(() => this.ClearRequested.InvokeAsync());
+        }
+
+        /// <summary>Completes dismissal and native draft synchronization before accepting another interaction.</summary>
+        /// <param name="commit">The owner operation for this criterion.</param>
+        /// <returns>The criterion acceptance operation.</returns>
+        private async Task AcceptCriterionAsync(Func<Task> commit)
+        {
+            await this.SetOpenAsync(false);
+            await this.ResetDraftInteractionAsync();
+            await commit();
+            this.shouldRestoreSearchFocusAfterRender = !this.IsOpen;
+        }
+
         /// <summary>
         /// Gets the normalized draft used for display and suggestion matching.
         /// </summary>
@@ -135,6 +183,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
+
+            if (this.IsOpen && !this.wasOpen)
+            {
+                this.popoverGeneration++;
+            }
+            this.wasOpen = this.IsOpen;
 
             if (this.appliedDraftResetVersion == this.DraftResetVersion)
             {
@@ -154,12 +208,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             await base.OnAfterRenderAsync(firstRender);
 
-            if (this.IsOpen && this.pendingNavigationDirection != 0 && this.suggestionListReference is not null)
-            {
-                var direction = this.pendingNavigationDirection;
-                this.pendingNavigationDirection = 0;
-                await this.suggestionListReference.MoveFocusAsync(direction);
-            }
+            await this.HandleContentReadyAsync();
 
             if (this.shouldClearSearchInputAfterRender && this.searchInputReference is not null)
             {
@@ -171,6 +220,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             {
                 this.shouldRestoreSearchFocusAfterRender = false;
                 await this.FocusSearchAsync();
+            }
+        }
+
+        /// <summary>Applies deferred navigation after the portalled command items have mounted.</summary>
+        /// <returns>The command navigation operation.</returns>
+        private async Task HandleContentReadyAsync()
+        {
+            if (this.IsOpen && this.pendingNavigationDirection != 0 && this.suggestionListReference is not null)
+            {
+                var direction = this.pendingNavigationDirection;
+                await this.suggestionListReference.MoveFocusAsync(direction);
+                if (this.suggestionListReference.HasFocusedSuggestion)
+                {
+                    this.pendingNavigationDirection = 0;
+                }
             }
         }
 
@@ -197,6 +261,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return this.IsOpenChanged.InvokeAsync(isOpen);
         }
 
+        /// <summary>Ignores callbacks from a disposed opening without suppressing current dismissals.</summary>
+        /// <returns>A controlled-state handler bound to this opening's identity.</returns>
+        private Func<bool, Task> GetPopoverOpenChangedHandler()
+        {
+            var generation = this.popoverGeneration;
+            return isOpen => generation == this.popoverGeneration
+                ? this.HandleOpenChanged(isOpen) : Task.CompletedTask;
+        }
+
         /// <summary>
         /// Updates the transient draft and opens only after a real edit produces useful content.
         /// </summary>
@@ -204,7 +277,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the callbacks.</returns>
         private async Task HandleDraftSearchTextChangedAsync(string updatedDraftText)
         {
-            this.draftSearchText = updatedDraftText ?? string.Empty;
+            var updatedText = updatedDraftText ?? string.Empty;
+            // ClearAsync synchronizes Blueprint through a native input event; its echo is not another edit.
+            if (updatedText == this.draftSearchText)
+            {
+                return;
+            }
+            this.draftSearchText = updatedText;
             this.hasEditedDraftInCurrentFocusSession = !string.IsNullOrWhiteSpace(this.Query);
             this.ResetSuggestionNavigation();
 
@@ -270,11 +349,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>A task representing the navigation operation.</returns>
         private async Task MoveSuggestionFocusAsync(int direction)
         {
-            if (string.IsNullOrWhiteSpace(this.Query) && !this.IsOpen)
-            {
-                return;
-            }
-
             this.hasNavigatedSuggestions = true;
 
             if (this.IsOpen)
@@ -318,12 +392,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         /// <param name="elementType">The accepted concrete element type.</param>
         /// <returns>A task representing the selection and focus restoration.</returns>
-        private async Task HandleElementTypeAcceptedAsync(Type elementType)
+        private Task HandleElementTypeAcceptedAsync(Type elementType)
         {
-            await this.ResetDraftInteractionAsync();
-            this.shouldRestoreSearchFocusAfterRender = true;
-            await this.ElementTypeToggled.InvokeAsync(elementType);
-            await this.SetOpenAsync(false);
+            return this.AcceptCriterionAsync(() => this.ElementTypeToggled.InvokeAsync(elementType));
         }
 
         /// <summary>
@@ -383,10 +454,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 return;
             }
 
-            await this.ResetDraftInteractionAsync();
-            this.shouldRestoreSearchFocusAfterRender = true;
-            await this.ContainsCommitted.InvokeAsync(committedText);
-            await this.SetOpenAsync(false);
+            await this.AcceptCriterionAsync(() => this.ContainsCommitted.InvokeAsync(committedText));
         }
 
         /// <summary>
@@ -424,7 +492,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Enumerates selected element types in the stable drawer order.
+        /// Enumerates selected element types in the stable suggestion order.
         /// </summary>
         /// <returns>The selected element types.</returns>
         private IEnumerable<Type> GetSelectedElementTypes()

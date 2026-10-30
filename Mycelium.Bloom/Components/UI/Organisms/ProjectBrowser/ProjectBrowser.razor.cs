@@ -14,33 +14,100 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using System.Reactive.Linq;
     using DynamicData.Binding;
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>
+    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>, IAsyncDisposable
     {
-        /// <summary>
-        /// The unique identifier of the filter drawer heading.
-        /// </summary>
-        private readonly string filterDrawerHeadingId = $"mb-project-browser-filter-heading-{Guid.NewGuid():N}";
+        /// <summary>The DOM tree whose focus belongs only to this Browser.</summary>
+        private ElementReference treeRoot;
 
-        /// <summary>
-        /// The unique identifier of the Type filter section heading.
-        /// </summary>
-        private readonly string typeFilterHeadingId = $"mb-project-browser-type-filter-heading-{Guid.NewGuid():N}";
+        /// <summary>The collocated tree keyboard and focus module.</summary>
+        private IJSObjectReference treeModule;
+
+        /// <summary>The shared in-flight module import, including disposal during initialization.</summary>
+        private Task treeInitialization;
+
+        /// <summary>Gets or sets the browser runtime used for local DOM focus.</summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>Registers local keyboard behavior after the loaded tree has rendered.</summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        /// <returns>The module initialization and root registration.</returns>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+            if (this.isDisposed || string.IsNullOrEmpty(this.treeRoot.Id))
+            {
+                return;
+            }
+            this.treeInitialization ??= this.InitializeTreeModuleAsync();
+            await this.treeInitialization;
+            if (!this.isDisposed && this.treeModule is { } module)
+            {
+                await module.InvokeVoidAsync("registerTree", this.treeRoot);
+            }
+        }
+
+        /// <summary>Imports the module without retaining a resource created after disposal.</summary>
+        /// <returns>The import operation.</returns>
+        private async Task InitializeTreeModuleAsync()
+        {
+            var module = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import",
+                "./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js");
+            if (this.isDisposed && module != null)
+            {
+                await module.DisposeAsync();
+            }
+            else
+            {
+                this.treeModule = module;
+            }
+        }
+
+        /// <summary>Releases local DOM listeners and the module without disposing the caller's ViewModel.</summary>
+        /// <returns>The asynchronous resource cleanup.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            this.Dispose();
+            try
+            {
+                if (this.treeInitialization != null)
+                {
+                    await this.treeInitialization;
+                }
+                if (this.treeModule is { } module)
+                {
+                    this.treeModule = null;
+                    try
+                    {
+                        await module.InvokeVoidAsync("disposeTree", this.treeRoot);
+                    }
+                    finally
+                    {
+                        await module.DisposeAsync();
+                    }
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit ended before browser cleanup could complete.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The browser reference was already released during initialization.
+            }
+        }
 
         /// <summary>
         /// Replaces the collection-change subscription when the caller supplies another ViewModel.
         /// </summary>
         private readonly SerialDisposable collectionChangesSubscription = new();
-
-        /// <summary>
-        /// The focus target inside the portalled filter drawer.
-        /// </summary>
-        private ElementReference filterDrawerReference;
 
         /// <summary>
         /// The presentation-only reset signal for the search assistant's transient draft.
@@ -51,11 +118,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// A value indicating whether the component has been disposed.
         /// </summary>
         private bool isDisposed;
-
-        /// <summary>
-        /// A value indicating whether this rendered browser's filter drawer is open.
-        /// </summary>
-        private bool isFilterDrawerOpen;
 
         /// <summary>
         /// A value indicating whether this rendered browser's transient search assistant is open.
@@ -152,7 +214,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.isDisposed = true;
-            this.isFilterDrawerOpen = false;
             this.isSearchAssistantOpen = false;
             this.collectionChangesSubscription.Dispose();
 
@@ -210,15 +271,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the number of active selectable values represented in the filter drawer.
-        /// </summary>
-        /// <returns>The number of selected element types.</returns>
-        private int GetActiveDrawerFilterCount()
-        {
-            return this.RequiredViewModel.SelectedElementTypes.Count;
-        }
-
-        /// <summary>
         /// Gets the Figma-aligned notation for a concrete model element type.
         /// </summary>
         /// <param name="elementType">The concrete model element type.</param>
@@ -232,47 +284,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets a value indicating whether an element type is selected in the owning ViewModel.
-        /// </summary>
-        /// <param name="elementType">The element type to inspect.</param>
-        /// <returns><see langword="true" /> when the type is selected; otherwise, <see langword="false" />.</returns>
-        private bool IsElementTypeSelected(Type elementType)
-        {
-            return this.RequiredViewModel.SelectedElementTypes.Contains(elementType);
-        }
-
-        /// <summary>
-        /// Tracks controlled open-state changes requested by the anchored filter popover.
-        /// </summary>
-        /// <param name="isOpen">Whether the filter drawer should be open.</param>
-        private void HandleFilterDrawerOpenChanged(bool isOpen)
-        {
-            if (!this.isDisposed)
-            {
-                this.isFilterDrawerOpen = isOpen;
-
-                if (isOpen)
-                {
-                    this.isSearchAssistantOpen = false;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Closes the search assistant before Blueprint toggles the complete filter drawer.
-        /// </summary>
-        /// <returns>A completed task.</returns>
-        private Task HandleFilterDrawerTriggerClickAsync()
-        {
-            if (!this.isDisposed)
-            {
-                this.isSearchAssistantOpen = false;
-            }
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
         /// Tracks controlled open-state changes requested by the search assistant.
         /// </summary>
         /// <param name="isOpen">Whether the search assistant should be open.</param>
@@ -281,38 +292,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             if (!this.isDisposed)
             {
                 this.isSearchAssistantOpen = isOpen;
-
-                if (isOpen)
-                {
-                    this.isFilterDrawerOpen = false;
-                }
             }
-        }
-
-        /// <summary>
-        /// Moves keyboard focus into the drawer after Blueprint has mounted and positioned its content.
-        /// </summary>
-        /// <returns>A task representing the focus operation.</returns>
-        private async Task HandleFilterDrawerContentReadyAsync()
-        {
-            if (!this.isDisposed && this.isFilterDrawerOpen)
-            {
-                await this.filterDrawerReference.FocusAsync(preventScroll: true);
-            }
-        }
-
-        /// <summary>
-        /// Closes the transient filter drawer while retaining ViewModel-owned criteria.
-        /// </summary>
-        /// <returns>A completed task.</returns>
-        private Task HandleFilterDrawerCloseAsync()
-        {
-            if (!this.isDisposed)
-            {
-                this.isFilterDrawerOpen = false;
-            }
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -324,7 +304,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
-                this.isSearchAssistantOpen = false;
                 this.RequiredViewModel.FilterText = filterText ?? string.Empty;
             }
 
@@ -354,7 +333,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
-                this.isSearchAssistantOpen = false;
                 this.RequiredViewModel.ToggleElementTypeFilter(elementType);
             }
 
@@ -369,7 +347,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             if (!this.isDisposed)
             {
-                this.isSearchAssistantOpen = false;
                 this.searchAssistantDraftResetVersion++;
                 this.RequiredViewModel.ClearFilter();
             }

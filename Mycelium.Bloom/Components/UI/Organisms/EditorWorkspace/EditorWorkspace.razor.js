@@ -99,8 +99,38 @@ export function registerKeydownGuards(workspaceId) {
         }
     };
 
+    // Blueprint 3.17 focuses its portal before asynchronously installing menu-keyboard.js.
+    // Preserve End and immediate activation in that gap, only for this workspace's Add tab menu.
+    // Bubble after Blueprint's handler, which prevents default when it has handled the key.
+    const addTabMenuHandler = event => {
+        if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey
+            || !["End", "Enter", " "].includes(event.key)) {
+            return;
+        }
+
+        const menu = event.target?.closest?.('[role="menu"]');
+        const trigger = document.getElementById(menu?.getAttribute("aria-labelledby"));
+        if (!menu?.isConnected || !workspace.contains(trigger)
+            || !trigger.closest('[data-testid="editor-workspace-add-tab-host"]')
+            || trigger.getAttribute("aria-controls") !== menu.id
+            || trigger.getAttribute("aria-expanded") !== "true") {
+            return;
+        }
+
+        const items = [...menu.querySelectorAll('[role="menuitem"]')]
+            .filter(item => item.getAttribute("aria-disabled") !== "true" && item.closest('[role="menu"]') === menu);
+        if (event.key === "End" && items.length > 0 && (event.target === menu || items.includes(event.target))) {
+            event.preventDefault();
+            items.at(-1).focus({ preventScroll: true });
+        } else if ((event.key === "Enter" || event.key === " ") && items.includes(event.target)) {
+            event.preventDefault();
+            event.target.click();
+        }
+    };
+
     workspace.addEventListener("keydown", handler);
-    keydownGuards.set(workspaceId, { workspace, handler });
+    document.addEventListener("keydown", addTabMenuHandler);
+    keydownGuards.set(workspaceId, { workspace, handler, addTabMenuHandler });
     return true;
 }
 
@@ -112,5 +142,6 @@ export function unregisterKeydownGuards(workspaceId) {
     }
 
     registration.workspace.removeEventListener("keydown", registration.handler);
+    document.removeEventListener("keydown", registration.addTabMenuHandler);
     keydownGuards.delete(workspaceId);
 }

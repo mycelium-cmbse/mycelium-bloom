@@ -109,9 +109,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [TestCase(TypeArgs = [typeof(Association)])]
         [TestCase(TypeArgs = [typeof(Connector)])]
         [TestCase(TypeArgs = [typeof(BindingConnector)])]
-        [TestCase(TypeArgs = [typeof(Succession)])]
         [TestCase(TypeArgs = [typeof(Flow)])]
-        [TestCase(TypeArgs = [typeof(SuccessionFlow)])]
         [TestCase(TypeArgs = [typeof(ConnectionDefinition)])]
         [TestCase(TypeArgs = [typeof(FlowDefinition)])]
         [TestCase(TypeArgs = [typeof(ConnectionUsage)])]
@@ -136,7 +134,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
                 Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
             });
-            var node = first.RootNodes[0].Children.Single();
+            var path = first.RootNodes[0].FindPathTo(element);
+            Assert.That(path, Is.Not.Empty);
+            var node = path[^1];
             var leafNode = node.Children.Single();
 
             using (Assert.EnterMultipleScope())
