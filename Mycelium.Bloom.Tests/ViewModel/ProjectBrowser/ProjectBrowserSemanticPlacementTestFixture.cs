@@ -189,8 +189,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selection = new ContextAwareService();
             using var first = new ProjectBrowserViewModel(loader.Object, selection);
             using var second = new ProjectBrowserViewModel(loader.Object, selection);
-            Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
-            Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
+                Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
+            }
             var group = first.RootNodes[0].Children.Single();
             var node = group.Children.Single();
 
