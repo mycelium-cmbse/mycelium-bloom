@@ -657,69 +657,6 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                    && source?.Contains(matchingText, StringComparison.OrdinalIgnoreCase) == true;
         }
 
-        /// <summary>Reads resolved imported memberships without inventing targets for incomplete imports.</summary>
-        /// <param name="modelNamespace">The namespace supplying imported member occurrences.</param>
-        /// <returns>The SDK's resolved imported memberships, or an empty set if unresolved.</returns>
-        private static IReadOnlyList<IMembership> GetImportedMemberships(INamespace modelNamespace)
-        {
-            try
-            {
-                return modelNamespace.importedMembership ?? [];
-            }
-            catch (IncompleteModelException)
-            {
-                return [];
-            }
-        }
-
-        /// <summary>
-        /// Associates an excluded subtree and its relationships with its canonical visible owner.
-        /// </summary>
-        /// <param name="element">The root of the excluded subtree.</param>
-        /// <param name="hiddenElements">The owner's hidden navigation identities.</param>
-        private static void AddOwnedDescendants(IElement element, ICollection<IElement> hiddenElements)
-        {
-            foreach (var relationship in element.OwnedRelationship ?? [])
-            {
-                hiddenElements.Add(relationship);
-            }
-            foreach (var child in element.ownedElement ?? [])
-            {
-                if (child == null)
-                {
-                    continue;
-                }
-
-                hiddenElements.Add(child);
-                AddOwnedDescendants(child, hiddenElements);
-            }
-        }
-
-        /// <summary>
-        /// Creates an identifier that is unique within the staged tree.
-        /// </summary>
-        /// <param name="stagedNodeIds">The identifiers already assigned.</param>
-        /// <param name="preferredId">The preferred node identifier.</param>
-        /// <returns>A unique project browser node identifier.</returns>
-        private static string CreateUniqueNodeId(HashSet<string> stagedNodeIds, string preferredId)
-        {
-            if (stagedNodeIds.Add(preferredId))
-            {
-                return preferredId;
-            }
-
-            var suffix = 2;
-            var candidateId = string.Create(CultureInfo.InvariantCulture, $"{preferredId}-{suffix}");
-
-            while (!stagedNodeIds.Add(candidateId))
-            {
-                suffix++;
-                candidateId = string.Create(CultureInfo.InvariantCulture, $"{preferredId}-{suffix}");
-            }
-
-            return candidateId;
-        }
-
         /// <summary>Owns mutable staging state for one construction, never published until the build succeeds.</summary>
         private sealed class StagedTreeBuilder
         {
@@ -810,6 +747,69 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     displayName,
                     metadata,
                     children, membership, isImported, importingNamespace);
+            }
+
+            /// <summary>Reads resolved imported memberships without inventing targets for incomplete imports.</summary>
+            /// <param name="modelNamespace">The namespace supplying imported member occurrences.</param>
+            /// <returns>The SDK's resolved imported memberships, or an empty set if unresolved.</returns>
+            private static IReadOnlyList<IMembership> GetImportedMemberships(INamespace modelNamespace)
+            {
+                try
+                {
+                    return modelNamespace.importedMembership ?? [];
+                }
+                catch (IncompleteModelException)
+                {
+                    return [];
+                }
+            }
+
+            /// <summary>
+            /// Associates an excluded subtree and its relationships with its canonical visible owner.
+            /// </summary>
+            /// <param name="element">The root of the excluded subtree.</param>
+            /// <param name="hiddenElements">The owner's hidden navigation identities.</param>
+            private static void AddOwnedDescendants(IElement element, ICollection<IElement> hiddenElements)
+            {
+                foreach (var relationship in element.OwnedRelationship ?? [])
+                {
+                    hiddenElements.Add(relationship);
+                }
+                foreach (var child in element.ownedElement ?? [])
+                {
+                    if (child == null)
+                    {
+                        continue;
+                    }
+
+                    hiddenElements.Add(child);
+                    AddOwnedDescendants(child, hiddenElements);
+                }
+            }
+
+            /// <summary>
+            /// Creates an identifier that is unique within the staged tree.
+            /// </summary>
+            /// <param name="stagedNodeIds">The identifiers already assigned.</param>
+            /// <param name="preferredId">The preferred node identifier.</param>
+            /// <returns>A unique project browser node identifier.</returns>
+            private static string CreateUniqueNodeId(HashSet<string> stagedNodeIds, string preferredId)
+            {
+                if (stagedNodeIds.Add(preferredId))
+                {
+                    return preferredId;
+                }
+
+                var suffix = 2;
+                var candidateId = string.Create(CultureInfo.InvariantCulture, $"{preferredId}-{suffix}");
+
+                while (!stagedNodeIds.Add(candidateId))
+                {
+                    suffix++;
+                    candidateId = string.Create(CultureInfo.InvariantCulture, $"{preferredId}-{suffix}");
+                }
+
+                return candidateId;
             }
 
             /// <summary>Traverses owned occurrences before imports and groups once at the visible owner.</summary>
