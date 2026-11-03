@@ -16,6 +16,7 @@
         transparent
     );
 
+    container: project-browser / inline-size;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -174,6 +175,13 @@
 .mb-project-browser__ownership-heading {
     width: var(--spacing-40);
     text-align: right;
+}
+
+/* The empty ownership column should not compete with names in narrow panels. */
+@container project-browser (max-width: 400px) {
+    .mb-project-browser__ownership-heading {
+        display: none;
+    }
 }
 
 .mb-project-browser__state,

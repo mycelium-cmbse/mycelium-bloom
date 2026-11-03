@@ -70,15 +70,13 @@
 }
 
 .mb-project-browser-node__label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.mb-project-browser-node__label > span + span {
-    margin-inline-start: var(--spacing-4);
 }
 
 .mb-project-browser-node__disclosure {
@@ -164,8 +162,10 @@
 }
 
 .mb-project-browser-node__title {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: var(--foreground);
     font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: var(--typography-typography-body-sm-font-size);
@@ -232,6 +232,32 @@
 .mb-project-browser-node__type {
     font-family: var(--font-sans), sans-serif;
     font-size: var(--typography-typography-body-sm-font-size);
+}
+
+/* Names and compact markers take priority; type/value text uses the remaining width. */
+.mb-project-browser-node__type,
+.mb-project-browser-node__value {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: max-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mb-project-browser-node__multiplicity {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Full notation remains in the treeitem label and row tooltip. */
+@container project-browser (max-width: 400px) {
+    .mb-project-browser-node__ownership,
+    .mb-project-browser-node__stereotype,
+    .mb-project-browser-node__visibility {
+        display: none;
+    }
 }
 
 .mb-project-browser-node__indicator {
