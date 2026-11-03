@@ -184,7 +184,10 @@
 }
 
 .mb-project-browser-node__multiplicity {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     color: light-dark(var(--collaborator-c12), var(--muted-foreground));
     font-family: var(--font-mono), monospace;
     font-size: var(--text-10);
@@ -240,13 +243,6 @@
     flex: 1 1 0;
     min-width: 0;
     max-width: max-content;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.mb-project-browser-node__multiplicity {
-    flex-shrink: 1;
-    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }

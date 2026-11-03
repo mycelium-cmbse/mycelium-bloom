@@ -27,7 +27,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// Synchronous disposal is inherited from ReactiveComponentBase and releases subscriptions through Dispose(bool).
     /// DisposeAsync also releases the JavaScript registration without blocking synchronous callers.
     /// </remarks>
-    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>, IDisposable, IAsyncDisposable
+    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>, IAsyncDisposable
     {
         /// <summary>
         /// The DOM tree whose focus belongs only to this Browser.
