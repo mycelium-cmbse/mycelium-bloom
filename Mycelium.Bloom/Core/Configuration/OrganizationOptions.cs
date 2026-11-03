@@ -23,7 +23,8 @@ namespace Mycelium.Bloom.Core.Configuration
 
         /// <summary>
         /// Gets or sets the role that the placeholder service gives to the current account in every organization,
-        /// so that every variant of every screen can be seen.
+        /// so that every variant of every screen can be seen. The administrator by default; a local
+        /// <c>appsettings.Development.json</c> can choose another role.
         /// </summary>
         public OrganizationRole PlaceholderRole { get; set; } = OrganizationRole.OrganizationAdministrator;
     }

@@ -14,15 +14,15 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
     /// <summary>
     /// Holds the fictional sample data that every placeholder organization service answers with.
     /// </summary>
+    /// <remarks>
+    /// Placeholder sample data, to be removed with the placeholder services when the Fabric client is bound.
+    /// </remarks>
     public static class OrganizationPlaceholderData
     {
         /// <summary>
         /// Gets the sample account, which belongs to every sample organization.
         /// </summary>
-        public static Account Account { get; } = new(
-            new Guid("8d6c2a54-3f1e-4b97-a6d2-0e5b7c914a30"),
-            "Demo Account",
-            "demo.account@example.org");
+        public static Account Account { get; } = new(new Guid("8d6c2a54-3f1e-4b97-a6d2-0e5b7c914a30"), "Demo Account", "demo.account@example.org");
 
         /// <summary>
         /// Gets the sample organizations.

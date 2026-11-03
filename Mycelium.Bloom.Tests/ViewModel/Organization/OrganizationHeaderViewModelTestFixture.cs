@@ -22,55 +22,31 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
 
-    /// <summary>
-    /// Tests the derivation of the header of the account and organization pages from the organization context.
-    /// </summary>
     [TestFixture]
     public sealed class OrganizationHeaderViewModelTestFixture
     {
-        /// <summary>
-        /// The sample account displayed by the header.
-        /// </summary>
-        private static readonly Account SampleAccount = new(Guid.NewGuid(), "Sample Account", "sample@example.org");
-
-        /// <summary>
-        /// The sample organization displayed by the header.
-        /// </summary>
-        private static readonly Organization SampleOrganization = new(Guid.NewGuid(), "orbital-systems", "Orbital Systems");
-
-        /// <summary>
-        /// The labels of the pages offered to an account that may edit the settings.
-        /// </summary>
         private static readonly string[] AllPageLabels = ["Overview", "Projects", "Members", "Settings"];
 
-        /// <summary>
-        /// The labels of the pages offered to an account that may not edit the settings.
-        /// </summary>
         private static readonly string[] PageLabelsWithoutSettings = ["Overview", "Projects", "Members"];
 
-        /// <summary>
-        /// The mocked organization context that the header follows.
-        /// </summary>
         private Mock<IOrganizationContextViewModel> context;
 
-        /// <summary>
-        /// Creates a ready context on the members page of an organization, with every capability.
-        /// </summary>
+        private Account account;
+
+        private Organization organization;
+
+        private OrganizationLocation membersPage;
+
         [SetUp]
         public void SetUp()
         {
+            this.account = new Account(Guid.NewGuid(), "Sample Account", "sample@example.org");
+            this.organization = new Organization(Guid.NewGuid(), "orbital-systems", "Orbital Systems");
+            this.membersPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
             this.context = new Mock<IOrganizationContextViewModel>();
-            this.SetContext(
-                OrganizationContextState.Ready,
-                OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members),
-                SampleAccount,
-                SampleOrganization,
-                new OrganizationCapabilities(true));
+            this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(true));
         }
 
-        /// <summary>
-        /// Verifies that an organization page shows the organization, its pages in order, the selected page and the account.
-        /// </summary>
         [Test]
         public void VerifyOrganizationPageShowsTheOrganizationItsPagesAndTheAccount()
         {
@@ -84,9 +60,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(presentation.OrganizationPath, Is.EqualTo("/organizations/orbital-systems"));
                 Assert.That(presentation.SectionLabel, Is.EqualTo("Members"));
                 Assert.That(presentation.SectionIcon, Is.EqualTo("users"));
-                Assert.That(
-                    presentation.SectionItems.Select(item => item.Label),
-                    Is.EqualTo(AllPageLabels));
+                Assert.That(presentation.SectionItems.Select(item => item.Label), Is.EqualTo(AllPageLabels));
                 Assert.That(presentation.SectionItems.Single(item => item.IsSelected).Label, Is.EqualTo("Members"));
                 Assert.That(presentation.SectionItems.Select(item => item.Id), Has.All.StartWith("/organizations/orbital-systems"));
                 Assert.That(presentation.HasAccount, Is.True);
@@ -95,33 +69,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
         }
 
-        /// <summary>
-        /// Verifies that the settings page is offered only to an account that may edit the settings.
-        /// </summary>
         [Test]
         public void VerifySettingsPageIsOfferedOnlyWhenTheCapabilityIsGranted()
         {
-            this.SetContext(
-                OrganizationContextState.Ready,
-                OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Overview),
-                SampleAccount,
-                SampleOrganization,
-                new OrganizationCapabilities(false));
+            this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(false));
 
             using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
 
-            Assert.That(
-                viewModel.Presentation.SectionItems.Select(item => item.Label),
-                Is.EqualTo(PageLabelsWithoutSettings));
+            Assert.That(viewModel.Presentation.SectionItems.Select(item => item.Label), Is.EqualTo(PageLabelsWithoutSettings));
         }
 
-        /// <summary>
-        /// Verifies that the account page shows the account menu and no organization segment.
-        /// </summary>
         [Test]
         public void VerifyAccountPageShowsTheAccountMenuOnly()
         {
-            this.SetContext(OrganizationContextState.Ready, OrganizationLocation.Account, SampleAccount, null, null);
+            this.SetContext(false, OrganizationLocation.Account, this.account, null, null);
 
             using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
             var presentation = viewModel.Presentation;
@@ -135,30 +96,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
         }
 
-        /// <summary>
-        /// Verifies that nothing stale is displayed while the context is not ready.
-        /// </summary>
-        /// <param name="state">The state of the context.</param>
-        [TestCase(OrganizationContextState.Loading)]
-        [TestCase(OrganizationContextState.NotFound)]
-        [TestCase(OrganizationContextState.Error)]
-        public void VerifyNothingIsDisplayedWhileTheContextIsNotReady(OrganizationContextState state)
+        [TestCase(true, true, true, true)]
+        [TestCase(false, false, true, true)]
+        [TestCase(false, true, false, true)]
+        [TestCase(false, true, true, false)]
+        public void VerifyNothingIsDisplayedUntilTheResolutionIsComplete(bool isLoading, bool hasAccount, bool hasOrganization, bool hasCapabilities)
         {
-            this.SetContext(
-                state,
-                OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members),
-                SampleAccount,
-                SampleOrganization,
-                new OrganizationCapabilities(true));
+            var capabilities = hasCapabilities ? new OrganizationCapabilities(true) : null;
+            this.SetContext(isLoading, this.membersPage, hasAccount ? this.account : null, hasOrganization ? this.organization : null, capabilities);
 
             using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
 
             Assert.That(viewModel.Presentation, Is.EqualTo(OrganizationHeaderPresentation.Empty));
         }
 
-        /// <summary>
-        /// Verifies that the header follows the context when the location changes and stops following once disposed.
-        /// </summary>
         [Test]
         public void VerifyHeaderFollowsTheContextUntilDisposed()
         {
@@ -166,18 +117,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             var announced = 0;
             viewModel.PropertyChanged += (_, _) => announced++;
 
-            this.SetContext(
-                OrganizationContextState.Ready,
-                OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Projects),
-                SampleAccount,
-                SampleOrganization,
-                new OrganizationCapabilities(true));
+            var projectsPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Projects);
+            this.SetContext(false, projectsPage, this.account, this.organization, new OrganizationCapabilities(true));
             this.context.Raise(model => model.PropertyChanged += null, new PropertyChangedEventArgs(nameof(IOrganizationContextViewModel.Location)));
             var followedLabel = viewModel.Presentation.SectionLabel;
 
             viewModel.Dispose();
-            this.SetContext(OrganizationContextState.Loading, OrganizationLocation.None, null, null, null);
-            this.context.Raise(model => model.PropertyChanged += null, new PropertyChangedEventArgs(nameof(IOrganizationContextViewModel.State)));
+            this.SetContext(true, OrganizationLocation.None, null, null, null);
+            this.context.Raise(model => model.PropertyChanged += null, new PropertyChangedEventArgs(nameof(IOrganizationContextViewModel.IsLoading)));
 
             using (Assert.EnterMultipleScope())
             {
@@ -187,37 +134,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
         }
 
-        /// <summary>
-        /// Verifies that nothing is displayed while the properties of a new resolution are announced one by one and the
-        /// account, the organization or the capabilities are not yet in place.
-        /// </summary>
-        /// <param name="hasAccount">A value indicating whether the account is already in place.</param>
-        /// <param name="hasOrganization">A value indicating whether the organization is already in place.</param>
-        /// <param name="hasCapabilities">A value indicating whether the capabilities are already in place.</param>
-        [TestCase(false, true, true)]
-        [TestCase(true, false, true)]
-        [TestCase(true, true, false)]
-        public void VerifyNothingIsDisplayedWhileTheResolutionIsIncomplete(
-            bool hasAccount,
-            bool hasOrganization,
-            bool hasCapabilities)
-        {
-            this.SetContext(
-                OrganizationContextState.Ready,
-                OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members),
-                hasAccount ? SampleAccount : null,
-                hasOrganization ? SampleOrganization : null,
-                hasCapabilities ? new OrganizationCapabilities(true) : null);
-
-            using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
-
-            Assert.That(viewModel.Presentation, Is.EqualTo(OrganizationHeaderPresentation.Empty));
-        }
-
-        /// <summary>
-        /// Verifies that selecting a menu entry yields the route to navigate to.
-        /// </summary>
-        /// <returns>A task that completes when the command has run.</returns>
         [Test]
         public async Task VerifySelectingAnEntryYieldsItsRoute()
         {
@@ -229,25 +145,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             Assert.That(target, Is.EqualTo("/organizations/orbital-systems/projects"));
         }
 
-        /// <summary>
-        /// Sets what the mocked context reports.
-        /// </summary>
-        /// <param name="state">The state of the context.</param>
-        /// <param name="location">What the location designates.</param>
-        /// <param name="account">The current account.</param>
-        /// <param name="organization">The designated organization.</param>
-        /// <param name="capabilities">The capabilities of the account.</param>
-        private void SetContext(
-            OrganizationContextState state,
-            OrganizationLocation location,
-            Account account,
-            Organization organization,
+        private void SetContext(bool isLoading, OrganizationLocation location, Account currentAccount, Organization currentOrganization,
             OrganizationCapabilities capabilities)
         {
-            this.context.SetupGet(model => model.State).Returns(state);
+            this.context.SetupGet(model => model.IsLoading).Returns(isLoading);
             this.context.SetupGet(model => model.Location).Returns(location);
-            this.context.SetupGet(model => model.Account).Returns(account);
-            this.context.SetupGet(model => model.Organization).Returns(organization);
+            this.context.SetupGet(model => model.Account).Returns(currentAccount);
+            this.context.SetupGet(model => model.Organization).Returns(currentOrganization);
             this.context.SetupGet(model => model.Capabilities).Returns(capabilities);
         }
     }

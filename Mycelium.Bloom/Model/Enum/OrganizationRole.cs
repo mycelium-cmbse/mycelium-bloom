@@ -12,6 +12,10 @@ namespace Mycelium.Bloom.Model.Enum
     /// <summary>
     /// Defines the organization-level roles that an account can hold. Outside Collaborators hold no organization role.
     /// </summary>
+    /// <remarks>
+    /// Placeholder role of the organization screens, used only to configure the placeholder service, to be replaced by
+    /// the role of the Fabric API when the Fabric client is bound.
+    /// </remarks>
     public enum OrganizationRole
     {
         /// <summary>

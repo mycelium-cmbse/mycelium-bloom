@@ -29,14 +29,14 @@ namespace Mycelium.Bloom.Extensions
         extension(IServiceCollection services)
         {
             /// <summary>
-            /// Binds the organization options and registers the organization context service.
-            /// Replacing the placeholder service changes this registration only.
+            /// Binds the organization options and registers the organization context service and the ViewModels of the
+            /// organization context and of its header, one of each per circuit. Replacing the placeholder service changes
+            /// this registration only.
             /// </summary>
             /// <param name="configuration">The application configuration containing the organization section.</param>
             /// <returns>The original service collection for continued registration chaining.</returns>
             /// <exception cref="ArgumentNullException">
-            /// Thrown when <paramref name="services" /> or <paramref name="configuration" /> is
-            /// <see langword="null" />.
+            /// Thrown when <paramref name="services" /> or <paramref name="configuration" /> is <see langword="null" />.
             /// </exception>
             public IServiceCollection AddOrganizationServices(IConfiguration configuration)
             {
@@ -44,14 +44,9 @@ namespace Mycelium.Bloom.Extensions
                 ArgumentNullException.ThrowIfNull(configuration);
 
                 services.Configure<OrganizationOptions>(configuration.GetSection(OrganizationOptions.SectionName));
-
-                services.AddScoped<Func<IOrganizationContextViewModel>>(serviceProvider =>
-                    () => ActivatorUtilities.CreateInstance<OrganizationContextViewModel>(serviceProvider));
-
-                services.AddScoped<Func<IOrganizationContextViewModel, IOrganizationHeaderViewModel>>(serviceProvider =>
-                    context => ActivatorUtilities.CreateInstance<OrganizationHeaderViewModel>(serviceProvider, context));
-
                 services.AddScoped<IOrganizationContextService, PlaceholderOrganizationContextService>();
+                services.AddScoped<IOrganizationContextViewModel, OrganizationContextViewModel>();
+                services.AddScoped<IOrganizationHeaderViewModel, OrganizationHeaderViewModel>();
 
                 return services;
             }

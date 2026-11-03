@@ -17,28 +17,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.PageHeader
 
     using Mycelium.Bloom.Components.UI.Molecules.PageHeader;
 
-    /// <summary>
-    /// Tests the <see cref="PageHeader" /> component.
-    /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class PageHeaderTestFixture : BunitContext
     {
-        /// <summary>
-        /// Disposes the bUnit context after each test.
-        /// </summary>
-        /// <returns>A task that completes when the context is disposed.</returns>
         [TearDown]
-        public Task TearDown()
+        public async Task TearDown()
         {
-            return this.DisposeAsync().AsTask();
+            await this.DisposeAsync();
         }
 
-        /// <summary>
-        /// Verifies that the subtitle and the actions are rendered only when they are provided.
-        /// </summary>
-        /// <param name="subtitle">The subtitle of the page.</param>
-        /// <param name="withActions">A value indicating whether the page has actions.</param>
         [TestCase("12 projects", true)]
         [TestCase("   ", false)]
         public void VerifyOptionalPartsAreRenderedOnlyWhenProvided(string subtitle, bool withActions)

@@ -9,7 +9,6 @@
 
 namespace Mycelium.Bloom.Tests.Components.Layout
 {
-    using System;
     using System.Threading.Tasks;
 
     using Bunit;
@@ -20,76 +19,59 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Moq;
 
     using Mycelium.Bloom.Components.Layout;
-    using Mycelium.Bloom.Components.UI.Molecules.OrganizationContextView;
     using Mycelium.Bloom.Components.UI.Organisms.OrganizationHeader;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
 
-    /// <summary>
-    /// Tests the <see cref="OrganizationLayout" /> component.
-    /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class OrganizationLayoutTestFixture : BunitContext
     {
-        /// <summary>
-        /// The mocked organization context owned by the layout.
-        /// </summary>
-        private readonly Mock<IOrganizationContextViewModel> viewModel = new();
+        private Mock<IOrganizationContextViewModel> viewModel;
 
-        /// <summary>
-        /// The mocked header state owned by the layout.
-        /// </summary>
-        private readonly Mock<IOrganizationHeaderViewModel> headerViewModel = new();
+        private Mock<IOrganizationHeaderViewModel> headerViewModel;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="OrganizationLayoutTestFixture" /> class.
-        /// </summary>
-        public OrganizationLayoutTestFixture()
+        [SetUp]
+        public void SetUp()
         {
             BlueprintTestSetup.Configure(this);
-            this.viewModel.SetupGet(model => model.State).Returns(OrganizationContextState.Ready);
-            this.Services.AddSingleton<Func<IOrganizationContextViewModel>>(() => this.viewModel.Object);
+            this.viewModel = new Mock<IOrganizationContextViewModel>();
+            this.viewModel.SetupGet(model => model.Errors).Returns([]);
+            this.headerViewModel = new Mock<IOrganizationHeaderViewModel>();
             this.headerViewModel.SetupGet(model => model.Presentation).Returns(OrganizationHeaderPresentation.Empty);
-            this.Services.AddSingleton<Func<IOrganizationContextViewModel, IOrganizationHeaderViewModel>>(
-                _ => this.headerViewModel.Object);
+            this.Services.AddSingleton(this.viewModel.Object);
+            this.Services.AddSingleton(this.headerViewModel.Object);
         }
 
-        /// <summary>
-        /// Disposes the bUnit context after each test.
-        /// </summary>
-        /// <returns>A task that completes when the context is disposed.</returns>
         [TearDown]
-        public Task TearDown()
+        public async Task TearDown()
         {
-            return this.DisposeAsync().AsTask();
+            await this.DisposeAsync();
         }
 
-        /// <summary>
-        /// Verifies that the layout hands the header state to the header, the organization context to the content area
-        /// and the body of the page to the content area, and releases both ViewModels it created when it is disposed.
-        /// </summary>
         [Test]
-        public void VerifyLayoutWiresItsPartsAndReleasesItsViewModels()
+        public void VerifyLayoutHandsEveryLocationToTheContextAndResetsItWhenDisposed()
         {
             RenderFragment body = builder => builder.AddContent(0, "Page content");
+            var membersPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/account");
 
-            var component = this.Render<OrganizationLayout>(parameters => parameters
-                .Add(layout => layout.Body, body));
+            var component = this.Render<OrganizationLayout>(parameters => parameters.Add(layout => layout.Body, body));
+            navigation.NavigateTo("/organizations/orbital-systems/members");
+            component.Render(parameters => parameters.Add(layout => layout.Body, body));
+            component.Instance.Dispose();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.FindComponent<OrganizationHeader>().Instance.ViewModel, Is.SameAs(this.headerViewModel.Object));
-                Assert.That(component.FindComponent<OrganizationContextView>().Instance.ViewModel, Is.SameAs(this.viewModel.Object));
+                Assert.That(component.FindComponents<OrganizationHeader>(), Has.Count.EqualTo(1));
                 Assert.That(component.Find("main").TextContent, Does.Contain("Page content"));
+                this.viewModel.VerifySet(model => model.Location = OrganizationLocation.Account, Times.Once);
+                this.viewModel.VerifySet(model => model.Location = membersPage, Times.Once);
+                this.viewModel.VerifySet(model => model.Location = null, Times.Once);
             }
-
-            component.Instance.Dispose();
-
-            this.viewModel.Verify(model => model.Dispose(), Times.Once);
-            this.headerViewModel.Verify(model => model.Dispose(), Times.Once);
         }
     }
 }

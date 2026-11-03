@@ -11,39 +11,45 @@ namespace Mycelium.Bloom.ViewModel.Organization
 {
     using System.ComponentModel;
 
+    using ErrorOr;
+
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
 
     /// <summary>
     /// Defines the reactive state of the organization designated by the current browser location.
     /// </summary>
-    public interface IOrganizationContextViewModel : IDisposable, INotifyPropertyChanged
+    public interface IOrganizationContextViewModel : INotifyPropertyChanged
     {
         /// <summary>
-        /// Gets what the current browser location designates.
+        /// Gets or sets what the current browser location designates. The layout sets it on every navigation and resets it
+        /// to <see langword="null" /> when it is disposed, which clears the context.
         /// </summary>
-        OrganizationLocation Location { get; }
+        OrganizationLocation Location { get; set; }
 
         /// <summary>
-        /// Gets the state of the designated organization.
+        /// Gets a value indicating whether the account or the organization designated by the location is being resolved.
         /// </summary>
-        OrganizationContextState State { get; }
+        bool IsLoading { get; }
 
         /// <summary>
-        /// Gets the current account, <see langword="null" /> unless the state is <see cref="OrganizationContextState.Ready" />.
+        /// Gets the current account, <see langword="null" /> until it is resolved.
         /// </summary>
         Account Account { get; }
 
         /// <summary>
-        /// Gets the designated organization, <see langword="null" /> unless the state is
-        /// <see cref="OrganizationContextState.Ready" /> on an organization page.
+        /// Gets the designated organization, <see langword="null" /> until it is resolved or on the account page.
         /// </summary>
         Organization Organization { get; }
 
         /// <summary>
-        /// Gets what the current account may do in the designated organization, <see langword="null" /> unless the
-        /// state is <see cref="OrganizationContextState.Ready" /> on an organization page.
+        /// Gets what the current account may do in the designated organization, <see langword="null" /> until it is
+        /// resolved or on the account page.
         /// </summary>
         OrganizationCapabilities Capabilities { get; }
+
+        /// <summary>
+        /// Gets the errors that prevented the resolution, empty while it loads and once it succeeded.
+        /// </summary>
+        IReadOnlyList<Error> Errors { get; }
     }
 }

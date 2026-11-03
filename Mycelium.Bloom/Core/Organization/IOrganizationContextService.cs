@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Core.Organization
 {
+    using ErrorOr;
+
     using Mycelium.Bloom.Model;
 
     /// <summary>
@@ -21,11 +23,8 @@ namespace Mycelium.Bloom.Core.Organization
         /// Gets the account that is using Bloom.
         /// </summary>
         /// <param name="cancellationToken">The token that cancels the request.</param>
-        /// <returns>
-        /// The current account, or a refusal: <see cref="Mycelium.Bloom.Model.Enum.OrganizationErrorCode.Unavailable" />
-        /// when it cannot be retrieved.
-        /// </returns>
-        Task<OrganizationResult<Account>> GetAccountAsync(CancellationToken cancellationToken);
+        /// <returns>The current account, or an <see cref="OrganizationErrorCodes.Unavailable" /> error when it cannot be retrieved.</returns>
+        Task<ErrorOr<Account>> GetAccountAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the current account, the organization designated by a slug and what the account may do in it.
@@ -33,11 +32,10 @@ namespace Mycelium.Bloom.Core.Organization
         /// <param name="slug">The canonical slug of the organization, which is lower case.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>
-        /// The context, or a refusal: <see cref="Mycelium.Bloom.Model.Enum.OrganizationErrorCode.NotFound" /> when the
-        /// organization does not exist, <see cref="Mycelium.Bloom.Model.Enum.OrganizationErrorCode.Forbidden" /> when the
-        /// account has no access to it, and <see cref="Mycelium.Bloom.Model.Enum.OrganizationErrorCode.Unavailable" />
-        /// when it cannot be retrieved.
+        /// The context, or an error: <see cref="OrganizationErrorCodes.NotFound" /> when the organization does not exist,
+        /// <see cref="OrganizationErrorCodes.Forbidden" /> when the account has no access to it, and
+        /// <see cref="OrganizationErrorCodes.Unavailable" /> when it cannot be retrieved.
         /// </returns>
-        Task<OrganizationResult<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken);
+        Task<ErrorOr<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken);
     }
 }

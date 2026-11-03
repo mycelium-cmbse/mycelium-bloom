@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Core.Organization.Placeholder
 {
+    using ErrorOr;
+
     using Microsoft.Extensions.Options;
 
     using Mycelium.Bloom.Core.Configuration;
@@ -19,6 +21,10 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
     /// Answers with the sample account and organizations until the Fabric client provides the real ones. The sample
     /// account may edit the settings only when its configured placeholder role is the administrator.
     /// </summary>
+    /// <remarks>
+    /// Placeholder of the organization screens, to be replaced by the Fabric client when it is bound; only the service
+    /// registration changes then.
+    /// </remarks>
     public sealed class PlaceholderOrganizationContextService : IOrganizationContextService
     {
         /// <summary>
@@ -44,11 +50,11 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The sample account.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<OrganizationResult<Account>> GetAccountAsync(CancellationToken cancellationToken)
+        public Task<ErrorOr<Account>> GetAccountAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            return Task.FromResult(OrganizationResult<Account>.Success(OrganizationPlaceholderData.Account));
+            return Task.FromResult<ErrorOr<Account>>(OrganizationPlaceholderData.Account);
         }
 
         /// <summary>
@@ -56,26 +62,22 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// </summary>
         /// <param name="slug">The canonical slug of the organization, which is lower case.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
-        /// <returns>The context, or a not found refusal when no sample organization has the slug.</returns>
+        /// <returns>The context, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the slug.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<OrganizationResult<OrganizationContext>> GetOrganizationContextAsync(
-            string slug,
-            CancellationToken cancellationToken)
+        public Task<ErrorOr<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var organization = OrganizationPlaceholderData.Organizations.FirstOrDefault(candidate =>
-                string.Equals(candidate.Slug, slug, StringComparison.Ordinal));
+            var organization = OrganizationPlaceholderData.Organizations.FirstOrDefault(candidate => candidate.Slug == slug);
 
-            var result = organization is null
-                ? OrganizationResult<OrganizationContext>.Failure(
-                    new OrganizationError(OrganizationErrorCode.NotFound, "The organization does not exist."))
-                : OrganizationResult<OrganizationContext>.Success(new OrganizationContext(
-                    OrganizationPlaceholderData.Account,
-                    organization,
-                    new OrganizationCapabilities(this.options.Value.PlaceholderRole == OrganizationRole.OrganizationAdministrator)));
+            if (organization is null)
+            {
+                return Task.FromResult<ErrorOr<OrganizationContext>>(Error.NotFound(OrganizationErrorCodes.NotFound, "The organization does not exist."));
+            }
 
-            return Task.FromResult(result);
+            var capabilities = new OrganizationCapabilities(this.options.Value.PlaceholderRole == OrganizationRole.OrganizationAdministrator);
+
+            return Task.FromResult<ErrorOr<OrganizationContext>>(new OrganizationContext(OrganizationPlaceholderData.Account, organization, capabilities));
         }
     }
 }

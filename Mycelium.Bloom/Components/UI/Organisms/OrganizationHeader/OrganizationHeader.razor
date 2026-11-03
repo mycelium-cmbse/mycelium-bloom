@@ -8,31 +8,32 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @using BlazorBlueprint.Icons.Lucide.Components
-@using Mycelium.Bloom.Model.Enum
 @using Mycelium.Bloom.ViewModel.Organization
-@inherits BloomReactiveComponentBase<IOrganizationHeaderViewModel>
+@inherits BloomReactiveInjectableComponentBase<IOrganizationHeaderViewModel>
 
-@if (this.ViewModel is { } viewModel)
-{
-    var presentation = viewModel.Presentation;
-
+@{
     RenderFragment organizationSegments =
         @<text>
             <span class="mb-organization-header__separator" aria-hidden="true">/</span>
-            <a class="mb-organization-header__segment" href="@(presentation.OrganizationPath)">
+            <a class="mb-organization-header__segment" href="@(this.ViewModel.Presentation.OrganizationPath)">
                 <LucideIcon Name="building-2" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
-                @(presentation.OrganizationName)
+                @(this.ViewModel.Presentation.OrganizationName)
             </a>
             <span class="mb-organization-header__separator" aria-hidden="true">/</span>
             <ActionMenu IsSelectionMenu="true"
                         ShowChevron="true"
-                        Items="@(presentation.SectionItems)"
+                        Items="@(this.ViewModel.Presentation.SectionItems)"
                         TriggerAriaLabel="Organization section"
                         TriggerTitle="Organization section"
                         ItemSelected="this.HandleItemSelectedAsync">
                 <TriggerContent>
-                    <LucideIcon Name="@(presentation.SectionIcon)" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
-                    @(presentation.SectionLabel)
+                    <LucideIcon Name="@(this.ViewModel.Presentation.SectionIcon)"
+                                Size="14"
+                                StrokeWidth="1.75"
+                                role="presentation"
+                                aria-hidden="true"
+                                focusable="false" />
+                    @(this.ViewModel.Presentation.SectionLabel)
                 </TriggerContent>
             </ActionMenu>
         </text>;
@@ -47,33 +48,33 @@
         </text>;
 
     RenderFragment user =
-        @<UserMenu DisplayName="@(presentation.AccountName)"
-                   Subtitle="@(presentation.AccountEmail)"
-                   Items="@(presentation.AccountItems)"
+        @<UserMenu DisplayName="@(this.ViewModel.Presentation.AccountName)"
+                   Subtitle="@(this.ViewModel.Presentation.AccountEmail)"
+                   Items="@(this.ViewModel.Presentation.AccountItems)"
                    ItemSelected="this.HandleItemSelectedAsync"
                    Compact="true" />;
 
-    RenderFragment navigation = presentation.Kind switch
+    RenderFragment navigation = this.ViewModel.Presentation.Kind switch
     {
         OrganizationLocationKind.Organization => organizationSegments,
         OrganizationLocationKind.Account => accountSegment,
         _ => null
     };
-
-    @* The logo leads to the account dashboard, the home of an account. The segments and the account menu are
-       empty until the context is ready, so nothing of a previous organization is shown while another loads. *@
-    <div class="mb-organization-header">
-        <AppHeader Compact="true"
-                   AriaLabel="Bloom application header"
-                   NavigationAriaLabel="Page navigation"
-                   NavigationContent="@(navigation)"
-                   UserContent="@(presentation.HasAccount ? user : null)">
-            <BrandContent>
-                <a class="mb-organization-header__brand" href="@(OrganizationRoutes.AccountPath)">
-                    <span class="mb-organization-header__mark"><BrandMark /></span>
-                    <span class="sr-only">Mycelium Bloom</span>
-                </a>
-            </BrandContent>
-        </AppHeader>
-    </div>
 }
+
+@* The logo leads to the account dashboard, the home of an account. The segments and the account menu are
+   empty until the context is ready, so nothing of a previous organization is shown while another loads. *@
+<div class="mb-organization-header">
+    <AppHeader Compact="true"
+               AriaLabel="Bloom application header"
+               NavigationAriaLabel="Page navigation"
+               NavigationContent="@(navigation)"
+               UserContent="@(this.ViewModel.Presentation.HasAccount ? user : null)">
+        <BrandContent>
+            <a class="mb-organization-header__brand" href="@(OrganizationRoutes.AccountPath)">
+                <span class="mb-organization-header__mark"><BrandMark /></span>
+                <span class="sr-only">Mycelium Bloom</span>
+            </a>
+        </BrandContent>
+    </AppHeader>
+</div>

@@ -21,7 +21,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     /// <summary>
     /// Derives the header of the account and organization pages from the organization context.
     /// </summary>
-    public sealed class OrganizationHeaderViewModel : BloomBaseViewModel, IOrganizationHeaderViewModel
+    public sealed class OrganizationHeaderViewModel : BloomBaseViewModel, IOrganizationHeaderViewModel, IDisposable
     {
         /// <summary>
         /// The entries of the account menu, which do not depend on the organization.
@@ -56,18 +56,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
             this.SelectItemCommand = ReactiveCommand.Create<ActionMenuItem, string>(item => item.Id);
 
-            this.presentation = Observable
-                .CombineLatest(
-                    context.WhenAnyValue(model => model.State),
-                    context.WhenAnyValue(model => model.Location),
-                    context.WhenAnyValue(model => model.Account),
-                    context.WhenAnyValue(model => model.Organization),
-                    context.WhenAnyValue(model => model.Capabilities),
-                    CreatePresentation)
-                .ToProperty(
-                    this,
-                    viewModel => viewModel.Presentation,
-                    initialValue: OrganizationHeaderPresentation.Empty,
+            this.presentation = context
+                .WhenAnyValue(model => model.IsLoading, model => model.Location, model => model.Account, model => model.Organization,
+                    model => model.Capabilities)
+                .Select(_ => CreatePresentation(context))
+                .ToProperty(this, viewModel => viewModel.Presentation, initialValue: OrganizationHeaderPresentation.Empty,
                     scheduler: ImmediateSequencer.Instance);
         }
 
@@ -92,26 +85,23 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
         /// <summary>
         /// Derives the presentation of the header from the properties of the organization context. Nothing is
-        /// displayed until the context is ready, and while the properties of a new resolution are still being
-        /// announced one by one, so a stale organization is never shown.
+        /// displayed while the context loads, once it failed, and while the properties of a new resolution are still
+        /// being announced one by one, so a stale organization is never shown.
         /// </summary>
-        /// <param name="state">The state of the organization context.</param>
-        /// <param name="location">What the browser location designates.</param>
-        /// <param name="account">The current account.</param>
-        /// <param name="organization">The designated organization.</param>
-        /// <param name="capabilities">What the current account may do in the organization.</param>
+        /// <param name="context">The organization context.</param>
         /// <returns>The presentation of the header.</returns>
-        private static OrganizationHeaderPresentation CreatePresentation(
-            OrganizationContextState state,
-            OrganizationLocation location,
-            Account account,
-            Organization organization,
-            OrganizationCapabilities capabilities)
+        private static OrganizationHeaderPresentation CreatePresentation(IOrganizationContextViewModel context)
         {
-            if (state != OrganizationContextState.Ready || account is null)
+            var account = context.Account;
+
+            if (context.IsLoading || account is null)
             {
                 return OrganizationHeaderPresentation.Empty;
             }
+
+            var location = context.Location;
+            var organization = context.Organization;
+            var capabilities = context.Capabilities;
 
             var accountPresentation = new OrganizationHeaderPresentation
             {
@@ -147,13 +137,10 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Builds the pages of the organization that the current account may open.
         /// </summary>
         /// <param name="organization">The designated organization.</param>
-        /// <param name="currentSection">The current page of the organization.</param>
+        /// <param name="section">The current page of the organization.</param>
         /// <param name="capabilities">What the current account may do in the organization.</param>
         /// <returns>The menu entries, in the order of the pages.</returns>
-        private static ActionMenuItem[] GetSectionItems(
-            Organization organization,
-            OrganizationSection currentSection,
-            OrganizationCapabilities capabilities)
+        private static ActionMenuItem[] GetSectionItems(Organization organization, OrganizationSection section, OrganizationCapabilities capabilities)
         {
             return Sections
                 .Where(descriptor => descriptor.Section != OrganizationSection.Settings || capabilities.CanEditSettings)
@@ -161,7 +148,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
                 {
                     Id = OrganizationRoutes.GetOrganizationPath(organization.Slug, descriptor.Section),
                     Label = descriptor.Label,
-                    IsSelected = descriptor.Section == currentSection
+                    IsSelected = descriptor.Section == section
                 })
                 .ToArray();
         }

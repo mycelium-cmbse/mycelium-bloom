@@ -13,16 +13,9 @@ namespace Mycelium.Bloom.Tests.Core.Organization
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
 
-    /// <summary>
-    /// Tests the reading and the building of the account and organization routes.
-    /// </summary>
     [TestFixture]
     public sealed class OrganizationRoutesTestFixture
     {
-        /// <summary>
-        /// Verifies that the account dashboard is recognized whatever the form of the location.
-        /// </summary>
-        /// <param name="location">The location to read.</param>
         [TestCase("/account")]
         [TestCase("account")]
         [TestCase("/account/")]
@@ -33,11 +26,6 @@ namespace Mycelium.Bloom.Tests.Core.Organization
             Assert.That(OrganizationRoutes.Parse(location), Is.EqualTo(OrganizationLocation.Account));
         }
 
-        /// <summary>
-        /// Verifies that every page of an organization is read back from the route that builds it, with a slug that
-        /// needs escaping.
-        /// </summary>
-        /// <param name="section">The page of the organization.</param>
         [TestCase(OrganizationSection.Overview)]
         [TestCase(OrganizationSection.Projects)]
         [TestCase(OrganizationSection.Members)]
@@ -49,9 +37,6 @@ namespace Mycelium.Bloom.Tests.Core.Organization
             Assert.That(OrganizationRoutes.Parse(path), Is.EqualTo(OrganizationLocation.ForOrganization("r&d-lab", section)));
         }
 
-        /// <summary>
-        /// Verifies that the query string, the fragment, the trailing slash and the escaping of the slug are handled.
-        /// </summary>
         [Test]
         public void VerifyParseIgnoresQueryAndFragmentAndUnescapesTheSlug()
         {
@@ -60,11 +45,6 @@ namespace Mycelium.Bloom.Tests.Core.Organization
             Assert.That(location, Is.EqualTo(OrganizationLocation.ForOrganization("r&d-lab", OrganizationSection.Members)));
         }
 
-        /// <summary>
-        /// Verifies that a location outside the account and organization area, or with a slug that cannot designate an
-        /// organization, designates nothing.
-        /// </summary>
-        /// <param name="location">The location to read.</param>
         [TestCase("")]
         [TestCase("/")]
         [TestCase("/workspace/modeling")]

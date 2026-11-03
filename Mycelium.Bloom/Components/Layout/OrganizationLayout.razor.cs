@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Components.Layout
 {
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.ViewModel.Organization;
 
     /// <summary>
@@ -20,45 +21,35 @@ namespace Mycelium.Bloom.Components.Layout
     public sealed partial class OrganizationLayout : LayoutComponentBase, IDisposable
     {
         /// <summary>
-        /// Gets or sets the factory that creates the organization context owned by this layout instance.
+        /// Gets or sets the navigation service that provides the current location.
         /// </summary>
         [Inject]
-        private Func<IOrganizationContextViewModel> ViewModelFactory { get; set; }
+        private NavigationManager NavigationManager { get; set; }
 
         /// <summary>
-        /// Gets or sets the factory that creates the header state owned by this layout instance.
+        /// Gets or sets the organization context that follows the location.
         /// </summary>
         [Inject]
-        private Func<IOrganizationContextViewModel, IOrganizationHeaderViewModel> HeaderViewModelFactory { get; set; }
-
-        /// <summary>
-        /// Gets the organization context owned and cascaded by this layout instance.
-        /// </summary>
         private IOrganizationContextViewModel ViewModel { get; set; }
 
         /// <summary>
-        /// Gets the header state owned by this layout instance.
+        /// Hands the current location to the organization context. The router sets the body again on every
+        /// navigation, so the context follows every page change.
         /// </summary>
-        private IOrganizationHeaderViewModel HeaderViewModel { get; set; }
-
-        /// <summary>
-        /// Creates the organization context and the header state owned by this layout instance.
-        /// </summary>
-        protected override void OnInitialized()
+        protected override void OnParametersSet()
         {
-            base.OnInitialized();
+            base.OnParametersSet();
 
-            this.ViewModel = this.ViewModelFactory();
-            this.HeaderViewModel = this.HeaderViewModelFactory(this.ViewModel);
+            this.ViewModel.Location = OrganizationRoutes.Parse(this.NavigationManager.ToBaseRelativePath(this.NavigationManager.Uri));
         }
 
         /// <summary>
-        /// Releases the header state and the organization context owned by this layout instance.
+        /// Resets the organization context, which lives as long as the circuit, when the account leaves the account and
+        /// organization pages, so that coming back loads the organization again and no earlier error is reported again.
         /// </summary>
         public void Dispose()
         {
-            this.HeaderViewModel?.Dispose();
-            this.ViewModel?.Dispose();
+            this.ViewModel.Location = null;
         }
     }
 }

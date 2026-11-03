@@ -7,32 +7,22 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using Mycelium.Bloom.Components.UI.Molecules.ApplicationErrorState
 @using Mycelium.Bloom.ViewModel.Organization
-@inherits BloomReactiveComponentBase<IOrganizationContextViewModel>
+@inherits BloomReactiveInjectableComponentBase<IOrganizationContextViewModel>
 
-@if (this.ViewModel is { } viewModel)
+@* Nothing is rendered once the resolution failed: the view shows the not found page or opens the error page. *@
+@if (this.ViewModel.IsLoading)
 {
-    switch (viewModel.State)
-    {
-        case OrganizationContextState.Ready:
-            @(this.ChildContent)
-            break;
-        case OrganizationContextState.NotFound:
-            <ApplicationErrorState ViewModel="this.NotFoundViewModel" />
-            break;
-        case OrganizationContextState.Error:
-            <ApplicationErrorState ViewModel="this.ErrorViewModel" />
-            break;
-        case OrganizationContextState.Loading:
-            <div class="@(this.BuildRootCssClass("mb-organization-context-view"))"
-                 role="status"
-                 aria-live="polite"
-                 aria-busy="true">
-                <BbSkeleton Width="40%" Height="28px" />
-                <BbSkeleton Width="100%" Height="160px" />
-                <span class="sr-only">Loading</span>
-            </div>
-            break;
-    }
+    <div class="@(this.BuildRootCssClass("mb-organization-context-view"))"
+         role="status"
+         aria-live="polite"
+         aria-busy="true">
+        <BbSkeleton Width="40%" Height="28px" />
+        <BbSkeleton Width="100%" Height="160px" />
+        <span class="sr-only">Loading</span>
+    </div>
+}
+else if (this.ViewModel.Errors.Count == 0)
+{
+    @(this.ChildContent)
 }

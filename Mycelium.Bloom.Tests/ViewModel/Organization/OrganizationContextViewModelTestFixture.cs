@@ -14,11 +14,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using System.Threading;
     using System.Threading.Tasks;
 
-    using Bunit;
+    using ErrorOr;
 
-    using Microsoft.AspNetCore.Components;
-    using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Logging.Abstractions;
+    using Microsoft.Extensions.Logging;
 
     using Moq;
 
@@ -27,262 +25,173 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
 
-    /// <summary>
-    /// Tests the resolution of the organization designated by the browser location.
-    /// </summary>
     [TestFixture]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class OrganizationContextViewModelTestFixture : BunitContext
+    public sealed class OrganizationContextViewModelTestFixture
     {
-        /// <summary>
-        /// The sample account returned by the mocked account service.
-        /// </summary>
-        private static readonly Account SampleAccount = new(Guid.NewGuid(), "Sample Account", "sample@example.org");
-
-        /// <summary>
-        /// The sample capabilities returned by the mocked permission service.
-        /// </summary>
-        private static readonly OrganizationCapabilities SampleCapabilities = new(false);
-
-        /// <summary>
-        /// The mocked organization context service.
-        /// </summary>
         private Mock<IOrganizationContextService> contextService;
 
-        /// <summary>
-        /// The navigation service of the bUnit context.
-        /// </summary>
-        private NavigationManager navigation;
+        private Account account;
 
-        /// <summary>
-        /// Creates the mocked service, which answers with the account by default.
-        /// </summary>
+        private OrganizationCapabilities capabilities;
+
+        private OrganizationContextViewModel viewModel;
+
         [SetUp]
         public void SetUp()
         {
-            this.navigation = this.Services.GetRequiredService<NavigationManager>();
+            this.account = new Account(Guid.NewGuid(), "Sample Account", "sample@example.org");
+            this.capabilities = new OrganizationCapabilities(false);
             this.contextService = new Mock<IOrganizationContextService>();
-            this.contextService
-                .Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(OrganizationResult<Account>.Success(SampleAccount));
+            this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(this.account);
+            this.viewModel = new OrganizationContextViewModel(this.contextService.Object, new Mock<ILogger<OrganizationContextViewModel>>().Object);
         }
 
-        /// <summary>
-        /// Disposes the bUnit context after each test.
-        /// </summary>
-        /// <returns>A task that completes when the context is disposed.</returns>
         [TearDown]
-        public Task TearDown()
+        public void TearDown()
         {
-            return this.DisposeAsync().AsTask();
+            this.viewModel.Dispose();
         }
 
-        /// <summary>
-        /// Verifies that a known organization page resolves the account, the organization and the capabilities.
-        /// </summary>
         [Test]
-        public void VerifyKnownOrganizationIsReady()
+        public void VerifyKnownOrganizationIsResolved()
         {
             var organization = this.SetUpOrganization("orbital-systems");
-            this.navigation.NavigateTo("/organizations/orbital-systems/members");
+            var isLoadingBeforeTheLocation = this.viewModel.IsLoading;
 
-            using var viewModel = this.CreateViewModel();
+            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Ready));
-                Assert.That(viewModel.Account, Is.EqualTo(SampleAccount));
-                Assert.That(viewModel.Organization, Is.EqualTo(organization));
-                Assert.That(viewModel.Capabilities, Is.EqualTo(SampleCapabilities));
-                Assert.That(
-                    viewModel.Location,
-                    Is.EqualTo(OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members)));
+                Assert.That(isLoadingBeforeTheLocation, Is.True);
+                Assert.That(this.viewModel.IsLoading, Is.False);
+                Assert.That(this.viewModel.Errors, Is.Empty);
+                Assert.That(this.viewModel.Account, Is.EqualTo(this.account));
+                Assert.That(this.viewModel.Organization, Is.EqualTo(organization));
+                Assert.That(this.viewModel.Capabilities, Is.EqualTo(this.capabilities));
             }
         }
 
-        /// <summary>
-        /// Verifies that the account dashboard resolves the account only.
-        /// </summary>
         [Test]
-        public void VerifyAccountPageIsReadyWithoutOrganization()
+        public void VerifyAccountPageIsResolvedWithoutOrganization()
         {
-            this.navigation.NavigateTo("/account");
-
-            using var viewModel = this.CreateViewModel();
+            this.viewModel.Location = OrganizationLocation.Account;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Ready));
-                Assert.That(viewModel.Account, Is.EqualTo(SampleAccount));
-                Assert.That(viewModel.Organization, Is.Null);
-                Assert.That(viewModel.Capabilities, Is.Null);
+                Assert.That(this.viewModel.IsLoading, Is.False);
+                Assert.That(this.viewModel.Account, Is.EqualTo(this.account));
+                Assert.That(this.viewModel.Organization, Is.Null);
+                Assert.That(this.viewModel.Capabilities, Is.Null);
+                this.contextService.Verify(service => service.GetOrganizationContextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
             }
-
-            this.contextService.Verify(
-                service => service.GetOrganizationContextAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-                Times.Never);
         }
 
-        /// <summary>
-        /// Verifies that a location outside the account and organization area is not found and that no service is
-        /// asked about it.
-        /// </summary>
         [Test]
         public void VerifyLocationOutsideTheAreaIsNotFound()
         {
-            this.navigation.NavigateTo("/workspace/modeling");
-
-            using var viewModel = this.CreateViewModel();
-
-            Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.NotFound));
-            this.contextService.VerifyNoOtherCalls();
-        }
-
-        /// <summary>
-        /// Verifies that a refusal of the context service is mapped to a state.
-        /// </summary>
-        /// <param name="code">The refusal code.</param>
-        /// <param name="expected">The state the refusal maps to.</param>
-        [TestCase(OrganizationErrorCode.NotFound, OrganizationContextState.NotFound)]
-        [TestCase(OrganizationErrorCode.Forbidden, OrganizationContextState.NotFound)]
-        [TestCase(OrganizationErrorCode.Unavailable, OrganizationContextState.Error)]
-        public void VerifyRefusalIsMappedToAState(OrganizationErrorCode code, OrganizationContextState expected)
-        {
-            this.contextService
-                .Setup(service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(OrganizationResult<OrganizationContext>.Failure(new OrganizationError(code, "Refused.")));
-            this.navigation.NavigateTo("/organizations/orbital-systems");
-
-            using var viewModel = this.CreateViewModel();
+            this.viewModel.Location = OrganizationLocation.None;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(viewModel.State, Is.EqualTo(expected));
-                Assert.That(viewModel.Organization, Is.Null);
+                Assert.That(this.viewModel.Errors[0].Type, Is.EqualTo(ErrorType.NotFound));
+                this.contextService.VerifyNoOtherCalls();
             }
         }
 
-        /// <summary>
-        /// Verifies that the settings page is available only to an account that may edit the settings.
-        /// </summary>
-        /// <param name="canEditSettings">A value indicating whether the account may edit the settings.</param>
-        /// <param name="expected">The state of the context.</param>
-        [TestCase(true, OrganizationContextState.Ready)]
-        [TestCase(false, OrganizationContextState.NotFound)]
-        public void VerifySettingsPageIsGatedByTheCapability(bool canEditSettings, OrganizationContextState expected)
+        [TestCase(true)]
+        [TestCase(false)]
+        public void VerifyErrorOfTheServiceIsExposed(bool isAccountPage)
+        {
+            var error = Error.Forbidden(OrganizationErrorCodes.Forbidden, "Refused.");
+            this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(error);
+            this.contextService.Setup(service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>())).ReturnsAsync(error);
+
+            var organizationPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Overview);
+
+            this.viewModel.Location = isAccountPage ? OrganizationLocation.Account : organizationPage;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.viewModel.Errors, Is.EqualTo(new[] { error }));
+                Assert.That(this.viewModel.IsLoading, Is.False);
+                Assert.That(this.viewModel.Account, Is.Null);
+            }
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void VerifySettingsPageIsGatedByTheCapability(bool canEditSettings)
         {
             this.SetUpOrganization("orbital-systems", new OrganizationCapabilities(canEditSettings));
-            this.navigation.NavigateTo("/organizations/orbital-systems/settings");
 
-            using var viewModel = this.CreateViewModel();
+            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Settings);
 
-            Assert.That(viewModel.State, Is.EqualTo(expected));
+            Assert.That(this.viewModel.Errors, Has.Count.EqualTo(canEditSettings ? 0 : 1));
         }
 
-        /// <summary>
-        /// Verifies that a refusal of the account service is mapped to a state.
-        /// </summary>
         [Test]
-        public void VerifyAccountRefusalIsMappedToError()
+        public void VerifyUnexpectedFailureIsExposedAsAnError()
         {
-            this.contextService
-                .Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(OrganizationResult<Account>.Failure(
-                    new OrganizationError(OrganizationErrorCode.Unavailable, "Offline.")));
-            this.navigation.NavigateTo("/account");
+            this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Broken."));
 
-            using var viewModel = this.CreateViewModel();
+            this.viewModel.Location = OrganizationLocation.Account;
 
-            Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Error));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.viewModel.Errors[0].Type, Is.EqualTo(ErrorType.Unexpected));
+                Assert.That(this.viewModel.Errors[0].Code, Is.EqualTo(OrganizationErrorCodes.Unavailable));
+            }
         }
 
-        /// <summary>
-        /// Verifies that an unexpected failure of a service is reported as an error state instead of an exception.
-        /// </summary>
-        [Test]
-        public void VerifyUnexpectedFailureIsMappedToError()
-        {
-            this.contextService
-                .Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidOperationException("Broken."));
-            this.navigation.NavigateTo("/account");
-
-            using var viewModel = this.CreateViewModel();
-
-            Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Error));
-        }
-
-        /// <summary>
-        /// Verifies that moving to another page of the same organization shows the new page without loading the
-        /// organization again, and that the settings page is found again once the account leaves it.
-        /// </summary>
         [Test]
         public void VerifyChangingThePageOfTheSameOrganizationDoesNotLoadItAgain()
         {
             this.SetUpOrganization("orbital-systems");
-            this.navigation.NavigateTo("/organizations/orbital-systems/members");
-            using var viewModel = this.CreateViewModel();
-            var states = new List<OrganizationContextState> { viewModel.State };
-            viewModel.PropertyChanged += (_, _) => states.Add(viewModel.State);
+            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
+            var loadingStates = new List<bool>();
+            this.viewModel.PropertyChanged += (_, _) => loadingStates.Add(this.viewModel.IsLoading);
 
-            this.navigation.NavigateTo("/organizations/orbital-systems/projects");
-            var projectsLocation = viewModel.Location;
-            this.navigation.NavigateTo("/organizations/orbital-systems/settings");
-            var settingsState = viewModel.State;
-            this.navigation.NavigateTo("/organizations/orbital-systems/members?tab=all");
+            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Settings);
+            var settingsErrors = this.viewModel.Errors;
+            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Projects);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(projectsLocation.Section, Is.EqualTo(OrganizationSection.Projects));
-                Assert.That(settingsState, Is.EqualTo(OrganizationContextState.NotFound));
-                Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Ready));
-                Assert.That(viewModel.Location.Section, Is.EqualTo(OrganizationSection.Members));
-                Assert.That(states, Does.Not.Contain(OrganizationContextState.Loading));
+                Assert.That(settingsErrors[0].Type, Is.EqualTo(ErrorType.NotFound));
+                Assert.That(this.viewModel.Errors, Is.Empty);
+                Assert.That(this.viewModel.Organization, Is.Not.Null);
+                Assert.That(loadingStates, Does.Not.Contain(true));
+                this.contextService.Verify(service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>()), Times.Once);
             }
-
-            this.contextService.Verify(
-                service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>()),
-                Times.Once);
         }
 
-        /// <summary>
-        /// Verifies that designating another organization clears the previous one while the new one loads.
-        /// </summary>
         [Test]
         public void VerifyLoadingAnotherOrganizationClearsThePreviousOne()
         {
             this.SetUpOrganization("fast");
-            this.contextService
-                .Setup(service => service.GetOrganizationContextAsync("slow", It.IsAny<CancellationToken>()))
-                .Returns(new TaskCompletionSource<OrganizationResult<OrganizationContext>>().Task);
-            this.navigation.NavigateTo("/organizations/fast");
-            using var viewModel = this.CreateViewModel();
+            var pendingLookup = new TaskCompletionSource<ErrorOr<OrganizationContext>>();
+            this.contextService.Setup(service => service.GetOrganizationContextAsync("slow", It.IsAny<CancellationToken>())).Returns(pendingLookup.Task);
+            this.viewModel.Location = OrganizationLocation.ForOrganization("fast", OrganizationSection.Overview);
 
-            this.navigation.NavigateTo("/organizations/slow");
+            this.viewModel.Location = OrganizationLocation.ForOrganization("slow", OrganizationSection.Overview);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Loading));
-                Assert.That(viewModel.Account, Is.Null);
-                Assert.That(viewModel.Organization, Is.Null);
-                Assert.That(viewModel.Capabilities, Is.Null);
-                Assert.That(viewModel.Location.Slug, Is.EqualTo("slow"));
+                Assert.That(this.viewModel.IsLoading, Is.True);
+                Assert.That(this.viewModel.Account, Is.Null);
+                Assert.That(this.viewModel.Organization, Is.Null);
+                Assert.That(this.viewModel.Capabilities, Is.Null);
+                Assert.That(this.viewModel.Errors, Is.Empty);
             }
         }
 
-        /// <summary>
-        /// Verifies that designating another organization cancels the lookup in progress and that the late outcome of
-        /// that lookup, a result or a cancellation, never replaces the newer organization.
-        /// </summary>
-        /// <param name="cancelled">A value indicating whether the late outcome is a cancellation.</param>
         [TestCase(false)]
         [TestCase(true)]
         public void VerifySlugChangeCancelsThePreviousLookup(bool cancelled)
         {
-            var slowLookup = new TaskCompletionSource<OrganizationResult<OrganizationContext>>();
+            var slowLookup = new TaskCompletionSource<ErrorOr<OrganizationContext>>();
             var slowToken = CancellationToken.None;
-            this.contextService
-                .Setup(service => service.GetOrganizationContextAsync("slow", It.IsAny<CancellationToken>()))
+            this.contextService.Setup(service => service.GetOrganizationContextAsync("slow", It.IsAny<CancellationToken>()))
                 .Returns((string _, CancellationToken token) =>
                 {
                     slowToken = token;
@@ -290,12 +199,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                     return slowLookup.Task;
                 });
             var fast = this.SetUpOrganization("fast");
-            this.navigation.NavigateTo("/organizations/slow");
 
-            using var viewModel = this.CreateViewModel();
-            var stateWhileLoading = viewModel.State;
-
-            this.navigation.NavigateTo("/organizations/fast");
+            this.viewModel.Location = OrganizationLocation.ForOrganization("slow", OrganizationSection.Overview);
+            this.viewModel.Location = OrganizationLocation.ForOrganization("fast", OrganizationSection.Overview);
 
             if (cancelled)
             {
@@ -303,70 +209,67 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
             else
             {
-                slowLookup.SetResult(OrganizationResult<OrganizationContext>.Success(
-                    new OrganizationContext(SampleAccount, new Organization(Guid.NewGuid(), "slow", "Slow"), SampleCapabilities)));
+                slowLookup.SetResult(new OrganizationContext(this.account, new Organization(Guid.NewGuid(), "slow", "Slow"), this.capabilities));
             }
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(stateWhileLoading, Is.EqualTo(OrganizationContextState.Loading));
                 Assert.That(slowToken.IsCancellationRequested, Is.True);
-                Assert.That(viewModel.State, Is.EqualTo(OrganizationContextState.Ready));
-                Assert.That(viewModel.Organization, Is.EqualTo(fast));
+                Assert.That(this.viewModel.IsLoading, Is.False);
+                Assert.That(this.viewModel.Organization, Is.EqualTo(fast));
             }
         }
 
-        /// <summary>
-        /// Verifies that the ViewModel stops observing the location once disposed.
-        /// </summary>
+        [Test]
+        public void VerifyResetClearsTheContextAndComingBackLoadsItAgain()
+        {
+            this.SetUpOrganization("orbital-systems");
+            var overview = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Overview);
+            this.viewModel.Location = OrganizationLocation.None;
+            var errorsBeforeTheReset = this.viewModel.Errors;
+
+            this.viewModel.Location = null;
+            var isLoadingAfterTheReset = this.viewModel.IsLoading;
+            var errorsAfterTheReset = this.viewModel.Errors;
+            this.viewModel.Location = overview;
+            this.viewModel.Location = null;
+            var organizationAfterTheReset = this.viewModel.Organization;
+            this.viewModel.Location = overview;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(errorsBeforeTheReset, Has.Count.EqualTo(1));
+                Assert.That(isLoadingAfterTheReset, Is.True);
+                Assert.That(errorsAfterTheReset, Is.Empty);
+                Assert.That(organizationAfterTheReset, Is.Null);
+                Assert.That(this.viewModel.Organization.Slug, Is.EqualTo("orbital-systems"));
+                this.contextService.Verify(service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>()), Times.Exactly(2));
+            }
+        }
+
         [Test]
         public void VerifyDisposalStopsTheObservation()
         {
             this.SetUpOrganization("first");
-            this.SetUpOrganization("second");
-            this.navigation.NavigateTo("/organizations/first");
-            var viewModel = this.CreateViewModel();
+            this.viewModel.Location = OrganizationLocation.ForOrganization("first", OrganizationSection.Overview);
 
-            this.navigation.NavigateTo("/organizations/second");
-            viewModel.Dispose();
-            this.navigation.NavigateTo("/organizations/third");
+            this.viewModel.Dispose();
+            this.viewModel.Location = OrganizationLocation.ForOrganization("second", OrganizationSection.Overview);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(viewModel.Organization.Slug, Is.EqualTo("second"));
-                this.contextService.Verify(
-                    service => service.GetOrganizationContextAsync("third", It.IsAny<CancellationToken>()),
-                    Times.Never);
+                Assert.That(this.viewModel.Organization.Slug, Is.EqualTo("first"));
+                this.contextService.Verify(service => service.GetOrganizationContextAsync("second", It.IsAny<CancellationToken>()), Times.Never);
             }
         }
 
-        /// <summary>
-        /// Sets up the context service to know an organization.
-        /// </summary>
-        /// <param name="slug">The slug of the organization.</param>
-        /// <param name="capabilities">The capabilities of the account, or <see langword="null" /> for the default ones.</param>
-        /// <returns>The organization the service returns.</returns>
-        private Organization SetUpOrganization(string slug, OrganizationCapabilities capabilities = null)
+        private Organization SetUpOrganization(string slug, OrganizationCapabilities organizationCapabilities = null)
         {
             var organization = new Organization(Guid.NewGuid(), slug, slug);
-            this.contextService
-                .Setup(service => service.GetOrganizationContextAsync(slug, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(OrganizationResult<OrganizationContext>.Success(
-                    new OrganizationContext(SampleAccount, organization, capabilities ?? SampleCapabilities)));
+            var context = new OrganizationContext(this.account, organization, organizationCapabilities ?? this.capabilities);
+            this.contextService.Setup(service => service.GetOrganizationContextAsync(slug, It.IsAny<CancellationToken>())).ReturnsAsync(context);
 
             return organization;
-        }
-
-        /// <summary>
-        /// Creates the ViewModel under test over the mocked service.
-        /// </summary>
-        /// <returns>The ViewModel.</returns>
-        private OrganizationContextViewModel CreateViewModel()
-        {
-            return new OrganizationContextViewModel(
-                this.navigation,
-                this.contextService.Object,
-                NullLogger<OrganizationContextViewModel>.Instance);
         }
     }
 }

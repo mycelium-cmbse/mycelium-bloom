@@ -11,8 +11,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
 {
     using System.Reactive.Linq;
 
-    using Microsoft.AspNetCore.Components;
-    using Microsoft.AspNetCore.Components.Routing;
+    using ErrorOr;
 
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
@@ -21,11 +20,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using ReactiveUI;
 
     /// <summary>
-    /// Resolves the account, the organization and the capabilities designated by the current browser location,
+    /// Resolves the account, the organization and the capabilities designated by the location that the layout sets,
     /// and keeps them up to date when the location changes. Moving to another page of the same organization does
     /// not resolve it again.
     /// </summary>
-    public sealed partial class OrganizationContextViewModel : BloomBaseViewModel, IOrganizationContextViewModel
+    public sealed partial class OrganizationContextViewModel : BloomBaseViewModel, IOrganizationContextViewModel, IDisposable
     {
         /// <summary>
         /// Provides the account and the organization context, in one request per context.
@@ -33,74 +32,54 @@ namespace Mycelium.Bloom.ViewModel.Organization
         private readonly IOrganizationContextService contextService;
 
         /// <summary>
-        /// Reports the failures that the services did not describe as refusals.
+        /// Reports the failures that the services did not return as errors.
         /// </summary>
         private readonly ILogger<OrganizationContextViewModel> logger;
 
         /// <summary>
-        /// Owns the observation of the browser location and of the resolution it triggers.
+        /// Owns the observation of the location and of the resolution it triggers.
         /// </summary>
         private readonly IDisposable resolutionSubscription;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrganizationContextViewModel" /> class.
         /// </summary>
-        /// <param name="navigationManager">Blazor's authoritative navigation service.</param>
         /// <param name="contextService">The service that provides the account and the organization context.</param>
         /// <param name="logger">The logger that reports unexpected failures.</param>
         /// <exception cref="ArgumentNullException">Thrown when an argument is <see langword="null" />.</exception>
-        public OrganizationContextViewModel(
-            NavigationManager navigationManager,
-            IOrganizationContextService contextService,
-            ILogger<OrganizationContextViewModel> logger)
+        public OrganizationContextViewModel(IOrganizationContextService contextService, ILogger<OrganizationContextViewModel> logger)
         {
-            ArgumentNullException.ThrowIfNull(navigationManager);
             ArgumentNullException.ThrowIfNull(contextService);
             ArgumentNullException.ThrowIfNull(logger);
 
             this.contextService = contextService;
             this.logger = logger;
+            this.IsLoading = true;
 
             // The resolution is keyed on the account or organization, not on the page: the loaded data is combined
-            // with the latest location, so a page change only re-evaluates the page rules.
-            this.resolutionSubscription = Observable
-                .FromEventPattern<LocationChangedEventArgs>(
-                    handler => navigationManager.LocationChanged += handler,
-                    handler => navigationManager.LocationChanged -= handler)
-                .Select(_ => navigationManager.Uri)
-                .StartWith(navigationManager.Uri)
-                .Select(uri => OrganizationRoutes.Parse(navigationManager.ToBaseRelativePath(uri)))
-                .DistinctUntilChanged()
+            // with the latest location, so a page change only re-evaluates the page rules. A null location resets the
+            // context, so that coming back to the same organization loads it again.
+            this.resolutionSubscription = this.WhenAnyValue(viewModel => viewModel.Location)
                 .Publish(locations => locations
-                    .DistinctUntilChanged(location => (location.Kind, location.Slug))
-                    .Select(location => Observable
-                        .FromAsync(cancellationToken => this.LoadAsync(location, cancellationToken))
-                        .StartWith(Resolution.CreateLoading(location)))
+                    .DistinctUntilChanged(location => (location?.Kind, location?.Slug))
+                    .Select(this.Resolve)
                     .Switch()
                     .CombineLatest(locations, Compose))
                 .Subscribe(this.Apply);
         }
 
         /// <summary>
-        /// Gets what the current browser location designates.
+        /// Gets or sets what the current browser location designates. It is <see langword="null" /> until the layout sets it
+        /// and once the layout is disposed, which clears the context.
         /// </summary>
         public OrganizationLocation Location
         {
             get;
-            private set => this.RaiseAndSetIfChanged(ref field, value);
-        } = OrganizationLocation.None;
+            set => this.RaiseAndSetIfChanged(ref field, value);
+        }
 
         /// <summary>
-        /// Gets the state of the designated organization.
-        /// </summary>
-        public OrganizationContextState State
-        {
-            get;
-            private set => this.RaiseAndSetIfChanged(ref field, value);
-        } = OrganizationContextState.Loading;
-
-        /// <summary>
-        /// Gets the current account, <see langword="null" /> unless the state is <see cref="OrganizationContextState.Ready" />.
+        /// Gets the current account, <see langword="null" /> until it is resolved.
         /// </summary>
         public Account Account
         {
@@ -109,8 +88,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         }
 
         /// <summary>
-        /// Gets the designated organization, <see langword="null" /> unless the state is
-        /// <see cref="OrganizationContextState.Ready" /> on an organization page.
+        /// Gets the designated organization, <see langword="null" /> until it is resolved or on the account page.
         /// </summary>
         public Organization Organization
         {
@@ -119,8 +97,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
         }
 
         /// <summary>
-        /// Gets what the current account may do in the designated organization, <see langword="null" /> unless the state
-        /// is <see cref="OrganizationContextState.Ready" /> on an organization page.
+        /// Gets what the current account may do in the designated organization, <see langword="null" /> until it is
+        /// resolved or on the account page.
         /// </summary>
         public OrganizationCapabilities Capabilities
         {
@@ -129,7 +107,16 @@ namespace Mycelium.Bloom.ViewModel.Organization
         }
 
         /// <summary>
-        /// Stops observing the browser location and cancels the resolution in progress.
+        /// Gets the errors that prevented the resolution, empty while it loads and once it succeeded.
+        /// </summary>
+        public IReadOnlyList<Error> Errors
+        {
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        } = [];
+
+        /// <summary>
+        /// Stops observing the location and cancels the resolution in progress.
         /// </summary>
         public void Dispose()
         {
@@ -138,45 +125,59 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
         /// <summary>
         /// Combines what was loaded for an account or an organization with the latest location. Data loaded for
-        /// another organization is never shown, and the settings page is not found without the capability to edit them.
+        /// another organization is never shown, a reset stays loading, and the settings page is not found without the
+        /// capability to edit them.
         /// </summary>
         /// <param name="loaded">The latest resolution of an account or an organization.</param>
         /// <param name="location">The latest location.</param>
         /// <returns>The resolution to publish.</returns>
-        private static Resolution Compose(Resolution loaded, OrganizationLocation location)
+        private static OrganizationContextResolution Compose(OrganizationContextResolution loaded, OrganizationLocation location)
         {
-            if (loaded.Location.Kind != location.Kind || loaded.Location.Slug != location.Slug)
+            if (location is null || loaded.Location?.Kind != location.Kind || loaded.Location.Slug != location.Slug)
             {
-                return Resolution.CreateLoading(location);
+                return OrganizationContextResolution.CreateLoading(location);
             }
 
             // A missing capability and a missing organization look the same to the account, so the page cannot be probed.
-            return loaded.State == OrganizationContextState.Ready
-                   && location.Section == OrganizationSection.Settings
-                   && loaded.Capabilities is { CanEditSettings: false }
-                ? Resolution.CreateNotFound(location)
-                : loaded with { Location = location };
+            return location.Section == OrganizationSection.Settings && loaded.Capabilities is { CanEditSettings: false }
+                ? OrganizationContextResolution.CreateNotFound(location)
+                : loaded;
         }
 
         /// <summary>
-        /// Reports a failure that no service described as a refusal.
+        /// Reports a failure that no service returned as an error.
         /// </summary>
         /// <param name="exception">The unexpected failure.</param>
         [LoggerMessage(Level = LogLevel.Error, Message = "The organization context could not be resolved.")]
         private partial void LogResolutionFailure(Exception exception);
 
         /// <summary>
-        /// Publishes a resolution to the properties of this ViewModel. The state is published last so that the data
-        /// it announces is already in place.
+        /// Publishes a resolution to the properties of this ViewModel. The loading flag is published last so that the
+        /// data it announces is already in place.
         /// </summary>
         /// <param name="resolution">The resolution to publish.</param>
-        private void Apply(Resolution resolution)
+        private void Apply(OrganizationContextResolution resolution)
         {
-            this.Location = resolution.Location;
             this.Account = resolution.Account;
             this.Organization = resolution.Organization;
             this.Capabilities = resolution.Capabilities;
-            this.State = resolution.State;
+            this.Errors = resolution.Errors;
+            this.IsLoading = resolution.IsLoading;
+        }
+
+        /// <summary>
+        /// Starts the resolution of a location: a loading resolution, then the loaded one. A null location stays loading
+        /// with nothing loaded.
+        /// </summary>
+        /// <param name="location">The location to resolve, or <see langword="null" /> to reset the context.</param>
+        /// <returns>The resolutions of the location.</returns>
+        private IObservable<OrganizationContextResolution> Resolve(OrganizationLocation location)
+        {
+            var loading = OrganizationContextResolution.CreateLoading(location);
+
+            return location is null
+                ? Observable.Return(loading)
+                : Observable.FromAsync(cancellationToken => this.LoadAsync(location, cancellationToken)).StartWith(loading);
         }
 
         /// <summary>
@@ -186,11 +187,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <param name="location">The location to load.</param>
         /// <param name="cancellationToken">The token that cancels the loading when another organization is designated.</param>
         /// <returns>The resolution of the location.</returns>
-        private async Task<Resolution> LoadAsync(OrganizationLocation location, CancellationToken cancellationToken)
+        private async Task<OrganizationContextResolution> LoadAsync(OrganizationLocation location, CancellationToken cancellationToken)
         {
             if (location.Kind == OrganizationLocationKind.None)
             {
-                return Resolution.CreateNotFound(location);
+                return OrganizationContextResolution.CreateNotFound(location);
             }
 
             try
@@ -199,99 +200,29 @@ namespace Mycelium.Bloom.ViewModel.Organization
                 {
                     var account = await this.contextService.GetAccountAsync(cancellationToken);
 
-                    return account.IsSuccess
-                        ? Resolution.CreateReady(location, account.Value, null, null)
-                        : Resolution.CreateRefused(location, account.Error);
+                    return account.IsError
+                        ? OrganizationContextResolution.CreateRefused(location, account.Errors)
+                        : OrganizationContextResolution.CreateReady(location, account.Value, null, null);
                 }
 
                 var context = await this.contextService.GetOrganizationContextAsync(location.Slug, cancellationToken);
 
-                return context.IsSuccess
-                    ? Resolution.CreateReady(location, context.Value.Account, context.Value.Organization, context.Value.Capabilities)
-                    : Resolution.CreateRefused(location, context.Error);
+                if (context.IsError)
+                {
+                    return OrganizationContextResolution.CreateRefused(location, context.Errors);
+                }
+
+                var value = context.Value;
+
+                return OrganizationContextResolution.CreateReady(location, value.Account, value.Organization, value.Capabilities);
             }
             catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
             {
                 this.LogResolutionFailure(exception);
 
-                return Resolution.CreateFailed(location);
-            }
-        }
+                var error = Error.Unexpected(OrganizationErrorCodes.Unavailable, "The organization context could not be resolved.");
 
-        /// <summary>
-        /// Describes the outcome of resolving a location, published as one unit to the properties of the ViewModel.
-        /// </summary>
-        /// <param name="Location">The resolved location.</param>
-        /// <param name="State">The state of the organization.</param>
-        /// <param name="Account">The current account, when it is known.</param>
-        /// <param name="Organization">The designated organization, when it is known.</param>
-        /// <param name="Capabilities">The capabilities of the account, when they are known.</param>
-        private sealed record Resolution(
-            OrganizationLocation Location,
-            OrganizationContextState State,
-            Account Account,
-            Organization Organization,
-            OrganizationCapabilities Capabilities)
-        {
-            /// <summary>
-            /// Creates the resolution of a location that is being resolved.
-            /// </summary>
-            /// <param name="location">The location being resolved.</param>
-            /// <returns>The loading resolution.</returns>
-            public static Resolution CreateLoading(OrganizationLocation location)
-            {
-                return new Resolution(location, OrganizationContextState.Loading, null, null, null);
-            }
-
-            /// <summary>
-            /// Creates the resolution of a location that resolved completely.
-            /// </summary>
-            /// <param name="location">The resolved location.</param>
-            /// <param name="account">The current account.</param>
-            /// <param name="organization">The designated organization, or <see langword="null" /> on the account page.</param>
-            /// <param name="capabilities">The capabilities of the account, or <see langword="null" /> on the account page.</param>
-            /// <returns>The ready resolution.</returns>
-            public static Resolution CreateReady(
-                OrganizationLocation location,
-                Account account,
-                Organization organization,
-                OrganizationCapabilities capabilities)
-            {
-                return new Resolution(location, OrganizationContextState.Ready, account, organization, capabilities);
-            }
-
-            /// <summary>
-            /// Creates the resolution of a location that designates nothing the account can reach.
-            /// </summary>
-            /// <param name="location">The resolved location.</param>
-            /// <returns>The not found resolution.</returns>
-            public static Resolution CreateNotFound(OrganizationLocation location)
-            {
-                return new Resolution(location, OrganizationContextState.NotFound, null, null, null);
-            }
-
-            /// <summary>
-            /// Creates the resolution of a location whose resolution failed.
-            /// </summary>
-            /// <param name="location">The resolved location.</param>
-            /// <returns>The error resolution.</returns>
-            public static Resolution CreateFailed(OrganizationLocation location)
-            {
-                return new Resolution(location, OrganizationContextState.Error, null, null, null);
-            }
-
-            /// <summary>
-            /// Creates the resolution that maps a refusal of a service to a state: a missing or forbidden organization
-            /// is not found, any other refusal is an error.
-            /// </summary>
-            /// <param name="location">The resolved location.</param>
-            /// <param name="error">The refusal of the service.</param>
-            /// <returns>The resolution that matches the refusal.</returns>
-            public static Resolution CreateRefused(OrganizationLocation location, OrganizationError error)
-            {
-                return error.Code is OrganizationErrorCode.NotFound or OrganizationErrorCode.Forbidden
-                    ? CreateNotFound(location)
-                    : CreateFailed(location);
+                return OrganizationContextResolution.CreateRefused(location, [error]);
             }
         }
     }

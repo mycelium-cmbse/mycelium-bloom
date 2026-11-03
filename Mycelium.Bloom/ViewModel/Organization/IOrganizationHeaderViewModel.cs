@@ -18,7 +18,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     /// <summary>
     /// Defines the reactive state and the operations of the header of the account and organization pages.
     /// </summary>
-    public interface IOrganizationHeaderViewModel : IDisposable, INotifyPropertyChanged
+    public interface IOrganizationHeaderViewModel : INotifyPropertyChanged
     {
         /// <summary>
         /// Gets what the header displays. It follows the organization context and never shows a stale organization.

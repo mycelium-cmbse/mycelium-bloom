@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="OrganizationErrorCode.cs" company="Starion Group S.A.">
+// <copyright file="OrganizationErrorCodes.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -7,26 +7,26 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Model.Enum
+namespace Mycelium.Bloom.Core.Organization
 {
     /// <summary>
-    /// Defines the expected refusals that an organization service reports as data instead of exceptions.
+    /// Defines the codes of the errors that the organization services return instead of throwing.
     /// </summary>
-    public enum OrganizationErrorCode
+    public static class OrganizationErrorCodes
     {
         /// <summary>
-        /// The requested organization or account does not exist.
+        /// The requested organization, account or page does not exist.
         /// </summary>
-        NotFound,
+        public const string NotFound = "Organization.NotFound";
 
         /// <summary>
         /// The current account is not allowed to access the requested organization or operation.
         /// </summary>
-        Forbidden,
+        public const string Forbidden = "Organization.Forbidden";
 
         /// <summary>
         /// The organization back end could not answer the request.
         /// </summary>
-        Unavailable
+        public const string Unavailable = "Organization.Unavailable";
     }
 }
