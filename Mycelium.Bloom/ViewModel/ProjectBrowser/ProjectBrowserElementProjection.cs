@@ -34,7 +34,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     /// </summary>
     public static class ProjectBrowserElementProjection
     {
-        /// <summary>Determines whether an element retains a canonical Browser row.</summary>
+        /// <summary>
+        /// Determines whether an element retains a canonical Browser row.
+        /// </summary>
         /// <param name="element">The canonical SDK element.</param>
         /// <returns>Whether the element is structural or grouped.</returns>
         public static bool IsNavigable(IElement element)
@@ -42,7 +44,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return element != null && !IsElidedMembership(element) && !IsExcluded(element);
         }
 
-        /// <summary>Recognizes transparent membership wrappers, including aliases and variants.</summary>
+        /// <summary>
+        /// Recognizes transparent membership wrappers, including aliases and variants.
+        /// </summary>
         /// <param name="element">The element to classify.</param>
         /// <returns>Whether traversal should continue through this wrapper.</returns>
         public static bool IsElidedMembership(IElement element)
@@ -50,7 +54,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return element is IMembership && !IsDetailMembership(element);
         }
 
-        /// <summary>Recognizes roles whose complete contents stay on their visible owner.</summary>
+        /// <summary>
+        /// Recognizes roles whose complete contents stay on their visible owner.
+        /// </summary>
         /// <param name="element">A membership or the element occupying that role.</param>
         /// <returns>Whether this role belongs exclusively to Properties.</returns>
         private static bool IsDetailMembership(IElement element)
@@ -59,7 +65,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 or IRequirementConstraintMembership or IFeatureValue or IResultExpressionMembership;
         }
 
-        /// <summary>Checks role-specific exclusions before usage, classifier and expression interfaces.</summary>
+        /// <summary>
+        /// Checks role-specific exclusions before usage, classifier and expression interfaces.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <param name="membership">The membership for this occurrence, when traversing an alias or variant.</param>
         /// <returns>Whether the complete subtree is presented on its owner.</returns>
@@ -93,7 +101,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             };
         }
 
-        /// <summary>Gets the reviewed collapsible group for one occurrence.</summary>
+        /// <summary>
+        /// Gets the reviewed collapsible group for one occurrence.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <param name="membership">The membership for this occurrence.</param>
         /// <returns>The kind-group label, or null for structural elements.</returns>
@@ -115,7 +125,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             };
         }
 
-        /// <summary>Gets the SDK name or contextual fallback without changing the model.</summary>
+        /// <summary>
+        /// Gets the SDK name or contextual fallback without changing the model.
+        /// </summary>
         /// <param name="element">The canonical SDK element.</param>
         /// <returns>The display name.</returns>
         public static string GetDisplayName(IElement element)
@@ -123,7 +135,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return GetDisplayName(element, false, out _);
         }
 
-        /// <summary>Gets a name using the element's known position in the loaded model.</summary>
+        /// <summary>
+        /// Gets a name using the element's known position in the loaded model.
+        /// </summary>
         /// <param name="element">The canonical SDK element.</param>
         /// <param name="isModelRoot">Whether the element is the loaded root.</param>
         /// <param name="uiDisplayLabel">The UI fallback for an unnamed root.</param>

@@ -35,7 +35,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Serializer.Json;
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
-    /// <summary>Verifies reviewed expression placement, including the constraint usage exception.</summary>
+    /// <summary>
+    /// Verifies reviewed expression placement, including the constraint usage exception.
+    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserExpressionProjectionTestFixture
     {
@@ -70,8 +72,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var environment = new Mock<IHostEnvironment>();
             environment.SetupGet(value => value.ContentRootPath)
                 .Returns(TestRepository.GetDirectoryPath("Mycelium.Bloom"));
-            var loader = new ModelLoaderService(environment.Object, new DeSerializer(NullLoggerFactory.Instance),
-                new Assembler(NullLoggerFactory.Instance), NullLogger<ModelLoaderService>.Instance);
+            var loader = new ModelLoaderService(environment.Object, new DeSerializer(NullLoggerFactory.Instance), new Assembler(NullLoggerFactory.Instance), NullLogger<ModelLoaderService>.Instance);
             var root = loader.LoadQuantitiesModel();
             var modelLoader = new Mock<IModelLoaderService>();
             modelLoader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
@@ -133,6 +134,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(new DetailsPanelPresentation(dimensions).ExpressionNotations
                     .Select(expression => expression.TextualNotation.Text), Does.Contain("mRef.dimensions"));
             }
+
             var expression = Descendants(dimensions).OfType<IFeatureChainExpression>().Single();
             browser.FilterText = "dimensions";
             browser.FocusElement(expression);

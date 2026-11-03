@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.ViewModel
 {
+    using Mycelium.Bloom.Extensions;
     using Moq;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -27,6 +28,23 @@ namespace Mycelium.Bloom.Tests.ViewModel
     [TestFixture]
     public sealed class ElementPresentationTestFixture
     {
+        /// <summary>
+        /// Keeps nullable and literal formatting identical through the extension and the Details compatibility entry point.
+        /// </summary>
+        [Test]
+        public void VerifyExpressionExtensionPreservesNullAndLiteralText()
+        {
+            IExpression missing = null;
+            IExpression literal = new LiteralInteger { Value = 42 };
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(missing.GetExpressionText(), Is.Null);
+                Assert.That(literal.GetExpressionText(), Is.EqualTo("42"));
+                Assert.That(ElementPresentation.GetExpressionText(literal), Is.EqualTo(literal.GetExpressionText()));
+            }
+        }
+
         [TestCase(typeof(PartUsage), "Part usage")]
         [TestCase(typeof(IPartUsage), "Part usage")]
         [TestCase(typeof(FeatureReferenceExpression), "Feature reference expression")]
@@ -80,7 +98,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(ElementPresentation.GetMultiplicity(part.Object), Is.Null);
         }
 
-        /// <summary>Bounds ownership traversal before the SDK writer, without rejecting the last supported depth.</summary>
+        /// <summary>
+        /// Bounds ownership traversal before the SDK writer, without rejecting the last supported depth.
+        /// </summary>
         [TestCase(63, true)]
         [TestCase(64, false)]
         public void VerifyInlineExpressionDepthBoundary(int depth, bool complete)
@@ -95,10 +115,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             }
             reference.SetupGet(element => element.ownedElement).Returns([child]);
 
-            Assert.That(ElementPresentation.GetExpressionText(reference.Object), complete ? Is.EqualTo("target") : Is.Null);
+            Assert.That(reference.Object.GetExpressionText(), complete ? Is.EqualTo("target") : Is.Null);
         }
 
-        /// <summary>Rejects an ownership cycle and permits the same identity on separate completed paths.</summary>
+        /// <summary>
+        /// Rejects an ownership cycle and permits the same identity on separate completed paths.
+        /// </summary>
         [Test]
         public void VerifyInlineExpressionCyclesAndSharedBranches()
         {
@@ -106,7 +128,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var shared = new Mock<IElement>();
             shared.SetupGet(element => element.ownedElement).Returns([reference.Object]);
             reference.SetupGet(element => element.ownedElement).Returns([shared.Object]);
-            Assert.That(ElementPresentation.GetExpressionText(reference.Object), Is.Null);
+            Assert.That(reference.Object.GetExpressionText(), Is.Null);
 
             shared.SetupGet(element => element.ownedElement).Returns([]);
             var first = new Mock<IElement>();
@@ -114,25 +136,29 @@ namespace Mycelium.Bloom.Tests.ViewModel
             first.SetupGet(element => element.ownedElement).Returns([shared.Object]);
             second.SetupGet(element => element.ownedElement).Returns([shared.Object]);
             reference.SetupGet(element => element.ownedElement).Returns([first.Object, second.Object]);
-            Assert.That(ElementPresentation.GetExpressionText(reference.Object), Is.EqualTo("target"));
+            Assert.That(reference.Object.GetExpressionText(), Is.EqualTo("target"));
         }
 
-        /// <summary>Keeps incomplete SDK structure recoverable without swallowing unrelated failures.</summary>
+        /// <summary>
+        /// Keeps incomplete SDK structure recoverable without swallowing unrelated failures.
+        /// </summary>
         [Test]
         public void VerifyInlineExpressionGetterFailureAndRecovery()
         {
             var reference = CreateInlineReference();
             reference.SetupGet(element => element.ownedElement).Throws(new IncompleteModelException("Missing ownership"));
-            Assert.That(ElementPresentation.GetExpressionText(reference.Object), Is.Null);
+            Assert.That(reference.Object.GetExpressionText(), Is.Null);
 
             reference.SetupGet(element => element.ownedElement).Throws(new System.InvalidOperationException("Unexpected failure"));
-            Assert.Throws<System.InvalidOperationException>(() => ElementPresentation.GetExpressionText(reference.Object));
+            Assert.Throws<System.InvalidOperationException>(() => reference.Object.GetExpressionText());
 
             reference.SetupGet(element => element.ownedElement).Returns([]);
-            Assert.That(ElementPresentation.GetExpressionText(reference.Object), Is.EqualTo("target"));
+            Assert.That(reference.Object.GetExpressionText(), Is.EqualTo("target"));
         }
 
-        /// <summary>Preserves operator reads while short-circuiting invalid arity before touching parameters.</summary>
+        /// <summary>
+        /// Preserves operator reads while short-circuiting invalid arity before touching parameters.
+        /// </summary>
         [Test]
         public void VerifyInlineInvalidArityDoesNotReadArguments()
         {
@@ -141,12 +167,14 @@ namespace Mycelium.Bloom.Tests.ViewModel
             operation.SetupGet(element => element.Operator).Returns("*");
             operation.SetupGet(element => element.OwnedRelationship).Returns([argument.Object]);
 
-            Assert.That(ElementPresentation.GetExpressionText(operation.Object), Is.Null);
+            Assert.That(operation.Object.GetExpressionText(), Is.Null);
             operation.VerifyGet(element => element.Operator, Times.Exactly(3));
             argument.VerifyNoOtherCalls();
         }
 
-        /// <summary>Creates a resolvable reference with independently configurable ownership for bounded traversal tests.</summary>
+        /// <summary>
+        /// Creates a resolvable reference with independently configurable ownership for bounded traversal tests.
+        /// </summary>
         /// <returns>A reference to a canonical named feature.</returns>
         private static Mock<IFeatureReferenceExpression> CreateInlineReference()
         {

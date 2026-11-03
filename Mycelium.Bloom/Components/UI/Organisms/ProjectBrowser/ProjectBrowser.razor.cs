@@ -12,97 +12,37 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using System.Reactive;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
+
     using DynamicData.Binding;
     using Microsoft.AspNetCore.Components;
     using Microsoft.JSInterop;
+
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
     /// Renders a reusable tree browser for a loaded SysML project model.
     /// </summary>
-    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>, IAsyncDisposable
+    /// <remarks>
+    /// Synchronous disposal is inherited from ReactiveComponentBase and releases subscriptions through Dispose(bool).
+    /// DisposeAsync also releases the JavaScript registration without blocking synchronous callers.
+    /// </remarks>
+    public sealed partial class ProjectBrowser : BloomReactiveComponentBase<IProjectBrowserViewModel>, IDisposable, IAsyncDisposable
     {
-        /// <summary>The DOM tree whose focus belongs only to this Browser.</summary>
+        /// <summary>
+        /// The DOM tree whose focus belongs only to this Browser.
+        /// </summary>
         private ElementReference treeRoot;
 
-        /// <summary>The collocated tree keyboard and focus module.</summary>
+        /// <summary>
+        /// The collocated tree keyboard and focus module.
+        /// </summary>
         private IJSObjectReference treeModule;
 
-        /// <summary>The shared in-flight module import, including disposal during initialization.</summary>
+        /// <summary>
+        /// The shared in-flight module import, including disposal during initialization.
+        /// </summary>
         private Task treeInitialization;
-
-        /// <summary>Gets or sets the browser runtime used for local DOM focus.</summary>
-        [Inject]
-        private IJSRuntime JsRuntime { get; set; }
-
-        /// <summary>Registers local keyboard behavior after the loaded tree has rendered.</summary>
-        /// <param name="firstRender">Whether this is the component's first render.</param>
-        /// <returns>The module initialization and root registration.</returns>
-        protected override async Task OnAfterRenderAsync(bool firstRender)
-        {
-            await base.OnAfterRenderAsync(firstRender);
-            if (this.isDisposed || string.IsNullOrEmpty(this.treeRoot.Id))
-            {
-                return;
-            }
-            this.treeInitialization ??= this.InitializeTreeModuleAsync();
-            await this.treeInitialization;
-            if (!this.isDisposed && this.treeModule is { } module)
-            {
-                await module.InvokeVoidAsync("registerTree", this.treeRoot);
-            }
-        }
-
-        /// <summary>Imports the module without retaining a resource created after disposal.</summary>
-        /// <returns>The import operation.</returns>
-        private async Task InitializeTreeModuleAsync()
-        {
-            var module = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import",
-                "./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js");
-            if (this.isDisposed && module != null)
-            {
-                await module.DisposeAsync();
-            }
-            else
-            {
-                this.treeModule = module;
-            }
-        }
-
-        /// <summary>Releases local DOM listeners and the module without disposing the caller's ViewModel.</summary>
-        /// <returns>The asynchronous resource cleanup.</returns>
-        public async ValueTask DisposeAsync()
-        {
-            this.Dispose();
-            try
-            {
-                if (this.treeInitialization != null)
-                {
-                    await this.treeInitialization;
-                }
-                if (this.treeModule is { } module)
-                {
-                    this.treeModule = null;
-                    try
-                    {
-                        await module.InvokeVoidAsync("disposeTree", this.treeRoot);
-                    }
-                    finally
-                    {
-                        await module.DisposeAsync();
-                    }
-                }
-            }
-            catch (JSDisconnectedException)
-            {
-                // The circuit ended before browser cleanup could complete.
-            }
-            catch (ObjectDisposedException)
-            {
-                // The browser reference was already released during initialization.
-            }
-        }
 
         /// <summary>
         /// Replaces the collection-change subscription when the caller supplies another ViewModel.
@@ -137,14 +77,58 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </exception>
         private IProjectBrowserViewModel RequiredViewModel =>
             this.ViewModel
-            ?? throw new InvalidOperationException(
-                $"{nameof(ProjectBrowser)} requires an {nameof(IProjectBrowserViewModel)}.");
+            ?? throw new InvalidOperationException($"{nameof(ProjectBrowser)} requires an {nameof(IProjectBrowserViewModel)}.");
 
         /// <summary>
         /// Gets or sets the callback invoked when the selected node changes.
         /// </summary>
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> SelectedNodeChanged { get; set; }
+
+        /// <summary>
+        /// Gets or sets the browser runtime used for local DOM focus.
+        /// </summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>
+        /// Releases local DOM listeners and the module without disposing the caller's ViewModel.
+        /// </summary>
+        /// <returns>The asynchronous resource cleanup.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            this.Dispose();
+
+            try
+            {
+                if (this.treeInitialization != null)
+                {
+                    await this.treeInitialization;
+                }
+
+                if (this.treeModule is { } module)
+                {
+                    this.treeModule = null;
+
+                    try
+                    {
+                        await module.InvokeVoidAsync("disposeTree", this.treeRoot);
+                    }
+                    finally
+                    {
+                        await module.DisposeAsync();
+                    }
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // The circuit ended before browser cleanup could complete.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The browser reference was already released during initialization.
+            }
+        }
 
         /// <summary>
         /// Connects rendering to the observable collections exposed by the current ViewModel.
@@ -161,10 +145,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.observedViewModel = this.ViewModel;
             this.collectionChangesSubscription.Disposable = this.ViewModel is null
                 ? Disposable.Empty
-                : Observable.Merge(
-                        this.ViewModel.RootNodes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
-                        this.ViewModel.AvailableElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
-                        this.ViewModel.SelectedElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default))
+                : Observable.Merge(this.ViewModel.RootNodes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default), this.ViewModel.AvailableElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default), this.ViewModel.SelectedElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default))
                     .Select(_ => Observable.FromAsync(() => this.InvokeAsync(this.StateHasChanged)))
                     .Concat()
                     .Subscribe();
@@ -201,6 +182,29 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
+        /// Registers local keyboard behavior after the loaded tree has rendered.
+        /// </summary>
+        /// <param name="firstRender">Whether this is the component's first render.</param>
+        /// <returns>The module initialization and root registration.</returns>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            if (this.isDisposed || string.IsNullOrEmpty(this.treeRoot.Id))
+            {
+                return;
+            }
+
+            this.treeInitialization ??= this.InitializeTreeModuleAsync();
+            await this.treeInitialization;
+
+            if (!this.isDisposed && this.treeModule is { } module)
+            {
+                await module.InvokeVoidAsync("registerTree", this.treeRoot);
+            }
+        }
+
+        /// <summary>
         /// Releases component-owned reactive subscriptions.
         /// </summary>
         /// <param name="disposing">
@@ -218,6 +222,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.collectionChangesSubscription.Dispose();
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Imports the module without retaining a resource created after disposal.
+        /// </summary>
+        /// <returns>The import operation.</returns>
+        private async Task InitializeTreeModuleAsync()
+        {
+            var module = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js");
+
+            if (this.isDisposed && module != null)
+            {
+                await module.DisposeAsync();
+            }
+            else
+            {
+                this.treeModule = module;
+            }
         }
 
         /// <summary>
@@ -257,8 +279,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         /// <param name="filterPresentation">The immutable filter presentation to apply.</param>
         /// <returns>The visible root nodes in canonical order.</returns>
-        private IReadOnlyList<ProjectBrowserNodeViewModel> GetVisibleRootNodes(
-            ProjectBrowserFilterPresentation filterPresentation)
+        private IReadOnlyList<ProjectBrowserNodeViewModel> GetVisibleRootNodes(ProjectBrowserFilterPresentation filterPresentation)
         {
             var rootNodes = this.RequiredViewModel.RootNodes;
 
@@ -354,7 +375,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return Task.CompletedTask;
         }
 
-        /// <summary>Selects a node and forwards the selection without changing disclosure state.</summary>
+        /// <summary>
+        /// Selects a node and forwards the selection without changing disclosure state.
+        /// </summary>
         /// <param name="node">The selected project browser node.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task HandleNodeSelectedAsync(ProjectBrowserNodeViewModel node)
@@ -370,7 +393,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             await this.SelectedNodeChanged.InvokeAsync(node);
         }
 
-        /// <summary>Toggles disclosure for one node without changing canonical selection.</summary>
+        /// <summary>
+        /// Toggles disclosure for one node without changing canonical selection.
+        /// </summary>
         /// <param name="node">The node whose disclosure state is requested.</param>
         /// <returns>A completed task.</returns>
         private Task HandleNodeExpansionToggledAsync(ProjectBrowserNodeViewModel node)

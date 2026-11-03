@@ -30,10 +30,14 @@ namespace Mycelium.Bloom.Tests.Common
     using SysML2.NET.Core.POCO.Systems.States;
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
 
-    /// <summary>Builds controlled canonical SDK data for Browser acceptance, without fake production values.</summary>
+    /// <summary>
+    /// Builds controlled canonical SDK data for Browser acceptance, without fake production values.
+    /// </summary>
     internal static class BrowserAcceptanceModelTestFactory
     {
-        /// <summary>Creates a state definition with an explicit entry succession to its second state.</summary>
+        /// <summary>
+        /// Creates a state definition with an explicit entry succession to its second state.
+        /// </summary>
         /// <returns>The definition, first state, initial state, and connecting succession.</returns>
         internal static (StateDefinition Owner, StateUsage First, StateUsage Initial, SuccessionAsUsage Succession) CreateStates()
         {
@@ -51,7 +55,9 @@ namespace Mycelium.Bloom.Tests.Common
             return (owner, first, initial, succession);
         }
 
-        /// <summary>Creates a verification result referencing the standard VerdictKind enumeration.</summary>
+        /// <summary>
+        /// Creates a verification result referencing the standard VerdictKind enumeration.
+        /// </summary>
         /// <param name="value">An explicitly recorded standard verdict value.</param>
         /// <returns>The standard-library package and verification usage.</returns>
         internal static (LibraryPackage Library, VerificationCaseUsage Verification) CreateVerification(string value)
@@ -72,7 +78,9 @@ namespace Mycelium.Bloom.Tests.Common
             return (library, verification);
         }
 
-        /// <summary>Creates 3[SI::kg] using a bracket expression and a canonical unit reference.</summary>
+        /// <summary>
+        /// Creates 3[SI::kg] using a bracket expression and a canonical unit reference.
+        /// </summary>
         /// <returns>The SI fixture, mass attribute, and bracket expression.</returns>
         internal static (LibraryPackage Library, AttributeUsage Attribute, OperatorExpression Value) CreateQuantity()
         {
@@ -91,7 +99,9 @@ namespace Mycelium.Bloom.Tests.Common
             return (library, attribute, value);
         }
 
-        /// <summary>Creates a typed feature reference through its real non-owning membership.</summary>
+        /// <summary>
+        /// Creates a typed feature reference through its real non-owning membership.
+        /// </summary>
         /// <param name="target">The canonical referenced feature.</param>
         /// <returns>The reference expression.</returns>
         internal static FeatureReferenceExpression Reference(IFeature target)
@@ -101,7 +111,9 @@ namespace Mycelium.Bloom.Tests.Common
             return reference;
         }
 
-        /// <summary>Creates a binary expression with explicit input-value memberships.</summary>
+        /// <summary>
+        /// Creates a binary expression with explicit input-value memberships.
+        /// </summary>
         /// <param name="symbol">The standard operator.</param>
         /// <param name="left">The first operand.</param>
         /// <param name="right">The second operand.</param>
@@ -121,10 +133,13 @@ namespace Mycelium.Bloom.Tests.Common
             {
                 Argument(expression, right);
             }
+
             return expression;
         }
 
-        /// <summary>Attaches an expression to a real input parameter.</summary>
+        /// <summary>
+        /// Attaches an expression to a real input parameter.
+        /// </summary>
         private static void Argument(OperatorExpression owner, IExpression expression)
         {
             var parameter = new Feature { Direction = FeatureDirectionKind.In };
@@ -132,7 +147,9 @@ namespace Mycelium.Bloom.Tests.Common
             Own<FeatureValue>(parameter, expression);
         }
 
-        /// <summary>Attaches a connector end referencing a canonical feature.</summary>
+        /// <summary>
+        /// Attaches a connector end referencing a canonical feature.
+        /// </summary>
         private static void AddEnd(SuccessionAsUsage succession, IFeature target)
         {
             var end = new Feature { IsEnd = true };
@@ -140,7 +157,9 @@ namespace Mycelium.Bloom.Tests.Common
             AddRelationship(end, new ReferenceSubsetting { ReferencedFeature = target });
         }
 
-        /// <summary>Attaches elements through the pinned SDK containment contract.</summary>
+        /// <summary>
+        /// Attaches elements through the pinned SDK containment contract.
+        /// </summary>
         /// <typeparam name="TMembership">The owning relationship type.</typeparam>
         /// <param name="owner">The canonical owner.</param>
         /// <param name="child">The canonical child.</param>
@@ -152,6 +171,7 @@ namespace Mycelium.Bloom.Tests.Common
             {
                 child.Id = Guid.NewGuid();
             }
+
             var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedRelationship")
                 .GetProperty("OwnedRelatedElement");
             ((ICollection<IElement>)property.GetValue(membership)).Add(child);
@@ -159,7 +179,9 @@ namespace Mycelium.Bloom.Tests.Common
             return membership;
         }
 
-        /// <summary>Attaches a canonical relationship through the pinned SDK containment contract.</summary>
+        /// <summary>
+        /// Attaches a canonical relationship through the pinned SDK containment contract.
+        /// </summary>
         /// <param name="owner">The canonical owner.</param>
         /// <param name="relationship">The canonical relationship.</param>
         internal static void AddRelationship(IElement owner, IRelationship relationship)
@@ -168,10 +190,12 @@ namespace Mycelium.Bloom.Tests.Common
             {
                 owner.Id = Guid.NewGuid();
             }
+
             if (relationship.Id == Guid.Empty)
             {
                 relationship.Id = Guid.NewGuid();
             }
+
             var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedElement")
                 .GetProperty("OwnedRelationship");
             ((ICollection<IRelationship>)property.GetValue(owner)).Add(relationship);

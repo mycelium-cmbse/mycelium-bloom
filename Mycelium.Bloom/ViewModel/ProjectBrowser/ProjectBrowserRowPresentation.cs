@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using Mycelium.Bloom.Extensions;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Connectors;
@@ -28,14 +29,18 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
     using SysML2.NET.Exceptions;
 
-    /// <summary>Contains only available model data for a canonical Browser occurrence.</summary>
+    /// <summary>
+    /// Contains only available model data for a canonical Browser occurrence.
+    /// </summary>
     /// <param name="TypeLabel">The resolved feature types.</param>
     /// <param name="ValueLabel">A supported scalar attribute value.</param>
     /// <param name="Visibility">The membership visibility, when a membership exists.</param>
     /// <param name="Indicators">Indicators supported by actual model data.</param>
     public sealed record ProjectBrowserRowPresentation(string TypeLabel, string ValueLabel, string Visibility, IReadOnlyList<string> Indicators)
     {
-        /// <summary>Reads supported facets without inventing project ownership or evaluated values.</summary>
+        /// <summary>
+        /// Reads supported facets without inventing project ownership or evaluated values.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <param name="membership">The membership for this occurrence.</param>
         /// <param name="isImported">Whether the SDK identifies this occurrence as imported.</param>
@@ -47,7 +52,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 ? string.Join(", ", (feature.type ?? []).Select(ElementPresentation.GetDisplayName))
                 : null);
             var valueLabel = Read(() => element is IAttributeUsage
-                ? ElementPresentation.GetExpressionText(GetSingleValue(element))
+                ? GetSingleValue(element).GetExpressionText()
                 : null);
             var occurrenceMembership = membership ?? element.owningMembership;
             var visibility = Read(() => occurrenceMembership == null ? null
@@ -55,7 +60,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return new(typeLabel, valueLabel, visibility, CreateIndicators(element, isImported));
         }
 
-        /// <summary>Assembles supported indicators in their presentation order, retaining independent facet guards.</summary>
+        /// <summary>
+        /// Assembles supported indicators in their presentation order, retaining independent facet guards.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <param name="isImported">Whether this occurrence is imported.</param>
         /// <returns>The ordered model-backed indicators.</returns>
@@ -66,10 +73,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 indicators.Add("Imported");
             }
+
             if (Read(() => HasDocumentation(element)))
             {
                 indicators.Add("Documentation");
             }
+
             if (Read(() => HasMetadata(element)))
             {
                 indicators.Add("Metadata");
@@ -79,7 +88,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return indicators;
         }
 
-        /// <summary>Recognizes documentation, comments and textual representations attached to the element.</summary>
+        /// <summary>
+        /// Recognizes documentation, comments and textual representations attached to the element.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <returns>Whether a documentation facet is available.</returns>
         private static bool HasDocumentation(IElement element)
@@ -90,7 +101,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     annotation.annotatingElement is IComment or ITextualRepresentation) == true;
         }
 
-        /// <summary>Recognizes owned or annotated metadata usages.</summary>
+        /// <summary>
+        /// Recognizes owned or annotated metadata usages.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <returns>Whether a metadata facet is available.</returns>
         private static bool HasMetadata(IElement element)
@@ -99,7 +112,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 || element.ownedAnnotation?.Any(annotation => annotation.annotatingElement is IMetadataUsage) == true;
         }
 
-        /// <summary>Adds library and variation facets without treating enumerations as variations.</summary>
+        /// <summary>
+        /// Adds library and variation facets without treating enumerations as variations.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <param name="indicators">The ordered indicators being assembled.</param>
         private static void AddLibraryAndVariationIndicators(IElement element, List<string> indicators)
@@ -112,6 +127,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                     indicators.Add("Standard library");
                 }
             }
+
             if (element is not IEnumerationDefinition
                 && (element is IUsage { IsVariation: true } or IDefinition { IsVariation: true }))
             {
@@ -119,7 +135,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Adds conjugation, state and verification facets with their independent SDK guards.</summary>
+        /// <summary>
+        /// Adds conjugation, state and verification facets with their independent SDK guards.
+        /// </summary>
         /// <param name="element">The canonical model element.</param>
         /// <param name="indicators">The ordered indicators being assembled.</param>
         private static void AddBehaviorIndicators(IElement element, List<string> indicators)
@@ -128,14 +146,17 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 indicators.Add("Conjugated");
             }
+
             if (element is IStateUsage { IsParallel: true } or IStateDefinition { IsParallel: true })
             {
                 indicators.Add("Parallel");
             }
+
             if (element is IStateUsage state && Read(() => IsInitialState(state)))
             {
                 indicators.Add("Initial");
             }
+
             if (element is IVerificationCaseUsage or IVerificationCaseDefinition
                 && Read(() => GetVerdict(element)) is { } verdict)
             {
@@ -143,7 +164,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Reads a single explicit value; multiple or absent values are not guessed.</summary>
+        /// <summary>
+        /// Reads a single explicit value; multiple or absent values are not guessed.
+        /// </summary>
         /// <param name="element">The feature owning the value.</param>
         /// <returns>The canonical expression, or null for ambiguous or missing values.</returns>
         private static IExpression GetSingleValue(IElement element)
@@ -152,7 +175,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             return values.Length == 1 ? values[0].value : null;
         }
 
-        /// <summary>Recognizes the explicit entry-to-substate succession defined by SysML 7.18.2.</summary>
+        /// <summary>
+        /// Recognizes the explicit entry-to-substate succession defined by SysML 7.18.2.
+        /// </summary>
         /// <param name="state">The nested state being presented.</param>
         /// <returns>Whether the state is the unique unconditional initial target of its parent.</returns>
         private static bool IsInitialState(IStateUsage state)
@@ -176,18 +201,22 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 return false;
             }
+
             var initial = owner.ownedElement?.OfType<ISuccession>()
                 .Where(succession => ReferenceEquals(succession.sourceFeature, entry)).ToArray() ?? [];
             if (initial.Length + transitions.Length != 1)
             {
                 return false;
             }
+
             return transitions.Length == 1
                 ? ReferenceEquals(transitions[0].target, state)
                 : initial[0].targetFeature is { Count: 1 } targets && ReferenceEquals(targets[0], state);
         }
 
-        /// <summary>Reads an explicit standard verdict reference on the verification result, without execution.</summary>
+        /// <summary>
+        /// Reads an explicit standard verdict reference on the verification result, without execution.
+        /// </summary>
         /// <param name="verification">The verification definition or usage whose result is presented.</param>
         /// <returns>The referenced VerdictKind value, or null when the result is not explicitly recorded.</returns>
         private static string GetVerdict(IElement verification)
@@ -205,10 +234,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 return null;
             }
+
             return literal.name is "pass" or "fail" or "inconclusive" or "error" ? literal.name : null;
         }
 
-        /// <summary>Reads a facet whose derived SDK data may be incomplete.</summary>
+        /// <summary>
+        /// Reads a facet whose derived SDK data may be incomplete.
+        /// </summary>
         /// <typeparam name="T">The facet value type.</typeparam>
         /// <param name="read">The SDK read operation.</param>
         /// <returns>The facet value, or its default when the model is incomplete.</returns>

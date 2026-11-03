@@ -38,7 +38,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
     using SysML2.NET.Core.POCO.Systems.Views;
 
-    /// <summary>Describes semantic Browser labels without changing canonical model identity.</summary>
+    /// <summary>
+    /// Describes semantic Browser labels without changing canonical model identity.
+    /// </summary>
     /// <param name="Kind">The human-readable model category.</param>
     /// <param name="Stereotype">The guillemet kind designator.</param>
     /// <param name="IconName">The existing exported tree icon, when available.</param>
@@ -48,10 +50,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     {
         private const string FolderIconName = "folder";
 
-        /// <summary>Gets the contextual label for an unnamed element.</summary>
+        /// <summary>
+        /// Gets the contextual label for an unnamed element.
+        /// </summary>
         public string UnnamedLabel => this.IsModelRoot && this.Kind == "Namespace" ? "Model" : this.Kind;
 
-        /// <summary>Gets the established Lucide symbol when no exported Browser icon is available.</summary>
+        /// <summary>
+        /// Gets the established Lucide symbol when no exported Browser icon is available.
+        /// </summary>
         /// <remarks>The inline kind label distinguishes definitions and usages sharing a symbol.</remarks>
         public string SymbolName => this.Kind switch
         {
@@ -78,7 +84,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             _ => "shapes"
         };
 
-        /// <summary>Maps SDK interfaces in specificity order, before broad feature fallbacks.</summary>
+        /// <summary>
+        /// Maps SDK interfaces in specificity order, before broad feature fallbacks.
+        /// </summary>
         /// <param name="elementType">The SDK type or interface.</param>
         /// <param name="isModelRoot">Whether this is the loaded model root.</param>
         /// <returns>The semantic label and available icon.</returns>

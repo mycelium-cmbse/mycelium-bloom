@@ -39,7 +39,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.States;
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
-    /// <summary>Verifies the review's placement policy independently of the old tree assertions.</summary>
+    /// <summary>
+    /// Verifies the review's placement policy independently of the old tree assertions.
+    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserSemanticPlacementTestFixture
     {
@@ -48,7 +50,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         private static readonly string[] ExpectedAliasOccurrenceNames = ["Alias", "Imported alias"];
         private static readonly string[] ExpectedAliasOccurrenceVisibilities = ["private", "protected"];
 
-        /// <summary>Preserves fallback indices and owner-local group order across owned, skipped and imported occurrences.</summary>
+        /// <summary>
+        /// Preserves fallback indices and owner-local group order across owned, skipped and imported occurrences.
+        /// </summary>
         [Test]
         public async Task VerifyMixedTraversalOrderAndFallbackIdentifiers()
         {
@@ -78,7 +82,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Prevents staged nodes and filter types from escaping when cancellation occurs during construction.</summary>
+        /// <summary>
+        /// Prevents staged nodes and filter types from escaping when cancellation occurs during construction.
+        /// </summary>
         [Test]
         public async Task VerifyCancellationDuringStagedConstructionDoesNotPublish()
         {
@@ -106,7 +112,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Verifies known sequencing relationships cannot reach the broad connector/usage fallback.</summary>
+        /// <summary>
+        /// Verifies known sequencing relationships cannot reach the broad connector/usage fallback.
+        /// </summary>
         [TestCase(TypeArgs = [typeof(Succession)])]
         [TestCase(TypeArgs = [typeof(SuccessionAsUsage)])]
         [TestCase(TypeArgs = [typeof(SysML2.NET.Core.POCO.Kernel.Interactions.SuccessionFlow)])]
@@ -122,7 +130,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Preserves the canonical initial-state semantics and hidden succession navigation.</summary>
+        /// <summary>
+        /// Preserves the canonical initial-state semantics and hidden succession navigation.
+        /// </summary>
         [Test]
         public async Task VerifyHiddenStateSuccessionRevealsOwnerAndPreservesInitialMarker()
         {
@@ -194,6 +204,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
                 Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
             }
+
             var group = first.RootNodes[0].Children.Single();
             var node = group.Children.Single();
 
@@ -420,7 +431,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Connects an owner to a child through the SDK containment collections of a new relationship.</summary>
+        /// <summary>
+        /// Connects an owner to a child through the SDK containment collections of a new relationship.
+        /// </summary>
         /// <typeparam name="TMembership">The relationship type to instantiate.</typeparam>
         /// <param name="owner">The element whose owned relationships receive the new relationship.</param>
         /// <param name="child">The element added to the relationship's owned related elements.</param>

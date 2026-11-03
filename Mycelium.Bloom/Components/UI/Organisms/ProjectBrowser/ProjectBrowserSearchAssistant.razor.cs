@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.UI.Atoms.SearchInput;
+
     /// <summary>
     /// Composes Blueprint input, popover, and command components into Project Browser search refinements.
     /// </summary>
@@ -68,23 +69,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         private int appliedDraftResetVersion;
 
-        /// <summary>The stable field anchor, independent of each portalled suggestion lifetime.</summary>
+        /// <summary>
+        /// The stable field anchor, independent of each portalled suggestion lifetime.
+        /// </summary>
         private ElementReference searchAnchor;
 
-        /// <summary>The current trigger ID used by Blueprint to exclude the field from outside clicks.</summary>
+        /// <summary>
+        /// The current trigger ID used by Blueprint to exclude the field from outside clicks.
+        /// </summary>
         private string searchAnchorId;
 
-        /// <summary>Synchronizes the persistent field with the current opening's trigger identity.</summary>
-        /// <param name="triggerId">The current Blueprint trigger ID.</param>
-        private void HandleSearchAnchorIdChanged(string triggerId)
-        {
-            this.searchAnchorId = triggerId;
-        }
-
-        /// <summary>The presentation identity of the current popover opening.</summary>
+        /// <summary>
+        /// The presentation identity of the current popover opening.
+        /// </summary>
         private long popoverGeneration;
 
-        /// <summary>The last controlled open state received from the Browser.</summary>
+        /// <summary>
+        /// The last controlled open state received from the Browser.
+        /// </summary>
         private bool wasOpen;
 
         /// <summary>
@@ -143,25 +145,33 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public EventCallback<Type> ElementTypeToggled { get; set; }
 
-        /// <summary>Gets or sets the callback that clears all ViewModel-owned criteria.</summary>
+        /// <summary>
+        /// Gets or sets the callback that clears all ViewModel-owned criteria.
+        /// </summary>
         [Parameter]
         public EventCallback ClearRequested { get; set; }
 
-        /// <summary>Opens the unified filter suggestions on deliberate pointer interaction.</summary>
+        /// <summary>
+        /// Opens the unified filter suggestions on deliberate pointer interaction.
+        /// </summary>
         /// <returns>The controlled open-state operation.</returns>
         private Task HandleSearchClickAsync()
         {
             return this.SetOpenAsync(true);
         }
 
-        /// <summary>Clears durable criteria and the draft, then returns focus to the unified field.</summary>
+        /// <summary>
+        /// Clears durable criteria and the draft, then returns focus to the unified field.
+        /// </summary>
         /// <returns>The reset and focus operation.</returns>
         private Task HandleClearRequestedAsync()
         {
             return this.AcceptCriterionAsync(() => this.ClearRequested.InvokeAsync());
         }
 
-        /// <summary>Completes dismissal and native draft synchronization before accepting another interaction.</summary>
+        /// <summary>
+        /// Completes dismissal and native draft synchronization before accepting another interaction.
+        /// </summary>
         /// <param name="commit">The owner operation for this criterion.</param>
         /// <returns>The criterion acceptance operation.</returns>
         private async Task AcceptCriterionAsync(Func<Task> commit)
@@ -223,7 +233,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>Applies deferred navigation after the portalled command items have mounted.</summary>
+        /// <summary>
+        /// Synchronizes the persistent field with the current opening's trigger identity.
+        /// </summary>
+        /// <param name="triggerId">The current Blueprint trigger ID.</param>
+        private void HandleSearchAnchorIdChanged(string triggerId)
+        {
+            this.searchAnchorId = triggerId;
+        }
+
+        /// <summary>
+        /// Applies deferred navigation after the portalled command items have mounted.
+        /// </summary>
         /// <returns>The command navigation operation.</returns>
         private async Task HandleContentReadyAsync()
         {
@@ -261,7 +282,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return this.IsOpenChanged.InvokeAsync(isOpen);
         }
 
-        /// <summary>Ignores callbacks from a disposed opening without suppressing current dismissals.</summary>
+        /// <summary>
+        /// Ignores callbacks from a disposed opening without suppressing current dismissals.
+        /// </summary>
         /// <returns>A controlled-state handler bound to this opening's identity.</returns>
         private Func<bool, Task> GetPopoverOpenChangedHandler()
         {

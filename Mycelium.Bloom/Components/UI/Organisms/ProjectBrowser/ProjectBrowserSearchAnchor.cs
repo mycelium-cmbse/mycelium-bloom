@@ -13,29 +13,41 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using BlazorBlueprint.Primitives.Popover;
     using Microsoft.AspNetCore.Components;
 
-    /// <summary>Anchors a transient Blueprint popover to the Browser's persistent search field.</summary>
+    /// <summary>
+    /// Anchors a transient Blueprint popover to the Browser's persistent search field.
+    /// </summary>
     public sealed class ProjectBrowserSearchAnchor : ComponentBase
     {
-        /// <summary>Gets or sets the stable search-field container.</summary>
+        /// <summary>
+        /// Gets or sets the stable search-field container.
+        /// </summary>
         [Parameter]
         public ElementReference Anchor { get; set; }
 
-        /// <summary>Gets or sets the context for this popover opening.</summary>
+        /// <summary>
+        /// Gets or sets the context for this popover opening.
+        /// </summary>
         [CascadingParameter]
         public PopoverContext Popover { get; set; }
 
-        /// <summary>Gets or sets the callback that exposes this opening's trigger ID to the persistent field.</summary>
+        /// <summary>
+        /// Gets or sets the callback that exposes this opening's trigger ID to the persistent field.
+        /// </summary>
         [Parameter]
         public EventCallback<string> TriggerIdChanged { get; set; }
 
-        /// <summary>Connects outside-click exclusion to the same DOM element used for positioning.</summary>
+        /// <summary>
+        /// Connects outside-click exclusion to the same DOM element used for positioning.
+        /// </summary>
         /// <returns>The trigger identity update.</returns>
         protected override Task OnInitializedAsync()
         {
             return this.TriggerIdChanged.InvokeAsync(this.Popover.TriggerId);
         }
 
-        /// <summary>Registers the existing field without rendering a second trigger or remounting the input.</summary>
+        /// <summary>
+        /// Registers the existing field without rendering a second trigger or remounting the input.
+        /// </summary>
         /// <param name="firstRender">Whether this opening's anchor is being rendered for the first time.</param>
         protected override void OnAfterRender(bool firstRender)
         {

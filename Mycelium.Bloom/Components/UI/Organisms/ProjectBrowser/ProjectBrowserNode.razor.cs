@@ -20,7 +20,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// </summary>
     public partial class ProjectBrowserNode : BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
-        /// <summary>Describes the effective node state shared by rendering and accessible labels.</summary>
+        /// <summary>
+        /// Describes the effective node state shared by rendering and accessible labels.
+        /// </summary>
         /// <param name="VisibleChildren">The children visible under the current filter.</param>
         /// <param name="HasVisibleChildren">Whether any children remain visible.</param>
         /// <param name="CanToggle">Whether the user may change expansion.</param>
@@ -35,8 +37,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </exception>
         private ProjectBrowserNodeViewModel RequiredViewModel =>
             this.ViewModel
-            ?? throw new InvalidOperationException(
-                $"{nameof(ProjectBrowserNode)} requires a {nameof(ProjectBrowserNodeViewModel)}.");
+            ?? throw new InvalidOperationException($"{nameof(ProjectBrowserNode)} requires a {nameof(ProjectBrowserNodeViewModel)}.");
 
         /// <summary>
         /// Gets or sets the tree depth of this node.
@@ -63,7 +64,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> OnNodeSelected { get; set; }
 
-        /// <summary>Gets or sets the callback invoked by the separate disclosure control.</summary>
+        /// <summary>
+        /// Gets or sets the callback invoked by the separate disclosure control.
+        /// </summary>
         [Parameter]
         public EventCallback<ProjectBrowserNodeViewModel> OnNodeExpansionToggled { get; set; }
 
@@ -90,7 +93,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>Invokes the disclosure callback without selecting this node.</summary>
+        /// <summary>
+        /// Invokes the disclosure callback without selecting this node.
+        /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
         private async Task ToggleNodeAsync()
         {
@@ -108,16 +113,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The CSS classes for the node row.</returns>
         private string GetNodeCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
-                "mb-project-browser-node__row",
-                CssClassBuilder.When(
-                    "mb-project-browser-node__row--selected",
-                    ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
+            var cssClass = CssClassBuilder.Build("mb-project-browser-node__row", CssClassBuilder.When("mb-project-browser-node__row--selected", ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
 
             return cssClass;
         }
 
-        /// <summary>Gets a compact, labelled symbol for an indicator derived from actual model data.</summary>
+        /// <summary>
+        /// Gets a compact, labelled symbol for an indicator derived from actual model data.
+        /// </summary>
         /// <param name="indicator">The semantic indicator label.</param>
         /// <returns>The established icon name, or null when the indicator should remain text.</returns>
         private static string GetIndicatorIcon(string indicator)
@@ -156,6 +159,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             {
                 return viewModel.DisplayName;
             }
+
             var suffix = viewModel.Presentation.Kind;
 
             if (!string.IsNullOrWhiteSpace(viewModel.QualifiedName))
@@ -171,7 +175,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return this.GetRowLabel();
         }
 
-        /// <summary>Preserves full row information for assistive technology and the native hover tooltip.</summary>
+        /// <summary>
+        /// Preserves full row information for assistive technology and the native hover tooltip.
+        /// </summary>
         /// <returns>The untruncated model notation, without invented values.</returns>
         private string GetRowLabel()
         {
@@ -180,6 +186,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             {
                 return node.DisplayName;
             }
+
             var facets = new[]
             {
                 node.DisplayName,
@@ -209,11 +216,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             var isExpanded = hasVisibleChildren
                              && (filterPresentation.IsActive || viewModel.IsExpanded);
 
-            return new(visibleChildren, hasVisibleChildren, hasVisibleChildren && !filterPresentation.IsActive,
-                isExpanded);
+            return new(visibleChildren, hasVisibleChildren, hasVisibleChildren && !filterPresentation.IsActive, isExpanded);
         }
 
-        /// <summary>Gets a stateful accessible label for the disclosure control.</summary>
+        /// <summary>
+        /// Gets a stateful accessible label for the disclosure control.
+        /// </summary>
         /// <param name="nodePresentation">The effective presentation used by the current render.</param>
         /// <returns>The action available for the node's children.</returns>
         private string GetDisclosureLabel(NodeState nodePresentation)

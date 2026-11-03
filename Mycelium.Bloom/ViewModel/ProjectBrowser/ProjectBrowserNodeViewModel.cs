@@ -39,14 +39,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="membership">The membership for this occurrence, including an alias or variant.</param>
         /// <param name="isImported">Whether the SDK identifies this occurrence as imported.</param>
         /// <param name="importingNamespace">The namespace defining effective import visibility.</param>
-        public ProjectBrowserNodeViewModel(
-            string id,
-            string displayName,
-            ProjectBrowserNodeMetadata metadata,
-            IReadOnlyList<ProjectBrowserNodeViewModel> children,
-            IMembership membership = null,
-            bool isImported = false,
-            INamespace importingNamespace = null)
+        public ProjectBrowserNodeViewModel(string id, string displayName, ProjectBrowserNodeMetadata metadata, IReadOnlyList<ProjectBrowserNodeViewModel> children, IMembership membership = null, bool isImported = false, INamespace importingNamespace = null)
         {
             ArgumentNullException.ThrowIfNull(metadata);
 
@@ -73,7 +66,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>Initializes a presentation-only kind header with no SDK element or model identity.</summary>
+        /// <summary>
+        /// Initializes a presentation-only kind header with no SDK element or model identity.
+        /// </summary>
         /// <param name="id">The occurrence identifier within this browser.</param>
         /// <param name="label">The reviewed kind-group label.</param>
         /// <param name="children">The canonical model rows in the group.</param>
@@ -86,16 +81,24 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.IsGroup = true;
         }
 
-        /// <summary>Gets whether this is a presentation-only kind header, never a selectable SDK element.</summary>
+        /// <summary>
+        /// Gets whether this is a presentation-only kind header, never a selectable SDK element.
+        /// </summary>
         public bool IsGroup { get; }
 
-        /// <summary>Gets the reviewed group for this occurrence, or null for a structural row.</summary>
+        /// <summary>
+        /// Gets the reviewed group for this occurrence, or null for a structural row.
+        /// </summary>
         public string Group { get; }
 
-        /// <summary>Gets the available model facets for this row; headers have no model facets.</summary>
+        /// <summary>
+        /// Gets the available model facets for this row; headers have no model facets.
+        /// </summary>
         public ProjectBrowserRowPresentation Row { get; }
 
-        /// <summary>Gets the canonical membership for this occurrence, including an alias or imported member.</summary>
+        /// <summary>
+        /// Gets the canonical membership for this occurrence, including an alias or imported member.
+        /// </summary>
         public IMembership OccurrenceMembership { get; }
 
         /// <summary>

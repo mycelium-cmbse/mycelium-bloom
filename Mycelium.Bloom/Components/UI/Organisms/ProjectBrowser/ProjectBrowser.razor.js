@@ -1,15 +1,32 @@
 const trees = new WeakMap();
 
-// Focus is local presentation state. Activation uses the existing Blazor handlers;
-// moving focus never publishes canonical model selection.
+/**
+ * Registers one tree's roving focus and delegated keyboard handlers, once per root.
+ * Focus is local presentation state; activation delegates canonical selection to Blazor.
+ * @param {HTMLElement|null} root The rendered tree owned by this Browser instance.
+ * @returns {void}
+ */
 export function registerTree(root) {
     if (!root || trees.has(root)) {
         return;
     }
 
+    /** @returns {HTMLElement[]} Rendered occurrences in navigation order; collapsed children are absent. */
     const items = () => [...root.querySelectorAll('[role="treeitem"]')];
+    /**
+     * @param {HTMLElement} item A rendered occurrence.
+     * @returns {HTMLElement|null|undefined} Its owning occurrence, excluding the item itself.
+     */
     const parent = item => item.parentElement?.closest('[role="treeitem"]');
+    /**
+     * @param {HTMLElement} item A rendered occurrence.
+     * @returns {HTMLButtonElement|null} Its activation target, excluding descendant rows.
+     */
     const row = item => item.querySelector(':scope > .mb-project-browser-node__line > .mb-project-browser-node__row');
+    /**
+     * @param {HTMLElement} item A rendered occurrence.
+     * @returns {HTMLButtonElement|null} Its disclosure control, absent when expansion is unavailable.
+     */
     const disclosure = item => item.querySelector(':scope > .mb-project-browser-node__line > .mb-project-browser-node__disclosure');
     let active = null;
     let hasFocus = false;
@@ -18,6 +35,12 @@ export function registerTree(root) {
     let lastTyped = 0;
     const pendingDisclosures = new WeakMap();
 
+    /**
+     * Requests a Blazor toggle once for the current button and expansion state.
+     * The observer clears the pending request after expansion changes; a replaced button starts fresh.
+     * @param {HTMLElement} item The occurrence to expand or collapse without selecting it.
+     * @returns {void}
+     */
     function toggleDisclosure(item) {
         const button = disclosure(item);
         const expanded = item.getAttribute("aria-expanded");
@@ -32,6 +55,12 @@ export function registerTree(root) {
         button.click();
     }
 
+    /**
+     * Scrolls only this Browser's viewport by the amount needed to expose the row.
+     * Descendants and the surrounding page do not participate in the visibility calculation.
+     * @param {HTMLElement} item The occurrence whose own row must be visible.
+     * @returns {void}
+     */
     function revealRow(item) {
         const viewport = root.closest('.mb-project-browser__tree-viewport');
         const bounds = row(item)?.getBoundingClientRect();
@@ -49,6 +78,13 @@ export function registerTree(root) {
         }
     }
 
+    /**
+     * Sets the single Tab entry point and records ancestors for recovery after removal.
+     * This never changes canonical selection, even when DOM focus moves.
+     * @param {HTMLElement|null|undefined} item The next rendered focus occurrence, if any.
+     * @param {boolean} [moveFocus=false] Whether to focus and reveal the occurrence immediately.
+     * @returns {void}
+     */
     function setActive(item, moveFocus = false) {
         if (!item || !root.contains(item)) {
             return;
@@ -67,6 +103,12 @@ export function registerTree(root) {
         }
     }
 
+    /**
+     * Retains the Tab return point after renders or recovers a surviving ancestor/first row.
+     * External selection can change the entry point only while focus is outside the tree.
+     * @param {boolean} [selectionChanged=false] Whether a render changed an aria-selected attribute.
+     * @returns {void}
+     */
     function repair(selectionChanged = false) {
         const visible = items();
         const focused = hasFocus || root.contains(document.activeElement);
@@ -83,6 +125,11 @@ export function registerTree(root) {
         setActive(target, focused);
     }
 
+    /**
+     * Adopts keyboard or restored focus as this tree's visible Tab return point.
+     * @param {FocusEvent} event The bubbling focus-in event.
+     * @returns {void}
+     */
     function onFocus(event) {
         hasFocus = true;
         const item = event.target.closest('[role="treeitem"]');
@@ -92,6 +139,11 @@ export function registerTree(root) {
         }
     }
 
+    /**
+     * Aligns focus with pointer activation while leaving selection to the Blazor handler.
+     * @param {MouseEvent} event The bubbling row or disclosure click.
+     * @returns {void}
+     */
     function onClick(event) {
         const item = event.target.closest('[role="treeitem"]');
         if (item && root.contains(item)) {
@@ -99,6 +151,12 @@ export function registerTree(root) {
         }
     }
 
+    /**
+     * Distinguishes a normal Tab exit from focus lost while Blazor removes a row.
+     * A deferred connectivity check lets render recovery retain ownership without stealing an exit.
+     * @param {FocusEvent} event The bubbling focus-out event.
+     * @returns {void}
+     */
     function onFocusOut(event) {
         if (event.relatedTarget) {
             hasFocus = root.contains(event.relatedTarget);
@@ -113,6 +171,12 @@ export function registerTree(root) {
         }
     }
 
+    /**
+     * Navigates rendered occurrences, requests disclosure or activates through existing Blazor callbacks.
+     * Tab remains native; arrows and type-ahead move focus without selecting a model element.
+     * @param {KeyboardEvent} event The key event originating within this tree.
+     * @returns {void}
+     */
     function onKey(event) {
         const item = event.target.closest('[role="treeitem"]');
         if (!item || !root.contains(item) || event.altKey || event.ctrlKey || event.metaKey || event.isComposing) {
@@ -164,31 +228,47 @@ export function registerTree(root) {
         setActive(target ?? item, true);
     }
 
-    const observer = new MutationObserver(records => {
-        for (const record of records) {
-            if (record.attributeName === "aria-expanded") {
-                pendingDisclosures.delete(record.target);
+    const observer = new MutationObserver(
+        /**
+         * Acknowledges completed disclosure renders and repairs focus after DOM/selection changes.
+         * @param {MutationRecord[]} records The observed changes within this root.
+         * @returns {void}
+         */
+        records => {
+            for (const record of records) {
+                if (record.attributeName === "aria-expanded") {
+                    pendingDisclosures.delete(record.target);
+                }
             }
-        }
-        // Disclosure/content renders must retain the Tab return point. A genuine
-        // external selection may still choose a new entry point while focus is outside.
-        repair(records.some(record => record.attributeName === "aria-selected"));
-    });
+            // Disclosure/content renders must retain the Tab return point. A genuine
+            // external selection may still choose a new entry point while focus is outside.
+            repair(records.some(record => record.attributeName === "aria-selected"));
+        });
     observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-selected", "aria-expanded"] });
     root.addEventListener("keydown", onKey);
     root.addEventListener("focusin", onFocus);
     root.addEventListener("focusout", onFocusOut);
     root.addEventListener("click", onClick);
-    trees.set(root, () => {
-        observer.disconnect();
-        root.removeEventListener("keydown", onKey);
-        root.removeEventListener("focusin", onFocus);
-        root.removeEventListener("focusout", onFocusOut);
-        root.removeEventListener("click", onClick);
-    });
+    trees.set(root,
+        /**
+         * Disconnects this registration's observer and listeners without affecting other trees.
+         * @returns {void}
+         */
+        () => {
+            observer.disconnect();
+            root.removeEventListener("keydown", onKey);
+            root.removeEventListener("focusin", onFocus);
+            root.removeEventListener("focusout", onFocusOut);
+            root.removeEventListener("click", onClick);
+        });
     repair();
 }
 
+/**
+ * Releases a root's registration; repeated disposal is harmless and permits later registration.
+ * @param {HTMLElement} root The tree whose listeners and observer should be removed.
+ * @returns {void}
+ */
 export function disposeTree(root) {
     trees.get(root)?.();
     trees.delete(root);

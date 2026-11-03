@@ -13,16 +13,13 @@ namespace Mycelium.Bloom.ViewModel
     using System.Text.RegularExpressions;
 
     using SysML2.NET.Core.POCO.Core.Types;
-    using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Functions;
-    using SysML2.NET.Core.POCO.Kernel.FeatureValues;
-    using SysML2.NET.Core.POCO.Kernel.Behaviors;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Exceptions;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-    using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.Bloom.Extensions;
 
     /// <summary>
     /// Formats supported SDK data without evaluating expressions or changing the model.
@@ -47,10 +44,7 @@ namespace Mycelium.Bloom.ViewModel
         /// <param name="presentation">The semantic presentation for the element.</param>
         /// <param name="isFallbackLabel">Whether the result is a UI-provided fallback rather than an SDK name.</param>
         /// <returns>An SDK name, semantic role, or explicit incomplete-name state.</returns>
-        public static string GetDisplayName(
-            IElement element,
-            ProjectBrowserElementPresentation presentation,
-            out bool isFallbackLabel)
+        public static string GetDisplayName(IElement element, ProjectBrowserElementPresentation presentation, out bool isFallbackLabel)
         {
             ArgumentNullException.ThrowIfNull(element);
             ArgumentNullException.ThrowIfNull(presentation);
@@ -60,10 +54,12 @@ namespace Mycelium.Bloom.ViewModel
             {
                 return element.DeclaredName;
             }
+
             if (!string.IsNullOrWhiteSpace(element.DeclaredShortName))
             {
                 return element.DeclaredShortName;
             }
+
             var incomplete = false;
             foreach (var read in new Func<string>[] { () => element.name, () => element.shortName })
             {
@@ -80,12 +76,15 @@ namespace Mycelium.Bloom.ViewModel
                     incomplete = true;
                 }
             }
+
             var role = presentation.UnnamedLabel;
             isFallbackLabel = !incomplete;
             return incomplete ? $"{role} (name unresolved)" : role;
         }
 
-        /// <summary>Labels an SDK metaclass without exposing its implementation identifier as prose.</summary>
+        /// <summary>
+        /// Labels an SDK metaclass without exposing its implementation identifier as prose.
+        /// </summary>
         /// <param name="type">The SDK type being presented.</param>
         /// <returns>A readable metaclass label or the neutral element role.</returns>
         public static string GetKindName(System.Type type)
@@ -94,6 +93,7 @@ namespace Mycelium.Bloom.ViewModel
             {
                 return "Element";
             }
+
             var name = type.IsInterface ? type.Name[1..] : type.Name;
             var words = Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ", RegexOptions.None, TimeSpan.FromMilliseconds(100));
             return words.Length == 0 ? "Element" : words[..1] + words[1..].ToLowerInvariant();
@@ -138,109 +138,14 @@ namespace Mycelium.Bloom.ViewModel
                 : $"[{lower}..{upper}]";
         }
 
-        /// <summary>Formats a literal or supported SDK expression inline, without evaluating or adding diagnostic UI.</summary>
+        /// <summary>
+        /// Forwards expression formatting for callers in the dependent Details branch.
+        /// </summary>
         /// <param name="expression">The canonical value or bound expression.</param>
         /// <returns>The model's value/notation, or null for unsupported or incomplete structure.</returns>
         public static string GetExpressionText(IExpression expression)
         {
-            if (expression == null)
-            {
-                return null;
-            }
-
-            try
-            {
-                if (expression is ILiteralExpression)
-                {
-                    return GetLiteral(expression);
-                }
-                return HasCompleteInlineStructure(expression, new HashSet<IElement>(ReferenceEqualityComparer.Instance), 0)
-                    ? SdkExpressionText.Create(expression).Text : null;
-            }
-            catch (IncompleteModelException)
-            {
-                return null;
-            }
-        }
-
-        /// <summary>Rejects incomplete reference/operand structures before invoking the bounded SDK writer.</summary>
-        /// <param name="element">The canonical expression structure.</param>
-        /// <param name="path">Identities on the current ownership path.</param>
-        /// <param name="depth">The current nesting depth.</param>
-        /// <returns>Whether the available structure is safe to present as inline notation.</returns>
-        private static bool HasCompleteInlineStructure(IElement element, HashSet<IElement> path, int depth)
-        {
-            if (element == null || depth >= 64 || !path.Add(element))
-            {
-                return false;
-            }
-            try
-            {
-                if (element is IFeatureReferenceExpression reference && reference.referent == null
-                    || element is IFeatureChainExpression chain && chain.targetFeature == null
-                    || element is IFeatureValue { value: null })
-                {
-                    return false;
-                }
-                if (element is IOperatorExpression operation and not IFeatureChainExpression)
-                {
-                    var arguments = operation.OwnedRelationship?.OfType<IParameterMembership>()
-                        .Where(membership => membership is not IReturnParameterMembership).ToArray() ?? [];
-                    var validArity = HasSupportedOperatorArity(operation, arguments.Length);
-                    var acceptsTypeArgument = operation.Operator is "as" or "istype" or "hastype" or "@" or "@@" or "meta" or "all";
-                    var hasDeferredArguments = operation.Operator is "??" or "or" or "and" or "implies" or "if";
-                    if (!validArity || !HasCompleteArguments(arguments, acceptsTypeArgument, hasDeferredArguments))
-                    {
-                        return false;
-                    }
-                }
-                return (element.ownedElement ?? []).All(child => HasCompleteInlineStructure(child, path, depth + 1));
-            }
-            finally
-            {
-                path.Remove(element);
-            }
-        }
-
-        /// <summary>Checks supported operator arity, including the separate quantity operand.</summary>
-        /// <param name="operation">The canonical operator expression.</param>
-        /// <param name="count">The number of non-return parameter memberships.</param>
-        /// <returns>Whether the operator has a supported operand structure.</returns>
-        private static bool HasSupportedOperatorArity(IOperatorExpression operation, int count)
-        {
-            return operation.Operator switch
-            {
-                "+" or "-" => count is 1 or 2,
-                "not" or "~" => count == 1,
-                "if" => count == 3,
-                "[" => count == 1 && operation.OwnedRelationship.OfType<IFeatureMembership>()
-                    .Any(member => member is not IParameterMembership
-                        && member.OwnedRelatedElement?.OfType<IExpression>().Count() == 1),
-                "*" or "/" or "**" or "%" or "^" or "and" or "or" or "xor"
-                    or "==" or "!=" or "===" or "!==" or "<" or ">" or "<=" or ">="
-                    or "|" or "&" or ".." or "??" or "implies" => count == 2,
-                "as" or "istype" or "hastype" or "@" or "@@" or "meta" => count is 1 or 2,
-                "all" => count == 1,
-                _ => false
-            };
-        }
-
-        /// <summary>Checks ordinary arguments before inspecting any deferred argument bodies.</summary>
-        /// <param name="arguments">The non-return parameter memberships in SDK order.</param>
-        /// <param name="acceptsTypeArgument">Whether a single resolved typing can supply an argument.</param>
-        /// <param name="hasDeferredArguments">Whether arguments after the first require deferred bodies.</param>
-        /// <returns>Whether every required value, type or deferred body is available.</returns>
-        private static bool HasCompleteArguments(IParameterMembership[] arguments, bool acceptsTypeArgument, bool hasDeferredArguments)
-        {
-            return !arguments.Any(argument =>
-                argument.ownedMemberParameter?.OwnedRelationship?.OfType<IFeatureValue>().ToArray() is not [{ value: not null }]
-                && !(acceptsTypeArgument && argument.ownedMemberParameter?.OwnedRelationship?
-                    .OfType<IFeatureTyping>().Count(typing => typing.Type != null) == 1))
-                && !(hasDeferredArguments && arguments.Skip(1).Any(argument =>
-                    argument.ownedMemberParameter?.OwnedRelationship?.OfType<IFeatureValue>().FirstOrDefault()?.value
-                        is not IFeatureReferenceExpression deferred
-                    || deferred.OwnedRelationship?.OfType<IFeatureMembership>()
-                        .Any(member => member.OwnedRelatedElement?.OfType<IExpression>().Count() == 1) != true));
+            return expression.GetExpressionText();
         }
 
         /// <summary>
@@ -271,7 +176,7 @@ namespace Mycelium.Bloom.ViewModel
                 ILiteralInteger { Value: >= 0 } integer => integer.Value.ToString(CultureInfo.InvariantCulture),
                 ILiteralInfinity => "*",
                 ILiteralExpression => null,
-                _ => GetExpressionText(expression)
+                _ => expression.GetExpressionText()
             };
         }
     }

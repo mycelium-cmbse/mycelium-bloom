@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 {
+    using Mycelium.Bloom.Extensions;
     using System.Linq;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Systems.Metadata;
@@ -30,14 +31,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.Core.Types;
     using static Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory;
 
-    /// <summary>Verifies semantic Browser facets using canonical SDK model data.</summary>
+    /// <summary>
+    /// Verifies semantic Browser facets using canonical SDK model data.
+    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserAcceptanceFacetsTestFixture
     {
         private static readonly string[] ExpectedAnnotatedStateIndicators = ["Imported", "Documentation", "Metadata", "Variation", "Parallel"];
         private static readonly string[] ExpectedIncompleteStateIndicators = ["Imported", "Metadata", "Variation", "Parallel"];
 
-        /// <summary>Keeps indicator order and valid sibling facets when documentation cannot be resolved.</summary>
+        /// <summary>
+        /// Keeps indicator order and valid sibling facets when documentation cannot be resolved.
+        /// </summary>
         [Test]
         public void VerifyIndicatorOrderAndIndependentIncompleteFacets()
         {
@@ -135,8 +140,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(model.Verification.result, Is.Not.Null);
-                Assert.That(model.Library.ownedElement.OfType<SysML2.NET.Core.POCO.Systems.Enumerations.IEnumerationDefinition>()
-                    .Single().qualifiedName, Is.EqualTo("VerificationCases::VerdictKind"));
+                Assert.That(model.Library.ownedElement.OfType<SysML2.NET.Core.POCO.Systems.Enumerations.IEnumerationDefinition>().Single().qualifiedName, Is.EqualTo("VerificationCases::VerdictKind"));
                 Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators, Does.Contain("Verdict: " + value));
             }
             model.Library.DeclaredName = "UserDefinedResults";
@@ -225,13 +229,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(ElementPresentation.GetExpressionText(new FeatureReferenceExpression()), Is.Null);
-                Assert.That(ElementPresentation.GetExpressionText(new OperatorExpression { Operator = "+" }), Is.Null);
-                Assert.That(ElementPresentation.GetExpressionText(new OperatorExpression { Operator = "[" }), Is.Null);
+                Assert.That(new FeatureReferenceExpression().GetExpressionText(), Is.Null);
+                Assert.That(new OperatorExpression { Operator = "+" }.GetExpressionText(), Is.Null);
+                Assert.That(new OperatorExpression { Operator = "[" }.GetExpressionText(), Is.Null);
                 var malformedConditional = Binary("+", new LiteralInteger { Value = 1 }, new LiteralInteger { Value = 2 });
                 malformedConditional.Operator = "??";
-                Assert.That(ElementPresentation.GetExpressionText(malformedConditional), Is.Null,
-                    "The SDK's deferred-operand form must be complete; truncated notation must not be shown.");
+                Assert.That(malformedConditional.GetExpressionText(), Is.Null, "The SDK's deferred-operand form must be complete; truncated notation must not be shown.");
             }
         }
     }
