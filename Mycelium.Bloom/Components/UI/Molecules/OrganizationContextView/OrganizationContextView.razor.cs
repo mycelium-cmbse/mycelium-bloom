@@ -47,12 +47,6 @@ namespace Mycelium.Bloom.Components.UI.Molecules.OrganizationContextView
         private NavigationManager NavigationManager { get; set; }
 
         /// <summary>
-        /// Gets or sets the logger that reports a redirection that failed.
-        /// </summary>
-        [Inject]
-        private ILogger<OrganizationContextView> Logger { get; set; }
-
-        /// <summary>
         /// Redirects at once when the organization context already reports errors, so that a prerendered response
         /// carries the not found status or the redirection, and redirects again when later errors are reported.
         /// </summary>
@@ -65,9 +59,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.OrganizationContextView
             this.redirectSubscription = this.ViewModel
                 .WhenAnyValue(viewModel => viewModel.Errors)
                 .Skip(1)
-                .Select(errors => Observable.FromAsync(() => this.InvokeAsync(() => this.Redirect(errors))))
-                .Concat()
-                .Subscribe(_ => { }, exception => this.Logger.LogError(exception, "The organization context view could not redirect."));
+                .Subscribe(errors => _ = this.InvokeAsync(() => this.Redirect(errors)));
         }
 
         /// <summary>

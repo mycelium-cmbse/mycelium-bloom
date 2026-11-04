@@ -18,13 +18,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.PageHeader
     using Mycelium.Bloom.Components.UI.Molecules.PageHeader;
 
     [TestFixture]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class PageHeaderTestFixture : BunitContext
+    public sealed class PageHeaderTestFixture
     {
+        private BunitContext context;
+
+        [SetUp]
+        public void SetUp()
+        {
+            this.context = new BunitContext();
+        }
+
         [TearDown]
         public async Task TearDown()
         {
-            await this.DisposeAsync();
+            await this.context.DisposeAsync();
         }
 
         [TestCase("12 projects", true)]
@@ -33,7 +40,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.PageHeader
         {
             RenderFragment actions = builder => builder.AddContent(0, "New project");
 
-            var component = this.Render<PageHeader>(parameters =>
+            var component = this.context.Render<PageHeader>(parameters =>
             {
                 parameters.Add(header => header.Title, "Projects").Add(header => header.Subtitle, subtitle);
 
@@ -46,7 +53,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.PageHeader
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindAll("p"), Has.Count.EqualTo(string.IsNullOrWhiteSpace(subtitle) ? 0 : 1));
-                Assert.That(component.FindAll(".mb-page-header__actions"), Has.Count.EqualTo(withActions ? 1 : 0));
+                Assert.That(component.Markup, withActions ? Does.Contain("New project") : Does.Not.Contain("New project"));
             }
         }
     }

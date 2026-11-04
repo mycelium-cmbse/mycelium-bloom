@@ -30,7 +30,8 @@ namespace Mycelium.Bloom.Extensions
         {
             /// <summary>
             /// Binds the organization options and registers the organization context service and the ViewModels of the
-            /// organization context and of its header, one of each per circuit. Replacing the placeholder service changes
+            /// organization context and of its header, one of each per circuit: the layout, the header and the page content
+            /// must share the same context, which a transient registration would split in three. Replacing the placeholder service changes
             /// this registration only.
             /// </summary>
             /// <param name="configuration">The application configuration containing the organization section.</param>

@@ -24,7 +24,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     /// and keeps them up to date when the location changes. Moving to another page of the same organization does
     /// not resolve it again.
     /// </summary>
-    public sealed partial class OrganizationContextViewModel : BloomBaseViewModel, IOrganizationContextViewModel, IDisposable
+    public sealed partial class OrganizationContextViewModel : DisposableViewModel, IOrganizationContextViewModel
     {
         /// <summary>
         /// Provides the account and the organization context, in one request per context.
@@ -35,11 +35,6 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Reports the failures that the services did not return as errors.
         /// </summary>
         private readonly ILogger<OrganizationContextViewModel> logger;
-
-        /// <summary>
-        /// Owns the observation of the location and of the resolution it triggers.
-        /// </summary>
-        private readonly IDisposable resolutionSubscription;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OrganizationContextViewModel" /> class.
@@ -59,13 +54,13 @@ namespace Mycelium.Bloom.ViewModel.Organization
             // The resolution is keyed on the account or organization, not on the page: the loaded data is combined
             // with the latest location, so a page change only re-evaluates the page rules. A null location resets the
             // context, so that coming back to the same organization loads it again.
-            this.resolutionSubscription = this.WhenAnyValue(viewModel => viewModel.Location)
+            this.Disposables.Add(this.WhenAnyValue(viewModel => viewModel.Location)
                 .Publish(locations => locations
                     .DistinctUntilChanged(location => (location?.Kind, location?.Slug))
                     .Select(this.Resolve)
                     .Switch()
                     .CombineLatest(locations, Compose))
-                .Subscribe(this.Apply);
+                .Subscribe(this.Apply));
         }
 
         /// <summary>
@@ -114,14 +109,6 @@ namespace Mycelium.Bloom.ViewModel.Organization
             get;
             private set => this.RaiseAndSetIfChanged(ref field, value);
         } = [];
-
-        /// <summary>
-        /// Stops observing the location and cancels the resolution in progress.
-        /// </summary>
-        public void Dispose()
-        {
-            this.resolutionSubscription.Dispose();
-        }
 
         /// <summary>
         /// Combines what was loaded for an account or an organization with the latest location. Data loaded for

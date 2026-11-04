@@ -21,7 +21,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     /// <summary>
     /// Derives the header of the account and organization pages from the organization context.
     /// </summary>
-    public sealed class OrganizationHeaderViewModel : BloomBaseViewModel, IOrganizationHeaderViewModel, IDisposable
+    public sealed class OrganizationHeaderViewModel : DisposableViewModel, IOrganizationHeaderViewModel
     {
         /// <summary>
         /// The entries of the account menu, which do not depend on the organization.
@@ -62,6 +62,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
                 .Select(_ => CreatePresentation(context))
                 .ToProperty(this, viewModel => viewModel.Presentation, initialValue: OrganizationHeaderPresentation.Empty,
                     scheduler: ImmediateSequencer.Instance);
+
+            this.Disposables.Add(this.presentation);
+            this.Disposables.Add(this.SelectItemCommand);
         }
 
         /// <summary>
@@ -73,15 +76,6 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Gets the command that turns the selection of a menu entry into the route to navigate to.
         /// </summary>
         public ReactiveCommand<ActionMenuItem, string> SelectItemCommand { get; }
-
-        /// <summary>
-        /// Stops following the organization context and releases the command.
-        /// </summary>
-        public void Dispose()
-        {
-            this.presentation.Dispose();
-            this.SelectItemCommand.Dispose();
-        }
 
         /// <summary>
         /// Derives the presentation of the header from the properties of the organization context. Nothing is

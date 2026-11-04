@@ -29,9 +29,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
     using Mycelium.Bloom.ViewModel.Organization;
 
     [TestFixture]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class OrganizationContextViewTestFixture : BunitContext
+    public sealed class OrganizationContextViewTestFixture
     {
+        private BunitContext context;
+
         private static readonly (string, bool)[] NoNavigation = [];
 
         private static readonly (string, bool)[] ErrorPageReplacement = [("/Error", true)];
@@ -43,23 +44,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
         [SetUp]
         public void SetUp()
         {
-            BlueprintTestSetup.Configure(this);
+            this.context = new BunitContext();
+            BlueprintTestSetup.Configure(this.context);
             this.viewModel = new Mock<IOrganizationContextViewModel>();
             this.viewModel.SetupGet(model => model.Errors).Returns([]);
-            this.Services.AddSingleton(this.viewModel.Object);
+            this.context.Services.AddSingleton(this.viewModel.Object);
 
-            this.content = builder =>
-            {
-                builder.OpenElement(0, "div");
-                builder.AddAttribute(1, "class", "page-content");
-                builder.CloseElement();
-            };
+            this.content = builder => builder.AddContent(0, "Page content");
         }
 
         [TearDown]
         public async Task TearDown()
         {
-            await this.DisposeAsync();
+            await this.context.DisposeAsync();
         }
 
         [TestCase(true)]
@@ -68,12 +65,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
         {
             this.viewModel.SetupGet(model => model.IsLoading).Returns(isLoading);
 
-            var component = this.Render<OrganizationContextView>(parameters => parameters.Add(view => view.ChildContent, this.content));
+            var component = this.context.Render<OrganizationContextView>(parameters => parameters.Add(view => view.ChildContent, this.content));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindAll("[role='status']"), Has.Count.EqualTo(isLoading ? 1 : 0));
-                Assert.That(component.FindAll(".page-content"), Has.Count.EqualTo(isLoading ? 0 : 1));
+                Assert.That(component.Markup, isLoading ? Does.Not.Contain("Page content") : Does.Contain("Page content"));
             }
         }
 
@@ -85,13 +82,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
         public void VerifyErrorLeadsToItsPage(ErrorType type, bool reportedAfterRender, bool showsNotFound)
         {
             IReadOnlyList<Error> errors = [Error.Custom((int)type, "Organization.Code", "Refused.")];
-            var navigation = (BunitNavigationManager)this.Services.GetRequiredService<NavigationManager>();
+            var navigation = (BunitNavigationManager)this.context.Services.GetRequiredService<NavigationManager>();
             var expectedHistory = showsNotFound ? NoNavigation : ErrorPageReplacement;
             var notFoundShown = false;
             navigation.OnNotFound += (_, _) => notFoundShown = true;
             this.viewModel.SetupGet(model => model.Errors).Returns(reportedAfterRender ? [] : errors);
 
-            var component = this.Render<OrganizationContextView>(parameters => parameters.Add(view => view.ChildContent, this.content));
+            var component = this.context.Render<OrganizationContextView>(parameters => parameters.Add(view => view.ChildContent, this.content));
 
             if (reportedAfterRender)
             {

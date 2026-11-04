@@ -26,9 +26,10 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.ViewModel.Organization;
 
     [TestFixture]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class OrganizationLayoutTestFixture : BunitContext
+    public sealed class OrganizationLayoutTestFixture
     {
+        private BunitContext context;
+
         private Mock<IOrganizationContextViewModel> viewModel;
 
         private Mock<IOrganizationHeaderViewModel> headerViewModel;
@@ -36,19 +37,20 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         [SetUp]
         public void SetUp()
         {
-            BlueprintTestSetup.Configure(this);
+            this.context = new BunitContext();
+            BlueprintTestSetup.Configure(this.context);
             this.viewModel = new Mock<IOrganizationContextViewModel>();
             this.viewModel.SetupGet(model => model.Errors).Returns([]);
             this.headerViewModel = new Mock<IOrganizationHeaderViewModel>();
             this.headerViewModel.SetupGet(model => model.Presentation).Returns(OrganizationHeaderPresentation.Empty);
-            this.Services.AddSingleton(this.viewModel.Object);
-            this.Services.AddSingleton(this.headerViewModel.Object);
+            this.context.Services.AddSingleton(this.viewModel.Object);
+            this.context.Services.AddSingleton(this.headerViewModel.Object);
         }
 
         [TearDown]
         public async Task TearDown()
         {
-            await this.DisposeAsync();
+            await this.context.DisposeAsync();
         }
 
         [Test]
@@ -56,10 +58,10 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         {
             RenderFragment body = builder => builder.AddContent(0, "Page content");
             var membersPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
-            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            var navigation = this.context.Services.GetRequiredService<NavigationManager>();
             navigation.NavigateTo("/account");
 
-            var component = this.Render<OrganizationLayout>(parameters => parameters.Add(layout => layout.Body, body));
+            var component = this.context.Render<OrganizationLayout>(parameters => parameters.Add(layout => layout.Body, body));
             navigation.NavigateTo("/organizations/orbital-systems/members");
             component.Render(parameters => parameters.Add(layout => layout.Body, body));
             component.Instance.Dispose();
