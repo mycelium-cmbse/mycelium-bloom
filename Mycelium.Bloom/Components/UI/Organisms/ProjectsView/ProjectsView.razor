@@ -65,18 +65,19 @@
     @switch (this.ViewModel.State)
     {
         case ProjectsListState.Loading:
-            <div role="status" aria-live="polite" aria-busy="true">
-                <BbSkeleton Width="100%" Height="320px" />
+            <div class="mb-projects-view__loading" role="status" aria-live="polite" aria-busy="true">
+                <BbSkeleton Width="100%" Height="100%" />
                 <span class="sr-only">Loading</span>
             </div>
             break;
         case ProjectsListState.Ready:
-            @* The table has no pager here: it shows every row of the page that the ViewModel asked for (at most 50), so its own page size follows the row count, and a page size of 0 is invalid. *@
+            @* The table has no pager here: it shows every row of the page that the ViewModel asked for (at most 50), so its
+               own page size follows the row count. *@
             <BbDataTable TData="ProjectRowViewModel"
                          Data="@(this.ViewModel.Rows)"
                          ShowToolbar="false"
                          ShowPagination="false"
-                         InitialPageSize="@(Math.Max(this.ViewModel.Rows.Count, 1))"
+                         InitialPageSize="@(this.ViewModel.GetTablePageSize())"
                          AriaLabel="Projects">
                 <EmptyTemplate>
                     <BbEmpty Title="@(this.ViewModel.NoResultsTitle)"
@@ -98,7 +99,12 @@
                     <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Visibility">
                         <CellTemplate>
                             <span class="mb-projects-view__visibility">
-                                <LucideIcon Name="@(context.VisibilityIcon)" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                                <LucideIcon Name="@(context.VisibilityIcon)"
+                                            Size="14"
+                                            StrokeWidth="1.75"
+                                            role="presentation"
+                                            aria-hidden="true"
+                                            focusable="false" />
                                 @(context.VisibilityLabel)
                             </span>
                         </CellTemplate>
@@ -117,7 +123,11 @@
                             <StatusIndicator Label="@(context.StatusLabel)" State="@(context.LifecycleState)" />
                         </CellTemplate>
                     </BbDataTableColumn>
-                    <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Updated" Property="@(row => row.UpdatedText)" CellClass="mb-projects-view__updated" />
+                    <BbDataTableColumn TData="ProjectRowViewModel"
+                                       TValue="string"
+                                       Header="Updated"
+                                       Property="@(row => row.UpdatedText)"
+                                       CellClass="mb-projects-view__updated" />
                 </Columns>
             </BbDataTable>
 

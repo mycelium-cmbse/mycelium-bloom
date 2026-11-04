@@ -97,5 +97,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Gets the rows of the projects list, the most recently updated project first.
         /// </summary>
         IReadOnlyList<ProjectRowViewModel> Rows { get; }
+
+        /// <summary>
+        /// Gets the page size of the table of the projects: every row that is loaded, and at least one.
+        /// </summary>
+        /// <returns>The number of rows that the table shows on its one page.</returns>
+        int GetTablePageSize();
     }
 }

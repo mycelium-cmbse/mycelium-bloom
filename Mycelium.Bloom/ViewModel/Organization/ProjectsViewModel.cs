@@ -45,6 +45,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         private const string AllLabel = "All";
 
         /// <summary>
+        /// The identifier of the entry that applies no criterion. It is not a value of the enumeration, so picking it clears
+        /// the filter.
+        /// </summary>
+        private const string AllId = "all";
+
+        /// <summary>
         /// The pause in typing after which the search reloads the projects.
         /// </summary>
         private static readonly TimeSpan SearchDelay = TimeSpan.FromMilliseconds(300);
@@ -274,6 +280,16 @@ namespace Mycelium.Bloom.ViewModel.Organization
         } = [];
 
         /// <summary>
+        /// Gets the page size of the table of the projects: every row of the page that was loaded, and at least one because a
+        /// table cannot have a page size of zero.
+        /// </summary>
+        /// <returns>The number of rows that the table shows on its one page.</returns>
+        public int GetTablePageSize()
+        {
+            return Math.Max(this.Rows.Count, 1);
+        }
+
+        /// <summary>
         /// Writes a number of projects in words.
         /// </summary>
         /// <param name="count">The number of projects.</param>
@@ -321,7 +337,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         {
             return
             [
-                new ActionMenuItem { Id = "all", Label = AllLabel, IsSelected = selected is null },
+                new ActionMenuItem { Id = AllId, Label = AllLabel, IsSelected = selected is null },
                 .. Enum.GetValues<TValue>()
                     .Select(value => new ActionMenuItem { Id = value.ToString(), Label = getLabel(value), IsSelected = selected.Equals(value) })
             ];
@@ -407,7 +423,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
             this.NoResultsTitle = filter.SearchText.Length == 0
                 ? "No projects match these filters"
                 : $"No projects match \"{filter.SearchText}\"";
-            this.SetLoaded();
+            this.ErrorMessage = string.Empty;
             this.State = this.counts.Total == 0 ? ProjectsListState.Empty : ProjectsListState.Ready;
         }
 
@@ -416,7 +432,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// </summary>
         private void ShowFailure()
         {
-            this.SetError(LoadFailureMessage);
+            this.ErrorMessage = LoadFailureMessage;
             this.State = ProjectsListState.Error;
         }
     }

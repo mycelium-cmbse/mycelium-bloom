@@ -5,6 +5,11 @@
     min-width: 0;
 }
 
+/* The loading state keeps the height of a short table, so the page does not jump when the rows arrive. */
+.mb-projects-view__loading {
+    height: var(--spacing-317);
+}
+
 .mb-projects-view__toolbar {
     display: flex;
     flex-wrap: wrap;

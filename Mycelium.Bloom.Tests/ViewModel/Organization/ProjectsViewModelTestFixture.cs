@@ -77,6 +77,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(viewModel.Subtitle, Is.EqualTo(expectedSubtitle));
                 Assert.That(viewModel.ShowingText, Is.EqualTo(expectedShowing));
                 Assert.That(viewModel.Rows, Has.Count.EqualTo(shown));
+                Assert.That(viewModel.GetTablePageSize(), Is.EqualTo(shown));
                 Assert.That(viewModel.Rows[0].Name, Is.EqualTo("Aurora Orbiter"));
                 Assert.That(viewModel.Rows[0].VisibilityLabel, Is.EqualTo("Private"));
                 Assert.That(viewModel.Rows[0].VisibilityIcon, Is.EqualTo("lock"));
@@ -178,6 +179,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             {
                 Assert.That(viewModel.State, Is.EqualTo(ProjectsListState.Empty));
                 Assert.That(viewModel.Rows, Is.Empty);
+                Assert.That(viewModel.GetTablePageSize(), Is.EqualTo(1));
                 Assert.That(viewModel.CanCreateProject, Is.False);
             }
         }
