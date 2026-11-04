@@ -25,7 +25,7 @@ namespace Mycelium.Bloom.Core.Organization
         /// </summary>
         /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="filter">The criteria that the projects must match.</param>
-        /// <param name="request">The page to get.</param>
+        /// <param name="request">The page to get; the service decides the largest page it answers.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>
         /// The page of projects, or an error: <see cref="OrganizationErrorCodes.NotFound" /> when the organization does not

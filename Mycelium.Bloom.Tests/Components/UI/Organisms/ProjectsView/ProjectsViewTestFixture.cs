@@ -48,6 +48,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
             this.viewModel = new Mock<IProjectsViewModel>();
             this.viewModel.SetupGet(model => model.Rows).Returns([new ProjectRowViewModel(regular, now), new ProjectRowViewModel(concurrent, now), new ProjectRowViewModel(inReview, now), new ProjectRowViewModel(archived, now)]);
             this.viewModel.SetupGet(model => model.ErrorMessage).Returns("The projects could not be loaded.");
+            this.viewModel.Setup(model => model.GetTablePageSize()).Returns(4);
             this.viewModel.SetupGet(model => model.StatusFilterItems).Returns([]);
             this.viewModel.SetupGet(model => model.ModeFilterItems).Returns([]);
         }
