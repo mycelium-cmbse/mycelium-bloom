@@ -19,7 +19,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
     /// <summary>
     /// Answers with the sample account and organizations until the Fabric client provides the real ones. The sample
-    /// account may edit the settings only when its configured placeholder role is the administrator.
+    /// account may edit the settings and create projects only when its configured placeholder role is the administrator.
     /// </summary>
     /// <remarks>
     /// Placeholder of the organization screens, to be replaced by the Fabric client when it is bound; only the service
@@ -75,7 +75,8 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
                 return Task.FromResult<ErrorOr<OrganizationContext>>(Error.NotFound(OrganizationErrorCodes.NotFound, "The organization does not exist."));
             }
 
-            var capabilities = new OrganizationCapabilities(this.options.Value.PlaceholderRole == OrganizationRole.OrganizationAdministrator);
+            var isAdministrator = this.options.Value.PlaceholderRole == OrganizationRole.OrganizationAdministrator;
+            var capabilities = new OrganizationCapabilities(isAdministrator, isAdministrator);
 
             return Task.FromResult<ErrorOr<OrganizationContext>>(new OrganizationContext(OrganizationPlaceholderData.Account, organization, capabilities));
         }

@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Extensions
 {
+    using System;
+
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
@@ -42,6 +44,12 @@ namespace Mycelium.Bloom.Tests.Extensions
             context.Location = OrganizationLocation.Account;
             otherContext.Location = OrganizationLocation.None;
             var options = provider.GetRequiredService<IOptions<OrganizationOptions>>().Value;
+            using var projectsScope = serviceProvider.CreateScope();
+            projectsScope.ServiceProvider.GetRequiredService<IOrganizationContextViewModel>().Location =
+                OrganizationLocation.ForOrganization(OrganizationPlaceholderData.Organizations[0].Slug, OrganizationSection.Projects);
+            var createProjects = projectsScope.ServiceProvider.GetRequiredService<Func<IProjectsViewModel>>();
+            using var projects = createProjects();
+            using var otherProjects = createProjects();
 
             using (Assert.EnterMultipleScope())
             {
@@ -53,6 +61,9 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(header, Is.TypeOf<OrganizationHeaderViewModel>());
                 Assert.That(provider.GetRequiredService<IOrganizationHeaderViewModel>(), Is.SameAs(header));
                 Assert.That(header.Presentation.Kind, Is.EqualTo(OrganizationLocationKind.Account));
+                Assert.That(provider.GetRequiredService<IOrganizationProjectService>(), Is.TypeOf<PlaceholderOrganizationProjectService>());
+                Assert.That(projects, Is.TypeOf<ProjectsViewModel>());
+                Assert.That(otherProjects, Is.Not.SameAs(projects));
                 Assert.That(options.PlaceholderRole, Is.EqualTo(OrganizationRole.OrganizationAdministrator));
             }
         }

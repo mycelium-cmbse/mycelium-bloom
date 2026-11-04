@@ -1,0 +1,68 @@
+.mb-projects-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-24);
+    min-width: 0;
+}
+
+.mb-projects-view__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-12);
+}
+
+.mb-projects-view__search {
+    flex: 0 1 var(--spacing-317);
+    min-width: 0;
+}
+
+/* The menu trigger has no outlined look; the Figma filters are outlined buttons. */
+.mb-projects-view ::deep .mb-action-menu__trigger.mb-projects-view__filter {
+    border-color: var(--border);
+    white-space: nowrap;
+}
+
+.mb-projects-view__visibility {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-body-sm-font-size);
+    font-weight: var(--typography-typography-body-sm-font-weight);
+}
+
+.mb-projects-view ::deep .mb-projects-view__mode--concurrent {
+    color: var(--mode-cd);
+    background: var(--mode-cd-subtle);
+}
+
+.mb-projects-view__showing {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-body-xs-font-size);
+    font-weight: var(--typography-typography-body-xs-font-weight);
+}
+
+.mb-projects-view__error {
+    margin: 0;
+    color: var(--foreground);
+    font-size: var(--typography-typography-body-md-font-size);
+    font-weight: var(--typography-typography-body-md-font-weight);
+}
+
+/* The library table is taller and larger than the Figma list; these rows and headings follow the Figma. */
+.mb-projects-view ::deep th {
+    height: var(--spacing-40);
+    font-size: var(--text-11);
+    text-transform: uppercase;
+}
+
+.mb-projects-view ::deep td {
+    padding-block: var(--spacing-9);
+    font-size: var(--typography-typography-body-sm-font-size);
+}
+
+.mb-projects-view ::deep .mb-projects-view__updated {
+    color: var(--muted-foreground);
+}

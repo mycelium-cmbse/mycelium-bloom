@@ -1,0 +1,20 @@
+.mb-project-name-cell {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mb-project-name-cell__name {
+    color: var(--foreground);
+    font-size: var(--typography-typography-body-sm-medium-font-size);
+    font-weight: var(--typography-typography-body-sm-medium-font-weight);
+}
+
+.mb-project-name-cell__description {
+    overflow: hidden;
+    color: var(--muted-foreground);
+    font-size: var(--typography-typography-body-xs-font-size);
+    font-weight: var(--typography-typography-body-xs-font-weight);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
