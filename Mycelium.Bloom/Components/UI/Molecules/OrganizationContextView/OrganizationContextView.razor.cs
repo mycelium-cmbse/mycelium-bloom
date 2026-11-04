@@ -59,7 +59,7 @@ namespace Mycelium.Bloom.Components.UI.Molecules.OrganizationContextView
             this.redirectSubscription = this.ViewModel
                 .WhenAnyValue(viewModel => viewModel.Errors)
                 .Skip(1)
-                .Subscribe(errors => _ = this.InvokeAsync(() => this.Redirect(errors)));
+                .Subscribe(errors => this.Redirect(errors));
         }
 
         /// <summary>
