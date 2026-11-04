@@ -17,5 +17,6 @@ namespace Mycelium.Bloom.Model
     /// Fabric client is bound. The capabilities will then come from the permissions of the account.
     /// </remarks>
     /// <param name="CanEditSettings">A value indicating whether the account may edit the organization settings.</param>
-    public sealed record OrganizationCapabilities(bool CanEditSettings);
+    /// <param name="CanCreateProject">A value indicating whether the account may create a project in the organization.</param>
+    public sealed record OrganizationCapabilities(bool CanEditSettings, bool CanCreateProject = false);
 }

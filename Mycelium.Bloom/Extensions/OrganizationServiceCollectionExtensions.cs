@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Extensions
 {
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
 
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Organization;
@@ -29,10 +30,11 @@ namespace Mycelium.Bloom.Extensions
         extension(IServiceCollection services)
         {
             /// <summary>
-            /// Binds the organization options and registers the organization context service and the ViewModels of the
-            /// organization context and of its header, one of each per circuit: the layout, the header and the page content
-            /// must share the same context, which a transient registration would split in three. Replacing the placeholder service changes
-            /// this registration only.
+            /// Binds the organization options and registers the organization services, which answer with placeholder data,
+            /// the ViewModels of the organization context and of its header, one of each per circuit (the layout, the header
+            /// and the page content must share the same context, which a transient registration would split in three), and
+            /// the factory of the projects page ViewModel, which builds one ViewModel per page instance, and the shared time
+            /// provider. Replacing a placeholder service changes this registration only.
             /// </summary>
             /// <param name="configuration">The application configuration containing the organization section.</param>
             /// <returns>The original service collection for continued registration chaining.</returns>
@@ -48,6 +50,9 @@ namespace Mycelium.Bloom.Extensions
                 services.AddScoped<IOrganizationContextService, PlaceholderOrganizationContextService>();
                 services.AddScoped<IOrganizationContextViewModel, OrganizationContextViewModel>();
                 services.AddScoped<IOrganizationHeaderViewModel, OrganizationHeaderViewModel>();
+                services.AddScoped<IOrganizationProjectService, PlaceholderOrganizationProjectService>();
+                services.AddScoped<Func<IProjectsViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<ProjectsViewModel>(serviceProvider));
+                services.TryAddSingleton(TimeProvider.System);
 
                 return services;
             }

@@ -57,6 +57,7 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
                 Assert.That(result.Value.Account, Is.EqualTo(OrganizationPlaceholderData.Account));
                 Assert.That(result.Value.Organization, Is.EqualTo(expected));
                 Assert.That(result.Value.Capabilities.CanEditSettings, Is.EqualTo(canEditSettings));
+                Assert.That(result.Value.Capabilities.CanCreateProject, Is.EqualTo(canEditSettings));
             }
         }
 
