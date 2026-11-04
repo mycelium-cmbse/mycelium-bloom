@@ -1,0 +1,60 @@
+// ------------------------------------------------------------------------------------------------
+// <copyright file="OrganizationServiceCollectionExtensionsTestFixture.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Tests.Extensions
+{
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Options;
+
+    using Mycelium.Bloom.Core.Configuration;
+    using Mycelium.Bloom.Core.Organization;
+    using Mycelium.Bloom.Core.Organization.Placeholder;
+    using Mycelium.Bloom.Extensions;
+    using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.Organization;
+
+    [TestFixture]
+    public sealed class OrganizationServiceCollectionExtensionsTestFixture
+    {
+        [Test]
+        public void VerifyOrganizationServicesAreRegistered()
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+
+            var returned = services.AddOrganizationServices(new ConfigurationBuilder().Build());
+
+            using var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            using var scope = serviceProvider.CreateScope();
+            using var otherScope = serviceProvider.CreateScope();
+            var provider = scope.ServiceProvider;
+            var context = provider.GetRequiredService<IOrganizationContextViewModel>();
+            var otherContext = otherScope.ServiceProvider.GetRequiredService<IOrganizationContextViewModel>();
+            var header = provider.GetRequiredService<IOrganizationHeaderViewModel>();
+            context.Location = OrganizationLocation.Account;
+            otherContext.Location = OrganizationLocation.None;
+            var options = provider.GetRequiredService<IOptions<OrganizationOptions>>().Value;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(returned, Is.SameAs(services));
+                Assert.That(provider.GetRequiredService<IOrganizationContextService>(), Is.TypeOf<PlaceholderOrganizationContextService>());
+                Assert.That(context, Is.TypeOf<OrganizationContextViewModel>());
+                Assert.That(provider.GetRequiredService<IOrganizationContextViewModel>(), Is.SameAs(context));
+                Assert.That(otherContext, Is.Not.SameAs(context));
+                Assert.That(header, Is.TypeOf<OrganizationHeaderViewModel>());
+                Assert.That(provider.GetRequiredService<IOrganizationHeaderViewModel>(), Is.SameAs(header));
+                Assert.That(header.Presentation.Kind, Is.EqualTo(OrganizationLocationKind.Account));
+                Assert.That(options.PlaceholderRole, Is.EqualTo(OrganizationRole.OrganizationAdministrator));
+            }
+        }
+    }
+}

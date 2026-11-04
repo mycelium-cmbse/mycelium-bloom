@@ -1,0 +1,21 @@
+.mb-organization-layout {
+    /* The content column of the Figma organization screens (1110 px at 1920 px), until the design package carries a token for it. */
+    --organization-content-width: 69.375rem;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 100dvh;
+    color: var(--foreground);
+    background: var(--background);
+}
+
+.mb-organization-layout__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-24);
+    box-sizing: border-box;
+    width: min(calc(100% - 2 * var(--spacing-16)), var(--organization-content-width));
+    min-width: 0;
+    margin-inline: auto;
+    padding: var(--spacing-80) 0 var(--spacing-48);
+}

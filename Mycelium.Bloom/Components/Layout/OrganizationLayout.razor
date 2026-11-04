@@ -1,0 +1,25 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="OrganizationLayout.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Primitives.Services
+@inherits LayoutComponentBase
+
+@* The layout hands the location to the organization context on every navigation. The portal host is required by
+   the menus of the header. *@
+<div class="mb-organization-layout">
+    <OrganizationHeader />
+
+    <main class="mb-organization-layout__main">
+        <OrganizationContextView>
+            @(this.Body)
+        </OrganizationContextView>
+    </main>
+</div>
+
+<BbPortalHost />

@@ -1,0 +1,28 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PageHeader.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<header class="@(this.BuildRootCssClass("mb-page-header"))" @attributes="this.AdditionalAttributes">
+    <div class="mb-page-header__text">
+        <h1 class="mb-page-header__title">@(this.Title)</h1>
+
+        @if (!string.IsNullOrWhiteSpace(this.Subtitle))
+        {
+            <p class="mb-page-header__subtitle">@(this.Subtitle)</p>
+        }
+    </div>
+
+    @if (this.ActionsContent is not null)
+    {
+        <div class="mb-page-header__actions">
+            @(this.ActionsContent)
+        </div>
+    }
+</header>

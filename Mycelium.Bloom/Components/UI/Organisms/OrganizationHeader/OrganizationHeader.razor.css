@@ -1,0 +1,45 @@
+/* The Figma header of the organization pages is 48 px high with a 16 px inset, tighter than AppHeader's compact variant. */
+.mb-organization-header ::deep .mb-app-header {
+    min-height: var(--spacing-48);
+    gap: var(--spacing-12);
+    padding-inline: var(--spacing-16);
+}
+
+/* The account menu sits at the right edge, whatever the number of segments before it. */
+.mb-organization-header ::deep .mb-app-header__user {
+    margin-inline-start: auto;
+}
+
+.mb-organization-header__brand {
+    display: inline-flex;
+    align-items: center;
+    color: var(--foreground);
+    text-decoration: none;
+}
+
+.mb-organization-header__brand:focus-visible,
+.mb-organization-header__segment:focus-visible {
+    outline: var(--border-width-default) solid var(--ring);
+    outline-offset: var(--spacing-4);
+    border-radius: var(--radius-sm);
+}
+
+/* BrandMark is sized in em, so this font size sets the width of the logo. */
+.mb-organization-header__mark {
+    display: inline-flex;
+    font-size: var(--spacing-22);
+}
+
+.mb-organization-header__segment {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    color: var(--foreground);
+    font-size: var(--text-13);
+    font-weight: var(--typography-typography-body-md-medium-font-weight);
+    text-decoration: none;
+}
+
+.mb-organization-header__separator {
+    color: var(--muted-foreground);
+}

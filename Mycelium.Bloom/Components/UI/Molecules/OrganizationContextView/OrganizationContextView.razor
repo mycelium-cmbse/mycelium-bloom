@@ -1,0 +1,28 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="OrganizationContextView.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.ViewModel.Organization
+@inherits BloomReactiveInjectableComponentBase<IOrganizationContextViewModel>
+
+@* Nothing is rendered once the resolution failed: the view shows the not found page or opens the error page. *@
+@if (this.ViewModel.IsLoading)
+{
+    <div class="@(this.BuildRootCssClass("mb-organization-context-view"))"
+         role="status"
+         aria-live="polite"
+         aria-busy="true">
+        <BbSkeleton Width="40%" Height="28px" />
+        <BbSkeleton Width="100%" Height="160px" />
+        <span class="sr-only">Loading</span>
+    </div>
+}
+else if (this.ViewModel.Errors.Count == 0)
+{
+    @(this.ChildContent)
+}

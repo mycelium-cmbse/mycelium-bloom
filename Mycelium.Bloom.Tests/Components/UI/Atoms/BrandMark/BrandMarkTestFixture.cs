@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Atoms.BrandMark
 {
     using System.IO;
+    using System.Threading.Tasks;
 
     using Bunit;
 
@@ -17,29 +18,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.BrandMark
 
     using BrandMarkComponent = Mycelium.Bloom.Components.UI.Atoms.BrandMark.BrandMark;
 
-    /// <summary>
-    /// Tests the <see cref="BrandMarkComponent" /> component and its shared SVG source.
-    /// </summary>
     [TestFixture]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class BrandMarkTestFixture : BunitContext
+    public sealed class BrandMarkTestFixture
     {
-        /// <summary>
-        /// Disposes the bUnit test context after each test.
-        /// </summary>
-        [TearDown]
-        public void TearDown()
+        private BunitContext context;
+
+        [SetUp]
+        public void SetUp()
         {
-            this.Dispose();
+            this.context = new BunitContext();
         }
 
-        /// <summary>
-        /// Verifies that adjacent text can own the accessible brand name without duplicate image output.
-        /// </summary>
+        [TearDown]
+        public async Task TearDown()
+        {
+            await this.context.DisposeAsync();
+        }
+
         [Test]
         public void VerifyRenderUsesDecorativeSvgByDefault()
         {
-            var component = this.Render<BrandMarkComponent>();
+            var component = this.context.Render<BrandMarkComponent>();
             var image = component.Find("img");
 
             using (Assert.EnterMultipleScope())
@@ -52,13 +51,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.BrandMark
             }
         }
 
-        /// <summary>
-        /// Verifies that standalone brand imagery can expose a concise accessible name.
-        /// </summary>
         [Test]
         public void VerifyRenderUsesConfiguredAccessibleName()
         {
-            var component = this.Render<BrandMarkComponent>(parameters => parameters
+            var component = this.context.Render<BrandMarkComponent>(parameters => parameters
                 .Add(parameter => parameter.AccessibleName, "Bloom"));
 
             var image = component.Find("img");
@@ -70,9 +66,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.BrandMark
             }
         }
 
-        /// <summary>
-        /// Verifies that the supplied vector is the single source used by the component and SVG favicon.
-        /// </summary>
         [Test]
         public void VerifySharedSvgAssetAndFaviconReference()
         {
@@ -82,9 +75,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Atoms.BrandMark
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(svg, Does.Contain("viewBox=\"0 0 475 342\""));
+                Assert.That(svg, Does.Contain("viewBox=\"0 0 22 20\""));
                 Assert.That(svg, Does.Contain("fill=\"#0D9488\""));
-                Assert.That(svg, Does.Contain("M166.95 0.191986"));
+                Assert.That(svg, Does.Contain("M20.7499 3.55169"));
                 Assert.That(app, Does.Contain("type=\"image/svg+xml\""));
                 Assert.That(app, Does.Contain("this.Assets[\"brand/bloom-mark.svg\"]"));
             }
