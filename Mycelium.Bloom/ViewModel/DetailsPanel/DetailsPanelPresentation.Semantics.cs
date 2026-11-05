@@ -15,9 +15,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Kernel.Connectors;
+    using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Functions;
-    using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -60,6 +60,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var members = GetOwnedMembers(this.Element, memberNotices).ToArray();
             var attributes = members.OfType<IAttributeUsage>().ToArray();
             this.AttributeCount = attributes.Length;
+
             if (attributes.Length > 0)
             {
                 sections.Add(new("Attributes", [], [])
@@ -82,6 +83,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 property.Key is "Is abstract" or "Is variation" or "Is ordered" or "Is unique"));
             Add(fields, "Kind", this.Kind);
             var typeLinks = new List<ElementLinkPresentation>();
+
             if (this.Element is IFeature feature)
             {
                 this.Composition = feature.IsComposite ? "composite" : "ref";
@@ -90,6 +92,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 Add(fields, "Is variable", feature.IsVariable.ToString().ToLowerInvariant());
                 var types = Read(() => feature.type, out _);
                 typeLinks.AddRange((types ?? []).Select(type => Link("Typed by", type) with { Category = "typing" }));
+
                 if (typeLinks.Count > 0)
                 {
                     fields.RemoveAll(property => property.Key == "Typed by");
@@ -111,6 +114,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             this.AddEnds(sections);
             this.AddAnnotations(sections, members);
             this.AddRelationships(sections, members);
+
             return sections
                 .Where(section => section.Properties.Count + section.Paragraphs.Count + section.Links.Count > 0)
                 .ToArray();
@@ -128,14 +132,17 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             Add(fields, "shortName", effectiveShortName);
             Add(fields, "qualifiedName", facts.GetValueOrDefault("Qualified name"));
             Add(fields, "visibility", facts.GetValueOrDefault("Visibility"));
+
             if (facts.GetValueOrDefault("Declared name") != effectiveName)
             {
                 Add(fields, "declaredName", facts.GetValueOrDefault("Declared name"));
             }
+
             if (effectiveShortName is not null && facts.GetValueOrDefault("Declared short name") != effectiveShortName)
             {
                 Add(fields, "declaredShortName", facts.GetValueOrDefault("Declared short name") ?? "Not declared");
             }
+
             return fields;
         }
 
@@ -149,6 +156,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 .DistinctBy(link => (link.Role, link.Element)).ToArray();
             var values = this.ExpressionNotations.Select(expression => new KeyValuePair<string, string>(expression.Role,
                 expression.TextualNotation.Text ?? "Expression is not supported for display")).ToArray();
+
             if (this.Element is not IAttributeUsage)
             {
                 sections.Add(new("Expressions", values, []) { Links = links });
@@ -185,6 +193,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 var states = members.OfType<IStateUsage>().Where(state => state is not ITransitionUsage).ToArray();
                 var initial = states
                     .Where(state => ProjectBrowserRowPresentation.For(state).Indicators.Contains("Initial")).ToArray();
+
                 foreach (var state in initial)
                 {
                     structure.Add(Link("Initial state", state));
@@ -210,6 +219,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var transitions = this.Element is ITransitionUsage selected
                 ? new[] { selected }
                 : members.OfType<ITransitionUsage>().ToArray();
+
             foreach (var transition in transitions)
             {
                 var links = new List<ElementLinkPresentation> { Link("Transition", transition) };
@@ -241,6 +251,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             var ends = Read(() => this.Element is IConnector connector ? connector.connectorEnd : type.endFeature, out var incomplete);
+
             if (incomplete)
             {
                 sections.Add(new("Ends", [], [IncompleteProperty]));
@@ -249,6 +260,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             foreach (var end in ends ?? [])
             {
                 var links = new List<ElementLinkPresentation> { Link("End", end) };
+
                 foreach (var subsetting in end.OwnedRelationship?.OfType<IReferenceSubsetting>() ?? [])
                 {
                     AddLink(links, "Referent", () => subsetting.ReferencedFeature);
@@ -272,6 +284,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                         .OfType<IElement>().ToArray(), out _);
             var annotations = members.Concat(applied ?? []).Append(this.Element)
                 .Distinct(ReferenceEqualityComparer.Instance).OfType<IElement>();
+
             foreach (var annotation in annotations)
             {
                 if (annotation is IComment comment and not IDocumentation)
@@ -305,6 +318,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private void AddRelationships(List<PropertySectionPresentation> sections, IElement[] members)
         {
             var relationships = this.Element.OwnedRelationship ?? [];
+
             foreach (var import in relationships.OfType<IImport>()
                          .Concat(this.Element is IImport selectedImport ? [selectedImport] : []))
             {
@@ -318,6 +332,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             var generalizations = new List<ElementLinkPresentation>();
+
             foreach (var specialization in relationships.OfType<ISpecialization>())
             {
                 AddLink(generalizations, ElementPresentation.GetKindName(specialization.GetType()), () => specialization.General);
@@ -330,6 +345,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             var hierarchyNotices = new List<string>();
+
             if (this.Element is IType selectedType)
             {
                 generalizations.AddRange(GetLoadedSpecializations(selectedType, hierarchyNotices));
@@ -337,6 +353,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
             sections.Add(new("Specializations / Type hierarchy", [], hierarchyNotices)
             { Links = generalizations, Tab = "Relations" });
+
             if (this.Element is IType conjugated && Read(() => conjugated.ownedConjugator, out _) is not null)
             {
                 var inherited = Read(() => conjugated.inheritedFeature, out var incomplete);
@@ -373,6 +390,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
             var variants = relationships.OfType<IVariantMembership>()
                 .Select(membership => Link("Variant", membership.MemberElement)).ToArray();
+
             if (this.Element is not IEnumerationDefinition)
             {
                 sections.Add(new("Variants", [], []) { Links = variants });
@@ -386,6 +404,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var other = relationships.Where(relationship => relationship is not IMembership and not ISpecialization
                     and not IImport and not IConjugation and not IAnnotation)
                 .Concat(members.OfType<IRelationship>().Where(relationship => relationship is not IType)).ToList();
+
             if (this.Element is IRelationship selectedRelationship)
             {
                 other.Add(selectedRelationship);
@@ -412,6 +431,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             IElement root = type;
             var ancestors = new HashSet<IElement>(ReferenceEqualityComparer.Instance) { root };
+
             while (Read(() => root.owner, out _) is { } owner && ancestors.Add(owner))
             {
                 root = owner;
@@ -421,6 +441,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             pending.Enqueue(root);
             var visited = new HashSet<IElement>(ReferenceEqualityComparer.Instance);
             var links = new List<ElementLinkPresentation>();
+
             while (pending.TryDequeue(out var element) && visited.Count < 4096)
             {
                 if (!visited.Add(element))
@@ -435,6 +456,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 }
 
                 var children = Read(() => element.ownedElement, out var incomplete);
+
                 if (incomplete && !notices.Contains(IncompleteProperty))
                 {
                     notices.Add(IncompleteProperty);
@@ -486,6 +508,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static void AddLink(List<ElementLinkPresentation> links, string role, Func<IElement> read, bool required = true)
         {
             var target = Read(read, out var incomplete);
+
             if (incomplete || required || target is not null)
             {
                 links.Add(incomplete ? new(role, null, IncompleteProperty) : Link(role, target));
@@ -499,6 +522,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static void AddLinks(List<ElementLinkPresentation> links, string role, Func<IEnumerable<IElement>> read)
         {
             var targets = Read(() => read()?.ToArray(), out var incomplete);
+
             if (incomplete)
             {
                 links.Add(new(role, null, IncompleteProperty));
@@ -523,6 +547,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static string GetCompactValue(IElement element)
         {
             var values = element.OwnedRelationship?.OfType<IFeatureValue>().ToArray() ?? [];
+
             if (values.Length != 1 || values[0].OwnedRelatedElement?.OfType<IExpression>().Count() > 1)
             {
                 return null;

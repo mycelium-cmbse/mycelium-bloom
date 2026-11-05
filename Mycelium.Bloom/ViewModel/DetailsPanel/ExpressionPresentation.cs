@@ -92,6 +92,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             var result = new List<ExpressionPresentation> { this };
             var current = this;
+
             while (current.Notice is null && current.ReferenceRole is null
                                           && string.IsNullOrWhiteSpace(current.Operator)
                                           && (current.Element is IExpression || !current.HasSummaryLabel)
@@ -113,6 +114,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             ArgumentNullException.ThrowIfNull(element);
             var nodes = new Builder().BuildSelection(element);
+
             foreach (var node in nodes)
             {
                 PopulateText(node);
@@ -129,6 +131,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 node.TextualNotation = HasUnavailableStructure(node)
                     ? new(null, "Notation unavailable: the displayed structure is incomplete or exceeds its display limit.")
                     : SdkExpressionText.Create(expression);
+
                 return;
             }
 
@@ -155,11 +158,13 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 try
                 {
                     incomplete = false;
+
                     return read();
                 }
                 catch (IncompleteModelException)
                 {
                     incomplete = true;
+
                     return default;
                 }
             }
@@ -181,6 +186,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                                                    || feature.documentation is { Count: > 0 } ||
                                                    feature.textualRepresentation is { Count: > 0 }
                                                    || feature.ownedAnnotation is { Count: > 0 }, out var incompleteContent);
+
                 return incompleteName || incompleteRelationships || incompleteTypes || incompleteContent ||
                        additionalContent
                        || !string.IsNullOrWhiteSpace(name) || relationships is { Count: > 0 } || types is { Count: > 0 }
@@ -194,11 +200,20 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             /// <summary>Keeps memberships with additional information or unresolved structure inspectable.</summary>
             private static bool HasMembershipContent(IMembership membership, bool elementHasContent)
             {
-                if (membership is null) return false;
+                if (membership is null)
+                {
+                    return false;
+                }
+
                 if (elementHasContent || !string.IsNullOrWhiteSpace(membership.DeclaredName)
-                                      || !string.IsNullOrWhiteSpace(membership.DeclaredShortName)) return true;
+                                      || !string.IsNullOrWhiteSpace(membership.DeclaredShortName))
+                {
+                    return true;
+                }
+
                 var members = Read(() => membership.OwnedRelatedElement, out var incompleteMembers);
                 var relationships = Read(() => membership.OwnedRelationship, out var incompleteRelationships);
+
                 return incompleteMembers || incompleteRelationships || members is { Count: > 1 }
                        || relationships is { Count: > 0 };
             }
@@ -226,10 +241,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 if (element is IMembership selectedMembership)
                 {
-                    return BuildSelectedMembership(selectedMembership);
+                    return this.BuildSelectedMembership(selectedMembership);
                 }
 
                 var membership = Read(() => element.owningMembership, out _);
+
                 if (element is IExpression || element is IFeature && membership is IParameterMembership)
                 {
                     var role = membership switch
@@ -238,6 +254,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                         IParameterMembership => "Input",
                         _ => "Expression"
                     };
+
                     return [this.Build(element, membership, role, 0)];
                 }
 
@@ -255,9 +272,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     IFeatureValue => "Value",
                     _ => "Owned element"
                 };
+
                 if (members is { Count: > 0 })
                 {
                     var result = new List<ExpressionPresentation>();
+
                     foreach (var member in members)
                     {
                         if (this.count >= MaximumElements)
@@ -294,17 +313,25 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 IReadOnlyList<ExpressionPresentation> children = [];
                 var literal = element is ILiteralExpression ? SdkExpressionText.Create((IExpression)element) : null;
                 string valueState = null;
+
                 if (element is IFeature and not IExpression)
                 {
                     var owned = Read(() => element.OwnedRelationship, out var incompleteValues);
-                    if (incompleteValues) valueState = "Unresolved value (incomplete model)";
+
+                    if (incompleteValues)
+                    {
+                        valueState = "Unresolved value (incomplete model)";
+                    }
                     else if (!(owned ?? []).Any(relationship => relationship is IFeatureValue))
+                    {
                         valueState = "No explicit value";
+                    }
                 }
 
-                var notice = BuildChildren(element, depth, ref children);
+                var notice = this.BuildChildren(element, depth, ref children);
 
                 var canInspect = HasInspectionContent(element);
+
                 return new ExpressionPresentation
                 {
                     Element = element,
@@ -341,6 +368,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 };
                 reference = null;
                 referenceLabel = null;
+
                 if (referenceRole is not null)
                 {
                     reference = Read<IElement>(() => element is IFeatureChainExpression chain
@@ -362,6 +390,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private string BuildChildren(IElement element, int depth, ref IReadOnlyList<ExpressionPresentation> children)
             {
                 string notice = null;
+
                 if (!this.path.Add(element))
                 {
                     notice = "Ownership cycle; expansion stopped.";
@@ -392,6 +421,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private static List<KeyValuePair<string, string>> GetProperties(IElement element, IMembership membership)
             {
                 var properties = new List<KeyValuePair<string, string>>();
+
                 if (element is IFeature feature &&
                     (membership is IParameterMembership || feature.Direction is not null))
                 {
@@ -418,12 +448,14 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 var result = new List<ExpressionPresentation>();
                 var relationships = Read(() => element.OwnedRelationship, out var incompleteRelationships);
+
                 if (incompleteRelationships)
                 {
                     return [Unavailable("Owned structure", "Unavailable (incomplete model)")];
                 }
 
                 var operand = 0;
+
                 foreach (var relationship in relationships ?? [])
                 {
                     var role = relationship switch
@@ -435,6 +467,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                         IFeatureMembership when !valuesOnly => "Owned element",
                         _ => null
                     };
+
                     if (role is null)
                     {
                         continue;
@@ -447,6 +480,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     }
 
                     var members = Read(() => relationship.OwnedRelatedElement, out var incompleteOwned);
+
                     if (members is null || members.Count == 0)
                     {
                         result.Add(new ExpressionPresentation
@@ -463,7 +497,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                         continue;
                     }
 
-                    AddOwnedMembers(depth, members, result, relationship, role);
+                    this.AddOwnedMembers(depth, members, result, relationship, role);
                 }
 
                 return result.ToArray();

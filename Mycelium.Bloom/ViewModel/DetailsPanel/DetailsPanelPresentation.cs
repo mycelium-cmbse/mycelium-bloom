@@ -11,14 +11,14 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 {
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
+    using SysML2.NET.Core.POCO.Kernel.Behaviors;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
+    using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Attributes;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
-    using SysML2.NET.Core.POCO.Kernel.Functions;
-    using SysML2.NET.Core.POCO.Kernel.Behaviors;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Exceptions;
 
     /// <summary>
@@ -85,6 +85,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var identity = new List<KeyValuePair<string, string>>();
             var advanced = new List<KeyValuePair<string, string>>();
             Add(advanced, "Element ID", element.ElementId);
+
             if (element.Id.ToString() != element.ElementId)
             {
                 Add(advanced, "SDK ID", element.Id.ToString());
@@ -92,24 +93,24 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
             AddIdentityProperties(element, identity, advanced);
 
-            var classification = GetClassification(element, advanced);
+            var classification = this.GetClassification(element, advanced);
 
             var attributes = new List<KeyValuePair<string, string>>();
 
             foreach (var attribute in GetOwnedMembers(element, attributes).OfType<IAttributeUsage>())
             {
-                attributes.Add(new(GetDisplayName(attribute), GetValue(attribute)));
+                attributes.Add(new(GetDisplayName(attribute), this.GetValue(attribute)));
             }
 
             var value = new List<KeyValuePair<string, string>>();
 
             if (element is IAttributeUsage)
             {
-                value.Add(new("Value", GetValue(element)));
+                value.Add(new("Value", this.GetValue(element)));
             }
             else if (element is IFeature and not IExpression and not IUsage && this.Expressions.Count == 0)
             {
-                var description = GetValue(element);
+                var description = this.GetValue(element);
                 value.Add(new("Value", description));
             }
 
@@ -149,11 +150,12 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             var classification = new List<KeyValuePair<string, string>>();
             Add(classification, MultiplicityLabel, ReadText(() => ElementPresentation.GetMultiplicity(element)));
+
             if (element is IType && this.ModelLinks.Any(link =>
                                      link.Role == MultiplicityLabel && link.Element is not null)
                                  && !classification.Any(property => property.Key == MultiplicityLabel))
             {
-                Add(classification, MultiplicityLabel, "Nonliteral or unresolved bounds; inspect Multiplicity in model links");
+                Add(classification, MultiplicityLabel, "Nonliteral or unresolved bounds");
             }
 
             if (element is IType type)
@@ -189,6 +191,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static List<KeyValuePair<string, string>> GetAnnotation(IElement element)
         {
             var annotation = new List<KeyValuePair<string, string>>();
+
             if (element is IComment comment and not IDocumentation)
             {
                 Add(annotation, "Body", comment.Body);
@@ -218,6 +221,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             Add(identity, "Effective short name", incompleteShortName ? "Unresolved (incomplete model)" : effectiveShortName);
             Add(advanced, "Model kind", ElementPresentation.GetKindName(element.GetType()));
             Add(advanced, "Aliases", string.Join(", ", element.AliasIds ?? []));
+
             if (element is IRelationship relationship)
             {
                 Add(advanced, "Is implied", relationship.IsImplied.ToString().ToLowerInvariant());
@@ -242,6 +246,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             Add(identity, "Qualified name", ReadText(() => element.qualifiedName));
 
             var membership = Read(() => element.owningMembership, out var incompleteMembership);
+
             if (incompleteMembership)
             {
                 Add(identity, "Visibility", IncompleteProperty);
@@ -282,6 +287,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private string GetValue(IElement element)
         {
             var values = Read(() => element.OwnedRelationship?.OfType<IFeatureValue>().ToArray() ?? [], out var incomplete);
+
             if (incomplete)
             {
                 return UnresolvedValue;
@@ -293,9 +299,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             var descriptions = new List<string>();
+
             foreach (var value in values)
             {
-                AddValueDescriptions(value, descriptions);
+                this.AddValueDescriptions(value, descriptions);
             }
 
             return descriptions.Count == 1
@@ -316,6 +323,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 _ => "Local binding"
             };
             var owned = Read(() => value.OwnedRelatedElement?.OfType<IExpression>().ToArray(), out var incompleteOwned);
+
             if (incompleteOwned)
             {
                 descriptions.Add(UnresolvedValue);
@@ -339,6 +347,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private string DescribeValue(IExpression expression)
         {
             var value = Read(() => ElementPresentation.GetLiteral(expression), out var incomplete);
+
             if (incomplete)
             {
                 return UnresolvedValue;
@@ -354,6 +363,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                                    ReferenceEquals(node.Element, expression) && node.TextualNotation is not null)
                                ?.TextualNotation
                            ?? SdkExpressionText.Create(expression);
+
             return notation.Text ?? notation.UnavailableReason;
         }
 
@@ -368,6 +378,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static string ReadText(Func<string> read)
         {
             var value = Read(read, out var incomplete);
+
             return incomplete ? IncompleteProperty : value;
         }
 
@@ -381,11 +392,13 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             try
             {
                 incomplete = false;
+
                 return read();
             }
             catch (IncompleteModelException)
             {
                 incomplete = true;
+
                 return default;
             }
         }
@@ -399,6 +412,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static IEnumerable<IElement> GetOwnedMembers(IElement element, List<KeyValuePair<string, string>> notices)
         {
             var children = Read(() => element.ownedElement, out var incomplete);
+
             if (incomplete)
             {
                 notices.Add(new("Owned attributes", IncompleteProperty));

@@ -33,9 +33,9 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.NavigationRail;
 
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
@@ -44,9 +44,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
 
-    /// <summary>
-    /// Tests the <see cref="WorkspaceLayout" /> routed application frame.
-    /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class WorkspaceLayoutTestFixture : BunitContext
@@ -59,9 +56,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
         private int navigationViewModelCreationCount;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="WorkspaceLayoutTestFixture" /> class.
-        /// </summary>
         public WorkspaceLayoutTestFixture()
         {
             BlueprintTestSetup.Configure(this);
@@ -95,18 +89,12 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             this.themeModule.SetupVoid("saveTheme", invocation => true).SetVoidResult();
         }
 
-        /// <summary>
-        /// Disposes the bUnit context after each test.
-        /// </summary>
         [TearDown]
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
         }
 
-        /// <summary>
-        /// Verifies the routed layout owns exactly one shared frame and inserts its body into the main region.
-        /// </summary>
         [Test]
         public void VerifyRenderOwnsOneSharedWorkspaceFrameAndInfrastructureSet()
         {
@@ -152,9 +140,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             }
         }
 
-        /// <summary>
-        /// Verifies layout-owned inspector visibility can be closed and reopened without duplicating its region.
-        /// </summary>
         [Test]
         public async Task VerifyDetailsPanelCanCloseAndReopen()
         {
@@ -215,9 +200,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             });
         }
 
-        /// <summary>
-        /// Verifies route reconciliation ignores query and fragment values and preserves the layout-owned rail mode.
-        /// </summary>
         [Test]
         public async Task VerifyRouteChangesReconcileSelectionWithoutDuplicatingTheFrame()
         {
@@ -258,9 +240,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             }
         }
 
-        /// <summary>
-        /// Verifies direct URL context restores shared selection and is carried only onto canonical destinations.
-        /// </summary>
         [Test]
         public async Task VerifyDirectUrlRestoresSelectionAndDerivesNavigationDestinations()
         {
@@ -292,9 +271,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             });
         }
 
-        /// <summary>
-        /// Verifies shared selection updates only its query parameter using replacement history semantics.
-        /// </summary>
         [Test]
         public async Task VerifySelectionUpdatesPreserveUriAndReplaceHistory()
         {
@@ -352,9 +328,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             });
         }
 
-        /// <summary>
-        /// Verifies final layout disposal stops both URL observation and selection-driven navigation.
-        /// </summary>
         [Test]
         public async Task VerifyDisposalStopsUrlContextNavigation()
         {
@@ -373,9 +346,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             }
         }
 
-        /// <summary>
-        /// Verifies layout disposal releases its navigation subscription idempotently.
-        /// </summary>
         [Test]
         public void VerifyDisposalReleasesLayoutOwnedNavigationState()
         {
@@ -406,9 +376,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             viewModel.PropertyChanged -= handler;
         }
 
-        /// <summary>
-        /// Verifies the shared Blueprint control applies and retains the scoped application theme state.
-        /// </summary>
         [Test]
         public async Task VerifyThemeToggleUsesApplicationThemeService()
         {
@@ -439,9 +406,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             Assert.That(component.Find("button[aria-label='Switch to light mode']"), Is.Not.Null);
         }
 
-        /// <summary>
-        /// Verifies the rail's persistent presentation controls the shell-owned width reservation.
-        /// </summary>
         [Test]
         public async Task VerifyNavigationPresentationUpdatesWorkspaceShell()
         {
@@ -463,9 +427,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             });
         }
 
-        /// <summary>
-        /// Verifies the route layout provides an unpadded, overflow-bounded application viewport.
-        /// </summary>
         [Test]
         public void VerifyStyleOwnsFullViewportAndAcceptedNavigationReservation()
         {

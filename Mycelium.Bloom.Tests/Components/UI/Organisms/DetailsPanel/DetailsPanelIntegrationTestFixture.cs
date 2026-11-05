@@ -101,6 +101,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                     Is.EqualTo(new[] { "Quantities::", "TensorQuantityValue::", "dimensions" }));
                 Assert.That(component.FindAll("button[aria-label='Inspect Value expression: mRef.dimensions']"), Has.Count.EqualTo(1));
             }
+
             await component.Find("button[aria-label='Inspect Value expression: mRef.dimensions']").ClickAsync();
             Assert.That(this.selection.SelectedElement, Is.SameAs(expression));
         }

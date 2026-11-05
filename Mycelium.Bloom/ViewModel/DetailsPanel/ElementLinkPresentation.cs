@@ -34,10 +34,13 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 {
                     return null;
                 }
+
                 var kind = ElementPresentation.GetKindName(this.Element.GetType());
+
                 try
                 {
                     var qualifiedName = this.Element.qualifiedName;
+
                     return string.IsNullOrWhiteSpace(qualifiedName) || qualifiedName == this.Label
                         ? kind : $"{kind} · {qualifiedName}";
                 }
@@ -58,6 +61,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             Add("Owning relationship", () => element.OwningRelationship);
             AddMany(links, "Owned relationship", () => element.OwnedRelationship);
             AddMany(links, "Owned element", () => element.ownedElement);
+
             if (element is IRelationship relationship)
             {
                 Add("Owning element", () => relationship.OwningRelatedElement);
@@ -94,6 +98,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 try
                 {
                     var target = read();
+
                     if (target is not null)
                     {
                         links.Add(new(role, target, ElementPresentation.GetDisplayName(target)));

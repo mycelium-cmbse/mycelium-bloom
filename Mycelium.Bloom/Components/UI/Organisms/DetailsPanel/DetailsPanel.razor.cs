@@ -26,12 +26,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// </summary>
         private readonly string headingId = $"mb-details-panel-title-{Guid.NewGuid():N}";
 
-        /// <summary>
-        /// Gets or sets the factory for panel-owned presentation state.
-        /// </summary>
-        [Inject]
-        private Func<IDetailsPanelViewModel> ViewModelFactory { get; set; }
-
         /// <summary>The ViewModel constructed and disposed by this panel.</summary>
         private IDetailsPanelViewModel ownedViewModel;
 
@@ -40,6 +34,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 
         /// <summary>The tab selected in this component instance.</summary>
         private string activeTab = "Properties";
+
+        /// <summary>
+        /// Gets or sets the factory for panel-owned presentation state.
+        /// </summary>
+        [Inject]
+        private Func<IDetailsPanelViewModel> ViewModelFactory { get; set; }
 
         /// <summary>Gets or sets the composition-owned Browser reveal action.</summary>
         [Parameter]
@@ -80,6 +80,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+
             if (disposing)
             {
                 this.ownedViewModel?.Dispose();

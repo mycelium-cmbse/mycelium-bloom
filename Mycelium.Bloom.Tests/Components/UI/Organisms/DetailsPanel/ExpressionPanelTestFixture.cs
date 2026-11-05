@@ -53,6 +53,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(component.FindAll("pre"), Is.Empty);
                 Assert.That(component.Markup, Does.Not.Contain("SDK textual notation").And.Not.Contain("Advanced model links"));
             }
+
             await component.FindAll("button[aria-label^='Inspect']")
                 .First(button => button.GetAttribute("aria-label").EndsWith(": " + targetName, StringComparison.Ordinal)).ClickAsync();
             viewModel.Verify(vm => vm.Inspect(expected), Times.Once);

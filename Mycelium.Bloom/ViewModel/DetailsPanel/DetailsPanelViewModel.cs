@@ -52,6 +52,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         public void Inspect(IElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
+
             if (!this.subscriptions.IsDisposed)
             {
                 this.selection.SelectedElement = element;

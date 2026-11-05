@@ -11,8 +11,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 {
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Functions;
-    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.POCO.Systems.Attributes;
+    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.POCO.Systems.States;
 
     public sealed partial class DetailsPanelPresentation
@@ -43,6 +43,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }).ToList();
 
             var typing = this.ContentSections.FirstOrDefault(section => section.Title == "Classification")?.Links ?? [];
+
             if (typing.Count > 0)
             {
                 sections.Insert(0, new("Typing", [], [])
@@ -53,6 +54,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     Links = typing
                 });
                 var hierarchy = sections.FindIndex(section => section.Title == "Specializations / Type hierarchy");
+
                 if (hierarchy >= 0)
                 {
                     var unique = sections[hierarchy].Links.Where(link =>
@@ -64,6 +66,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var ownedFeatures = GetOwnedMembers(this.Element, []).OfType<IFeature>()
                 .Where(feature => this.Element is not IAttributeUsage || feature is not IExpression || feature is IUsage)
                 .Select(feature => Link(ElementPresentation.GetKindName(feature.GetType()), feature)).ToArray();
+
             if (ownedFeatures.Length > 0)
             {
                 sections.Add(new("Owned features", [], [])
@@ -76,6 +79,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             this.ArrangeStateSections(sections);
+
             return sections.Where(section => section.Properties.Count + section.Links.Count +
                 section.Paragraphs.Count + section.Cards.Count > 0).ToArray();
         }
@@ -85,6 +89,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private void ArrangeStateSections(List<PropertySectionPresentation> sections)
         {
             var structure = this.ContentSections.FirstOrDefault(section => section.Title == "State structure");
+
             if (structure is null)
             {
                 return;
@@ -110,6 +115,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 Cards = ordinary.Select(link => CreateStateCard(link,
                     initial.Any(candidate => ReferenceEquals(candidate.Element, link.Element)))).ToArray()
             });
+
             foreach (var region in states.Where(link => link.Element is IStateUsage { IsParallel: true }))
             {
                 var children = GetOwnedMembers(region.Element, []).OfType<IStateUsage>()
@@ -122,6 +128,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     Cards = children.Select(state => CreateStateCard(Link("Nested state", state), false)).ToArray()
                 });
             }
+
             machine.Add(new("Transitions", [], [])
             {
                 Layout = "cards",
@@ -144,6 +151,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             AddLink(actions, "Entry", () => state.entryAction, false);
             AddLink(actions, "Do", () => state.doAction, false);
             AddLink(actions, "Exit", () => state.exitAction, false);
+
             return new(heading, actions, initial ? "initial" : null);
         }
     }
