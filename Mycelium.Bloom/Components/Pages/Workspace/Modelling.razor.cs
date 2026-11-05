@@ -117,6 +117,28 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [CascadingParameter(Name = "PropertiesRequested")]
         private EventCallback PropertiesRequested { get; set; }
 
+        /// <summary>Gets or sets the layout's local Browser reveal registration callback.</summary>
+        [CascadingParameter(Name = "RegisterBrowserReveal")]
+        private Action<object, EventCallback<SysML2.NET.Core.POCO.Root.Elements.IElement>> RegisterBrowserReveal { get; set; }
+
+        /// <summary>Tracks whether this page currently exposes a Browser reveal callback to its layout.</summary>
+        private bool browserRevealRegistered;
+
+        /// <inheritdoc />
+        protected override Task OnAfterRenderAsync(bool firstRender)
+        {
+            var canReveal = !this.isDisposed && this.projectBrowserViewModels.Count > 0;
+            if (firstRender || canReveal != this.browserRevealRegistered)
+            {
+                this.browserRevealRegistered = canReveal;
+                this.RegisterBrowserReveal?.Invoke(this, canReveal
+                    ? EventCallback.Factory.Create<SysML2.NET.Core.POCO.Root.Elements.IElement>(this,
+                        element => this.FocusRestoredElementAsync(element, CancellationToken.None))
+                    : default);
+            }
+            return base.OnAfterRenderAsync(firstRender);
+        }
+
         /// <summary>Forwards explicit browser selection, including a repeated click on the same object.</summary>
         private Task HandleBrowserSelectionAsync(ProjectBrowserNodeViewModel node) =>
             this.isDisposed ? Task.CompletedTask : this.PropertiesRequested.InvokeAsync();
@@ -163,6 +185,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             this.isDisposed = true;
+            this.RegisterBrowserReveal?.Invoke(this, default);
             this.subscriptions.Dispose();
             this.DisposeProjectBrowserViewModels();
             this.WorkspaceEditorViewModel?.Dispose();

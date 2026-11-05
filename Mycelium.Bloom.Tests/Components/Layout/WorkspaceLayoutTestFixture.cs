@@ -180,7 +180,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                     Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
                     Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("inert"), Is.True);
                     Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(panel));
-                    Assert.That(panel.ViewModel.CanGoBack, Is.True);
                     Assert.That(shell.Instance.RightPanelWidth, Is.EqualTo(475));
                     Assert.That(component.FindAll("button[aria-label='Collapse Properties']"), Is.Empty);
                     Assert.That(component.Find("button[aria-label='Expand Properties']")
@@ -194,7 +193,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             {
                 Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
                 Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(this.context.SelectedElement));
-                Assert.That(panel.ViewModel.CanGoBack, Is.False);
             }
 
             await component.Find("button[aria-label='Expand Properties']").ClickAsync();

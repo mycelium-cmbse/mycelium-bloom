@@ -84,23 +84,26 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             this.Children.SelectMany(child => child.OwnedGroups).Prepend(this);
 
         /// <summary>Gets a single owned value path combined visually while retaining every canonical identity.</summary>
-        public IReadOnlyList<ExpressionPresentation> DisplayPath
+        public IReadOnlyList<ExpressionPresentation> DisplayPath => this.GetDisplayPath();
+
+        /// <summary>Collects a single owned value path while preserving canonical identities.</summary>
+        /// <returns>The ordered visible path starting at this expression.</returns>
+        private IReadOnlyList<ExpressionPresentation> GetDisplayPath()
         {
-            get
+            var result = new List<ExpressionPresentation> { this };
+            var current = this;
+            while (current.Notice is null && current.ReferenceRole is null
+                                          && string.IsNullOrWhiteSpace(current.Operator)
+                                          && (current.Element is IExpression || !current.HasSummaryLabel)
+                                          && current.Children.Count == 1
+                                          && current.Children[0].Membership is IFeatureValue
+                                              or IResultExpressionMembership)
             {
-                var result = new List<ExpressionPresentation> { this };
-                var current = this;
-                while (current.Notice is null && current.ReferenceRole is null
-                       && string.IsNullOrWhiteSpace(current.Operator)
-                       && (current.Element is IExpression || !current.HasSummaryLabel)
-                       && current.Children.Count == 1
-                       && current.Children[0].Membership is IFeatureValue or IResultExpressionMembership)
-                {
-                    current = current.Children[0];
-                    result.Add(current);
-                }
-                return result;
+                current = current.Children[0];
+                result.Add(current);
             }
+
+            return result;
         }
 
         /// <summary>Creates a bounded projection without evaluating expressions or mutating SDK objects.</summary>
@@ -114,6 +117,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 PopulateText(node);
             }
+
             return nodes;
         }
 
@@ -138,8 +142,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private static bool HasUnavailableStructure(ExpressionPresentation node)
         {
             return node.Notice is not null
-                || node.ReferenceRole is not null && node.Reference is null
-                || node.Children.Any(HasUnavailableStructure);
+                   || node.ReferenceRole is not null && node.Reference is null
+                   || node.Children.Any(HasUnavailableStructure);
         }
 
         /// <summary>Owns traversal limits for one immutable selection snapshot.</summary>
@@ -164,8 +168,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private static bool HasInspectionContent(IElement element)
             {
                 if (element is not IFeature feature || element is IExpression or IUsage
-                    || !string.IsNullOrWhiteSpace(element.DeclaredName)
-                    || !string.IsNullOrWhiteSpace(element.DeclaredShortName))
+                                                    || !string.IsNullOrWhiteSpace(element.DeclaredName)
+                                                    || !string.IsNullOrWhiteSpace(element.DeclaredShortName))
                 {
                     return true;
                 }
@@ -174,13 +178,17 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 var relationships = Read(() => element.OwnedRelationship, out var incompleteRelationships);
                 var types = Read(() => feature.type, out var incompleteTypes);
                 var additionalContent = Read(() => feature.multiplicity is not null
-                    || feature.documentation is { Count: > 0 } || feature.textualRepresentation is { Count: > 0 }
-                    || feature.ownedAnnotation is { Count: > 0 }, out var incompleteContent);
-                return incompleteName || incompleteRelationships || incompleteTypes || incompleteContent || additionalContent
-                    || !string.IsNullOrWhiteSpace(name) || relationships is { Count: > 0 } || types is { Count: > 0 }
-                    || feature.AliasIds is { Count: > 0 } || feature.IsComposite || feature.IsOrdered || feature.IsAbstract
-                    || feature.IsDerived || feature.IsEnd || !feature.IsUnique || feature.IsConstant || feature.IsVariable
-                    || feature.IsPortion || feature.IsSufficient || feature.IsImpliedIncluded;
+                                                   || feature.documentation is { Count: > 0 } ||
+                                                   feature.textualRepresentation is { Count: > 0 }
+                                                   || feature.ownedAnnotation is { Count: > 0 }, out var incompleteContent);
+                return incompleteName || incompleteRelationships || incompleteTypes || incompleteContent ||
+                       additionalContent
+                       || !string.IsNullOrWhiteSpace(name) || relationships is { Count: > 0 } || types is { Count: > 0 }
+                       || feature.AliasIds is { Count: > 0 } || feature.IsComposite || feature.IsOrdered ||
+                       feature.IsAbstract
+                       || feature.IsDerived || feature.IsEnd || !feature.IsUnique || feature.IsConstant ||
+                       feature.IsVariable
+                       || feature.IsPortion || feature.IsSufficient || feature.IsImpliedIncluded;
             }
 
             /// <summary>Keeps memberships with additional information or unresolved structure inspectable.</summary>
@@ -188,11 +196,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 if (membership is null) return false;
                 if (elementHasContent || !string.IsNullOrWhiteSpace(membership.DeclaredName)
-                    || !string.IsNullOrWhiteSpace(membership.DeclaredShortName)) return true;
+                                      || !string.IsNullOrWhiteSpace(membership.DeclaredShortName)) return true;
                 var members = Read(() => membership.OwnedRelatedElement, out var incompleteMembers);
                 var relationships = Read(() => membership.OwnedRelationship, out var incompleteRelationships);
                 return incompleteMembers || incompleteRelationships || members is { Count: > 1 }
-                    || relationships is { Count: > 0 };
+                       || relationships is { Count: > 0 };
             }
 
             /// <summary>Uses available names before a semantic kind, without requiring qualified-name resolution.</summary>
@@ -220,6 +228,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 {
                     return BuildSelectedMembership(selectedMembership);
                 }
+
                 var membership = Read(() => element.owningMembership, out _);
                 if (element is IExpression || element is IFeature && membership is IParameterMembership)
                 {
@@ -256,16 +265,22 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                             result.Add(Unavailable("Remaining structure", "Display limit reached; inspect the owning element."));
                             break;
                         }
+
                         result.Add(this.Build(member, selectedMembership, role, 0));
                     }
+
                     return result.ToArray();
                 }
-                return [new ExpressionPresentation
-                {
-                    Membership = selectedMembership, CanInspectMembership = true, Role = role, Label = "Owned element",
-                    Notice = incomplete ? "Unresolved owned element (incomplete model)."
-                        : "The membership has no resolved owned element."
-                }];
+
+                return
+                [
+                    new ExpressionPresentation
+                    {
+                        Membership = selectedMembership, CanInspectMembership = true, Role = role, Label = "Owned element", Notice = incomplete
+                            ? "Unresolved owned element (incomplete model)."
+                            : "The membership has no resolved owned element."
+                    }
+                ];
             }
 
             /// <summary>Projects one canonical element and only its owned expression structure.</summary>
@@ -283,8 +298,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 {
                     var owned = Read(() => element.OwnedRelationship, out var incompleteValues);
                     if (incompleteValues) valueState = "Unresolved value (incomplete model)";
-                    else if (!(owned ?? []).Any(relationship => relationship is IFeatureValue)) valueState = "No explicit value";
+                    else if (!(owned ?? []).Any(relationship => relationship is IFeatureValue))
+                        valueState = "No explicit value";
                 }
+
                 var notice = BuildChildren(element, depth, ref children);
 
                 var canInspect = HasInspectionContent(element);
@@ -327,11 +344,14 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 if (referenceRole is not null)
                 {
                     reference = Read<IElement>(() => element is IFeatureChainExpression chain
-                        ? chain.targetFeature : ((IFeatureReferenceExpression)element).referent, out var incomplete);
+                        ? chain.targetFeature
+                        : ((IFeatureReferenceExpression)element).referent, out var incomplete);
                     var relationships = Read(() => element.OwnedRelationship, out var incompleteRelationships);
-                    var hasReference = relationships?.Any(candidate => candidate is IMembership and not IParameterMembership) == true;
+                    var hasReference =
+                        relationships?.Any(candidate => candidate is IMembership and not IParameterMembership) == true;
                     var unavailableLabel = incomplete || incompleteRelationships || hasReference
-                        ? "Unresolved reference" : "Not specified";
+                        ? "Unresolved reference"
+                        : "Not specified";
                     referenceLabel = reference is not null ? Name(reference) : unavailableLabel;
                 }
 
@@ -372,9 +392,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private static List<KeyValuePair<string, string>> GetProperties(IElement element, IMembership membership)
             {
                 var properties = new List<KeyValuePair<string, string>>();
-                if (element is IFeature feature && (membership is IParameterMembership || feature.Direction is not null))
+                if (element is IFeature feature &&
+                    (membership is IParameterMembership || feature.Direction is not null))
                 {
-                    properties.Add(new("Direction", feature.Direction?.ToString().ToLowerInvariant() ?? "Not specified"));
+                    properties.Add(
+                        new("Direction", feature.Direction?.ToString().ToLowerInvariant() ?? "Not specified"));
                 }
 
                 if (membership is not null)
@@ -433,7 +455,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                             Label = "Unresolved owned element",
                             Membership = relationship as IMembership,
                             CanInspectMembership = relationship is IMembership,
-                            Notice = incompleteOwned ? "Unavailable (incomplete model)"
+                            Notice = incompleteOwned
+                                ? "Unavailable (incomplete model)"
                                 : "The membership has no resolved owned element."
                         });
                         this.count++;

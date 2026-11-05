@@ -1,0 +1,161 @@
+.mb-properties-sections { min-width: 0; }
+
+.mb-property-section {
+    padding-bottom: var(--spacing-12);
+    margin-bottom: var(--spacing-12);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.mb-property-section__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-8);
+    margin-bottom: var(--spacing-7);
+    color: var(--muted-foreground);
+    font-size: var(--text-10);
+    line-height: var(--spacing-12);
+}
+
+.mb-property-section h3 {
+    margin: 0;
+    font-size: inherit;
+    font-weight: var(--font-weight-sans-semibold);
+    text-transform: uppercase;
+}
+
+.mb-property-section dl { margin: 0; }
+
+.mb-property-field {
+    display: grid;
+    grid-template-columns: calc(var(--spacing-56) * 2) minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--spacing-10);
+    margin-top: var(--spacing-6);
+}
+
+.mb-property-field:first-child { margin-top: 0; }
+
+.mb-property-field dt {
+    color: var(--muted-foreground);
+    font-size: var(--text-11);
+    line-height: var(--spacing-13);
+    font-weight: var(--font-weight-sans-regular);
+    overflow-wrap: anywhere;
+}
+
+.mb-property-field dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: var(--text-12);
+    line-height: var(--spacing-15);
+    font-weight: var(--font-weight-sans-medium);
+}
+
+.mb-qualified-name-segment {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.mb-property-section p, .mb-properties-sections__empty {
+    margin: var(--spacing-7) 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: var(--text-12);
+    line-height: var(--spacing-18);
+}
+
+.mb-properties-sections__empty { color: var(--muted-foreground); }
+
+.mb-property-section ::deep .mb-property-link {
+    display: inline;
+    height: auto;
+    max-width: 100%;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+}
+
+.mb-property-section ::deep button.mb-property-link:hover { color: var(--primary); }
+
+.mb-property-section--attributes .mb-property-field {
+    margin: 0;
+    padding: var(--spacing-7) 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.mb-property-section--attributes .mb-property-field:last-child { border-bottom: 0; padding-bottom: 0; }
+.mb-property-section--attributes .mb-property-field:first-child { padding-top: 0; }
+.mb-property-section--attributes dt { color: var(--foreground); font-weight: var(--font-weight-sans-medium); }
+
+.mb-relation-row { border-bottom: 1px solid var(--border-subtle); }
+.mb-relation-row:last-child { border-bottom: 0; }
+
+.mb-property-section ::deep .mb-relation-link {
+    display: grid;
+    grid-template-columns: var(--spacing-73) minmax(0, 1fr) var(--spacing-12);
+    align-items: center;
+    gap: var(--spacing-10);
+    width: 100%;
+    height: auto;
+    padding: var(--spacing-7) 0;
+    color: var(--foreground);
+    white-space: normal;
+    text-align: left;
+    font-size: var(--text-12);
+    font-weight: var(--font-weight-sans-medium);
+    line-height: var(--spacing-15);
+    text-decoration: none;
+}
+
+.mb-property-section ::deep .mb-relation-link:hover .mb-relation-identity > span { text-decoration: underline; }
+.mb-relation-identity { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; gap: var(--spacing-2); }
+.mb-relation-identity small { color: var(--muted-foreground); font-size: var(--text-10); line-height: var(--spacing-12); font-weight: var(--font-weight-sans-regular); }
+
+.mb-property-section ::deep .mb-relation-kind {
+    justify-self: start;
+    padding: var(--spacing-2) var(--spacing-4);
+    border: 0;
+    border-radius: var(--radius-3);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: var(--text-9);
+    font-weight: var(--font-weight-sans-medium);
+    line-height: var(--text-11);
+}
+
+.mb-property-section ::deep .mb-relation-kind--typing {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+.mb-property-section ::deep .mb-relation-kind--specialization {
+    background: light-dark(var(--info-subtle), color-mix(in srgb, var(--info) 20%, var(--card)));
+    color: light-dark(var(--info), color-mix(in srgb, var(--info) 65%, var(--foreground)));
+}
+
+.mb-property-card {
+    margin-top: var(--spacing-7);
+    padding: var(--spacing-10);
+    background: var(--background);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-6);
+}
+.mb-property-card header { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--text-12); line-height: var(--spacing-15); font-weight: var(--font-weight-sans-semibold); }
+.mb-property-card__role { display: flex; gap: var(--spacing-4); margin-top: var(--spacing-4); color: var(--muted-foreground); font-size: var(--text-10-5); line-height: var(--spacing-13); overflow-wrap: anywhere; }
+.mb-property-card__role > span { flex-shrink: 0; }
+.mb-property-card ::deep .mb-property-card__badge { padding: 0 var(--spacing-7); border: 0; border-radius: var(--radius-9); background: var(--accent); color: var(--primary); font-size: var(--text-10); line-height: var(--spacing-18); }
+
+.mb-property-section--comment { padding-bottom: var(--spacing-12); }
+.mb-annotation-meta { display: flex; align-items: center; gap: var(--spacing-8); color: var(--muted-foreground); font-size: var(--text-10); line-height: var(--spacing-12); }
+.mb-annotation-meta ::deep .mb-annotation-badge { padding: var(--spacing-2) var(--spacing-4); border: 0; border-radius: var(--radius-3); font-size: inherit; line-height: inherit; background: var(--muted); color: var(--muted-foreground); }
+.mb-property-section--text .mb-property-text { padding: var(--spacing-10); background: var(--background); border: 1px solid var(--border-subtle); border-radius: var(--radius-4); font-family: var(--font-mono), monospace; font-size: var(--text-10); line-height: var(--spacing-16); }

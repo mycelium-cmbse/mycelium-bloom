@@ -1,0 +1,142 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PropertiesSections.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.ViewModel.DetailsPanel
+@using SysML2.NET.Core.POCO.Root.Elements
+@using BlazorBlueprint.Icons.Lucide.Components
+
+<div class="mb-properties-sections">
+    @foreach (var section in this.Sections.Where(section => section.Tab == this.Tab))
+    {
+        <section class="mb-property-section mb-property-section--@section.Layout" aria-label="@section.Title">
+            <header class="mb-property-section__heading">
+                <h3>@section.Title</h3>
+                @if (section.Count.HasValue) { <span>@section.Count</span> }
+            </header>
+            @if (section.Layout is "comment" or "text")
+            {
+                <div class="mb-annotation-meta">
+                    @foreach (var property in section.Properties)
+                    {
+                        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-annotation-badge" aria-label="@property.Key">@property.Value</BbBadge>
+                    }
+                    @foreach (var link in section.Links)
+                    {
+                        <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                    }
+                </div>
+            }
+            else if (section.Properties.Count > 0 || section.Layout != "relations" && section.Links.Count > 0)
+            {
+                <dl>
+                    @foreach (var property in section.Properties)
+                    {
+                        <div class="mb-property-field" data-property-name="@property.Key">
+                            <dt>@property.Key</dt>
+                            <dd>
+                                @if (property.Key == "qualifiedName")
+                                {
+                                    var segments = property.Value.Split("::", StringSplitOptions.None);
+                                    @for (var index = 0; index < segments.Length; index++)
+                                    {
+                                        <span class="mb-qualified-name-segment">@segments[index]@(index < segments.Length - 1 ? "::" : "")</span><wbr />
+                                    }
+                                }
+                                else
+                                {
+                                    @property.Value
+                                }
+                            </dd>
+                        </div>
+                    }
+                    @foreach (var link in section.Layout == "relations" ? [] : section.Links)
+                    {
+                        <div class="mb-property-field" data-element-id="@link.Element?.ElementId">
+                            <dt>@link.Role</dt>
+                            <dd>
+                                <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                            </dd>
+                        </div>
+                    }
+                </dl>
+            }
+            @if (section.Layout == "relations")
+            {
+                @foreach (var link in section.Links)
+                {
+                    <div class="mb-relation-row" data-element-id="@link.Element?.ElementId">
+                        <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" Class="mb-relation-link">
+                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="@($"mb-relation-kind mb-relation-kind--{link.Category}")">@link.Role</BbBadge>
+                            <span class="mb-relation-identity"><span>@link.Label</span><small>@link.Detail</small></span>
+                            @if (link.Element is not null && !ReferenceEquals(link.Element, this.SelectedElement))
+                            {
+                                <LucideIcon Name="arrow-up-right" Size="12" aria-hidden="true" />
+                            }
+                        </PropertyReference>
+                    </div>
+                }
+            }
+            @foreach (var card in section.Cards)
+            {
+                <article class="mb-property-card" aria-label="@card.Heading.Label">
+                    <header>
+                        <PropertyReference Link="card.Heading" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                        @if (card.Badge is not null)
+                        {
+                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-property-card__badge">@card.Badge</BbBadge>
+                        }
+                    </header>
+                    @foreach (var link in card.Links)
+                    {
+                        <div class="mb-property-card__role"><span>@link.Role /</span>
+                            <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                        </div>
+                    }
+                </article>
+            }
+            @foreach (var paragraph in section.Paragraphs)
+            {
+                <p class="@(section.Layout == "text" ? "mb-property-text" : null)">@paragraph</p>
+            }
+        </section>
+    }
+    @if (!this.Sections.Any(section => section.Tab == this.Tab))
+    {
+        <section class="mb-property-section" aria-label="@this.Tab">
+            <header class="mb-property-section__heading"><h3>@this.Tab</h3></header>
+            <p class="mb-properties-sections__empty">@(this.Tab == "Attachments" ? "Attachments are not available for this model." : $"No {this.Tab.ToLowerInvariant()} available.")</p>
+        </section>
+    }
+</div>
+
+@code {
+    /// <summary>Gets or sets the ViewModel's semantic sections.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PropertySectionPresentation> Sections { get; set; } = [];
+
+    /// <summary>Gets or sets the tab to render.</summary>
+    [Parameter]
+    public string Tab { get; set; } = "Properties";
+
+    /// <summary>Gets or sets the canonical selection, to avoid self-navigation.</summary>
+    [Parameter]
+    public IElement SelectedElement { get; set; }
+
+    /// <summary>Gets or sets the parent component's navigation handler.</summary>
+    [Parameter]
+    public EventCallback<IElement> InspectRequested { get; set; }
+
+    /// <summary>Captures a reference activation at the component boundary.</summary>
+    /// <param name="element">The unchanged canonical target.</param>
+    /// <returns>The navigation callback completion.</returns>
+    private Task Inspect(IElement element)
+    {
+        return this.InspectRequested.InvokeAsync(element);
+    }
+}
