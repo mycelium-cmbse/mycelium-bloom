@@ -19,17 +19,6 @@ namespace Mycelium.Bloom.Extensions
     public static class ProjectCountsExtensions
     {
         /// <summary>
-        /// Writes the number of projects and the number in each lifecycle state.
-        /// </summary>
-        /// <param name="counts">The counts of the projects of the organization.</param>
-        /// <returns>The subtitle of the projects page.</returns>
-        public static string GetSubtitle(this ProjectCounts counts)
-        {
-            return $"{"project".ToQuantity(counts.Total)} · {counts.Open} open · {counts.Preparation} in preparation · "
-                   + $"{counts.Review} in review · {counts.Archived} archived";
-        }
-
-        /// <summary>
         /// Writes how many projects a list shows out of the projects of the organization.
         /// </summary>
         /// <param name="counts">The counts of the projects of the organization.</param>

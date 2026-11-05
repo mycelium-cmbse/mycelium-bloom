@@ -11,7 +11,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
 {
     using System.Reactive.Linq;
 
-    using Mycelium.Bloom.Extensions;
+    using Humanizer;
+
     using Mycelium.SDK;
 
     /// <summary>
@@ -44,12 +45,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
         /// <summary>
         /// Gets the label of the status filter menu, which names the current choice.
         /// </summary>
-        private string StatusFilterLabel => $"Status: {this.ViewModel.StatusFilter?.GetLabel() ?? AllLabel}";
+        private string StatusFilterLabel => $"Status: {this.ViewModel.StatusFilter?.Humanize() ?? AllLabel}";
 
         /// <summary>
         /// Gets the label of the mode filter menu, which names the current choice.
         /// </summary>
-        private string ModeFilterLabel => $"Mode: {this.ViewModel.ModeFilter?.GetLabel() ?? AllLabel}";
+        private string ModeFilterLabel => $"Mode: {this.ViewModel.ModeFilter?.Humanize() ?? AllLabel}";
 
         /// <summary>
         /// Gets a value indicating whether the loading of the projects failed.

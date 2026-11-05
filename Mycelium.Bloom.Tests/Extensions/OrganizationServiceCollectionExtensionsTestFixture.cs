@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Extensions
 {
     using System;
+    using System.IO;
 
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,26 @@ namespace Mycelium.Bloom.Tests.Extensions
     [TestFixture]
     public sealed class OrganizationServiceCollectionExtensionsTestFixture
     {
+        [Test]
+        public void VerifyTheDevelopmentSettingsBindToTheOptions()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+            while (!File.Exists(Path.Combine(directory.FullName, "Mycelium.Bloom", "appsettings.Development.json")))
+            {
+                directory = directory.Parent;
+            }
+
+            var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(directory.FullName, "Mycelium.Bloom", "appsettings.Development.json")).Build();
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddOrganizationServices(configuration);
+
+            using var serviceProvider = services.BuildServiceProvider();
+
+            Assert.That(serviceProvider.GetRequiredService<IOptions<OrganizationOptions>>().Value.PlaceholderRole, Is.EqualTo(OrganizationMembershipRole.Administrator));
+        }
+
         [Test]
         public void VerifyOrganizationServicesAreRegistered()
         {

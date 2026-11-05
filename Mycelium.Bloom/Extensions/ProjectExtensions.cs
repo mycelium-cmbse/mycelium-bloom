@@ -9,46 +9,14 @@
 
 namespace Mycelium.Bloom.Extensions
 {
-    using Humanizer;
-
     using Mycelium.SDK;
 
     /// <summary>
-    /// Gives the words and the icon by which the projects list shows the lifecycle state, the visibility and the mode of a
-    /// project. Humanizer writes the label from the name of the member; the members whose label differs are named here.
+    /// Gives the icon by which the projects list shows the visibility of a project. The labels come from Humanizer, which
+    /// writes them from the names of the members.
     /// </summary>
     public static class ProjectExtensions
     {
-        /// <summary>
-        /// Gets the label of a lifecycle state.
-        /// </summary>
-        /// <param name="lifecycle">The lifecycle state.</param>
-        /// <returns>The label to show.</returns>
-        public static string GetLabel(this ProjectLifecycleKind lifecycle)
-        {
-            return lifecycle == ProjectLifecycleKind.Review ? "In review" : lifecycle.Humanize();
-        }
-
-        /// <summary>
-        /// Gets the label of a visibility.
-        /// </summary>
-        /// <param name="visibility">The visibility.</param>
-        /// <returns>The label to show.</returns>
-        public static string GetLabel(this ProjectVisibility visibility)
-        {
-            return visibility.Humanize();
-        }
-
-        /// <summary>
-        /// Gets the label of a mode.
-        /// </summary>
-        /// <param name="mode">The mode.</param>
-        /// <returns>The label to show.</returns>
-        public static string GetLabel(this ProjectMode mode)
-        {
-            return mode == ProjectMode.Concurrent ? "Concurrent Design" : mode.Humanize();
-        }
-
         /// <summary>
         /// Gets the name of the icon of a visibility.
         /// </summary>

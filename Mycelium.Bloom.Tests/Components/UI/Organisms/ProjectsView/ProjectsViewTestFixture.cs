@@ -124,7 +124,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
             var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
             await cut.Find(isStatusMenu ? "button[title='Filter by status']" : "button[title='Filter by mode']").ClickAsync();
             var entries = await this.portalHost.WaitForElementsAsync("[role='menuitem']", entryCount);
-            entries.Single(entry => entry.TextContent.Contains(isStatusMenu ? "In review" : "Concurrent Design", StringComparison.Ordinal)).Click();
+            entries.Single(entry => entry.TextContent.Contains(isStatusMenu ? "Review" : "Concurrent", StringComparison.Ordinal)).Click();
 
             using (Assert.EnterMultipleScope())
             {

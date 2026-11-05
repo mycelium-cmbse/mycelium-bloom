@@ -13,13 +13,6 @@
     min-width: 0;
 }
 
-.mb-projects-view__heading {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-4);
-    min-width: 0;
-}
-
 .mb-projects-view__title {
     margin: 0;
     color: var(--foreground);
@@ -28,11 +21,8 @@
     line-height: var(--typography-typography-display-xl-line-height);
 }
 
-.mb-projects-view__subtitle {
-    margin: 0;
-    color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    font-weight: var(--typography-typography-body-sm-font-weight);
+.mb-projects-view__title:focus {
+    outline: none;
 }
 
 .mb-projects-view__loading {
