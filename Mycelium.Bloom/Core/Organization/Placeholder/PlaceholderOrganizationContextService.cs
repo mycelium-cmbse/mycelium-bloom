@@ -15,7 +15,8 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
+    using Mycelium.SDK.DTO;
 
     /// <summary>
     /// Answers with the sample account and organizations until the Fabric client provides the real ones. The sample
@@ -50,11 +51,11 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The sample account.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<Account>> GetAccountAsync(CancellationToken cancellationToken)
+        public Task<ErrorOr<User>> GetAccountAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            return Task.FromResult<ErrorOr<Account>>(OrganizationPlaceholderData.Account);
+            return Task.FromResult<ErrorOr<User>>(OrganizationPlaceholderData.Account);
         }
 
         /// <summary>
@@ -68,14 +69,12 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var organization = OrganizationPlaceholderData.Organizations.FirstOrDefault(candidate => candidate.Slug == slug);
-
-            if (organization is null)
+            if (!OrganizationPlaceholderData.Organizations.TryGetValue(slug, out var organization))
             {
                 return Task.FromResult<ErrorOr<OrganizationContext>>(Error.NotFound(OrganizationErrorCodes.NotFound, "The organization does not exist."));
             }
 
-            var isAdministrator = this.options.Value.PlaceholderRole == OrganizationRole.OrganizationAdministrator;
+            var isAdministrator = this.options.Value.PlaceholderRole == OrganizationMembershipRole.Administrator;
             var capabilities = new OrganizationCapabilities(isAdministrator, isAdministrator);
 
             return Task.FromResult<ErrorOr<OrganizationContext>>(new OrganizationContext(OrganizationPlaceholderData.Account, organization, capabilities));

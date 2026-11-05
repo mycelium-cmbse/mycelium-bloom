@@ -14,7 +14,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     /// <summary>
     /// Shows a status as a coloured dot followed by its label.
@@ -31,7 +31,7 @@ namespace Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
         /// Gets or sets the lifecycle state that the status stands for, which gives the dot its colour.
         /// </summary>
         [Parameter]
-        public ProjectLifecycleState State { get; set; }
+        public ProjectLifecycleKind State { get; set; }
 
         /// <summary>
         /// Builds the CSS classes of the root, with the modifier that gives the dot the colour of the lifecycle state.
@@ -42,11 +42,11 @@ namespace Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
         {
             var modifier = this.State switch
             {
-                ProjectLifecycleState.Preparation => "mb-status-indicator--preparation",
-                ProjectLifecycleState.Open => "mb-status-indicator--open",
-                ProjectLifecycleState.Review => "mb-status-indicator--review",
-                ProjectLifecycleState.Archived => "mb-status-indicator--archived",
-                _ => throw new InvalidEnumArgumentException(nameof(this.State), (int)this.State, typeof(ProjectLifecycleState))
+                ProjectLifecycleKind.Preparation => "mb-status-indicator--preparation",
+                ProjectLifecycleKind.Open => "mb-status-indicator--open",
+                ProjectLifecycleKind.Review => "mb-status-indicator--review",
+                ProjectLifecycleKind.Archived => "mb-status-indicator--archived",
+                _ => throw new InvalidEnumArgumentException(nameof(this.State), (int)this.State, typeof(ProjectLifecycleKind))
             };
 
             return this.BuildRootCssClass("mb-status-indicator", modifier);

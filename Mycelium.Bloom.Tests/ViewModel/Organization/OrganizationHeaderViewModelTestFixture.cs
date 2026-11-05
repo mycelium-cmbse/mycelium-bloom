@@ -21,6 +21,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.SDK.DTO;
+
+    using Organization = Mycelium.SDK.DTO.Organization;
 
     [TestFixture]
     public sealed class OrganizationHeaderViewModelTestFixture
@@ -31,7 +34,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
         private Mock<IOrganizationContextViewModel> context;
 
-        private Account account;
+        private User account;
 
         private Organization organization;
 
@@ -40,8 +43,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [SetUp]
         public void SetUp()
         {
-            this.account = new Account(Guid.NewGuid(), "Sample Account", "sample@example.org");
-            this.organization = new Organization(Guid.NewGuid(), "orbital-systems", "Orbital Systems");
+            this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Mail = "sample@example.org" };
+            this.organization = new Organization { Id = Guid.NewGuid(), Name = "Orbital Systems" };
             this.membersPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
             this.context = new Mock<IOrganizationContextViewModel>();
             this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(true));
@@ -145,7 +148,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             Assert.That(target, Is.EqualTo("/organizations/orbital-systems/projects"));
         }
 
-        private void SetContext(bool isLoading, OrganizationLocation location, Account currentAccount, Organization currentOrganization,
+        private void SetContext(bool isLoading, OrganizationLocation location, User currentAccount, Organization currentOrganization,
             OrganizationCapabilities capabilities)
         {
             this.context.SetupGet(model => model.IsLoading).Returns(isLoading);

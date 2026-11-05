@@ -24,8 +24,6 @@
 }
 else if (this.ViewModel.Errors.Count == 0)
 {
-    @* The router keeps the same page component when the account moves to another organization, so the content is keyed by the
-       organization: the page is created again and does not keep the list, the counts or the filters of the previous one. *@
     <div @key="@(this.ViewModel.Organization?.Id)" class="mb-organization-context-view__content">
         @(this.ChildContent)
     </div>

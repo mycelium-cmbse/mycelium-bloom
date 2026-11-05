@@ -29,6 +29,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.SDK.DTO;
+
+    using Organization = Mycelium.SDK.DTO.Organization;
 
     using PageHeaderComponent = Mycelium.Bloom.Components.UI.Molecules.PageHeader.PageHeader;
 
@@ -81,8 +84,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
         [Test]
         public void VerifyPageIsCreatedAgainWhenTheOrganizationChanges()
         {
-            var first = new Organization(Guid.NewGuid(), "orbital-systems", "Orbital Systems");
-            var second = new Organization(Guid.NewGuid(), "payload-lab", "Payload Lab");
+            var first = new Organization { Id = Guid.NewGuid(), Name = "Orbital Systems" };
+            var second = new Organization { Id = Guid.NewGuid(), Name = "Payload Lab" };
             RenderFragment page = builder =>
             {
                 builder.OpenComponent<PageHeaderComponent>(0);

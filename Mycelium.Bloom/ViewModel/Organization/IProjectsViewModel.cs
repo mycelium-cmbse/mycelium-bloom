@@ -9,84 +9,59 @@
 
 namespace Mycelium.Bloom.ViewModel.Organization
 {
+    using System.Collections.ObjectModel;
     using System.ComponentModel;
 
+    using ErrorOr;
+
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     using ReactiveUI;
     using ReactiveUI.Primitives;
 
     /// <summary>
-    /// Holds the state of the projects page of an organization.
+    /// Holds the projects of the organization of the projects page, the search and the filters that narrow them, and
+    /// whether the ViewModel is loading them. The view decides what to show from these.
     /// </summary>
     public interface IProjectsViewModel : IDisposable, INotifyPropertyChanged
     {
         /// <summary>
-        /// Gets what the page shows below its title.
+        /// Gets a value indicating whether the ViewModel is loading the projects.
         /// </summary>
-        ProjectsListState State { get; }
+        bool IsBusy { get; }
 
         /// <summary>
-        /// Gets the text that explains why the projects could not be retrieved, or an empty text.
+        /// Gets the errors that the last load returned, or an empty list when it succeeded.
         /// </summary>
-        string ErrorMessage { get; }
+        IReadOnlyList<Error> Errors { get; }
 
         /// <summary>
-        /// Gets the number of projects and the number in each lifecycle state, in words.
+        /// Gets the number of projects of the organization, in total and by lifecycle state, or <see langword="null" /> until
+        /// they are loaded.
         /// </summary>
-        string Subtitle { get; }
+        ProjectCounts Counts { get; }
 
         /// <summary>
-        /// Gets how many projects the list shows out of the projects of the organization, in words.
-        /// </summary>
-        string ShowingText { get; }
-
-        /// <summary>
-        /// Gets or sets the text that the name or the description of the projects must contain. The list follows it once
+        /// Gets or sets the text that the name or the description of the projects must contain. The projects follow it once
         /// the typing pauses.
         /// </summary>
         string SearchText { get; set; }
 
         /// <summary>
-        /// Gets the label of the status filter menu, which names the current choice.
+        /// Gets or sets the lifecycle state that the projects must be in, or <see langword="null" /> for any.
         /// </summary>
-        string StatusFilterLabel { get; }
+        ProjectLifecycleKind? StatusFilter { get; set; }
 
         /// <summary>
-        /// Gets the entries of the status filter menu, the current choice marked.
+        /// Gets or sets the mode that the projects must have, or <see langword="null" /> for any.
         /// </summary>
-        IReadOnlyList<ActionMenuItem> StatusFilterItems { get; }
+        ProjectMode? ModeFilter { get; set; }
 
         /// <summary>
-        /// Gets the label of the mode filter menu, which names the current choice.
+        /// Gets the rows of the projects list, the most recently updated project first.
         /// </summary>
-        string ModeFilterLabel { get; }
-
-        /// <summary>
-        /// Gets the entries of the mode filter menu, the current choice marked.
-        /// </summary>
-        IReadOnlyList<ActionMenuItem> ModeFilterItems { get; }
-
-        /// <summary>
-        /// Gets the title of the state shown when the search and the filters match no project.
-        /// </summary>
-        string NoResultsTitle { get; }
-
-        /// <summary>
-        /// Gets the command that applies the entry picked in the status filter menu.
-        /// </summary>
-        ReactiveCommand<ActionMenuItem, RxVoid> SelectStatusCommand { get; }
-
-        /// <summary>
-        /// Gets the command that applies the entry picked in the mode filter menu.
-        /// </summary>
-        ReactiveCommand<ActionMenuItem, RxVoid> SelectModeCommand { get; }
-
-        /// <summary>
-        /// Gets the command that empties the search and resets both filters.
-        /// </summary>
-        ReactiveCommand<RxVoid, RxVoid> ClearFiltersCommand { get; }
+        ReadOnlyObservableCollection<ProjectRowViewModel> Rows { get; }
 
         /// <summary>
         /// Gets a value indicating whether the current account may create a project.
@@ -94,14 +69,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
         bool CanCreateProject { get; }
 
         /// <summary>
-        /// Gets the rows of the projects list, the most recently updated project first.
+        /// Gets the command that empties the search and resets both filters.
         /// </summary>
-        IReadOnlyList<ProjectRowViewModel> Rows { get; }
-
-        /// <summary>
-        /// Gets the page size of the table of the projects: every row that is loaded, and at least one.
-        /// </summary>
-        /// <returns>The number of rows that the table shows on its one page.</returns>
-        int GetTablePageSize();
+        ReactiveCommand<RxVoid, RxVoid> ClearFiltersCommand { get; }
     }
 }

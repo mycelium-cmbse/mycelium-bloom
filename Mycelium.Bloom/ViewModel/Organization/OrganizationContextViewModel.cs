@@ -16,6 +16,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK.DTO;
+
+    using Organization = Mycelium.SDK.DTO.Organization;
 
     using ReactiveUI;
 
@@ -76,7 +79,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <summary>
         /// Gets the current account, <see langword="null" /> until it is resolved.
         /// </summary>
-        public Account Account
+        public User Account
         {
             get;
             private set => this.RaiseAndSetIfChanged(ref field, value);

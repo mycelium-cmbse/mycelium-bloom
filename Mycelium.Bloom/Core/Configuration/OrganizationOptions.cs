@@ -9,7 +9,7 @@
 
 namespace Mycelium.Bloom.Core.Configuration
 {
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     /// <summary>
     /// Provides strongly typed application configuration for the organization screens.
@@ -26,6 +26,6 @@ namespace Mycelium.Bloom.Core.Configuration
         /// so that every variant of every screen can be seen. The administrator by default; a local
         /// <c>appsettings.Development.json</c> can choose another role.
         /// </summary>
-        public OrganizationRole PlaceholderRole { get; set; } = OrganizationRole.OrganizationAdministrator;
+        public OrganizationMembershipRole PlaceholderRole { get; set; } = OrganizationMembershipRole.Administrator;
     }
 }

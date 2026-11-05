@@ -12,7 +12,8 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
     using ErrorOr;
 
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
+    using Mycelium.SDK.DTO;
 
     /// <summary>
     /// Answers with the sample projects until the Fabric client provides the real ones. It applies no visibility
@@ -20,7 +21,8 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
     /// </summary>
     /// <remarks>
     /// Placeholder of the projects page, to be replaced by the Fabric client when it is bound; only the service
-    /// registration changes then.
+    /// registration changes then. The visibility rule that <see cref="IOrganizationProjectService" /> promises (only the
+    /// projects the current account may see) is a later logic issue.
     /// </remarks>
     public sealed class PlaceholderOrganizationProjectService : IOrganizationProjectService
     {
@@ -46,28 +48,36 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         }
 
         /// <summary>
-        /// Gets one page of the sample projects of an organization that match a filter, the most recently updated first.
+        /// Gets the sample projects of an organization that match a filter, the most recently updated first.
         /// </summary>
         /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="filter">The criteria that the sample projects must match.</param>
-        /// <param name="request">The page to get.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>
-        /// The page of projects, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has
-        /// the identifier.
+        /// The projects, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the
+        /// identifier.
         /// </returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<PagedResult<ProjectSummary>>> GetProjectsAsync(Guid organizationId, ProjectFilter filter, PagedRequest request,
-            CancellationToken cancellationToken)
+        public Task<ErrorOr<IReadOnlyList<FunctionalProject>>> GetProjectsAsync(Guid organizationId, ProjectFilter filter, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!OrganizationPlaceholderData.Projects.TryGetValue(organizationId, out var samples))
             {
-                return Task.FromResult<ErrorOr<PagedResult<ProjectSummary>>>(OrganizationNotFound);
+                return Task.FromResult<ErrorOr<IReadOnlyList<FunctionalProject>>>(OrganizationNotFound);
             }
 
-            return Task.FromResult<ErrorOr<PagedResult<ProjectSummary>>>(this.ToPage(samples, filter, request));
+            var now = this.timeProvider.GetUtcNow().UtcDateTime;
+
+            IReadOnlyList<FunctionalProject> projects =
+            [
+                .. samples
+                    .Where(sample => Matches(sample, filter))
+                    .Select(sample => ToProject(sample, now))
+                    .OrderByDescending(project => project.UpdatedOn)
+            ];
+
+            return Task.FromResult<ErrorOr<IReadOnlyList<FunctionalProject>>>(ErrorOrFactory.From(projects));
         }
 
         /// <summary>
@@ -75,10 +85,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// </summary>
         /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
-        /// <returns>
-        /// The counts, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the
-        /// identifier.
-        /// </returns>
+        /// <returns>The counts, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the identifier.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
         public Task<ErrorOr<ProjectCounts>> GetProjectCountsAsync(Guid organizationId, CancellationToken cancellationToken)
         {
@@ -89,65 +96,58 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
                 return Task.FromResult<ErrorOr<ProjectCounts>>(OrganizationNotFound);
             }
 
-            var counts = new ProjectCounts(samples.Count, CountIn(samples, ProjectLifecycleState.Preparation),
-                CountIn(samples, ProjectLifecycleState.Open), CountIn(samples, ProjectLifecycleState.Review),
-                CountIn(samples, ProjectLifecycleState.Archived));
+            var counts = new ProjectCounts(samples.Count, CountIn(samples, ProjectLifecycleKind.Preparation),
+                CountIn(samples, ProjectLifecycleKind.Open), CountIn(samples, ProjectLifecycleKind.Review),
+                CountIn(samples, ProjectLifecycleKind.Archived));
 
             return Task.FromResult<ErrorOr<ProjectCounts>>(counts);
         }
 
         /// <summary>
-        /// Counts the sample projects that are in a lifecycle state.
+        /// Counts the sample projects in a lifecycle state.
         /// </summary>
-        /// <param name="samples">The sample projects.</param>
-        /// <param name="state">The lifecycle state to count.</param>
+        /// <param name="samples">The sample projects of the organization.</param>
+        /// <param name="lifecycle">The lifecycle state to count.</param>
         /// <returns>The number of sample projects in the state.</returns>
-        private static int CountIn(IReadOnlyList<ProjectSample> samples, ProjectLifecycleState state)
+        private static int CountIn(IReadOnlyList<ProjectSample> samples, ProjectLifecycleKind lifecycle)
         {
-            return samples.Count(sample => sample.LifecycleState == state);
+            return samples.Count(sample => sample.Lifecycle == lifecycle);
         }
 
         /// <summary>
-        /// Tells whether a sample project matches a filter.
+        /// Tells whether a sample project satisfies every criterion of a filter.
         /// </summary>
         /// <param name="sample">The sample project.</param>
-        /// <param name="filter">The criteria to match.</param>
-        /// <returns><see langword="true" /> when the sample project satisfies every criterion.</returns>
+        /// <param name="filter">The criteria.</param>
+        /// <returns><see langword="true" /> when the sample project matches.</returns>
         private static bool Matches(ProjectSample sample, ProjectFilter filter)
         {
-            return (filter.LifecycleState is null || sample.LifecycleState == filter.LifecycleState)
+            return (filter.Lifecycle is null || sample.Lifecycle == filter.Lifecycle)
                    && (filter.Mode is null || sample.Mode == filter.Mode)
                    && (sample.Name.Contains(filter.SearchText, StringComparison.OrdinalIgnoreCase)
                        || sample.Description.Contains(filter.SearchText, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
-        /// Takes the page of the sample projects that match a filter, the most recently updated first.
+        /// Builds the project that the Fabric API would return for a sample. The members are anonymous identifiers: the
+        /// projects page only counts them.
         /// </summary>
-        /// <param name="samples">The sample projects.</param>
-        /// <param name="filter">The criteria to match.</param>
-        /// <param name="request">The page to take.</param>
-        /// <returns>The page, whose total counts all the matching sample projects.</returns>
-        private PagedResult<ProjectSummary> ToPage(IReadOnlyList<ProjectSample> samples, ProjectFilter filter, PagedRequest request)
+        /// <param name="sample">The sample project.</param>
+        /// <param name="now">The current time, from which the age of the sample gives its last update.</param>
+        /// <returns>The project.</returns>
+        private static FunctionalProject ToProject(ProjectSample sample, DateTime now)
         {
-            var matches = this.ToSummaries(samples.Where(sample => Matches(sample, filter))).ToList();
-
-            return new PagedResult<ProjectSummary>([.. matches.Skip(request.PageIndex * request.PageSize).Take(request.PageSize)], matches.Count);
-        }
-
-        /// <summary>
-        /// Turns the sample projects into projects, the most recently updated first.
-        /// </summary>
-        /// <param name="samples">The sample projects.</param>
-        /// <returns>The projects.</returns>
-        private IEnumerable<ProjectSummary> ToSummaries(IEnumerable<ProjectSample> samples)
-        {
-            var now = this.timeProvider.GetUtcNow();
-
-            return samples
-                .Select(sample => new ProjectSummary(sample.Name, sample.Description, sample.Visibility, sample.Mode, sample.MemberCount,
-                    sample.LifecycleState, now - sample.Age, sample.IsMember))
-                .OrderByDescending(project => project.UpdatedAt);
+            return new FunctionalProject
+            {
+                Id = Guid.NewGuid(),
+                Name = sample.Name,
+                Description = sample.Description,
+                Visibility = sample.Visibility,
+                CurrentMode = sample.Mode,
+                Lifecycle = sample.Lifecycle,
+                Involves = [.. Enumerable.Range(0, sample.MemberCount).Select(_ => Guid.NewGuid())],
+                UpdatedOn = now - sample.Age
+            };
         }
     }
 }

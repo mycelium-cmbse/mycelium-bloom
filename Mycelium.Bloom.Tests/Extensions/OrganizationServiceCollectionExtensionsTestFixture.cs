@@ -22,6 +22,7 @@ namespace Mycelium.Bloom.Tests.Extensions
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.SDK;
 
     [TestFixture]
     public sealed class OrganizationServiceCollectionExtensionsTestFixture
@@ -46,7 +47,7 @@ namespace Mycelium.Bloom.Tests.Extensions
             var options = provider.GetRequiredService<IOptions<OrganizationOptions>>().Value;
             using var projectsScope = serviceProvider.CreateScope();
             projectsScope.ServiceProvider.GetRequiredService<IOrganizationContextViewModel>().Location =
-                OrganizationLocation.ForOrganization(OrganizationPlaceholderData.Organizations[0].Slug, OrganizationSection.Projects);
+                OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Projects);
             var createProjects = projectsScope.ServiceProvider.GetRequiredService<Func<IProjectsViewModel>>();
             using var projects = createProjects();
             using var otherProjects = createProjects();
@@ -64,7 +65,7 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(provider.GetRequiredService<IOrganizationProjectService>(), Is.TypeOf<PlaceholderOrganizationProjectService>());
                 Assert.That(projects, Is.TypeOf<ProjectsViewModel>());
                 Assert.That(otherProjects, Is.Not.SameAs(projects));
-                Assert.That(options.PlaceholderRole, Is.EqualTo(OrganizationRole.OrganizationAdministrator));
+                Assert.That(options.PlaceholderRole, Is.EqualTo(OrganizationMembershipRole.Administrator));
             }
         }
     }

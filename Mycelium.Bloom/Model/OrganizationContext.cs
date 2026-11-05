@@ -9,6 +9,10 @@
 
 namespace Mycelium.Bloom.Model
 {
+    using Mycelium.SDK.DTO;
+
+    using Organization = Mycelium.SDK.DTO.Organization;
+
     /// <summary>
     /// Describes everything the layout of an organization page needs from one request: who is using Bloom, which
     /// organization is designated and what the account may do in it.
@@ -21,5 +25,5 @@ namespace Mycelium.Bloom.Model
     /// <param name="Account">The current account.</param>
     /// <param name="Organization">The designated organization.</param>
     /// <param name="Capabilities">What the current account may do in the organization.</param>
-    public sealed record OrganizationContext(Account Account, Organization Organization, OrganizationCapabilities Capabilities);
+    public sealed record OrganizationContext(User Account, Organization Organization, OrganizationCapabilities Capabilities);
 }
