@@ -40,15 +40,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
-    /// <summary>
-    /// Verifies reviewed expression placement, including the constraint usage exception.
-    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserExpressionProjectionTestFixture
     {
-        /// <summary>
-        /// The visibility shared by the canonical and aliased expression owners.
-        /// </summary>
         private static readonly string[] ExpectedPublicOccurrenceVisibilities = ["public", "public"];
 
         [TestCase(TypeArgs = [typeof(Expression)])]
@@ -206,11 +200,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Enumerates the fixture's ownership subtree, including its root.
-        /// </summary>
-        /// <param name="element">The canonical root element.</param>
-        /// <returns>The elements in ownership order.</returns>
         private static IEnumerable<IElement> Descendants(IElement element)
         {
             yield return element;
@@ -221,11 +210,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Enumerates occurrence paths without collapsing repeated canonical elements.
-        /// </summary>
-        /// <param name="node">The root Browser occurrence.</param>
-        /// <returns>Each path from the root to an occurrence.</returns>
         private static IEnumerable<IReadOnlyList<ProjectBrowserNodeViewModel>> Paths(ProjectBrowserNodeViewModel node)
         {
             yield return new[] { node };

@@ -35,19 +35,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
-    /// <summary>
-    /// Verifies semantic row presentation and SDK interface precedence.
-    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserElementPresentationTestFixture
     {
-        /// <summary>
-        /// Verifies supported kinds have their intended labels and established icons.
-        /// </summary>
-        /// <param name="type">The SDK type or interface.</param>
-        /// <param name="kind">The human-readable kind.</param>
-        /// <param name="stereotype">The supported inline notation.</param>
-        /// <param name="icon">The established tree icon.</param>
         [TestCase(typeof(LibraryPackage), "Library package", "«library package»", "folder")]
         [TestCase(typeof(IPackage), "Package", "«package»", "folder")]
         [TestCase(typeof(PartDefinition), "Part definition", "«part def»", "box")]
@@ -80,9 +70,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies unrecognized implementations have a neutral semantic fallback.
-        /// </summary>
         [Test]
         public void VerifyForUnknownImplementation()
         {
@@ -98,10 +85,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies an unnamed root is presented as a model while retaining its identity.
-        /// </summary>
-        /// <returns>The asynchronous test operation.</returns>
         [Test]
         public async Task VerifyUnnamedRootRetainsCanonicalIdentity()
         {
@@ -156,10 +139,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies that a named model root keeps its SDK name rather than receiving the UI fallback.
-        /// </summary>
-        /// <returns>The asynchronous test operation.</returns>
         [Test]
         public async Task VerifyNamedRootPreservesSdkName()
         {
@@ -181,10 +160,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies an effective SDK name on the loaded root is not replaced with the UI fallback.
-        /// </summary>
-        /// <returns>The asynchronous test operation.</returns>
         [Test]
         public async Task VerifyEffectiveRootNamePreservesSdkName()
         {

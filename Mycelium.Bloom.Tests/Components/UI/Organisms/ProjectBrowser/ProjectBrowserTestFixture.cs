@@ -45,48 +45,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAssistant;
     using SearchInputComponent = Mycelium.Bloom.Components.UI.Atoms.SearchInput.SearchInput;
 
-    /// <summary>
-    /// Tests the <see cref="ProjectBrowserComponent" /> component.
-    /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectBrowserTestFixture : BunitContext
     {
-        /// <summary>
-        /// The expected node-selection interaction order.
-        /// </summary>
         private static readonly string[] ExpectedParentNodeInteractions = ["select", "callback", "select", "callback"];
 
-        /// <summary>
-        /// The expected leaf-node interaction order.
-        /// </summary>
         private static readonly string[] ExpectedLeafNodeInteractions = ["select", "callback"];
 
-        /// <summary>
-        /// The disclosure interaction, which must not select a model element.
-        /// </summary>
         private static readonly string[] ExpectedDisclosureToggleInteractions = ["toggle"];
 
-        /// <summary>
-        /// The selected type-chip labels expected from the active type criteria.
-        /// </summary>
         private static readonly string[] ExpectedSelectedTypeChipLabels =
             ["«part def»", "«part»", "«namespace»"];
 
-        /// <summary>
-        /// The visible node titles expected for a deep filtered match.
-        /// </summary>
         private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
 
-        /// <summary>
-        /// The immutable all-visible presentation used by ordinary strict interface scenarios.
-        /// </summary>
         private static readonly ProjectBrowserFilterPresentation InactiveFilterPresentation =
             CreateInactiveFilterPresentation();
 
-        /// <summary>
-        /// The concrete model types exposed by ordinary Project Browser test doubles.
-        /// </summary>
         private static readonly ReadOnlyObservableCollection<Type> DefaultAvailableElementTypes =
             new(new ObservableCollection<Type>
             {
@@ -95,42 +71,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 typeof(Namespace)
             });
 
-        /// <summary>
-        /// The empty selected-Type state exposed by ordinary Project Browser test doubles.
-        /// </summary>
         private static readonly ReadOnlyObservableCollection<Type> EmptySelectedElementTypes =
             new(new ObservableCollection<Type>());
 
-        /// <summary>
-        /// The Blueprint portal host that owns the Project Browser unified filter surface.
-        /// </summary>
         private readonly IRenderedComponent<BbPortalHost> portalHost;
 
-        /// <summary>
-        /// The caller-owned ViewModel supplied to the component under test.
-        /// </summary>
         private IProjectBrowserViewModel registeredViewModel;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProjectBrowserTestFixture" /> class.
-        /// </summary>
         public ProjectBrowserTestFixture()
         {
             this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
         }
 
-        /// <summary>
-        /// Disposes the bUnit test context after each test.
-        /// </summary>
         [TearDown]
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
         }
 
-        /// <summary>
-        /// Verifies that the project browser renders a loading state while the ViewModel is loading.
-        /// </summary>
         [Test]
         public void VerifyRenderDisplaysLoadingState()
         {
@@ -154,9 +112,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies that the project browser renders its error state when loading fails.
-        /// </summary>
         [Test]
         public void VerifyRenderDisplaysErrorState()
         {
@@ -181,9 +136,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies that the project browser renders tree nodes when the ViewModel has loaded.
-        /// </summary>
         [Test]
         public void VerifyRenderDisplaysLoadedTree()
         {
@@ -209,9 +161,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the tree retains its accessible semantics inside the independent scroll viewport.
-        /// </summary>
         [Test]
         public void VerifyTreeViewportPreservesAccessibleTreeAndConstrainedWidth()
         {
@@ -258,9 +207,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies loaded browsers render the accessible filter controls before the independently scrolling tree.
-        /// </summary>
         [Test]
         public void VerifyRenderDisplaysAccessibleFilterControlsAboveTree()
         {
@@ -284,9 +230,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies committed search and Type controls write directly to the caller-owned ViewModel state.
-        /// </summary>
         [Test]
         public async Task VerifyFilterControlsWriteDirectlyToViewModel()
         {
@@ -309,9 +252,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 viewModel.Verify(owner => owner.ToggleElementTypeFilter(typeof(PartDefinition)), Times.Once));
         }
 
-        /// <summary>
-        /// Verifies useful suggestions open only for a populated draft and derive Type rows from the concrete type model.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantOpensWithContainsAndRealTypeSuggestions()
         {
@@ -354,9 +294,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies an empty Space opens discovery over the loaded model's concrete non-relationship types.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantEmptySpaceDiscoversAvailableElementTypes()
         {
@@ -404,9 +341,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies discovery keeps keyboard dismissal and selection on the stable search input.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantDiscoverySupportsRepeatedKeyboardInteractionWithoutRemount()
         {
@@ -449,9 +383,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies Space remains ordinary searchable text after a draft has started.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantNonEmptyDraftAcceptsNormalSpace()
         {
@@ -475,9 +406,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies Arrow keys use Blueprint command focus and Enter accepts the highlighted real Type suggestion.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantKeyboardNavigationAcceptsHighlightedType()
         {
@@ -516,9 +444,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies Escape retains only the transient draft and refocus cannot reopen stale suggestions.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantEscapeRetainsDraftWithoutRefocusFlash()
         {
@@ -557,9 +482,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Has.Count.EqualTo(1)));
         }
 
-        /// <summary>
-        /// Verifies plain Enter commits the default Contains interpretation and renders its removable token.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantPlainEnterCommitsContainsCriterion()
         {
@@ -585,9 +507,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies plain Enter chooses Contains even when the draft also has a matching Type suggestion.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantPlainEnterPrefersContainsWithoutExplicitNavigation()
         {
@@ -608,9 +527,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies focusing a search that already owns a committed token never opens the transient assistant.
-        /// </summary>
         [Test]
         public void VerifySearchAssistantFocusDoesNotOpenFromCommittedCriterion()
         {
@@ -633,9 +549,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies criterion remove buttons update only their authoritative ViewModel state and restore the editable field.
-        /// </summary>
         [Test]
         public void VerifySearchCriterionTokensRemoveContainsAndTypeIndependently()
         {
@@ -675,9 +588,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies repeated default acceptance cannot accumulate duplicate equivalent Contains tokens.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantRepeatedContainsAcceptanceRemainsSingleCriterion()
         {
@@ -698,9 +608,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a committed Type never prevents repeated Contains composition on the same search input.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantComposesContainsAfterTypeWithoutRemount()
         {
@@ -750,9 +657,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a committed Contains criterion remains active while Type is added and another draft begins.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantComposesTypeAfterContainsWithoutRemount()
         {
@@ -783,9 +687,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies repeated commit, compose, remove, and clear interactions never desynchronize durable criteria.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantCompositionStressMaintainsCanonicalState()
         {
@@ -866,9 +767,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the assistant and complete drawer edit and immediately render the same ViewModel-owned Type set.
-        /// </summary>
         [Test]
         public async Task VerifyUnifiedSuggestionsAndTokensShareElementTypeState()
         {
@@ -896,9 +794,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies accepting an already-active Type suggestion predictably toggles that ViewModel criterion off.
-        /// </summary>
         [Test]
         public async Task VerifySearchAssistantActiveTypeAcceptanceTogglesCriterionOff()
         {
@@ -923,9 +818,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies transient drafts and committed text criteria remain isolated per browser component.
-        /// </summary>
         [Test]
         public async Task VerifyMultipleProjectBrowserSearchAssistantsRemainIndependent()
         {
@@ -979,9 +871,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies durable criteria are retrieved and transient assistant state is reset across repeated remounts.
-        /// </summary>
         [Test]
         public async Task VerifySearchCriteriaSurviveRepeatedComponentRemountsWithoutTransientState()
         {
@@ -1018,9 +907,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the clear action delegates the coherent filter reset to the ViewModel owner.
-        /// </summary>
         [Test]
         public async Task VerifyClearFilterInvokesViewModelOwnerOperation()
         {
@@ -1052,9 +938,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
         }
 
-        /// <summary>
-        /// Verifies delayed portal cleanup and callbacks from a previous opening cannot destroy the new opening.
-        /// </summary>
         [Test]
         public async Task VerifyRapidReopenSurvivesPreviousPortalCleanup()
         {
@@ -1125,9 +1008,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Holds only positioning teardown, reproducing the pinned portal's asynchronous unmount window.
-        /// </summary>
         private sealed class DeferredPositioningCleanup : IAsyncDisposable
         {
             public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1141,9 +1021,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a slow owner operation does not suppress the user's next input.
-        /// </summary>
         [Test]
         public async Task VerifyUnifiedFieldAcceptsInputWhileCriterionOwnerCompletes()
         {
@@ -1177,9 +1054,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the unified filter surface opens as a labelled overlay and supports both close affordances.
-        /// </summary>
         [Test]
         public async Task VerifyUnifiedFiltersOpenAndCloseAccessibly()
         {
@@ -1213,9 +1087,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
         }
 
-        /// <summary>
-        /// Verifies filter surface state remains transient and independent across Project Browser components.
-        /// </summary>
         [Test]
         public async Task VerifyMultipleUnifiedFiltersRemainIndependent()
         {
@@ -1238,9 +1109,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the active badge and selected chips derive from ViewModel-owned Type criteria only.
-        /// </summary>
         [Test]
         public async Task VerifyUnifiedFiltersDeriveActiveCountAndSelectedTypes()
         {
@@ -1260,9 +1128,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the unified surface supports Type multi-select and clears all ViewModel-owned criteria coherently.
-        /// </summary>
         [Test]
         public async Task VerifyUnifiedFiltersMultiSelectAndClearAllUseRealViewModelState()
         {
@@ -1301,9 +1166,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(this.portalHost.Find("button.mb-project-browser__clear-all").HasAttribute("disabled"), Is.True);
         }
 
-        /// <summary>
-        /// Verifies an empty source model remains distinct from an active filter with no matches.
-        /// </summary>
         [Test]
         public void VerifyRenderDistinguishesModelEmptyAndFilteredEmptyStates()
         {
@@ -1345,9 +1207,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the project browser renders parameters inherited from the caller-supplied Bloom reactive base.
-        /// </summary>
         [Test]
         public void VerifyRenderUsesInheritedBloomParameters()
         {
@@ -1374,9 +1233,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies component initialization directly invokes <see cref="IProjectBrowserViewModel.InitializeAsync" />.
-        /// </summary>
         [Test]
         public void VerifyOnInitializedAsyncInvokesInitializeAsync()
         {
@@ -1419,9 +1275,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies selecting a parent invokes selection and the local callback without toggling disclosure.
-        /// </summary>
         [Test]
         public void VerifyHandleNodeSelectedPreservesExpansionAndInvokesSelectionAndCallbackInOrder()
         {
@@ -1459,9 +1312,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies disclosure toggles without selecting or notifying the parent.
-        /// </summary>
         [Test]
         public void VerifyDisclosureTogglesWithoutSelectingOrInvokingSelectionCallback()
         {
@@ -1508,9 +1358,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies leaf interaction invokes selection and the callback without toggling.
-        /// </summary>
         [Test]
         public void VerifyHandleNodeSelectedSkipsToggleForLeaf()
         {
@@ -1540,9 +1387,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a filtered recursive render contains the complete match path and no unrelated nodes.
-        /// </summary>
         [Test]
         public async Task VerifyActiveFilterRendersMatchAncestorsAndExcludesNonmatches()
         {
@@ -1572,9 +1416,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies selecting a visible filtered parent preserves durable expansion while retaining selection flow.
-        /// </summary>
         [Test]
         public async Task VerifyFilteredNodeSelectionSkipsDurableToggle()
         {
@@ -1607,9 +1448,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the owner-published filter presentation rerenders the recursive tree through the reactive base.
-        /// </summary>
         [Test]
         public async Task VerifyFilterPresentationPropertyChangedRerendersComponent()
         {
@@ -1633,9 +1471,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies ViewModel replacement detaches the old top-level filter presentation publisher.
-        /// </summary>
         [Test]
         public async Task VerifyViewModelReplacementDetachesOldFilterPresentationPublication()
         {
@@ -1665,9 +1500,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies generated field identifiers remain isolated across Project Browser instances.
-        /// </summary>
         [Test]
         public async Task VerifyMultipleInstancesGenerateUniqueFilterControlIds()
         {
@@ -1688,9 +1520,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a runtime loading-state notification rerenders the real component.
-        /// </summary>
         [Test]
         public void VerifyIsLoadingPropertyChangedRerendersComponent()
         {
@@ -1716,9 +1545,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Markup, Does.Contain("No model elements available.")));
         }
 
-        /// <summary>
-        /// Verifies a runtime loaded-state notification rerenders the real component.
-        /// </summary>
         [Test]
         public void VerifyIsLoadedPropertyChangedRerendersComponent()
         {
@@ -1744,9 +1570,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Markup, Does.Contain("Loading Quantities model")));
         }
 
-        /// <summary>
-        /// Verifies a runtime error-state notification rerenders the real component.
-        /// </summary>
         [Test]
         public void VerifyErrorMessagePropertyChangedRerendersComponent()
         {
@@ -1771,9 +1594,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.Find("[role='alert']").TextContent, Does.Contain("Reactive model failure")));
         }
 
-        /// <summary>
-        /// Verifies a runtime selected-node notification rerenders without synthesizing the local callback.
-        /// </summary>
         [Test]
         public void VerifySelectedNodePropertyChangedRerendersComponentWithoutCallback()
         {
@@ -1810,9 +1630,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies observable root collection changes rerender without property notification choreography.
-        /// </summary>
         [Test]
         public void VerifyRootNodesCollectionChangesRerenderComponent()
         {
@@ -1851,9 +1668,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies changing test-local state without publishing PropertyChanged does not rerender.
-        /// </summary>
         [Test]
         public void VerifyMissingPropertyChangedNotificationDoesNotRerenderComponent()
         {
@@ -1877,9 +1691,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(component.RenderCount, Is.EqualTo(renderCount));
         }
 
-        /// <summary>
-        /// Verifies initialization failure state produced by the ViewModel renders after lifecycle completion.
-        /// </summary>
         [Test]
         public void VerifyInitializationFailureRendersViewModelError()
         {
@@ -1908,9 +1719,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             Assert.That(component.Find("[role='alert']").TextContent, Does.Contain("Model load failed"));
         }
 
-        /// <summary>
-        /// Verifies replacing a disposed component does not cancel initialization owned by its caller-owned ViewModel.
-        /// </summary>
         [Test]
         public async Task VerifyComponentReplacementKeepsRealViewModelInitializationAlive()
         {
@@ -1985,9 +1793,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a captured child callback cannot invoke methods or callbacks after component disposal.
-        /// </summary>
         [Test]
         public async Task VerifyDisposedComponentIgnoresCapturedNodeSelection()
         {
@@ -2020,9 +1825,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies ViewModel replacement detaches the old observable root collection.
-        /// </summary>
         [Test]
         public void VerifyViewModelReplacementDetachesOldRootPublication()
         {
@@ -2061,9 +1863,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies root collection changes cannot rerender the component after reactive deactivation.
-        /// </summary>
         [Test]
         public async Task VerifyDisposedComponentIgnoresRootNodesPublication()
         {
@@ -2091,9 +1890,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies an unexpected interface implementation failure does not escape the component lifecycle.
-        /// </summary>
         [Test]
         public void VerifyUnexpectedInitializationExceptionDoesNotEscapeLifecycle()
         {
@@ -2119,9 +1915,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Throws.Nothing);
         }
 
-        /// <summary>
-        /// Verifies the component does not dispose its caller-owned ViewModel boundary.
-        /// </summary>
         [Test]
         public void VerifyComponentDoesNotDisposeCallerOwnedViewModelBoundary()
         {
@@ -2142,9 +1935,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             viewModel.Verify(x => x.Dispose(), Times.Never);
         }
 
-        /// <summary>
-        /// Verifies both disposal interfaces detach subscriptions and release one JavaScript registration.
-        /// </summary>
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
@@ -2192,9 +1982,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies disposal during import releases the late module without registering callbacks.
-        /// </summary>
         [Test]
         public async Task VerifyTreeDisposalAwaitsPendingImportWithoutRegistering()
         {
@@ -2241,11 +2028,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Creates a loaded reactive contract over a caller-owned mutable root source.
-        /// </summary>
-        /// <param name="rootSource">The roots exposed through the stable read-only projection.</param>
-        /// <returns>The configured ViewModel mock.</returns>
         private static Mock<IProjectBrowserViewModel> CreateLoadedViewModel(ObservableCollection<ProjectBrowserNodeViewModel> rootSource)
         {
             var viewModel = CreateProjectBrowserViewModelMock();
@@ -2259,10 +2041,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             return viewModel;
         }
 
-        /// <summary>
-        /// Creates a strict Project Browser contract with ordinary inactive filter state.
-        /// </summary>
-        /// <returns>The configured strict ViewModel mock.</returns>
         private static Mock<IProjectBrowserViewModel> CreateProjectBrowserViewModelMock()
         {
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
@@ -2278,12 +2056,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             return viewModel;
         }
 
-        /// <summary>
-        /// Configures observable selected-Type state on a Project Browser mock.
-        /// </summary>
-        /// <param name="viewModel">The Project Browser mock.</param>
-        /// <param name="initialTypes">The initially selected element types.</param>
-        /// <returns>The mutable source retained by the test.</returns>
         private static ObservableCollection<Type> ConfigureSelectedElementTypes(Mock<IProjectBrowserViewModel> viewModel, params Type[] initialTypes)
         {
             var selectedTypes = new ObservableCollection<Type>(initialTypes);
@@ -2301,10 +2073,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             return selectedTypes;
         }
 
-        /// <summary>
-        /// Gets an inactive immutable snapshot from its real production owner.
-        /// </summary>
-        /// <returns>The all-visible filter presentation.</returns>
         private static ProjectBrowserFilterPresentation CreateInactiveFilterPresentation()
         {
             using var viewModel = new ProjectBrowserViewModel(new Mock<IModelLoaderService>(MockBehavior.Strict).Object, new ContextAwareService());
@@ -2312,20 +2080,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             return viewModel.FilterPresentation;
         }
 
-        /// <summary>
-        /// Stores the already configured Project Browser contract for the component under test.
-        /// </summary>
-        /// <param name="viewModel">The scenario-local mocked ViewModel.</param>
         private void RegisterViewModel(IProjectBrowserViewModel viewModel)
         {
             this.registeredViewModel = viewModel;
         }
 
-        /// <summary>
-        /// Opens the Project Browser unified filter surface through its accessible trigger.
-        /// </summary>
-        /// <param name="component">The rendered Project Browser instance.</param>
-        /// <returns>A task representing the drawer interaction.</returns>
         private async Task OpenUnifiedFiltersAsync(IRenderedComponent<ProjectBrowserComponent> component)
         {
             await component.Find("input[role='combobox']").ClickAsync();
@@ -2333,12 +2092,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Has.Count.EqualTo(1)));
         }
 
-        /// <summary>
-        /// Writes draft text and waits for the anchored assistant surface.
-        /// </summary>
-        /// <param name="component">The rendered Project Browser instance.</param>
-        /// <param name="query">The useful draft query.</param>
-        /// <returns>A task representing the input interaction.</returns>
         private async Task OpenSearchAssistantAsync(IRenderedComponent<ProjectBrowserComponent> component, string query)
         {
             var searchInput = component.FindComponent<SearchInputComponent>();
@@ -2349,22 +2102,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Has.Count.EqualTo(1)));
         }
 
-        /// <summary>
-        /// Gets the unified search/filter popover owned by this Browser.
-        /// </summary>
-        /// <param name="component">The rendered Project Browser instance.</param>
-        /// <returns>The search-assistant popover.</returns>
         private static IRenderedComponent<BbPopover> GetSearchAssistantPopover(IRenderedComponent<ProjectBrowserComponent> component)
         {
             return component.FindComponent<ProjectBrowserSearchAssistantComponent>()
                 .FindComponent<BbPopover>();
         }
 
-        /// <summary>
-        /// Renders the Project Browser with the caller-owned ViewModel and optional scenario parameters.
-        /// </summary>
-        /// <param name="configure">The optional scenario-specific parameter configuration.</param>
-        /// <returns>The rendered Project Browser component.</returns>
         private IRenderedComponent<ProjectBrowserComponent> RenderProjectBrowser(Action<ComponentParameterCollectionBuilder<ProjectBrowserComponent>> configure = null)
         {
             return this.Render<ProjectBrowserComponent>(parameters =>

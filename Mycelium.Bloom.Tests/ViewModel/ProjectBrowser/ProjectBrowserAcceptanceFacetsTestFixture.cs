@@ -36,25 +36,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using static Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory;
 
-    /// <summary>
-    /// Verifies semantic Browser facets using canonical SDK model data.
-    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserAcceptanceFacetsTestFixture
     {
-        /// <summary>
-        /// The model-backed indicators in their displayed order.
-        /// </summary>
         private static readonly string[] ExpectedAnnotatedStateIndicators = ["Imported", "Documentation", "Metadata", "Variation", "Parallel"];
 
-        /// <summary>
-        /// The sibling indicators retained when documentation is incomplete.
-        /// </summary>
         private static readonly string[] ExpectedIncompleteStateIndicators = ["Imported", "Metadata", "Variation", "Parallel"];
 
-        /// <summary>
-        /// Keeps indicator order and valid sibling facets when documentation cannot be resolved.
-        /// </summary>
         [Test]
         public void VerifyIndicatorOrderAndIndependentIncompleteFacets()
         {

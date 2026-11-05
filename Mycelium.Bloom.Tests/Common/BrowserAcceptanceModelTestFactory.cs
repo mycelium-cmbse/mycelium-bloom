@@ -31,15 +31,8 @@ namespace Mycelium.Bloom.Tests.Common
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
     using SysML2.NET.Extensions;
 
-    /// <summary>
-    /// Builds controlled canonical SDK data for Browser acceptance, without fake production values.
-    /// </summary>
     internal static class BrowserAcceptanceModelTestFactory
     {
-        /// <summary>
-        /// Creates a state definition with an explicit entry succession to its second state.
-        /// </summary>
-        /// <returns>The definition, first state, initial state, and connecting succession.</returns>
         internal static (StateDefinition Owner, StateUsage First, StateUsage Initial, SuccessionAsUsage Succession) CreateStates()
         {
             var owner = new StateDefinition { ElementId = "states", DeclaredName = "ControllerStates" };
@@ -57,11 +50,6 @@ namespace Mycelium.Bloom.Tests.Common
             return (owner, first, initial, succession);
         }
 
-        /// <summary>
-        /// Creates a verification result referencing the standard VerdictKind enumeration.
-        /// </summary>
-        /// <param name="value">An explicitly recorded standard verdict value.</param>
-        /// <returns>The standard-library package and verification usage.</returns>
         internal static (LibraryPackage Library, VerificationCaseUsage Verification) CreateVerification(string value)
         {
             var library = new LibraryPackage { DeclaredName = "VerificationCases", IsStandard = true };
@@ -81,10 +69,6 @@ namespace Mycelium.Bloom.Tests.Common
             return (library, verification);
         }
 
-        /// <summary>
-        /// Creates 3[SI::kg] using a bracket expression and a canonical unit reference.
-        /// </summary>
-        /// <returns>The SI fixture, mass attribute, and bracket expression.</returns>
         internal static (LibraryPackage Library, AttributeUsage Attribute, OperatorExpression Value) CreateQuantity()
         {
             // SI.sysml declares attribute <kg> kilogram : MassUnit. Only that needed subset is reproduced here.
@@ -103,11 +87,6 @@ namespace Mycelium.Bloom.Tests.Common
             return (library, attribute, value);
         }
 
-        /// <summary>
-        /// Creates a typed feature reference through its real non-owning membership.
-        /// </summary>
-        /// <param name="target">The canonical referenced feature.</param>
-        /// <returns>The reference expression.</returns>
         internal static FeatureReferenceExpression Reference(IFeature target)
         {
             var reference = new FeatureReferenceExpression();
@@ -116,13 +95,6 @@ namespace Mycelium.Bloom.Tests.Common
             return reference;
         }
 
-        /// <summary>
-        /// Creates a binary expression with explicit input-value memberships.
-        /// </summary>
-        /// <param name="symbol">The standard operator.</param>
-        /// <param name="left">The first operand.</param>
-        /// <param name="right">The second operand.</param>
-        /// <returns>The canonical expression.</returns>
         internal static OperatorExpression Binary(string symbol, IExpression left, IExpression right)
         {
             var expression = new OperatorExpression { Operator = symbol };
@@ -143,11 +115,6 @@ namespace Mycelium.Bloom.Tests.Common
             return expression;
         }
 
-        /// <summary>
-        /// Attaches an expression to a real input parameter.
-        /// </summary>
-        /// <param name="owner">The operator that owns the input parameter.</param>
-        /// <param name="expression">The value owned by that parameter.</param>
         private static void Argument(OperatorExpression owner, IExpression expression)
         {
             var parameter = new Feature { Direction = FeatureDirectionKind.In };
@@ -155,11 +122,6 @@ namespace Mycelium.Bloom.Tests.Common
             Own<FeatureValue>(parameter, expression);
         }
 
-        /// <summary>
-        /// Attaches a connector end referencing a canonical feature.
-        /// </summary>
-        /// <param name="succession">The succession that owns the end.</param>
-        /// <param name="target">The referenced feature, which retains its original owner.</param>
         private static void AddEnd(SuccessionAsUsage succession, IFeature target)
         {
             var end = new Feature { IsEnd = true };
@@ -167,13 +129,6 @@ namespace Mycelium.Bloom.Tests.Common
             AddRelationship(end, new ReferenceSubsetting { ReferencedFeature = target });
         }
 
-        /// <summary>
-        /// Attaches elements through the pinned SDK containment contract.
-        /// </summary>
-        /// <typeparam name="TMembership">The owning relationship type.</typeparam>
-        /// <param name="owner">The canonical owner.</param>
-        /// <param name="child">The canonical child.</param>
-        /// <returns>The owning relationship.</returns>
         internal static TMembership Own<TMembership>(IElement owner, IElement child) where TMembership : IRelationship, new()
         {
             var membership = new TMembership();
@@ -198,11 +153,6 @@ namespace Mycelium.Bloom.Tests.Common
             return membership;
         }
 
-        /// <summary>
-        /// Attaches a canonical relationship through the pinned SDK containment contract.
-        /// </summary>
-        /// <param name="owner">The canonical owner.</param>
-        /// <param name="relationship">The canonical relationship.</param>
         internal static void AddRelationship(IElement owner, IRelationship relationship)
         {
             if (owner.Id == Guid.Empty)

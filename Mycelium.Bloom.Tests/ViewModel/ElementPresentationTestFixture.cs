@@ -26,15 +26,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
     using static Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory;
 
-    /// <summary>
-    /// Tests model labels, multiplicity and bounded expression presentation.
-    /// </summary>
     [TestFixture]
     public sealed class ElementPresentationTestFixture
     {
-        /// <summary>
-        /// Keeps nullable and literal formatting identical through the extension and the Details compatibility entry point.
-        /// </summary>
         [Test]
         public void VerifyExpressionExtensionPreservesNullAndLiteralText()
         {
@@ -102,9 +96,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(ElementPresentation.GetMultiplicity(part.Object), Is.Null);
         }
 
-        /// <summary>
-        /// Bounds ownership traversal before the SDK writer, without rejecting the last supported depth.
-        /// </summary>
         [TestCase(63, true)]
         [TestCase(64, false)]
         public void VerifyInlineExpressionDepthBoundary(int depth, bool complete)
@@ -124,9 +115,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(reference.Object.GetExpressionText(), complete ? Is.EqualTo("target") : Is.Null);
         }
 
-        /// <summary>
-        /// Rejects an ownership cycle and permits the same identity on separate completed paths.
-        /// </summary>
         [Test]
         public void VerifyInlineExpressionCyclesAndSharedBranches()
         {
@@ -145,9 +133,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(reference.Object.GetExpressionText(), Is.EqualTo("target"));
         }
 
-        /// <summary>
-        /// Keeps incomplete SDK structure recoverable without swallowing unrelated failures.
-        /// </summary>
         [Test]
         public void VerifyInlineExpressionGetterFailureAndRecovery()
         {
@@ -162,9 +147,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(reference.Object.GetExpressionText(), Is.EqualTo("target"));
         }
 
-        /// <summary>
-        /// Preserves operator reads while short-circuiting invalid arity before touching parameters.
-        /// </summary>
         [Test]
         public void VerifyInlineInvalidArityDoesNotReadArguments()
         {
@@ -178,10 +160,6 @@ namespace Mycelium.Bloom.Tests.ViewModel
             argument.VerifyNoOtherCalls();
         }
 
-        /// <summary>
-        /// Creates a resolvable reference with independently configurable ownership for bounded traversal tests.
-        /// </summary>
-        /// <returns>A reference to a canonical named feature.</returns>
         private static Mock<IFeatureReferenceExpression> CreateInlineReference()
         {
             var reference = new Mock<IFeatureReferenceExpression>();

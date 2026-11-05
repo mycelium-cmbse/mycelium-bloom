@@ -44,35 +44,17 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
-    /// <summary>
-    /// Verifies the review's placement policy independently of the old tree assertions.
-    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserSemanticPlacementTestFixture
     {
-        /// <summary>
-        /// The structural rows followed by synthetic groups in owner-local order.
-        /// </summary>
         private static readonly string[] ExpectedMixedChildIds = ["root/0", "root/5", "root/group/Connections", "root/group/Interfaces"];
 
-        /// <summary>
-        /// The distinct identifiers of owned and imported connection occurrences.
-        /// </summary>
         private static readonly string[] ExpectedConnectionOccurrenceIds = ["root/1", "root/import/6"];
 
-        /// <summary>
-        /// The names supplied by the local and imported alias memberships.
-        /// </summary>
         private static readonly string[] ExpectedAliasOccurrenceNames = ["Alias", "Imported alias"];
 
-        /// <summary>
-        /// The effective local and imported membership visibilities.
-        /// </summary>
         private static readonly string[] ExpectedAliasOccurrenceVisibilities = ["private", "protected"];
 
-        /// <summary>
-        /// Preserves fallback indices and owner-local group order across owned, skipped and imported occurrences.
-        /// </summary>
         [Test]
         public async Task VerifyMixedTraversalOrderAndFallbackIdentifiers()
         {
@@ -103,9 +85,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Prevents staged nodes and filter types from escaping when cancellation occurs during construction.
-        /// </summary>
         [Test]
         public async Task VerifyCancellationDuringStagedConstructionDoesNotPublish()
         {
@@ -136,9 +115,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies known sequencing relationships cannot reach the broad connector/usage fallback.
-        /// </summary>
         [TestCase(TypeArgs = [typeof(Succession)])]
         [TestCase(TypeArgs = [typeof(SuccessionAsUsage)])]
         [TestCase(TypeArgs = [typeof(SysML2.NET.Core.POCO.Kernel.Interactions.SuccessionFlow)])]
@@ -155,9 +131,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Preserves the canonical initial-state semantics and hidden succession navigation.
-        /// </summary>
         [Test]
         public async Task VerifyHiddenStateSuccessionRevealsOwnerAndPreservesInitialMarker()
         {
@@ -490,13 +463,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Assigns a child to its owner through the SDK's validated relationship containment.
-        /// </summary>
-        /// <typeparam name="TMembership">The relationship type to instantiate.</typeparam>
-        /// <param name="owner">The element whose owned relationships receive the new relationship.</param>
-        /// <param name="child">The element added to the relationship's owned related elements.</param>
-        /// <returns>The attached relationship, allowing the test to configure its semantic role.</returns>
         private static TMembership Attach<TMembership>(IElement owner, IElement child)
             where TMembership : IRelationship, new()
         {

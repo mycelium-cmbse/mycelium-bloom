@@ -33,16 +33,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
 
-    /// <summary>
-    /// Tests the <see cref="ProjectBrowserNodeComponent" /> component.
-    /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ProjectBrowserNodeTestFixture : BunitContext
     {
-        /// <summary>
-        /// The visible node titles expected for a deep filtered match.
-        /// </summary>
         private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
 
         [Test]
@@ -177,18 +171,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Disposes the bUnit test context after each test.
-        /// </summary>
         [TearDown]
         public void TearDown()
         {
             this.Dispose();
         }
 
-        /// <summary>
-        /// Verifies library rows display their kind, name and available library indicators.
-        /// </summary>
         [Test]
         public void VerifyRenderUsesSemanticPackagePresentation()
         {
@@ -211,11 +199,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies common semantic kinds render distinct library symbols with their inline kind.
-        /// </summary>
-        /// <param name="elementType">The canonical SDK kind.</param>
-        /// <param name="symbol">The expected established icon.</param>
         [TestCase(typeof(SysML2.NET.Core.POCO.Systems.Attributes.AttributeUsage), "hash")]
         [TestCase(typeof(SysML2.NET.Core.POCO.Systems.States.StateUsage), "circle-dot")]
         [TestCase(typeof(SysML2.NET.Core.POCO.Systems.Connections.ConnectionUsage), "link")]
@@ -243,10 +226,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies structural kinds without an exported icon use the Figma kind marker.
-        /// </summary>
-        /// <typeparam name="TElement">The represented SysML element category.</typeparam>
         [TestCase(TypeArgs = [typeof(IDefinition)])]
         [TestCase(TypeArgs = [typeof(IUsage)])]
         [TestCase(TypeArgs = [typeof(IFeature)])]
@@ -278,9 +257,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a project browser node renders parameters inherited from the Bloom reactive base.
-        /// </summary>
         [Test]
         public void VerifyRenderUsesInheritedBloomParameters()
         {
@@ -304,9 +280,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the constrained visual row retains full semantic information for hover and assistive technology.
-        /// </summary>
         [Test]
         public void VerifyTruncatedRowRetainsFullAccessibleNotation()
         {
@@ -325,9 +298,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies selecting a parent node preserves expansion and raises the selected node callback.
-        /// </summary>
         [Test]
         public void VerifyRenderRaisesSelectedNode()
         {
@@ -353,9 +323,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies disclosure is a separate accessible control that never selects its node.
-        /// </summary>
         [Test]
         public void VerifyDisclosureControlTogglesWithoutSelectingNode()
         {
@@ -389,9 +356,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies that owner-published selection state rerenders the node.
-        /// </summary>
         [Test]
         public void VerifySelectedNodeParameterChangeRerendersNode()
         {
@@ -419,9 +383,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies that changing the reactive expansion state rerenders the node and its children.
-        /// </summary>
         [Test]
         public void VerifyIsExpandedChangeRerendersNode()
         {
@@ -448,9 +409,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             });
         }
 
-        /// <summary>
-        /// Verifies an active presentation renders only the matching ancestor path as effectively expanded.
-        /// </summary>
         [Test]
         public async Task VerifyActiveFilterRendersOnlyVisibleAncestorPathAsExpanded()
         {
@@ -482,9 +440,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a visible matching node whose real children are hidden is presented as a leaf.
-        /// </summary>
         [Test]
         public async Task VerifyActiveFilterPresentsNodeWithOnlyHiddenChildrenAsLeaf()
         {
