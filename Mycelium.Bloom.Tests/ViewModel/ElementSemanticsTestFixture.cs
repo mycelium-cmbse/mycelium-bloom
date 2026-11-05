@@ -10,10 +10,13 @@
 namespace Mycelium.Bloom.Tests.ViewModel
 {
     using System.Linq;
+
     using Moq;
+
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.ViewModel;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
@@ -22,6 +25,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using SysML2.NET.Core.POCO.Systems.Attributes;
     using SysML2.NET.Exceptions;
     using SysML2.NET.Extensions;
+
     using static Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory;
 
     [TestFixture]
@@ -118,7 +122,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Attach<OwningMembership>(feature, range);
             Attach<OwningMembership>(range, bound);
             bound.AssignOwnership(new Membership { MemberElement = referenced });
-            Assert.That(ElementPresentation.GetMultiplicity(feature), Is.Null);
+            Assert.That(ElementPresentation.GetMultiplicity(feature), Is.EqualTo("[capacity]"));
             var selection = new ContextAwareService { SelectedElement = feature };
             using var panel = new DetailsPanelViewModel(selection);
             var link = panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Multiplicity");

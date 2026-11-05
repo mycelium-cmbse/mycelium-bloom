@@ -88,8 +88,8 @@
         }
         @foreach (var section in presentation.Sections)
         {
-            <section class="mb-details-panel__section" aria-label="@section.Title">
-                <h3 class="mb-details-panel__section-title">@section.Title</h3>
+            <section class="mb-details-panel__section" aria-label="@(section.Title)">
+                <h3 class="mb-details-panel__section-title">@(section.Title)</h3>
                 @if (section.Properties.Count > 0)
                 {
                     <dl class="mb-details-panel__properties">
