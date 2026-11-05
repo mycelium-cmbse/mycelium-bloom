@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
 
     using Humanizer;
 
+    using Mycelium.Bloom.ViewModel.Organization;
     using Mycelium.SDK;
 
     /// <summary>
@@ -84,6 +85,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
         private string NoResultsTitle => this.ViewModel.SearchText.Length == 0
             ? "No projects match these filters"
             : $"No projects match \"{this.ViewModel.SearchText.Trim()}\"";
+
+        /// <summary>
+        /// Gets the CSS classes of the mode badge of a project, which tint the Concurrent mode.
+        /// </summary>
+        /// <param name="row">The row of the project.</param>
+        /// <returns>The CSS classes of the badge.</returns>
+        private static string GetModeCssClass(ProjectRowViewModel row)
+        {
+            return row.Mode == ProjectMode.Concurrent ? "mb-projects-view__mode mb-projects-view__mode--concurrent" : "mb-projects-view__mode";
+        }
 
         /// <summary>
         /// Empties the search and resets both filters when the action of the no results state is clicked.

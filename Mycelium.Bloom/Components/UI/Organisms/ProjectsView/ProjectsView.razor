@@ -22,9 +22,9 @@
 
         @if (this.ViewModel.CanCreateProject)
         {
-            <BbButton>
+            <BbButton Class="mb-projects-view__new">
                 <Icon>
-                    <LucideIcon Name="plus" Size="16" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    <LucideIcon Name="plus" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                 </Icon>
                 <ChildContent>New project</ChildContent>
             </BbButton>
@@ -39,6 +39,7 @@
                     <LucideIcon Name="search" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                 </BbInputGroupAddon>
                 <BbInputGroupInput Id="projects-search"
+                                   Class="mb-projects-view__search-input"
                                    Value="@(this.ViewModel.SearchText)"
                                    ValueChanged="@(text => this.ViewModel.SearchText = text)"
                                    Placeholder="Search projects…"
@@ -48,12 +49,15 @@
 
             <BbDropdownMenu>
                 <BbDropdownMenuTrigger AsChild="true">
-                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" title="Filter by status" aria-label="@(this.StatusFilterLabel)">
+                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                              Class="mb-projects-view__filter"
+                              title="Filter by status"
+                              aria-label="@(this.StatusFilterLabel)">
                         @(this.StatusFilterLabel)
                         <LucideIcon Name="chevron-down" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                     </BbButton>
                 </BbDropdownMenuTrigger>
-                <BbDropdownMenuContent Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
+                <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
                     @foreach (var status in StatusChoices)
                     {
                         <BbDropdownMenuItem OnClick="_ => this.ViewModel.StatusFilter = status">
@@ -69,12 +73,15 @@
 
             <BbDropdownMenu>
                 <BbDropdownMenuTrigger AsChild="true">
-                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" title="Filter by mode" aria-label="@(this.ModeFilterLabel)">
+                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                              Class="mb-projects-view__filter"
+                              title="Filter by mode"
+                              aria-label="@(this.ModeFilterLabel)">
                         @(this.ModeFilterLabel)
                         <LucideIcon Name="chevron-down" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                     </BbButton>
                 </BbDropdownMenuTrigger>
-                <BbDropdownMenuContent Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
+                <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
                     @foreach (var mode in ModeChoices)
                     {
                         <BbDropdownMenuItem OnClick="_ => this.ViewModel.ModeFilter = mode">
@@ -112,6 +119,7 @@
     else
     {
         <BbDataTable TData="ProjectRowViewModel"
+                     Class="mb-projects-view__table"
                      Data="@(this.ViewModel.Rows)"
                      ShowToolbar="false"
                      ShowPagination="@(this.ViewModel.Rows.Count > PageSize)"
@@ -147,7 +155,7 @@
                 <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Mode">
                     <CellTemplate>
                         <BbBadge Variant="BadgeVariant.Secondary"
-                                 Class="@(context.Mode == ProjectMode.Concurrent ? "mb-projects-view__mode--concurrent" : string.Empty)">
+                                 Class="@(GetModeCssClass(context))">
                             @(context.Mode.Humanize())
                         </BbBadge>
                     </CellTemplate>
