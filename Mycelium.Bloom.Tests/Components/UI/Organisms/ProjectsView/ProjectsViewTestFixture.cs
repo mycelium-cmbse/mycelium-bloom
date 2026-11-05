@@ -10,19 +10,25 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
 {
     using System;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Services;
+
     using Bunit;
+
+    using ErrorOr;
 
     using Moq;
 
-    using Mycelium.Bloom.Components.UI.Molecules.ActionMenu;
     using Mycelium.Bloom.Components.UI.Organisms.ProjectsView;
     using Mycelium.Bloom.Model;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.SDK;
+    using Mycelium.SDK.DTO;
 
     using ReactiveUI;
 
@@ -31,90 +37,118 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
     {
         private BunitContext context;
 
+        private IRenderedComponent<BbPortalHost> portalHost;
+
         private Mock<IProjectsViewModel> viewModel;
+
+        private DateTimeOffset now;
 
         [SetUp]
         public void SetUp()
         {
             this.context = new BunitContext();
-            BlueprintTestSetup.Configure(this.context);
-            var now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
-            var regular = new ProjectSummary("Aurora Orbiter", "Description", ProjectVisibility.Private, ProjectMode.Regular, 4, ProjectLifecycleState.Open,
-                now, true);
-            var concurrent = regular with { Name = "Deimos Lander", Mode = ProjectMode.ConcurrentDesign, LifecycleState = ProjectLifecycleState.Preparation };
-            var inReview = regular with { Name = "Europa Probe", Visibility = ProjectVisibility.Organization, LifecycleState = ProjectLifecycleState.Review };
-            var archived = regular with { Name = "Ganymede Relay", Visibility = ProjectVisibility.Public, LifecycleState = ProjectLifecycleState.Archived };
-
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this.context);
+            this.now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
             this.viewModel = new Mock<IProjectsViewModel>();
-            this.viewModel.SetupGet(model => model.Rows).Returns([new ProjectRowViewModel(regular, now), new ProjectRowViewModel(concurrent, now), new ProjectRowViewModel(inReview, now), new ProjectRowViewModel(archived, now)]);
-            this.viewModel.SetupGet(model => model.ErrorMessage).Returns("The projects could not be loaded.");
-            this.viewModel.Setup(model => model.GetTablePageSize()).Returns(4);
-            this.viewModel.SetupGet(model => model.StatusFilterItems).Returns([]);
-            this.viewModel.SetupGet(model => model.ModeFilterItems).Returns([]);
+            this.viewModel.SetupGet(model => model.Errors).Returns([]);
+            this.viewModel.SetupProperty(model => model.SearchText, string.Empty);
+            this.viewModel.SetupProperty(model => model.StatusFilter);
+            this.viewModel.SetupProperty(model => model.ModeFilter);
+            this.SetUpRows(0);
         }
 
         [TearDown]
         public async Task TearDown()
         {
+            this.portalHost.Dispose();
             await this.context.DisposeAsync();
         }
 
-        [Test]
-        public void VerifyNoResultsStateClearsTheSearchAndFilters()
+        [TestCase(true, -1, 0, false, true, 1, 0, 0, 0, 0, 0, 1)]
+        [TestCase(false, 4, 4, false, true, 0, 4, 0, 1, 0, 0, 1)]
+        [TestCase(false, 30, 30, false, true, 0, 25, 0, 1, 0, 1, 1)]
+        [TestCase(false, 0, 0, false, false, 0, 0, 0, 0, 1, 0, 0)]
+        [TestCase(false, -1, 0, true, true, 0, 0, 1, 1, 0, 0, 1)]
+        public void VerifyTheViewFlipsOnBusyErrorsAndRows(bool isBusy, int total, int rowCount, bool failed, bool canCreateProject, int skeletons, int rows, int alerts, int searchBoxes, int emptyStates, int pagers, int createButtons)
         {
-            var cleared = 0;
-            this.viewModel.SetupGet(model => model.State).Returns(ProjectsListState.Ready);
-            this.viewModel.SetupGet(model => model.Rows).Returns([]);
-            this.viewModel.SetupGet(model => model.NoResultsTitle).Returns("No projects match \"thermal\"");
-            this.viewModel.SetupGet(model => model.ClearFiltersCommand).Returns(ReactiveCommand.Create(() => { cleared++; }));
-
-            var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
-
-            cut.FindAll("button").Single(button => button.TextContent.Contains("Clear search and filters")).Click();
-
-            Assert.That(cleared, Is.EqualTo(1));
-        }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public async Task VerifyPickingAFilterEntryRunsTheCommandOfItsMenu(bool isStatusMenu)
-        {
-            ActionMenuItem pickedStatus = null;
-            ActionMenuItem pickedMode = null;
-            var item = new ActionMenuItem { Id = "Open", Label = "Open" };
-            this.viewModel.SetupGet(model => model.State).Returns(ProjectsListState.Ready);
-            this.viewModel.SetupGet(model => model.SelectStatusCommand).Returns(ReactiveCommand.Create<ActionMenuItem>(entry => pickedStatus = entry));
-            this.viewModel.SetupGet(model => model.SelectModeCommand).Returns(ReactiveCommand.Create<ActionMenuItem>(entry => pickedMode = entry));
-
-            var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
-            var menu = cut.FindComponents<ActionMenu>()[isStatusMenu ? 0 : 1];
-            await cut.InvokeAsync(() => menu.Instance.ItemSelected.InvokeAsync(item));
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(pickedStatus, isStatusMenu ? Is.SameAs(item) : Is.Null);
-                Assert.That(pickedMode, isStatusMenu ? Is.Null : Is.SameAs(item));
-            }
-        }
-
-        [TestCase(ProjectsListState.Loading, 1, 0, 0, false)]
-        [TestCase(ProjectsListState.Ready, 0, 4, 0, true)]
-        [TestCase(ProjectsListState.Empty, 0, 0, 0, true)]
-        [TestCase(ProjectsListState.Error, 0, 0, 1, false)]
-        public void VerifyEachStateShowsItsContent(ProjectsListState state, int statuses, int rows, int alerts, bool canCreateProject)
-        {
-            this.viewModel.SetupGet(model => model.State).Returns(state);
+            this.SetUpRows(rowCount);
+            this.viewModel.SetupGet(model => model.IsBusy).Returns(isBusy);
+            this.viewModel.SetupGet(model => model.Counts).Returns(total < 0 ? null : new ProjectCounts(total, 0, total, 0, 0));
+            this.viewModel.SetupGet(model => model.Errors).Returns(failed ? [Error.Unexpected("Projects.LoadFailed", "Failed.")] : []);
             this.viewModel.SetupGet(model => model.CanCreateProject).Returns(canCreateProject);
 
             var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(cut.FindAll("[role=status]"), Has.Count.EqualTo(statuses));
+                Assert.That(cut.FindAll("[role=status]"), Has.Count.EqualTo(skeletons));
                 Assert.That(cut.FindAll("tbody tr"), Has.Count.EqualTo(rows));
                 Assert.That(cut.FindAll("[role=alert]"), Has.Count.EqualTo(alerts));
-                Assert.That(cut.FindAll("header button"), Has.Count.EqualTo(canCreateProject ? 1 : 0));
+                Assert.That(cut.FindAll("#projects-search"), Has.Count.EqualTo(searchBoxes));
+                Assert.That(cut.FindComponents<BbEmpty>(), Has.Count.EqualTo(emptyStates));
+                Assert.That(cut.FindComponents<BbPagination>(), Has.Count.EqualTo(pagers));
+                Assert.That(cut.FindAll("header button"), Has.Count.EqualTo(createButtons));
             }
+        }
+
+        [Test]
+        public async Task VerifyTypingSetsTheSearchTextAndTheNoResultsActionClearsTheSearchAndFilters()
+        {
+            var cleared = 0;
+            this.viewModel.SetupGet(model => model.Counts).Returns(new ProjectCounts(4, 0, 4, 0, 0));
+            this.viewModel.Object.SearchText = "thermal";
+            this.viewModel.SetupGet(model => model.ClearFiltersCommand).Returns(ReactiveCommand.Create(() => { cleared++; }));
+
+            var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
+            var title = cut.FindComponent<BbEmpty>().Instance.Title;
+            await cut.InvokeAsync(() => cut.FindComponent<BbInputGroupInput>().Instance.JsOnInput("cold"));
+            var typed = this.viewModel.Object.SearchText;
+            cut.FindAll("button").Single(button => button.TextContent.Contains("Clear search and filters", StringComparison.Ordinal)).Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(title, Is.EqualTo("No projects match \"thermal\""));
+                Assert.That(typed, Is.EqualTo("cold"));
+                Assert.That(cleared, Is.EqualTo(1));
+            }
+        }
+
+        [TestCase(true, ProjectLifecycleKind.Review, null)]
+        [TestCase(false, null, ProjectMode.Concurrent)]
+        public async Task VerifyPickingAFilterEntryAppliesItToTheViewModel(bool isStatusMenu, ProjectLifecycleKind? expectedStatus, ProjectMode? expectedMode)
+        {
+            this.SetUpRows(4);
+            this.viewModel.SetupGet(model => model.Counts).Returns(new ProjectCounts(4, 0, 4, 0, 0));
+            var entryCount = (isStatusMenu ? Enum.GetValues<ProjectLifecycleKind>().Length : Enum.GetValues<ProjectMode>().Length) + 1;
+
+            var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
+            await cut.Find(isStatusMenu ? "button[title='Filter by status']" : "button[title='Filter by mode']").ClickAsync();
+            var entries = await this.portalHost.WaitForElementsAsync("[role='menuitem']", entryCount);
+            entries.Single(entry => entry.TextContent.Contains(isStatusMenu ? "In review" : "Concurrent Design", StringComparison.Ordinal)).Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.viewModel.Object.StatusFilter, Is.EqualTo(expectedStatus));
+                Assert.That(this.viewModel.Object.ModeFilter, Is.EqualTo(expectedMode));
+            }
+        }
+
+        private void SetUpRows(int rowCount)
+        {
+            var projects = Enumerable.Range(0, rowCount).Select(index => new FunctionalProject
+            {
+                Id = Guid.NewGuid(),
+                Name = $"Project {index}",
+                Description = "Description",
+                Visibility = (ProjectVisibility)(index % 3),
+                CurrentMode = (ProjectMode)(index % 2),
+                Lifecycle = (ProjectLifecycleKind)(index % 4),
+                Involves = [Guid.NewGuid()],
+                UpdatedOn = this.now.UtcDateTime
+            });
+
+            this.viewModel.SetupGet(model => model.Rows).Returns(new ReadOnlyObservableCollection<ProjectRowViewModel>(
+                new ObservableCollection<ProjectRowViewModel>(projects.Select(project => new ProjectRowViewModel(project, this.now)))));
         }
     }
 }

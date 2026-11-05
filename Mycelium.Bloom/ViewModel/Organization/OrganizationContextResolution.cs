@@ -13,6 +13,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
+    using Mycelium.SDK.DTO;
+
+    using Organization = Mycelium.SDK.DTO.Organization;
 
     /// <summary>
     /// Describes the outcome of resolving a location, published as one unit to the properties of the
@@ -24,7 +27,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     /// <param name="Organization">The designated organization, when it is known.</param>
     /// <param name="Capabilities">The capabilities of the account, when they are known.</param>
     /// <param name="Errors">The errors that prevented the resolution, or an empty list.</param>
-    internal sealed record OrganizationContextResolution(OrganizationLocation Location, bool IsLoading, Account Account, Organization Organization,
+    internal sealed record OrganizationContextResolution(OrganizationLocation Location, bool IsLoading, User Account, Organization Organization,
         OrganizationCapabilities Capabilities, IReadOnlyList<Error> Errors)
     {
         /// <summary>
@@ -45,7 +48,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <param name="organization">The designated organization, or <see langword="null" /> on the account page.</param>
         /// <param name="capabilities">The capabilities of the account, or <see langword="null" /> on the account page.</param>
         /// <returns>The ready resolution.</returns>
-        public static OrganizationContextResolution CreateReady(OrganizationLocation location, Account account, Organization organization,
+        public static OrganizationContextResolution CreateReady(OrganizationLocation location, User account, Organization organization,
             OrganizationCapabilities capabilities)
         {
             return new OrganizationContextResolution(location, false, account, organization, capabilities, []);

@@ -24,13 +24,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.SDK.DTO;
+
+    using Organization = Mycelium.SDK.DTO.Organization;
 
     [TestFixture]
     public sealed class OrganizationContextViewModelTestFixture
     {
         private Mock<IOrganizationContextService> contextService;
 
-        private Account account;
+        private User account;
 
         private OrganizationCapabilities capabilities;
 
@@ -39,7 +42,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [SetUp]
         public void SetUp()
         {
-            this.account = new Account(Guid.NewGuid(), "Sample Account", "sample@example.org");
+            this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Mail = "sample@example.org" };
             this.capabilities = new OrganizationCapabilities(false);
             this.contextService = new Mock<IOrganizationContextService>();
             this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(this.account);
@@ -209,7 +212,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
             else
             {
-                slowLookup.SetResult(new OrganizationContext(this.account, new Organization(Guid.NewGuid(), "slow", "Slow"), this.capabilities));
+                slowLookup.SetResult(new OrganizationContext(this.account, new Organization { Id = Guid.NewGuid(), Name = "Slow" }, this.capabilities));
             }
 
             using (Assert.EnterMultipleScope())
@@ -242,7 +245,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(isLoadingAfterTheReset, Is.True);
                 Assert.That(errorsAfterTheReset, Is.Empty);
                 Assert.That(organizationAfterTheReset, Is.Null);
-                Assert.That(this.viewModel.Organization.Slug, Is.EqualTo("orbital-systems"));
+                Assert.That(this.viewModel.Organization.Name, Is.EqualTo("orbital-systems"));
                 this.contextService.Verify(service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>()), Times.Exactly(2));
             }
         }
@@ -258,14 +261,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.viewModel.Organization.Slug, Is.EqualTo("first"));
+                Assert.That(this.viewModel.Organization.Name, Is.EqualTo("first"));
                 this.contextService.Verify(service => service.GetOrganizationContextAsync("second", It.IsAny<CancellationToken>()), Times.Never);
             }
         }
 
         private Organization SetUpOrganization(string slug, OrganizationCapabilities organizationCapabilities = null)
         {
-            var organization = new Organization(Guid.NewGuid(), slug, slug);
+            var organization = new Organization { Id = Guid.NewGuid(), Name = slug };
             var context = new OrganizationContext(this.account, organization, organizationCapabilities ?? this.capabilities);
             this.contextService.Setup(service => service.GetOrganizationContextAsync(slug, It.IsAny<CancellationToken>())).ReturnsAsync(context);
 

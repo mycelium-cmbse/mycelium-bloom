@@ -20,7 +20,9 @@ namespace Mycelium.Bloom.Components.UI.Molecules.OrganizationContextView
     /// <summary>
     /// Shows the content of an account or organization page once the organization context is resolved and a loading
     /// state before. When the resolution fails, it shows the not found page for a missing or inaccessible organization
-    /// and opens the error page otherwise.
+    /// and opens the error page otherwise. The content is keyed by the organization, because the router keeps the same page
+    /// component when the account moves to another organization: the page is created again and does not keep the list, the
+    /// counts or the filters of the previous one.
     /// </summary>
     public sealed partial class OrganizationContextView
     {

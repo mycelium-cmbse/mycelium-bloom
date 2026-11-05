@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.Core.Organization
     using ErrorOr;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.SDK.DTO;
 
     /// <summary>
     /// Provides what the layout of the account and organization pages needs, in one request per context. A page
@@ -24,7 +25,7 @@ namespace Mycelium.Bloom.Core.Organization
         /// </summary>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The current account, or an <see cref="OrganizationErrorCodes.Unavailable" /> error when it cannot be retrieved.</returns>
-        Task<ErrorOr<Account>> GetAccountAsync(CancellationToken cancellationToken);
+        Task<ErrorOr<User>> GetAccountAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the current account, the organization designated by a slug and what the account may do in it.

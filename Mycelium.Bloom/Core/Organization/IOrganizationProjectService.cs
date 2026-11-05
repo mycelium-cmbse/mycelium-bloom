@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.Core.Organization
     using ErrorOr;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.SDK.DTO;
 
     /// <summary>
     /// Provides the projects of an organization as the projects page shows them. The projects, their total and their
@@ -20,19 +21,17 @@ namespace Mycelium.Bloom.Core.Organization
     public interface IOrganizationProjectService
     {
         /// <summary>
-        /// Gets one page of the projects of an organization that match a filter, the most recently updated first. The
-        /// total of the page counts the matching projects, not all the projects of the organization.
+        /// Gets the projects of an organization that match a filter, the most recently updated first. The list is not
+        /// paged: the view pages what it shows.
         /// </summary>
         /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="filter">The criteria that the projects must match.</param>
-        /// <param name="request">The page to get; the service decides the largest page it answers.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>
-        /// The page of projects, or an error: <see cref="OrganizationErrorCodes.NotFound" /> when the organization does not
+        /// The projects, or an error: <see cref="OrganizationErrorCodes.NotFound" /> when the organization does not
         /// exist and <see cref="OrganizationErrorCodes.Unavailable" /> when the projects cannot be retrieved.
         /// </returns>
-        Task<ErrorOr<PagedResult<ProjectSummary>>> GetProjectsAsync(Guid organizationId, ProjectFilter filter, PagedRequest request,
-            CancellationToken cancellationToken);
+        Task<ErrorOr<IReadOnlyList<FunctionalProject>>> GetProjectsAsync(Guid organizationId, ProjectFilter filter, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the number of projects of an organization, in total and by lifecycle state, whatever the search or the
