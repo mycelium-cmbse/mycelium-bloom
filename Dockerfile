@@ -1,4 +1,9 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.400-noble AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-noble AS build
+
+# Apply the Noble APT security fix not yet included in the upstream image.
+RUN apt-get update \
+    && apt-get install --yes --only-upgrade apt libapt-pkg6.0t64 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
 
@@ -23,6 +28,11 @@ RUN test -s /app/publish/wwwroot/_framework/blazor.web.js
 RUN test -s "/app/publish/Resources/Domain Libraries/Quantities and Units/Quantities.json"
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble AS final
+
+# Apply the Noble APT security fix not yet included in the upstream image.
+RUN apt-get update \
+    && apt-get install --yes --only-upgrade apt libapt-pkg6.0t64 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

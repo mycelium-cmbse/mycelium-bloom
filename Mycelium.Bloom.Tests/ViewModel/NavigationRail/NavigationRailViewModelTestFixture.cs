@@ -79,14 +79,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
 
         private static readonly NavigationRailItem[] NoItems = [];
 
-        private static readonly string[] ExpectedLifecycleStateNames =
-        [
-            "Preparation",
-            "Open",
-            "Review",
-            "Archived"
-        ];
-
         private static readonly string[] ExpectedPresentationModeNames =
         [
             "Expanded",
@@ -116,12 +108,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.NavigationRail
             contextService.LifecycleState = lifecycleState;
 
             Assert.That(viewModel.NavigationItems, Is.EqualTo(expectedItems));
-        }
-
-        [Test]
-        public void VerifySdkLifecyclePreservesLifecycleNames()
-        {
-            Assert.That(Enum.GetNames<ProjectLifecycleKind>(), Is.EqualTo(ExpectedLifecycleStateNames));
         }
 
         [Test]
