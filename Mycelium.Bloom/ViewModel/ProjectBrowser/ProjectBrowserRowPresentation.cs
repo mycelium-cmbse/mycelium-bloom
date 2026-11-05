@@ -10,22 +10,23 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using Mycelium.Bloom.Extensions;
+
     using SysML2.NET.Core.POCO.Core.Features;
-    using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Connectors;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
+    using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.Actions;
     using SysML2.NET.Core.POCO.Systems.Attributes;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.POCO.Systems.Enumerations;
     using SysML2.NET.Core.POCO.Systems.Metadata;
     using SysML2.NET.Core.POCO.Systems.Ports;
     using SysML2.NET.Core.POCO.Systems.States;
-    using SysML2.NET.Core.POCO.Systems.Actions;
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
     using SysML2.NET.Exceptions;
 
@@ -57,6 +58,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             var occurrenceMembership = membership ?? element.owningMembership;
             var visibility = Read(() => occurrenceMembership == null ? null
                 : (importingNamespace?.VisibilityOf(occurrenceMembership) ?? occurrenceMembership.Visibility).ToString().ToLowerInvariant());
+
             return new(typeLabel, valueLabel, visibility, CreateIndicators(element, isImported));
         }
 
@@ -69,6 +71,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private static List<string> CreateIndicators(IElement element, bool isImported)
         {
             var indicators = new List<string>();
+
             if (isImported)
             {
                 indicators.Add("Imported");
@@ -83,8 +86,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 indicators.Add("Metadata");
             }
+
             AddLibraryAndVariationIndicators(element, indicators);
             AddBehaviorIndicators(element, indicators);
+
             return indicators;
         }
 
@@ -122,6 +127,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             if (element is ILibraryPackage library)
             {
                 indicators.Add("Library");
+
                 if (library.IsStandard)
                 {
                     indicators.Add("Standard library");
@@ -172,6 +178,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private static IExpression GetSingleValue(IElement element)
         {
             var values = element?.OwnedRelationship?.OfType<IFeatureValue>().ToArray() ?? [];
+
             return values.Length == 1 ? values[0].value : null;
         }
 
@@ -189,6 +196,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 IStateUsage { IsParallel: false } usage => usage.entryAction,
                 _ => null
             };
+
             if (entry == null)
             {
                 return false;
@@ -196,6 +204,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             var transitions = owner.ownedElement?.OfType<ITransitionUsage>()
                 .Where(transition => ReferenceEquals(transition.source, entry)).ToArray() ?? [];
+
             // Guarded/triggered starts need runtime context; an unguarded transition exposes its succession target.
             if (transitions.Any(transition => transition.guardExpression?.Count > 0 || transition.triggerAction?.Count > 0))
             {
@@ -204,6 +213,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             var initial = owner.ownedElement?.OfType<ISuccession>()
                 .Where(succession => ReferenceEquals(succession.sourceFeature, entry)).ToArray() ?? [];
+
             if (initial.Length + transitions.Length != 1)
             {
                 return false;
@@ -227,6 +237,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 IVerificationCaseUsage usage => usage.result,
                 _ => null
             };
+
             if (GetSingleValue(result) is not IFeatureReferenceExpression { referent: IEnumerationUsage literal }
                 || literal.owner is not IEnumerationDefinition enumeration
                 || enumeration.owner is not ILibraryPackage { IsStandard: true }

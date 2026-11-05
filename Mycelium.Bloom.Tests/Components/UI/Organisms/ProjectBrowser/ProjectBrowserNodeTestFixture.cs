@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------------------------
 // <copyright file="ProjectBrowserNodeTestFixture.cs" company="Starion Group S.A.">
-// 
+//
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
-// 
+//
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
@@ -12,10 +12,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using System;
     using System.Linq;
     using System.Threading.Tasks;
+
     using Bunit;
+
     using Moq;
+
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
@@ -26,6 +30,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.POCO.Systems.Parts;
+
     using ProjectBrowserNodeComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserNode;
 
     /// <summary>
@@ -47,6 +52,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var node = new ProjectBrowserNodeViewModel("verification", model.Verification.DeclaredName, new ProjectBrowserNodeMetadata("verification", null, model.Verification), []);
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find("[aria-label='Verdict: pass']").TextContent, Is.EqualTo("Verdict: pass"));
@@ -82,6 +88,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var node = new ProjectBrowserNodeViewModel("mass", model.Attribute.DeclaredName, new ProjectBrowserNodeMetadata("mass", null, model.Attribute), []);
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find(".mb-project-browser-node__value").TextContent, Is.EqualTo("= 3[SI::kg]"));
@@ -103,19 +110,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Add(value => value.OnNodeExpansionToggled, node => toggled = node));
 
             var treeItem = component.Find("[role='treeitem']");
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(treeItem.GetAttribute("aria-expanded"), Is.EqualTo("false"));
                 Assert.That(treeItem.HasAttribute("aria-selected"), Is.False);
                 Assert.That(treeItem.HasAttribute("data-element-id"), Is.False);
+                Assert.That(component.FindAll(".mb-project-browser-node__visibility"), Is.Empty);
                 Assert.That(component.FindAll("[role='group']"), Is.Empty);
             }
+
             component.Find("[data-testid='project-browser-node-selection']").Click();
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(toggled, Is.SameAs(group));
                 Assert.That(selected, Is.Null);
             }
+
             group.IsExpanded = true;
             component.WaitForAssertion(() => Assert.That(component.FindAll("[role='group']"), Has.Count.EqualTo(1)));
         }
@@ -132,6 +144,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var node = new ProjectBrowserNodeViewModel("attribute", "mass", new ProjectBrowserNodeMetadata("attribute", null, attribute.Object), []);
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(element => element.ViewModel, node));
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find(".mb-project-browser-node__stereotype").TextContent, Is.EqualTo("«attribute»"));
@@ -214,9 +227,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 MemberElement = element,
                 Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private
             };
+
             var node = new ProjectBrowserNodeViewModel("element", "Readable name", new ProjectBrowserNodeMetadata("element", null, element), [], membership);
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindComponent<BlazorBlueprint.Icons.Lucide.Components.LucideIcon>().Instance.Name, Is.EqualTo(symbol));
@@ -253,11 +268,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Add(projectBrowserNode => projectBrowserNode.ViewModel, node));
 
             Assert.That(component.FindAll(".mb-project-browser-node__fallback-icon svg"), Has.Count.EqualTo(1));
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindAll(".mb-project-browser-node__element-icon"), Is.Empty);
                 Assert.That(component.Find("button.mb-project-browser-node__row").HasAttribute("style"), Is.False);
-                Assert.That(component.Find(".mb-project-browser-node__ownership").TextContent, Is.Empty);
+                Assert.That(component.FindAll(".mb-project-browser-node__ownership"), Is.Empty);
             }
         }
 
@@ -298,6 +314,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
             var accessibleLabel = component.Find("[role='treeitem']").GetAttribute("aria-label");
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(accessibleLabel, Does.Contain(model.Attribute.DeclaredName).And.Contain("3[SI::kg]").And.Contain("«attribute»"));
@@ -351,6 +368,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Add(component => component.OnNodeExpansionToggled, toggledNode =>
                 {
                     toggledNode.IsExpanded = !toggledNode.IsExpanded;
+
                     return Task.CompletedTask;
                 }));
 
@@ -443,8 +461,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(projectBrowserNode => projectBrowserNode.ViewModel, root)
-                .Add(projectBrowserNode => projectBrowserNode.FilterPresentation,
-                    presentationOwner.FilterPresentation));
+                .Add(projectBrowserNode => projectBrowserNode.FilterPresentation, presentationOwner.FilterPresentation));
             var titles = component.FindAll(".mb-project-browser-node__title")
                 .Select(title => title.TextContent)
                 .ToArray();
@@ -477,8 +494,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(projectBrowserNode => projectBrowserNode.ViewModel, matchingNode)
-                .Add(projectBrowserNode => projectBrowserNode.FilterPresentation,
-                    presentationOwner.FilterPresentation));
+                .Add(projectBrowserNode => projectBrowserNode.FilterPresentation, presentationOwner.FilterPresentation));
             var treeItem = component.Find("[role='treeitem']");
 
             using (Assert.EnterMultipleScope())

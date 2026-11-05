@@ -9,8 +9,8 @@
 
 namespace Mycelium.Bloom.Tests.Common
 {
-    using System.Collections.Generic;
     using System;
+
     using SysML2.NET.Core.Core.Types;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
@@ -29,6 +29,7 @@ namespace Mycelium.Bloom.Tests.Common
     using SysML2.NET.Core.POCO.Systems.Enumerations;
     using SysML2.NET.Core.POCO.Systems.States;
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
+    using SysML2.NET.Extensions;
 
     /// <summary>
     /// Builds controlled canonical SDK data for Browser acceptance, without fake production values.
@@ -52,6 +53,7 @@ namespace Mycelium.Bloom.Tests.Common
             Own<OwningMembership>(owner, succession);
             AddEnd(succession, entry);
             AddEnd(succession, initial);
+
             return (owner, first, initial, succession);
         }
 
@@ -75,6 +77,7 @@ namespace Mycelium.Bloom.Tests.Common
             Own<ReturnParameterMembership>(verification, result);
             AddRelationship(result, new FeatureTyping { Type = verdict });
             Own<FeatureValue>(result, Reference(literal));
+
             return (library, verification);
         }
 
@@ -96,6 +99,7 @@ namespace Mycelium.Bloom.Tests.Common
             Argument(value, new LiteralInteger { Value = 3 });
             Own<FeatureMembership>(value, Reference(unit));
             Own<FeatureValue>(attribute, value);
+
             return (library, attribute, value);
         }
 
@@ -108,6 +112,7 @@ namespace Mycelium.Bloom.Tests.Common
         {
             var reference = new FeatureReferenceExpression();
             AddRelationship(reference, new Membership { MemberElement = target });
+
             return reference;
         }
 
@@ -122,6 +127,7 @@ namespace Mycelium.Bloom.Tests.Common
         {
             var expression = new OperatorExpression { Operator = symbol };
             Argument(expression, left);
+
             if (symbol is "??" or "or" or "and" or "implies")
             {
                 // ArgumentExpressionValue is an owned expression reference, not an ordinary argument value.
@@ -140,6 +146,8 @@ namespace Mycelium.Bloom.Tests.Common
         /// <summary>
         /// Attaches an expression to a real input parameter.
         /// </summary>
+        /// <param name="owner">The operator that owns the input parameter.</param>
+        /// <param name="expression">The value owned by that parameter.</param>
         private static void Argument(OperatorExpression owner, IExpression expression)
         {
             var parameter = new Feature { Direction = FeatureDirectionKind.In };
@@ -150,6 +158,8 @@ namespace Mycelium.Bloom.Tests.Common
         /// <summary>
         /// Attaches a connector end referencing a canonical feature.
         /// </summary>
+        /// <param name="succession">The succession that owns the end.</param>
+        /// <param name="target">The referenced feature, which retains its original owner.</param>
         private static void AddEnd(SuccessionAsUsage succession, IFeature target)
         {
             var end = new Feature { IsEnd = true };
@@ -167,15 +177,24 @@ namespace Mycelium.Bloom.Tests.Common
         internal static TMembership Own<TMembership>(IElement owner, IElement child) where TMembership : IRelationship, new()
         {
             var membership = new TMembership();
+
             if (child.Id == Guid.Empty)
             {
                 child.Id = Guid.NewGuid();
             }
 
-            var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedRelationship")
-                .GetProperty("OwnedRelatedElement");
-            ((ICollection<IElement>)property.GetValue(membership)).Add(child);
-            AddRelationship(owner, membership);
+            if (owner.Id == Guid.Empty)
+            {
+                owner.Id = Guid.NewGuid();
+            }
+
+            if (membership.Id == Guid.Empty)
+            {
+                membership.Id = Guid.NewGuid();
+            }
+
+            owner.AssignOwnership(membership, child);
+
             return membership;
         }
 
@@ -196,9 +215,7 @@ namespace Mycelium.Bloom.Tests.Common
                 relationship.Id = Guid.NewGuid();
             }
 
-            var property = typeof(IElement).Assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedElement")
-                .GetProperty("OwnedRelationship");
-            ((ICollection<IRelationship>)property.GetValue(owner)).Add(relationship);
+            owner.AssignOwnership(relationship);
         }
     }
 }

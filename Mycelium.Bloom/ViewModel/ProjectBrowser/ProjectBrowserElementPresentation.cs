@@ -48,6 +48,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     /// <param name="IsModelRoot">Whether this is the loaded model root.</param>
     public sealed record ProjectBrowserElementPresentation(string Kind, string Stereotype = null, string IconName = null, bool HasLeadingStereotype = false, bool IsModelRoot = false)
     {
+        /// <summary>
+        /// The folder icon shared by namespace and package rows.
+        /// </summary>
         private const string FolderIconName = "folder";
 
         /// <summary>

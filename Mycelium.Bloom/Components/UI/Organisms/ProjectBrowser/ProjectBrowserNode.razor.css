@@ -16,17 +16,6 @@
     background: var(--accent);
 }
 
-.mb-project-browser-node__ownership {
-    flex: 0 0 var(--spacing-40);
-    align-self: stretch;
-    margin-left: var(--spacing-8);
-    background: var(--card);
-}
-
-.mb-project-browser-node__line:has(> .mb-project-browser-node__row--selected) > .mb-project-browser-node__ownership {
-    background: var(--accent);
-}
-
 .mb-project-browser-node__row {
     box-sizing: border-box;
     display: flex;
@@ -249,7 +238,6 @@
 
 /* Full notation remains in the treeitem label and row tooltip. */
 @container project-browser (max-width: 400px) {
-    .mb-project-browser-node__ownership,
     .mb-project-browser-node__stereotype,
     .mb-project-browser-node__visibility {
         display: none;

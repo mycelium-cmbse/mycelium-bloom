@@ -13,10 +13,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Moq;
+
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Connectors;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
@@ -25,8 +28,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Actions;
-    using SysML2.NET.Core.POCO.Systems.Calculations;
     using SysML2.NET.Core.POCO.Systems.Allocations;
+    using SysML2.NET.Core.POCO.Systems.Calculations;
     using SysML2.NET.Core.POCO.Systems.Connections;
     using SysML2.NET.Core.POCO.Systems.Constraints;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
@@ -37,6 +40,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.Parts;
     using SysML2.NET.Core.POCO.Systems.Requirements;
     using SysML2.NET.Core.POCO.Systems.States;
+    using SysML2.NET.Extensions;
+
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
     /// <summary>
@@ -45,9 +50,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserSemanticPlacementTestFixture
     {
+        /// <summary>
+        /// The structural rows followed by synthetic groups in owner-local order.
+        /// </summary>
         private static readonly string[] ExpectedMixedChildIds = ["root/0", "root/5", "root/group/Connections", "root/group/Interfaces"];
+
+        /// <summary>
+        /// The distinct identifiers of owned and imported connection occurrences.
+        /// </summary>
         private static readonly string[] ExpectedConnectionOccurrenceIds = ["root/1", "root/import/6"];
+
+        /// <summary>
+        /// The names supplied by the local and imported alias memberships.
+        /// </summary>
         private static readonly string[] ExpectedAliasOccurrenceNames = ["Alias", "Imported alias"];
+
+        /// <summary>
+        /// The effective local and imported membership visibilities.
+        /// </summary>
         private static readonly string[] ExpectedAliasOccurrenceVisibilities = ["private", "protected"];
 
         /// <summary>
@@ -72,6 +92,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var owner = browser.RootNodes.Single();
             Assert.That(owner.Children.Select(child => child.Id), Is.EqualTo(ExpectedMixedChildIds));
             var connections = owner.Children[2];
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(connections.Children.Select(child => child.Id), Is.EqualTo(ExpectedConnectionOccurrenceIds));
@@ -94,13 +115,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             root.SetupGet(element => element.ownedElement).Returns(() =>
             {
                 cancellation.Cancel();
+
                 return [new PartUsage()];
             });
+
             var loader = new Mock<IModelLoaderService>();
             loader.Setup(service => service.LoadQuantitiesModel()).Returns(root.Object);
             var selection = new ContextAwareService();
             using var browser = new ProjectBrowserViewModel(loader.Object, selection);
             var initialized = await browser.InitializeAsync(cancellation.Token);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(initialized, Is.False);
@@ -121,6 +145,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyGenericSuccessionsAreOwnerInformation<TElement>() where TElement : class, IElement, new()
         {
             var element = new TElement();
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(element, Is.InstanceOf<ISuccession>());
@@ -144,6 +169,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var owner = browser.RootNodes.Single();
             Assert.That(owner.Children.Select(node => node.SourceElement), Is.EqualTo(new[] { model.First, model.Initial }));
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(owner.Children[1].Row.Indicators, Does.Contain("Initial"));
@@ -151,13 +177,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(model.Succession.sourceFeature, Is.SameAs(model.Owner.entryAction));
                 Assert.That(model.Succession.targetFeature.Single(), Is.SameAs(model.Initial));
             }
+
             selection.SelectedElement = model.Succession;
             browser.FocusElement(model.Succession);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(browser.SelectedNode, Is.SameAs(owner));
                 Assert.That(selection.SelectedElement, Is.SameAs(model.Succession));
             }
+
             browser.FocusElement(model.Succession.ownedElement.First());
             Assert.That(browser.SelectedNode, Is.SameAs(owner));
         }
@@ -199,6 +228,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var selection = new ContextAwareService();
             using var first = new ProjectBrowserViewModel(loader.Object, selection);
             using var second = new ProjectBrowserViewModel(loader.Object, selection);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
@@ -213,6 +243,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(group.IsGroup, Is.True);
                 Assert.That(group.DisplayName, Is.EqualTo(label));
                 Assert.That(group.SourceElement, Is.Null);
+                Assert.That(group.OccurrenceMembership, Is.Null);
+                Assert.That(group.Row, Is.Null);
                 Assert.That(group.ElementId, Is.Null);
                 Assert.That(group.ElementType, Is.Null);
                 Assert.That(group.IsExpanded, Is.False);
@@ -221,23 +253,28 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
 
             first.SelectNode(group);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selection.SelectedElement, Is.Null);
                 Assert.That(group.IsExpanded, Is.True);
                 Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
             }
+
             first.ToggleNode(group);
             first.ToggleElementTypeFilter(typeof(TElement));
             first.FilterText = "Needle";
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(first.FilterPresentation.IsVisible(group), Is.True);
                 Assert.That(first.FilterPresentation.IsVisible(node), Is.True);
                 Assert.That(group.IsExpanded, Is.False);
             }
+
             first.FocusElement(element);
             first.SelectNode(node);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(first.SelectedNode, Is.SameAs(node));
@@ -246,10 +283,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(second.RootNodes[0].Children.Single().IsExpanded, Is.False);
                 Assert.That(second.FilterText, Is.Empty);
             }
+
             first.FilterText = "absent";
             Assert.That(first.FilterPresentation.IsVisible(group), Is.False);
             first.ClearFilter();
             first.SelectNode(group);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selection.SelectedElement, Is.SameAs(element));
@@ -280,17 +319,26 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var ownerNode = browser.RootNodes[0].Children.Single();
 
             Assert.That(ownerNode.Children, Is.Empty);
+
             foreach (var target in new IElement[] { role, detail, descendant })
             {
                 selection.SelectedElement = target;
                 browser.FocusElement(target);
+
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(browser.SelectedNode, Is.SameAs(ownerNode));
                     Assert.That(selection.SelectedElement, Is.SameAs(target));
                 }
             }
-            Assert.That(owner.ownedElement, Does.Contain(detail));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.ownedElement, Does.Contain(detail));
+                Assert.That(role.OwningRelatedElement, Is.SameAs(owner));
+                Assert.That(detail.OwningRelationship, Is.SameAs(role));
+                Assert.That(role.OwnedRelatedElement.Single(), Is.SameAs(detail));
+            }
         }
 
         [TestCase(TypeArgs = [typeof(TransitionUsage)])]
@@ -318,12 +366,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var browser = new ProjectBrowserViewModel(loader.Object, new ContextAwareService());
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var definitionNode = browser.RootNodes[0].Children[0];
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(definitionNode.Children, Is.Empty);
                 Assert.That(definitionNode.Row.Indicators, Does.Not.Contain("Variation"));
                 Assert.That(browser.RootNodes[0].Children[1].Children.Single().SourceElement, Is.SameAs(usage));
             }
+
             browser.FocusElement(literal);
             Assert.That(browser.SelectedNode, Is.SameAs(definitionNode));
         }
@@ -342,6 +392,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var browser = new ProjectBrowserViewModel(loader.Object, new ContextAwareService());
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var node = browser.RootNodes[0].Children.Single();
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(node.IsGroup, Is.False);
@@ -364,6 +415,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 MemberName = "Alias",
                 Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Private
             };
+
             var imported = new Membership { ElementId = "import", MemberElement = shared, MemberName = "Imported alias" };
             var source = CreateElement<SysML2.NET.Core.POCO.Kernel.Packages.Package>("source", "Library", shared);
             Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory.AddRelationship(source, imported);
@@ -375,12 +427,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     ImportedMembership = imported,
                     Visibility = SysML2.NET.Core.Root.Namespaces.VisibilityKind.Protected
                 });
+
             var loader = new Mock<IModelLoaderService>();
             loader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
             var selection = new ContextAwareService();
             using var browser = new ProjectBrowserViewModel(loader.Object, selection);
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var nodes = browser.RootNodes[0].Children;
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(nodes.Select(node => node.DisplayName), Is.EqualTo(ExpectedAliasOccurrenceNames));
@@ -393,14 +447,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(nodes.Select(node => node.Row.Visibility), Is.EqualTo(ExpectedAliasOccurrenceVisibilities));
                 Assert.That(imported.Visibility, Is.EqualTo(SysML2.NET.Core.Root.Namespaces.VisibilityKind.Public));
             }
+
             browser.SelectNode(nodes[1]);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selection.SelectedElement, Is.SameAs(shared));
                 Assert.That(browser.SelectedNode, Is.SameAs(nodes[1]));
                 Assert.That(shared.DeclaredName, Is.EqualTo("Original"));
             }
+
             browser.FocusElement(shared);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(browser.SelectedNode, Is.SameAs(nodes[0]));
@@ -422,6 +480,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var browser = new ProjectBrowserViewModel(loader.Object, new ContextAwareService());
             Assert.That(await browser.InitializeAsync(CancellationToken.None), Is.True);
             var occurrence = browser.RootNodes[0].Children.Single();
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(occurrence.SourceElement, Is.SameAs(root.Object));
@@ -432,7 +491,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Connects an owner to a child through the SDK containment collections of a new relationship.
+        /// Assigns a child to its owner through the SDK's validated relationship containment.
         /// </summary>
         /// <typeparam name="TMembership">The relationship type to instantiate.</typeparam>
         /// <param name="owner">The element whose owned relationships receive the new relationship.</param>
@@ -442,13 +501,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             where TMembership : IRelationship, new()
         {
             var membership = new TMembership();
-            var assembly = typeof(IElement).Assembly;
-            var related = assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedRelationship")
-                .GetProperty("OwnedRelatedElement");
-            var relationships = assembly.GetType("SysML2.NET.Core.POCO.Root.Elements.IContainedElement")
-                .GetProperty("OwnedRelationship");
-            ((ICollection<IElement>)related.GetValue(membership)).Add(child);
-            ((ICollection<IRelationship>)relationships.GetValue(owner)).Add(membership);
+            owner.AssignOwnership(membership, child);
+
             return membership;
         }
     }

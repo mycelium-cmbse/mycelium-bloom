@@ -9,22 +9,26 @@
 
 namespace Mycelium.Bloom.Tests.ViewModel
 {
-    using Mycelium.Bloom.Extensions;
     using Moq;
-    using SysML2.NET.Core.POCO.Core.Features;
-    using SysML2.NET.Core.POCO.Root.Elements;
-    using SysML2.NET.Exceptions;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
-    using static Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory;
 
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.ViewModel;
 
+    using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Behaviors;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
+    using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Parts;
+    using SysML2.NET.Exceptions;
 
+    using static Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory;
+
+    /// <summary>
+    /// Tests model labels, multiplicity and bounded expression presentation.
+    /// </summary>
     [TestFixture]
     public sealed class ElementPresentationTestFixture
     {
@@ -107,12 +111,14 @@ namespace Mycelium.Bloom.Tests.ViewModel
         {
             var reference = CreateInlineReference();
             IElement child = Mock.Of<IElement>();
+
             for (var index = 1; index < depth; index++)
             {
                 var owner = new Mock<IElement>();
                 owner.SetupGet(element => element.ownedElement).Returns([child]);
                 child = owner.Object;
             }
+
             reference.SetupGet(element => element.ownedElement).Returns([child]);
 
             Assert.That(reference.Object.GetExpressionText(), complete ? Is.EqualTo("target") : Is.Null);
@@ -150,7 +156,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(reference.Object.GetExpressionText(), Is.Null);
 
             reference.SetupGet(element => element.ownedElement).Throws(new System.InvalidOperationException("Unexpected failure"));
-            Assert.Throws<System.InvalidOperationException>(() => reference.Object.GetExpressionText());
+            Assert.That(() => reference.Object.GetExpressionText(), Throws.TypeOf<System.InvalidOperationException>());
 
             reference.SetupGet(element => element.ownedElement).Returns([]);
             Assert.That(reference.Object.GetExpressionText(), Is.EqualTo("target"));
@@ -186,6 +192,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             reference.SetupGet(element => element.OwnedRelationship).Returns(canonical.OwnedRelationship);
             reference.SetupGet(element => element.owningNamespace).Returns(scope);
             reference.SetupGet(element => element.referent).Returns(target);
+
             return reference;
         }
     }

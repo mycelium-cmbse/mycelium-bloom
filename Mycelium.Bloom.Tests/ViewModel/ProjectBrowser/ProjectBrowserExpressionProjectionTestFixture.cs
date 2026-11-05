@@ -13,14 +13,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging.Abstractions;
+
     using Moq;
+
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
@@ -33,6 +37,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.Ports;
     using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
+
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
     /// <summary>
@@ -41,6 +46,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserExpressionProjectionTestFixture
     {
+        /// <summary>
+        /// The visibility shared by the canonical and aliased expression owners.
+        /// </summary>
         private static readonly string[] ExpectedPublicOccurrenceVisibilities = ["public", "public"];
 
         [TestCase(TypeArgs = [typeof(Expression)])]
@@ -59,6 +67,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyConstraintUsagesAreNotExcludedByTheirExpressionInterface()
         {
             var constraint = new AssertConstraintUsage { DeclaredName = "orderSum" };
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(constraint, Is.InstanceOf<IExpression>());
@@ -85,6 +94,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var aliasOwner = quantities.Children.Single(node => node.DisplayName == "QuantityValue");
             var paths = Paths(rootNode).ToArray();
             var nodes = paths.Select(path => path[^1]).Where(node => !node.IsGroup).ToArray();
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(rootNode.DisplayName, Is.EqualTo("Model"));
@@ -103,6 +113,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 var canonical = canonicalOwner.Children.Single(node => node.DisplayName == name);
                 var aliasChild = aliasOwner.Children.Single(node => node.DisplayName == name);
                 var occurrences = paths.Where(path => ReferenceEquals(path[^1].SourceElement, canonical.SourceElement)).ToArray();
+
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(occurrences, Has.Length.EqualTo(2));
@@ -117,10 +128,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     Assert.That(aliasChild.Id, Is.Not.EqualTo(canonical.Id));
                     Assert.That(canonical.SourceElement.owner, Is.SameAs(canonicalOwner.SourceElement));
                     Assert.That(aliasChild.OccurrenceMembership, Is.SameAs(canonical.OccurrenceMembership));
-                    Assert.That(occurrences.Select(path => path[^1].Row.Visibility),
-                        Is.EqualTo(ExpectedPublicOccurrenceVisibilities));
+                    Assert.That(occurrences.Select(path => path[^1].Row.Visibility), Is.EqualTo(ExpectedPublicOccurrenceVisibilities));
                     Assert.That(occurrences.All(path => !path[^1].Row.Indicators.Contains("Imported")), Is.True);
                 }
+
                 browser.SelectNode(aliasChild);
                 browser.FocusElement(canonical.SourceElement);
                 Assert.That(browser.SelectedNode, Is.SameAs(canonical));
@@ -128,16 +139,17 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             var dimensionsNode = canonicalOwner.Children.Single(node => node.DisplayName == "dimensions");
             var dimensions = (IAttributeUsage)dimensionsNode.SourceElement;
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(dimensions.ElementId, Is.EqualTo("334779bf-6357-5adf-a7c5-ffb32c2ffd17"));
-                Assert.That(new DetailsPanelPresentation(dimensions).ExpressionNotations
-                    .Select(expression => expression.TextualNotation.Text), Does.Contain("mRef.dimensions"));
+                Assert.That(new DetailsPanelPresentation(dimensions).ExpressionNotations.Select(expression => expression.TextualNotation.Text), Does.Contain("mRef.dimensions"));
             }
 
             var expression = Descendants(dimensions).OfType<IFeatureChainExpression>().Single();
             browser.FilterText = "dimensions";
             browser.FocusElement(expression);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(browser.SelectedNode, Is.SameAs(dimensionsNode));
@@ -164,13 +176,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(await first.InitializeAsync(CancellationToken.None), Is.True);
                 Assert.That(await second.InitializeAsync(CancellationToken.None), Is.True);
             });
+
             var owner = first.RootNodes[0].Children.Single();
             Assert.That(owner.Children, Is.Empty);
+
             foreach (var hidden in new IElement[] { chain, input, port })
             {
                 selection.SelectedElement = hidden;
                 first.FilterText = "dimensions";
                 first.FocusElement(hidden);
+
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(first.SelectedNode, Is.SameAs(owner));
@@ -181,6 +196,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     Assert.That(second.FilterText, Is.Empty);
                 }
             }
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(first.AvailableElementTypes, Does.Not.Contain(typeof(FeatureChainExpression)));
@@ -189,18 +205,30 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
+        /// <summary>
+        /// Enumerates the fixture's ownership subtree, including its root.
+        /// </summary>
+        /// <param name="element">The canonical root element.</param>
+        /// <returns>The elements in ownership order.</returns>
         private static IEnumerable<IElement> Descendants(IElement element)
         {
             yield return element;
+
             foreach (var child in (element.ownedElement ?? []).SelectMany(Descendants))
             {
                 yield return child;
             }
         }
 
+        /// <summary>
+        /// Enumerates occurrence paths without collapsing repeated canonical elements.
+        /// </summary>
+        /// <param name="node">The root Browser occurrence.</param>
+        /// <returns>Each path from the root to an occurrence.</returns>
         private static IEnumerable<IReadOnlyList<ProjectBrowserNodeViewModel>> Paths(ProjectBrowserNodeViewModel node)
         {
             yield return new[] { node };
+
             foreach (var child in node.Children)
             {
                 foreach (var path in Paths(child))

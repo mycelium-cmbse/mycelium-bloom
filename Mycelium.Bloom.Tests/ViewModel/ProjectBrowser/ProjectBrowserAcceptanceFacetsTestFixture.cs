@@ -9,26 +9,31 @@
 
 namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 {
-    using Mycelium.Bloom.Extensions;
     using System.Linq;
-    using SysML2.NET.Core.POCO.Root.Annotations;
-    using SysML2.NET.Core.POCO.Systems.Metadata;
-    using SysML2.NET.Exceptions;
+
     using Moq;
+
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.ViewModel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
+    using SysML2.NET.Core.Core.Types;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
+    using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Kernel.Packages;
+    using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.Attributes;
+    using SysML2.NET.Core.POCO.Systems.Enumerations;
+    using SysML2.NET.Core.POCO.Systems.Metadata;
     using SysML2.NET.Core.POCO.Systems.States;
     using SysML2.NET.Core.POCO.Systems.VerificationCases;
-    using SysML2.NET.Core.POCO.Systems.Enumerations;
-    using SysML2.NET.Core.POCO.Systems.Attributes;
-    using SysML2.NET.Core.POCO.Kernel.Functions;
-    using SysML2.NET.Core.Core.Types;
+    using SysML2.NET.Exceptions;
+    using SysML2.NET.Extensions;
+
     using static Mycelium.Bloom.Tests.Common.BrowserAcceptanceModelTestFactory;
 
     /// <summary>
@@ -37,7 +42,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     [TestFixture]
     public sealed class ProjectBrowserAcceptanceFacetsTestFixture
     {
+        /// <summary>
+        /// The model-backed indicators in their displayed order.
+        /// </summary>
         private static readonly string[] ExpectedAnnotatedStateIndicators = ["Imported", "Documentation", "Metadata", "Variation", "Parallel"];
+
+        /// <summary>
+        /// The sibling indicators retained when documentation is incomplete.
+        /// </summary>
         private static readonly string[] ExpectedIncompleteStateIndicators = ["Imported", "Metadata", "Variation", "Parallel"];
 
         /// <summary>
@@ -56,6 +68,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             importingNamespace.Setup(element => element.VisibilityOf(membership))
                 .Returns(SysML2.NET.Core.Root.Namespaces.VisibilityKind.Protected);
             var row = ProjectBrowserRowPresentation.For(state.Object, membership, true, importingNamespace.Object);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(row.Indicators, Is.EqualTo(ExpectedAnnotatedStateIndicators));
@@ -64,6 +77,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             state.SetupGet(element => element.documentation).Throws(new IncompleteModelException("Missing documentation"));
             row = ProjectBrowserRowPresentation.For(state.Object, membership, true, importingNamespace.Object);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(row.Indicators, Is.EqualTo(ExpectedIncompleteStateIndicators));
@@ -75,6 +89,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyInitialStateComesFromEntrySuccessionRatherThanNameOrOrder()
         {
             var model = CreateStates();
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(model.Owner.entryAction, Is.Not.Null);
@@ -83,10 +98,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(ProjectBrowserRowPresentation.For(model.Initial).Indicators, Does.Contain("Initial"));
                 Assert.That(ProjectBrowserRowPresentation.For(model.First).Indicators, Does.Not.Contain("Initial"));
             }
+
             model.Owner.IsParallel = true;
             Assert.That(ProjectBrowserRowPresentation.For(model.Initial).Indicators, Does.Not.Contain("Initial"));
             model.Owner.IsParallel = false;
-            AddRelationship(model.Owner, new OwningMembership()); // An unrelated membership changes nothing.
+
+            // An unrelated owned feature does not change the initial-state succession.
+            model.Owner.AssignOwnership(new OwningMembership(), new Feature());
             model.Owner.DeclaredName = "Renamed";
             model.Initial.DeclaredName = "NotNamedInitial";
             Assert.That(ProjectBrowserRowPresentation.For(model.Initial).Indicators, Does.Contain("Initial"));
@@ -122,6 +140,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             owner.SetupGet(element => element.ownedElement).Returns([model.Succession, transition.Object]);
             var state = new Mock<IStateUsage>();
             state.SetupGet(element => element.owner).Returns(owner.Object);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(ProjectBrowserRowPresentation.For(state.Object).Indicators, Does.Not.Contain("Initial"));
@@ -137,19 +156,19 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyVerdictIsAnExplicitStandardEnumerationResult(string value)
         {
             var model = CreateVerification(value);
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(model.Verification.result, Is.Not.Null);
                 Assert.That(model.Library.ownedElement.OfType<SysML2.NET.Core.POCO.Systems.Enumerations.IEnumerationDefinition>().Single().qualifiedName, Is.EqualTo("VerificationCases::VerdictKind"));
                 Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators, Does.Contain("Verdict: " + value));
             }
+
             model.Library.DeclaredName = "UserDefinedResults";
-            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator =>
-                indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
             model.Library.DeclaredName = "VerificationCases";
             model.Library.IsStandard = false;
-            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator =>
-                indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
         }
 
         [Test]
@@ -170,12 +189,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         {
             var model = CreateVerification("pass");
             Own<FeatureValue>(model.Verification.result, new FeatureReferenceExpression());
+
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator =>
-                    indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
-                Assert.That(ProjectBrowserRowPresentation.For(new VerificationCaseUsage()).Indicators.Any(indicator =>
-                    indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+                Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+                Assert.That(ProjectBrowserRowPresentation.For(new VerificationCaseUsage()).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
             }
         }
 
@@ -187,6 +205,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Own<OwningMembership>(root, model.Library);
             Own<OwningMembership>(root, model.Attribute);
             var text = ProjectBrowserRowPresentation.For(model.Attribute).ValueLabel;
+
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(text, Is.Not.Null);
