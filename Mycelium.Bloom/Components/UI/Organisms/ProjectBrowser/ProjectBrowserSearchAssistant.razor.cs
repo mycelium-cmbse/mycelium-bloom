@@ -152,6 +152,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public EventCallback ClearRequested { get; set; }
 
         /// <summary>
+        /// Gets the normalized draft used for display and suggestion matching.
+        /// </summary>
+        private string Query => this.draftSearchText.Trim();
+
+        /// <summary>
         /// Opens the unified filter suggestions on deliberate pointer interaction.
         /// </summary>
         /// <returns>The controlled open-state operation.</returns>
@@ -183,11 +188,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
-        /// Gets the normalized draft used for display and suggestion matching.
-        /// </summary>
-        private string Query => this.draftSearchText.Trim();
-
-        /// <summary>
         /// Applies a parent-requested reset to the transient draft state.
         /// </summary>
         protected override void OnParametersSet()
@@ -198,6 +198,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             {
                 this.popoverGeneration++;
             }
+
             this.wasOpen = this.IsOpen;
 
             if (this.appliedDraftResetVersion == this.DraftResetVersion)
@@ -252,6 +253,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             {
                 var direction = this.pendingNavigationDirection;
                 await this.suggestionListReference.MoveFocusAsync(direction);
+
                 if (this.suggestionListReference.HasFocusedSuggestion)
                 {
                     this.pendingNavigationDirection = 0;
@@ -301,11 +303,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private async Task HandleDraftSearchTextChangedAsync(string updatedDraftText)
         {
             var updatedText = updatedDraftText ?? string.Empty;
+
             // ClearAsync synchronizes Blueprint through a native input event; its echo is not another edit.
             if (updatedText == this.draftSearchText)
             {
                 return;
             }
+
             this.draftSearchText = updatedText;
             this.hasEditedDraftInCurrentFocusSession = !string.IsNullOrWhiteSpace(this.Query);
             this.ResetSuggestionNavigation();

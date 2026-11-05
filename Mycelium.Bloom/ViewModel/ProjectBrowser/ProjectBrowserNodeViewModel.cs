@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
     using ReactiveUI;
+
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Exceptions;

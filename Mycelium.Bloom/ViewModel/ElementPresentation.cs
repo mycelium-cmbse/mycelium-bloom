@@ -12,14 +12,15 @@ namespace Mycelium.Bloom.ViewModel
     using System.Globalization;
     using System.Text.RegularExpressions;
 
+    using Mycelium.Bloom.Extensions;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
     using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Exceptions;
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
-    using Mycelium.Bloom.Extensions;
 
     /// <summary>
     /// Formats supported SDK data without evaluating expressions or changing the model.
@@ -50,6 +51,7 @@ namespace Mycelium.Bloom.ViewModel
             ArgumentNullException.ThrowIfNull(presentation);
 
             isFallbackLabel = false;
+
             if (!string.IsNullOrWhiteSpace(element.DeclaredName))
             {
                 return element.DeclaredName;
@@ -61,11 +63,13 @@ namespace Mycelium.Bloom.ViewModel
             }
 
             var incomplete = false;
+
             foreach (var read in new Func<string>[] { () => element.name, () => element.shortName })
             {
                 try
                 {
                     var name = read();
+
                     if (!string.IsNullOrWhiteSpace(name))
                     {
                         return name;
@@ -124,6 +128,7 @@ namespace Mycelium.Bloom.ViewModel
             }
 
             var lower = GetBound(range.lowerBound);
+
             if (lower is null || range.lowerBound is ILiteralInfinity
                 || (range.lowerBound is ILiteralInteger lowerInteger
                     && range.upperBound is ILiteralInteger upperInteger && lowerInteger.Value > upperInteger.Value))

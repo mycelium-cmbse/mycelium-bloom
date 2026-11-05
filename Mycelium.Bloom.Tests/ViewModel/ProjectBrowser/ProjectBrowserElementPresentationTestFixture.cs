@@ -13,12 +13,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Moq;
+
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
-    using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
+
     using SysML2.NET.Core.POCO.Kernel.Associations;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Packages;
@@ -30,6 +32,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.Parts;
     using SysML2.NET.Core.POCO.Systems.Ports;
     using SysML2.NET.Core.POCO.Systems.Views;
+
+    using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
     /// <summary>
     /// Verifies semantic row presentation and SDK interface precedence.

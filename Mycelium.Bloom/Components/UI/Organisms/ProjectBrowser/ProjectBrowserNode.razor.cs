@@ -10,7 +10,9 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
     using System.Globalization;
+
     using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -113,7 +115,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The CSS classes for the node row.</returns>
         private string GetNodeCssClass()
         {
-            var cssClass = CssClassBuilder.Build("mb-project-browser-node__row", CssClassBuilder.When("mb-project-browser-node__row--selected", ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
+            var cssClass = CssClassBuilder.Build("mb-project-browser-node__row",
+                CssClassBuilder.When("mb-project-browser-node__row--selected", ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
 
             return cssClass;
         }
@@ -155,6 +158,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string GetTooltip()
         {
             var viewModel = this.RequiredViewModel;
+
             if (viewModel.IsGroup)
             {
                 return viewModel.DisplayName;
@@ -182,6 +186,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string GetRowLabel()
         {
             var node = this.RequiredViewModel;
+
             if (node.IsGroup)
             {
                 return node.DisplayName;

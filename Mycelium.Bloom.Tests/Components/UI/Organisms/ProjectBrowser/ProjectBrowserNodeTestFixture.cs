@@ -49,7 +49,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         public void VerifyRecordedVerdictRendersAsAnAccessibleBadge()
         {
             var model = BrowserAcceptanceModelTestFactory.CreateVerification("pass");
-            var node = new ProjectBrowserNodeViewModel("verification", model.Verification.DeclaredName, new ProjectBrowserNodeMetadata("verification", null, model.Verification), []);
+            var node = new ProjectBrowserNodeViewModel("verification", model.Verification.DeclaredName,
+                new ProjectBrowserNodeMetadata("verification", null, model.Verification), []);
             var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters
                 .Add(value => value.ViewModel, node));
 

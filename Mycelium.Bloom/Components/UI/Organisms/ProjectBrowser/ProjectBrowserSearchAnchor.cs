@@ -10,7 +10,9 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
     using System.Threading.Tasks;
+
     using BlazorBlueprint.Primitives.Popover;
+
     using Microsoft.AspNetCore.Components;
 
     /// <summary>

@@ -23,6 +23,8 @@ import {
     unregisterKeydownGuards
 } from "../../Components/UI/Organisms/EditorWorkspace/EditorWorkspace.razor.js";
 
+import { registerTree, disposeTree } from "../../Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js";
+
 let dom;
 let animationFrameQueue;
 let nextAnimationFrameId;
@@ -854,24 +856,27 @@ function flushAnimationFrames() {
 async function settleMutationObserver() {
     await new Promise(resolve => setTimeout(resolve, 0));
 }
-import { registerTree, disposeTree } from "../../Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js";
 
 function createBrowserTree() {
     const root = document.createElement("div");
     root.setAttribute("role", "tree");
+
     function item(name, children = "") {
         return `<div role="treeitem" tabindex="-1" aria-selected="false" ${children ? 'aria-expanded="true"' : ''}>
             <div class="mb-project-browser-node__line">${children ? '<button tabindex="-1" class="mb-project-browser-node__disclosure"></button>' : ''}<button tabindex="-1" class="mb-project-browser-node__row"><span class="mb-project-browser-node__title">${name}</span></button></div>${children ? `<div role="group">${children}</div>` : ''}</div>`;
     }
+
     root.innerHTML = item("Model", item("Alpha") + item("Beta")) + item("Connections");
     document.body.append(root);
     registerTree(root);
+
     return root;
 }
 
 function treeKey(key, options = {}) {
     const event = new window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...options });
     document.activeElement.dispatchEvent(event);
+
     return event;
 }
 
@@ -879,26 +884,52 @@ test("Browser tree moves focus independently of activation and has one tab stop"
     const root = createBrowserTree();
     const [model, alpha, beta, group] = root.querySelectorAll('[role="treeitem"]');
     let activations = 0;
-    root.addEventListener("click", event => { if (event.target.closest('.mb-project-browser-node__row')) { activations++; } });
+    root.addEventListener("click", event => {
+        if (event.target.closest('.mb-project-browser-node__row')) {
+            activations++;
+        }
+    });
     registerTree(root);
     model.focus();
-    treeKey("ArrowRight"); assert.equal(document.activeElement, alpha);
-    treeKey("ArrowDown"); assert.equal(document.activeElement, beta);
-    treeKey("ArrowUp"); assert.equal(document.activeElement, alpha);
-    treeKey("ArrowLeft"); assert.equal(document.activeElement, model);
-    treeKey("End"); assert.equal(document.activeElement, group);
-    treeKey("ArrowDown"); assert.equal(document.activeElement, group);
-    treeKey("Home"); assert.equal(document.activeElement, model);
-    treeKey("ArrowUp"); assert.equal(document.activeElement, model);
+    treeKey("ArrowRight");
+    assert.equal(document.activeElement, alpha);
+
+    treeKey("ArrowDown");
+    assert.equal(document.activeElement, beta);
+
+    treeKey("ArrowUp");
+    assert.equal(document.activeElement, alpha);
+
+    treeKey("ArrowLeft");
+    assert.equal(document.activeElement, model);
+
+    treeKey("End");
+    assert.equal(document.activeElement, group);
+
+    treeKey("ArrowDown");
+    assert.equal(document.activeElement, group);
+
+    treeKey("Home");
+    assert.equal(document.activeElement, model);
+
+    treeKey("ArrowUp");
+    assert.equal(document.activeElement, model);
     assert.equal(activations, 0);
-    treeKey("Enter"); treeKey(" "); assert.equal(activations, 2);
+
+    treeKey("Enter");
+    treeKey(" ");
+    assert.equal(activations, 2);
     assert.equal(root.querySelectorAll('[role="treeitem"][tabindex="0"]').length, 1);
     assert.equal(treeKey("Tab").defaultPrevented, false);
     assert.equal(treeKey("ArrowDown", { ctrlKey: true }).defaultPrevented, false);
     assert.equal(treeKey("ArrowDown", { isComposing: true }).defaultPrevented, false);
+
     disposeTree(root);
-    treeKey("ArrowDown"); assert.equal(document.activeElement, model);
-    disposeTree(root); registerTree(null);
+    treeKey("ArrowDown");
+    assert.equal(document.activeElement, model);
+
+    disposeTree(root);
+    registerTree(null);
 });
 
 test("Browser tree expands and collapses through disclosure and recovers removed focus", async () => {
@@ -908,34 +939,65 @@ test("Browser tree expands and collapses through disclosure and recovers removed
     model.querySelector('.mb-project-browser-node__disclosure').addEventListener("click", () => {
         const expanded = model.getAttribute("aria-expanded") === "true";
         model.setAttribute("aria-expanded", String(!expanded));
-        if (expanded) { children.remove(); } else { model.append(children); }
+        if (expanded) {
+            children.remove();
+        } else {
+            model.append(children);
+        }
     });
-    model.focus(); treeKey("ArrowLeft"); assert.equal(model.getAttribute("aria-expanded"), "false");
-    treeKey("ArrowRight"); assert.equal(model.getAttribute("aria-expanded"), "true");
-    treeKey("ArrowRight"); assert.equal(document.activeElement, alpha);
-    children.remove(); await Promise.resolve();
+    model.focus();
+    treeKey("ArrowLeft");
+    assert.equal(model.getAttribute("aria-expanded"), "false");
+
+    treeKey("ArrowRight");
+    assert.equal(model.getAttribute("aria-expanded"), "true");
+
+    treeKey("ArrowRight");
+    assert.equal(document.activeElement, alpha);
+
+    children.remove();
+    await Promise.resolve();
     assert.equal(document.activeElement, model);
     assert.equal(model.tabIndex, 0);
+
     disposeTree(root);
 });
 
 test("Browser tree type-ahead, selection changes and independent instances preserve local focus", async () => {
     const first = createBrowserTree(), second = createBrowserTree();
     const [model, alpha, beta, group] = first.querySelectorAll('[role="treeitem"]');
-    model.focus(); treeKey("b"); assert.equal(document.activeElement, beta);
-    treeKey("b"); assert.equal(document.activeElement, beta);
-    treeKey("Home"); treeKey("c"); treeKey("o"); assert.equal(document.activeElement, group);
+    model.focus();
+    treeKey("b");
+    assert.equal(document.activeElement, beta);
+
+    treeKey("b");
+    assert.equal(document.activeElement, beta);
+
     treeKey("Home");
-    const secondModel = second.querySelector('[role="treeitem"]'); secondModel.focus();
-    alpha.setAttribute("aria-selected", "true"); await Promise.resolve();
+    treeKey("c");
+    treeKey("o");
+    assert.equal(document.activeElement, group);
+
+    treeKey("Home");
+    const secondModel = second.querySelector('[role="treeitem"]');
+    secondModel.focus();
+    alpha.setAttribute("aria-selected", "true");
+    await Promise.resolve();
     assert.equal(document.activeElement, secondModel);
     assert.equal(alpha.tabIndex, 0);
     assert.equal(secondModel.tabIndex, 0);
-    beta.querySelector('.mb-project-browser-node__row').click(); assert.equal(document.activeElement, beta);
-    alpha.setAttribute("aria-selected", "false"); group.setAttribute("aria-selected", "true"); await Promise.resolve();
+
+    beta.querySelector('.mb-project-browser-node__row').click();
+    assert.equal(document.activeElement, beta);
+
+    alpha.setAttribute("aria-selected", "false");
+    group.setAttribute("aria-selected", "true");
+    await Promise.resolve();
     assert.equal(document.activeElement, beta);
     assert.equal(beta.tabIndex, 0);
-    disposeTree(first); disposeTree(second);
+
+    disposeTree(first);
+    disposeTree(second);
 });
 
 test("Browser arrow disclosure waits for the Blazor expansion render", async () => {
@@ -944,16 +1006,21 @@ test("Browser arrow disclosure waits for the Blazor expansion render", async () 
     let toggles = 0;
     model.querySelector('.mb-project-browser-node__disclosure').addEventListener("click", () => toggles++);
     model.focus();
-    treeKey("ArrowLeft"); treeKey("ArrowLeft");
+    treeKey("ArrowLeft");
+    treeKey("ArrowLeft");
     assert.equal(toggles, 1, "repeated collapse must not enqueue an expansion");
+
     model.setAttribute("aria-expanded", "false");
     await Promise.resolve();
-    treeKey("ArrowRight"); treeKey("ArrowRight");
+    treeKey("ArrowRight");
+    treeKey("ArrowRight");
     assert.equal(toggles, 2, "repeated expansion must not enqueue a collapse");
+
     model.setAttribute("aria-expanded", "true");
     await Promise.resolve();
     treeKey("ArrowRight");
     assert.equal(document.activeElement, model.querySelector('[role="treeitem"]'));
+
     disposeTree(root);
 });
 
@@ -961,7 +1028,8 @@ test("Browser row reveal scrolls only its viewport and leaves visible rows stati
     const root = createBrowserTree();
     const viewport = document.createElement("div");
     viewport.className = "mb-project-browser__tree-viewport";
-    root.replaceWith(viewport); viewport.append(root);
+    root.replaceWith(viewport);
+    viewport.append(root);
     viewport.getBoundingClientRect = () => ({ top: 100 });
     Object.defineProperty(viewport, "clientHeight", { value: 100 });
     viewport.scrollTop = 400;
@@ -972,12 +1040,15 @@ test("Browser row reveal scrolls only its viewport and leaves visible rows stati
     row.getBoundingClientRect = () => ({ top: 300 - viewport.scrollTop, bottom: 332 - viewport.scrollTop });
     model.focus();
     assert.equal(viewport.scrollTop, 200, "Tab/programmatic entry reveals a row above the viewport");
+
     viewport.scrollTop = 0;
     treeKey("Home");
     assert.equal(viewport.scrollTop, 132, "Home reveals a row below the viewport");
+
     treeKey("ArrowUp");
     assert.equal(viewport.scrollTop, 132, "a boundary key must not disturb a visible row");
     assert.equal(document.activeElement, model);
+
     disposeTree(root);
 });
 
@@ -988,13 +1059,15 @@ test("Browser late content renders preserve the Tab return point without stealin
     await Promise.resolve();
     alpha.focus();
     const outside = document.createElement("button");
-    document.body.append(outside); outside.focus();
+    document.body.append(outside);
+    outside.focus();
     model.querySelector('.mb-project-browser-node__title').textContent = "Updated model";
     await Promise.resolve();
     assert.equal(document.activeElement, outside);
     assert.equal(alpha.tabIndex, 0);
     assert.equal(model.tabIndex, -1);
     assert.equal(root.querySelectorAll('[tabindex="0"]').length, 1);
+
     disposeTree(root);
 });
 
@@ -1003,22 +1076,29 @@ test("Browser disclosure guards survive unrelated renders but not replaced contr
     const model = root.querySelector('[role="treeitem"]');
     let toggles = 0;
     root.addEventListener("click", event => {
-        if (event.target.matches('.mb-project-browser-node__disclosure')) { toggles++; }
+        if (event.target.matches('.mb-project-browser-node__disclosure')) {
+            toggles++;
+        }
     });
-    model.focus(); treeKey("ArrowLeft");
+    model.focus();
+    treeKey("ArrowLeft");
     model.setAttribute("aria-selected", "true");
     await Promise.resolve();
     treeKey("ArrowLeft");
     assert.equal(toggles, 1, "an unrelated render does not release an in-flight toggle");
+
     const button = model.querySelector('.mb-project-browser-node__disclosure');
     // Filtering can remove a disclosure while its effective aria-expanded remains true.
     button.replaceWith(button.cloneNode(true));
     await Promise.resolve();
     treeKey("ArrowLeft");
     assert.equal(toggles, 2, "a newly rendered disclosure must not inherit stale pending state");
-    disposeTree(root); registerTree(root);
+
+    disposeTree(root);
+    registerTree(root);
     treeKey("ArrowLeft");
     assert.equal(toggles, 3, "a fresh registration has no previous in-flight request");
+
     disposeTree(root);
 });
 
@@ -1031,11 +1111,13 @@ test("Browser focus recovery distinguishes pre-removal blur from leaving the tre
     alpha.remove();
     await Promise.resolve();
     assert.equal(document.activeElement, model);
+
     const outside = document.createElement("button");
     document.body.append(outside);
     outside.focus();
     model.setAttribute("aria-expanded", "false");
     await Promise.resolve();
     assert.equal(document.activeElement, outside, "an external focus target must not be stolen");
+
     disposeTree(root);
 });

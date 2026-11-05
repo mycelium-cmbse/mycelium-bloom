@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using System.Reactive.Linq;
 
     using DynamicData.Binding;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.JSInterop;
 
@@ -145,7 +146,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             this.observedViewModel = this.ViewModel;
             this.collectionChangesSubscription.Disposable = this.ViewModel is null
                 ? Disposable.Empty
-                : Observable.Merge(this.ViewModel.RootNodes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default), this.ViewModel.AvailableElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default), this.ViewModel.SelectedElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default))
+                : Observable.Merge(
+                        this.ViewModel.RootNodes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
+                        this.ViewModel.AvailableElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default),
+                        this.ViewModel.SelectedElementTypes.ToObservableChangeSet().Skip(1).Select(_ => Unit.Default))
                     .Select(_ => Observable.FromAsync(() => this.InvokeAsync(this.StateHasChanged)))
                     .Concat()
                     .Subscribe();

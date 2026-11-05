@@ -81,7 +81,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             var environment = new Mock<IHostEnvironment>();
             environment.SetupGet(value => value.ContentRootPath)
                 .Returns(TestRepository.GetDirectoryPath("Mycelium.Bloom"));
-            var loader = new ModelLoaderService(environment.Object, new DeSerializer(NullLoggerFactory.Instance), new Assembler(NullLoggerFactory.Instance), NullLogger<ModelLoaderService>.Instance);
+            var loader = new ModelLoaderService(environment.Object, new DeSerializer(NullLoggerFactory.Instance),
+                new Assembler(NullLoggerFactory.Instance), NullLogger<ModelLoaderService>.Instance);
             var root = loader.LoadQuantitiesModel();
             var modelLoader = new Mock<IModelLoaderService>();
             modelLoader.Setup(service => service.LoadQuantitiesModel()).Returns(root);

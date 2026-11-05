@@ -160,15 +160,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(model.Verification.result, Is.Not.Null);
-                Assert.That(model.Library.ownedElement.OfType<SysML2.NET.Core.POCO.Systems.Enumerations.IEnumerationDefinition>().Single().qualifiedName, Is.EqualTo("VerificationCases::VerdictKind"));
+                Assert.That(model.Library.ownedElement.OfType<SysML2.NET.Core.POCO.Systems.Enumerations.IEnumerationDefinition>().Single().qualifiedName,
+                    Is.EqualTo("VerificationCases::VerdictKind"));
                 Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators, Does.Contain("Verdict: " + value));
             }
 
             model.Library.DeclaredName = "UserDefinedResults";
-            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators
+                .Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
             model.Library.DeclaredName = "VerificationCases";
             model.Library.IsStandard = false;
-            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+            Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators
+                .Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
         }
 
         [Test]
@@ -192,8 +195,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
-                Assert.That(ProjectBrowserRowPresentation.For(new VerificationCaseUsage()).Indicators.Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+                Assert.That(ProjectBrowserRowPresentation.For(model.Verification).Indicators
+                    .Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
+                Assert.That(ProjectBrowserRowPresentation.For(new VerificationCaseUsage()).Indicators
+                    .Any(indicator => indicator.StartsWith("Verdict:", System.StringComparison.Ordinal)), Is.False);
             }
         }
 

@@ -14,10 +14,10 @@ namespace Mycelium.Bloom.Extensions
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
-    using SysML2.NET.Core.POCO.Kernel.Expressions;
-    using SysML2.NET.Core.POCO.Kernel.Functions;
-    using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Behaviors;
+    using SysML2.NET.Core.POCO.Kernel.Expressions;
+    using SysML2.NET.Core.POCO.Kernel.FeatureValues;
+    using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Exceptions;
 
@@ -84,6 +84,7 @@ namespace Mycelium.Bloom.Extensions
                     var validArity = HasSupportedOperatorArity(operation, arguments.Length);
                     var acceptsTypeArgument = operation.Operator is "as" or "istype" or "hastype" or "@" or "@@" or "meta" or "all";
                     var hasDeferredArguments = operation.Operator is "??" or "or" or "and" or "implies" or "if";
+
                     if (!validArity || !HasCompleteArguments(arguments, acceptsTypeArgument, hasDeferredArguments))
                     {
                         return false;

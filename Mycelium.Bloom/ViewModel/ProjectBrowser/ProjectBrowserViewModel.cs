@@ -15,12 +15,16 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Globalization;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
+
     using DynamicData;
     using DynamicData.Binding;
+
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+
     using ReactiveUI;
+
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Exceptions;
@@ -660,6 +664,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 var path = new HashSet<IElement>(ancestors ?? [], ReferenceEqualityComparer.Instance);
                 var children = path.Add(element) ? this.BuildChildren(element, nodeId, hiddenElements, path) : [];
                 string qualifiedName;
+
                 try
                 {
                     qualifiedName = element.qualifiedName.ToDisplayString();
@@ -670,6 +675,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 }
 
                 var displayName = ProjectBrowserElementProjection.GetDisplayName(element, isModelRoot, out var uiDisplayLabel);
+
                 if (membership is not IOwningMembership && !string.IsNullOrWhiteSpace(membership?.MemberName))
                 {
                     displayName = membership.MemberName;
@@ -763,6 +769,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                                            && !ProjectBrowserElementProjection.IsNavigable(relationship)) ?? []);
 
                 var index = this.AddOwnedChildren(element, parentNodeId, hiddenElements, ancestors, membership, children);
+
                 if (element is INamespace modelNamespace)
                 {
                     this.AddImportedChildren(modelNamespace, parentNodeId, hiddenElements, ancestors, children, index);
@@ -784,6 +791,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 var occurrences = ownedElements.Concat(element.OwnedRelationship?
                     .OfType<IMembership>().Where(candidate => candidate is not IOwningMembership
                         && candidate.MemberElement != null && !ownedElements.Contains(candidate)) ?? []);
+
                 if (element is IMembership and not IOwningMembership && membership?.MemberElement is { } member
                     && !ownedElements.Contains(member))
                 {
@@ -806,6 +814,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             private int AddOwnedChildren(IElement element, string parentNodeId, List<IElement> hiddenElements, HashSet<IElement> ancestors, IMembership membership, List<ProjectBrowserNodeViewModel> children)
             {
                 var index = 0;
+
                 foreach (var childElement in GetOwnedOccurrences(element, membership))
                 {
                     this.cancellationToken.ThrowIfCancellationRequested();
@@ -815,6 +824,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                         var childId = string.Create(CultureInfo.InvariantCulture, $"{parentNodeId}/{index}");
 
                         var occurrenceMembership = element as IMembership ?? membership ?? childElement.owningMembership;
+
                         if (ProjectBrowserElementProjection.IsExcluded(childElement, occurrenceMembership))
                         {
                             hiddenElements.Add(childElement);
@@ -852,6 +862,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 {
                     this.cancellationToken.ThrowIfCancellationRequested();
                     var importedElement = imported.MemberElement;
+
                     if (importedElement == null || modelNamespace.OwnedRelationship?.Contains(imported) == true)
                     {
                         continue;
@@ -879,6 +890,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             private List<ProjectBrowserNodeViewModel> GroupChildren(List<ProjectBrowserNodeViewModel> children, string parentNodeId)
             {
                 var result = children.Where(child => child.Group == null).ToList();
+
                 foreach (var group in children.Where(child => child.Group != null).GroupBy(child => child.Group))
                 {
                     var groupId = CreateUniqueNodeId(this.stagedNodeIds, $"{parentNodeId}/group/{group.Key}");
