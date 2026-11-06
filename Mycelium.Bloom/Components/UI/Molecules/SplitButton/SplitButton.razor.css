@@ -32,8 +32,8 @@
     padding: 0;
     border-start-start-radius: 0;
     border-end-start-radius: 0;
-    border-start-end-radius: var(--radius-md);
-    border-end-end-radius: var(--radius-md);
+    border-start-end-radius: var(--radius-6);
+    border-end-end-radius: var(--radius-6);
 }
 
 .mb-split-button ::deep .mb-split-button__primary:focus-visible,
@@ -89,7 +89,7 @@
 }
 
 .mb-split-button--danger ::deep .mb-split-button__toggle:hover:not(:disabled) {
-    background: var(--destructive-strong);
+    background: var(--destructive);
 }
 
 .mb-split-button--disabled {

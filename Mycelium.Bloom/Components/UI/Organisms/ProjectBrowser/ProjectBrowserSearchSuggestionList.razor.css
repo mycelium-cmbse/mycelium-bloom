@@ -7,13 +7,12 @@
 }
 
 .mb-project-browser-search-suggestion-list ::deep .mb-project-browser-search-suggestion-list__item {
+    font: var(--typography-typography-body-sm), sans-serif;
     min-height: 34px;
     gap: var(--spacing-8);
     padding: 7px 9px;
-    border-radius: var(--radius-sm);
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    border-radius: var(--radius-4);
+    color: var(--muted-foreground);
 }
 
 .mb-project-browser-search-suggestion-list ::deep .mb-project-browser-search-suggestion-list__item:hover,
@@ -51,8 +50,6 @@
 }
 
 .mb-project-browser-search-suggestion-list__kind-label {
+    font: var(--typography-typography-mono-xs), monospace;
     color: var(--primary);
-    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--typography-typography-mono-xs-font-size);
-    line-height: var(--typography-typography-mono-xs-line-height);
 }
