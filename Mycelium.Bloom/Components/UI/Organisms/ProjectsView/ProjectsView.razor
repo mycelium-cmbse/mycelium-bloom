@@ -13,7 +13,6 @@
 @using Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
 @using Mycelium.Bloom.Extensions
 @using Mycelium.Bloom.ViewModel.Organization
-@using Mycelium.SDK
 @inherits BloomReactiveComponentBase<IProjectsViewModel>
 
 <div class="@(this.BuildRootCssClass("mb-projects-view"))" @attributes="this.AdditionalAttributes">
@@ -40,8 +39,8 @@
                 </BbInputGroupAddon>
                 <BbInputGroupInput Id="projects-search"
                                    Class="mb-projects-view__search-input"
-                                   Value="@(this.ViewModel.SearchText)"
-                                   ValueChanged="@(text => this.ViewModel.SearchText = text)"
+                                   Value="@(this.SearchText)"
+                                   ValueChanged="@(text => this.SearchText = text ?? string.Empty)"
                                    Placeholder="Search projects…"
                                    AriaLabel="Search projects"
                                    UpdateTiming="UpdateTiming.Immediate" />
@@ -60,9 +59,9 @@
                 <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
                     @foreach (var status in StatusChoices)
                     {
-                        <BbDropdownMenuItem OnClick="_ => this.ViewModel.StatusFilter = status">
+                        <BbDropdownMenuItem OnClick="_ => this.StatusFilter = status">
                             @(status?.Humanize() ?? AllLabel)
-                            @if (status == this.ViewModel.StatusFilter)
+                            @if (status == this.StatusFilter)
                             {
                                 <span class="sr-only">Current selection</span>
                             }
@@ -84,9 +83,9 @@
                 <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
                     @foreach (var mode in ModeChoices)
                     {
-                        <BbDropdownMenuItem OnClick="_ => this.ViewModel.ModeFilter = mode">
+                        <BbDropdownMenuItem OnClick="_ => this.ModeFilter = mode">
                             @(mode?.Humanize() ?? AllLabel)
-                            @if (mode == this.ViewModel.ModeFilter)
+                            @if (mode == this.ModeFilter)
                             {
                                 <span class="sr-only">Current selection</span>
                             }
@@ -120,9 +119,9 @@
     {
         <BbDataTable TData="ProjectRowViewModel"
                      Class="mb-projects-view__table"
-                     Data="@(this.ViewModel.Rows)"
+                     Data="@(this.FilteredRows)"
                      ShowToolbar="false"
-                     ShowPagination="@(this.ViewModel.Rows.Count > PageSize)"
+                     ShowPagination="@(this.FilteredRows.Count > PageSize)"
                      InitialPageSize="PageSize"
                      AriaLabel="Projects">
             <EmptyTemplate>
@@ -131,7 +130,7 @@
                         <LucideIcon Name="search" Size="24" StrokeWidth="1.5" role="presentation" aria-hidden="true" focusable="false" />
                     </Icon>
                     <ChildContent>
-                        <BbButton OnClick="this.HandleClearClickedAsync">Clear search and filters</BbButton>
+                        <BbButton OnClick="this.HandleClearClicked">Clear search and filters</BbButton>
                     </ChildContent>
                 </BbEmpty>
             </EmptyTemplate>

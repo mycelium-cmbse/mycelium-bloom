@@ -38,7 +38,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Organization
             this.viewModel = new Mock<IProjectsViewModel>();
             this.viewModel.SetupGet(model => model.IsBusy).Returns(true);
             this.viewModel.SetupGet(model => model.Errors).Returns([]);
-            this.viewModel.SetupGet(model => model.SearchText).Returns(string.Empty);
             this.viewModel.SetupGet(model => model.Rows).Returns(new ReadOnlyObservableCollection<ProjectRowViewModel>([]));
             this.context.Services.AddSingleton<Func<IProjectsViewModel>>(() => this.viewModel.Object);
         }

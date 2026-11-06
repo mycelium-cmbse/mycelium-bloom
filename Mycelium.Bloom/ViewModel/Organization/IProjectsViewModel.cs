@@ -16,14 +16,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
     using ErrorOr;
 
-    using Mycelium.SDK;
-
-    using ReactiveUI;
-    using ReactiveUI.Primitives;
-
     /// <summary>
-    /// Holds the projects of the organization of the projects page, the search and the filters that narrow them, and
-    /// whether the ViewModel is loading them. The view decides what to show from these.
+    /// Holds the projects of the organization of the projects page, the most recently updated first, the failure to load them
+    /// and whether the ViewModel is loading them. The view decides what to show from these.
     /// </summary>
     public interface IProjectsViewModel : IDisposable, INotifyPropertyChanged
     {
@@ -38,33 +33,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         IReadOnlyList<Error> Errors { get; }
 
         /// <summary>
-        /// Gets the number of projects of the organization, whatever the search and the filters.
-        /// </summary>
-        int TotalCount { get; }
-
-        /// <summary>
         /// Gets every project of the organization, which a later ViewModel can subscribe to or add the created project to.
         /// </summary>
         ISourceList<ProjectRowViewModel> Projects { get; }
 
         /// <summary>
-        /// Gets or sets the text that the name or the description of the projects must contain. The projects follow it once
-        /// the typing pauses.
-        /// </summary>
-        string SearchText { get; set; }
-
-        /// <summary>
-        /// Gets or sets the lifecycle state that the projects must be in, or <see langword="null" /> for any.
-        /// </summary>
-        ProjectLifecycleKind? StatusFilter { get; set; }
-
-        /// <summary>
-        /// Gets or sets the mode that the projects must have, or <see langword="null" /> for any.
-        /// </summary>
-        ProjectMode? ModeFilter { get; set; }
-
-        /// <summary>
-        /// Gets the projects that match the search and the filters, the most recently updated first.
+        /// Gets the projects as rows, the most recently updated first.
         /// </summary>
         ReadOnlyObservableCollection<ProjectRowViewModel> Rows { get; }
 
@@ -72,10 +46,5 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Gets a value indicating whether the current account may create a project.
         /// </summary>
         bool CanCreateProject { get; }
-
-        /// <summary>
-        /// Gets the command that empties the search and resets both filters.
-        /// </summary>
-        ReactiveCommand<RxVoid, RxVoid> ClearFiltersCommand { get; }
     }
 }

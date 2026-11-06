@@ -17,8 +17,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Mycelium.SDK.POCO;
 
     /// <summary>
-    /// Holds one row of the projects list: the project as the SDK describes it, its number of members and how long ago it
-    /// was updated. The words and icons of its lifecycle, visibility and mode are the view's.
+    /// Holds one row of the projects list: the name, description, visibility, mode, lifecycle and number of members of a
+    /// project, and how long ago it was updated. The words and icons of the lifecycle, visibility and mode are the view's.
     /// </summary>
     public sealed class ProjectRowViewModel
     {
