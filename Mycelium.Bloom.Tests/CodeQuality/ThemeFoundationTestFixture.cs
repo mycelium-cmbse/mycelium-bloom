@@ -139,7 +139,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         [Test]
         public void VerifyLightAndDarkSemanticTokensExist()
         {
-            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens-bloom.css"));
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
             var foundation = File.ReadAllText(GetProjectFile("Styles", "variables.css"));
             var darkStart = runtime.IndexOf(".dark {", StringComparison.Ordinal);
             Assert.That(darkStart, Is.GreaterThan(0));
@@ -160,7 +160,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         public void VerifyBlueprintThemeBridgeUsesCanonicalTokens()
         {
             var bridge = File.ReadAllText(GetProjectFile("Styles", "blueprint-theme.css"));
-            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens-bloom.css"));
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
 
             using (Assert.EnterMultipleScope())
             {
@@ -215,7 +215,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         [Test]
         public void VerifyDarkPaletteUsesNearBlackFoundation()
         {
-            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens-bloom.css"));
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
             var darkSource = runtime[runtime.IndexOf(".dark {", StringComparison.Ordinal)..];
 
             using (Assert.EnterMultipleScope())
@@ -228,7 +228,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         [Test]
         public void VerifyDarkSysmlHeaderTokensMeetNonTextContrast()
         {
-            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens-bloom.css"));
+            var runtime = File.ReadAllText(GetProjectFile("wwwroot", "css", "tokens.css"));
             var darkSource = runtime[runtime.IndexOf(".dark {", StringComparison.Ordinal)..];
             var darkSurface = GetTokenValue(darkSource, "--card");
 
@@ -269,7 +269,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(overlaysIndex, Is.GreaterThan(bridgeIndex));
                 Assert.That(primitivesIndex, Is.GreaterThanOrEqualTo(0));
                 Assert.That(generatedAppIndex, Is.GreaterThan(componentsIndex));
-                var tokensIndex = app.IndexOf("css/tokens-bloom.css", StringComparison.Ordinal);
+                var tokensIndex = app.IndexOf("css/tokens.css", StringComparison.Ordinal);
                 Assert.That(tokensIndex, Is.GreaterThan(componentsIndex));
                 Assert.That(generatedAppIndex, Is.GreaterThan(tokensIndex));
                 Assert.That(tailwind, Does.Contain("@import \"./Generated/MyceliumDesign/theme-mycelium.css\";"));

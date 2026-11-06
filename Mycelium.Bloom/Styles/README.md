@@ -19,10 +19,15 @@ dotnet build Mycelium.Bloom.sln
 MSBuild validates `MyceliumDesignBloomTokensCssPath` and
 `MyceliumDesignBloomThemeCssPath`, supplied by the package through
 `MyceliumDesignBloomCssDir`. It stages the runtime file at
-`wwwroot/css/tokens-bloom.css` and the build-time mapping at
+`wwwroot/css/tokens.css` and the build-time mapping at
 `Styles/Generated/MyceliumDesign/theme-mycelium.css`. These ignored files are
 replaced from the package on each build; never edit or commit them. The package
 is content-only and does not provide an RCL `_content` URL.
+
+The package's `css/tokens-bloom.css` is served as `css/tokens.css`, preserving
+the existing application URL and ASP.NET asset fingerprinting. The former
+checked-in `tokens.css` is removed; only the ignored package copy occupies that
+path. There is no second runtime token file.
 
 Normal builds now run the pinned, checksum-verified standalone Tailwind 4.3.3
 CLI before static-web-asset discovery. This intentionally replaces the previous

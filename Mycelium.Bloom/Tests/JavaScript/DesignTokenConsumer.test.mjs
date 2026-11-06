@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
 const projectDirectory = fileURLToPath(new URL('../../', import.meta.url));
-const runtimeName = 'wwwroot/css/tokens-bloom.css';
+const runtimeName = 'wwwroot/css/tokens.css';
 const themeName = 'Styles/Generated/MyceliumDesign/theme-mycelium.css';
 const runtimePath = join(projectDirectory, runtimeName);
 const themePath = join(projectDirectory, themeName);
@@ -60,6 +60,10 @@ async function fixture(context, fullSource = false) {
 }
 
 test('restored runtime and theme artifacts have release headers and separate roles', async () => {
+    const result = msbuild(projectDirectory, '-getProperty:MyceliumDesignBloomTokensCssPath');
+    assert.equal(result.status, 0, output(result));
+    assert.deepEqual(await readFile(runtimePath), await readFile(result.stdout.trim()));
+    await assert.rejects(stat(join(projectDirectory, 'wwwroot/css/tokens-bloom.css')), { code: 'ENOENT' });
     const [runtime, theme] = await Promise.all(tokenPaths.map(path => readFile(path, 'utf8')));
     for (const content of [runtime, theme]) {
         assert.match(content, /mycelium-packageId: Mycelium.Design.Bloom/);
@@ -344,6 +348,28 @@ test('changed package inputs including older timestamps replace staged and compi
     }
 });
 
+test('official package downgrades and upgrades replace runtime CSS and compiled tracking utilities', async context => {
+    const directory = await fixture(context, true);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const projectPath = join(directory, 'Mycelium.Bloom.csproj');
+    const project = await readFile(projectPath, 'utf8');
+    await writeFile(join(directory, 'Components/TrackingProbe.razor'), '<span class="tracking-label-xs"></span>');
+    for (const version of ['1.0.0', '1.1.0']) {
+        await writeFile(projectPath, project.replace(/(Include="Mycelium.Design.Bloom" Version=")[^"]+/, `$1${version}`));
+        const restored = msbuild(directory, '-t:Restore');
+        assert.equal(restored.status, 0, output(restored));
+        const built = msbuild(directory, '-t:PrepareForBuild', `-p:TailwindToolsDirectory=${dirname(executable)}`);
+        assert.equal(built.status, 0, output(built));
+        const packagePath = msbuild(directory, '-getProperty:MyceliumDesignBloomTokensCssPath');
+        assert.equal(packagePath.status, 0, output(packagePath));
+        const runtime = await readFile(join(directory, runtimeName));
+        assert.deepEqual(runtime, await readFile(packagePath.stdout.trim()));
+        assert.ok(runtime.toString().includes(`mycelium-version: ${version}`));
+        const compiled = await readFile(join(directory, appName), 'utf8');
+        assert.equal(compiled.includes('.tracking-label-xs{'), version === '1.1.0');
+    }
+});
+
 for (const target of ['Build', 'Publish']) {
     test(`first ${target} discovers generated static web assets`, async context => {
         const directory = await fixture(context, true);
@@ -352,9 +378,12 @@ for (const target of ['Build', 'Publish']) {
         const result = msbuild(directory, `-t:${target}`, `-p:TailwindToolsDirectory=${dirname(executable)}`);
         assert.equal(result.status, 0, output(result));
         const manifest = await readFile(join(directory, 'obj/Debug/net10.0/staticwebassets.build.json'), 'utf8');
-        for (const name of ['tokens-bloom.css', 'app.css']) assert.ok(manifest.includes(name));
+        for (const name of ['tokens.css', 'app.css']) assert.ok(manifest.includes(name));
+        assert.ok(!manifest.includes('tokens-bloom.css'));
+        const endpoints = JSON.parse(await readFile(join(directory, 'obj/Debug/net10.0/staticwebassets.build.endpoints.json'), 'utf8'));
+        assert.ok(endpoints.Endpoints.some(endpoint => /^css\/tokens\.[\w-]+\.css$/.test(endpoint.Route)));
         if (target === 'Publish') {
-            for (const name of ['tokens-bloom.css.gz', 'app.css.gz']) {
+            for (const name of ['tokens.css.gz', 'app.css.gz']) {
                 assert.ok((await stat(join(directory, 'bin/Debug/net10.0/publish/wwwroot/css', name))).size > 0);
             }
         }

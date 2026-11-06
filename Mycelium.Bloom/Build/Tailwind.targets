@@ -56,7 +56,7 @@
     </Target>
 
     <Target Name="StageMyceliumStyles" DependsOnTargets="ValidateMyceliumTokenArtifacts">
-        <Copy SourceFiles="$(MyceliumDesignBloomTokensCssPath)" DestinationFiles="wwwroot/css/tokens-bloom.css" />
+        <Copy SourceFiles="$(MyceliumDesignBloomTokensCssPath)" DestinationFiles="wwwroot/css/tokens.css" />
         <Copy SourceFiles="$(MyceliumDesignBloomThemeCssPath)" DestinationFiles="Styles/Generated/MyceliumDesign/theme-mycelium.css" />
     </Target>
 

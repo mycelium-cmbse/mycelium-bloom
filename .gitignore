@@ -67,5 +67,5 @@ sonar-js-coverage.xml
 .vscode
 
 # NuGet design assets staged by MSBuild
-Mycelium.Bloom/wwwroot/css/tokens-bloom.css
+Mycelium.Bloom/wwwroot/css/tokens.css
 Mycelium.Bloom/Styles/Generated/MyceliumDesign/

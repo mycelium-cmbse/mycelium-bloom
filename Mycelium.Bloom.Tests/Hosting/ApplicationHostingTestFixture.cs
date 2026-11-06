@@ -91,7 +91,7 @@ namespace Mycelium.Bloom.Tests.Hosting
             {
                 Assert.That(stylesheets[0], Is.EqualTo("_content/BlazorBlueprint.Primitives/css/primitives.css"));
                 Assert.That(stylesheets[1], Is.EqualTo("_content/BlazorBlueprint.Components/blazorblueprint.css"));
-                Assert.That(stylesheets[2], Does.Match(@"^css/tokens-bloom(?:\.[\w-]+)?\.css$"));
+                Assert.That(stylesheets[2], Does.Match(@"^css/tokens(?:\.[\w-]+)?\.css$"));
                 Assert.That(stylesheets[3], Does.Match(@"^css/app(?:\.[\w-]+)?\.css$"));
                 Assert.That(stylesheets[4], Does.Match(@"^Mycelium\.Bloom(?:\.[\w-]+)?\.styles\.css$"));
             }
