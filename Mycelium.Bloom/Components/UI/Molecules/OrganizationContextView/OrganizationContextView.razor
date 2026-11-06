@@ -24,5 +24,7 @@
 }
 else if (this.ViewModel.Errors.Count == 0)
 {
-    @(this.ChildContent)
+    <div @key="@(this.ViewModel.Organization?.Id)" class="mb-organization-context-view__content">
+        @(this.ChildContent)
+    </div>
 }

@@ -22,7 +22,7 @@ RUN dotnet publish Mycelium.Bloom.csproj \
     /p:UseAppHost=false
 
 RUN test -s /app/publish/wwwroot/css/app.css.gz
-RUN test -s /app/publish/wwwroot/css/tokens.css.gz
+RUN test -s /app/publish/wwwroot/css/tokens-bloom.css.gz
 RUN grep -q "css/app.css" /app/publish/Mycelium.Bloom.staticwebassets.endpoints.json
 RUN test -s /app/publish/wwwroot/_framework/blazor.web.js
 RUN test -s "/app/publish/Resources/Domain Libraries/Quantities and Units/Quantities.json"

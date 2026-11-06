@@ -14,6 +14,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using ErrorOr;
 
     using Mycelium.Bloom.Model;
+    using Mycelium.SDK.POCO;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Defines the reactive state of the organization designated by the current browser location.
@@ -34,7 +37,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <summary>
         /// Gets the current account, <see langword="null" /> until it is resolved.
         /// </summary>
-        Account Account { get; }
+        User Account { get; }
 
         /// <summary>
         /// Gets the designated organization, <see langword="null" /> until it is resolved or on the account page.

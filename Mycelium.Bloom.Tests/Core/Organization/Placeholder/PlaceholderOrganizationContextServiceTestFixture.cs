@@ -16,10 +16,11 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
 
     using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Core.Organization.Placeholder;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK;
 
     [TestFixture]
     public sealed class PlaceholderOrganizationContextServiceTestFixture
@@ -43,20 +44,21 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
             Assert.That(result.Value, Is.EqualTo(OrganizationPlaceholderData.Account));
         }
 
-        [TestCase(OrganizationRole.OrganizationAdministrator, true)]
-        [TestCase(OrganizationRole.OrganizationMember, false)]
-        public async Task VerifyOrganizationContextFollowsThePlaceholderRole(OrganizationRole role, bool canEditSettings)
+        [TestCase(OrganizationMembershipRole.Administrator, true)]
+        [TestCase(OrganizationMembershipRole.Member, false)]
+        public async Task VerifyOrganizationContextFollowsThePlaceholderRole(OrganizationMembershipRole role, bool canEditSettings)
         {
-            var expected = OrganizationPlaceholderData.Organizations[0];
+            var expected = OrganizationPlaceholderData.Organizations["orbital-systems"];
             this.options.PlaceholderRole = role;
 
-            var result = await this.service.GetOrganizationContextAsync(expected.Slug, CancellationToken.None);
+            var result = await this.service.GetOrganizationContextAsync("orbital-systems", CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.Value.Account, Is.EqualTo(OrganizationPlaceholderData.Account));
                 Assert.That(result.Value.Organization, Is.EqualTo(expected));
                 Assert.That(result.Value.Capabilities.CanEditSettings, Is.EqualTo(canEditSettings));
+                Assert.That(result.Value.Capabilities.CanCreateProject, Is.EqualTo(canEditSettings));
             }
         }
 
@@ -70,7 +72,7 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.FirstError.Type, Is.EqualTo(ErrorType.NotFound));
-                Assert.That(result.FirstError.Code, Is.EqualTo(OrganizationErrorCodes.NotFound));
+                Assert.That(result.FirstError.Code, Is.EqualTo(ErrorCodes.NotFound));
             }
         }
     }

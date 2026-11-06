@@ -13,13 +13,13 @@
     width: 16px;
     height: 16px;
     margin: 1px 0 0;
-    border: var(--border-width-default) solid var(--border-strong);
-    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-4);
     outline: 0;
     appearance: none;
     background: var(--card);
     cursor: pointer;
-    transition: background-color var(--motion-duration-fast) var(--motion-easing-standard), border-color var(--motion-duration-fast) var(--motion-easing-standard), box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .mb-checkbox__input::after {
@@ -50,7 +50,7 @@
 }
 
 .mb-checkbox--error .mb-checkbox__input {
-    border-color: var(--destructive-strong);
+    border-color: var(--destructive);
 }
 
 .mb-checkbox__content {
@@ -71,13 +71,12 @@
 
 .mb-checkbox__required,
 .mb-checkbox__error {
-    color: var(--destructive-strong);
+    color: var(--destructive);
 }
 
 .mb-checkbox__description,
 .mb-checkbox__error {
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    font: var(--typography-typography-body-sm), sans-serif;
 }
 
 .mb-checkbox__description {

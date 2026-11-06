@@ -19,17 +19,16 @@
 }
 
 .mb-project-switcher__initial {
+    font: var(--typography-typography-label-sm), sans-serif;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
     width: 24px;
     height: 24px;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-6);
     background: var(--accent);
     color: var(--primary);
-    font-size: var(--typography-typography-label-sm-font-size);
-    line-height: var(--typography-typography-label-sm-line-height);
     font-weight: 700;
 }
 
@@ -51,16 +50,14 @@
 
 .mb-project-switcher__name,
 .mb-project-switcher__placeholder {
+    font: var(--typography-typography-body-sm), sans-serif;
     color: var(--foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
     font-weight: 600;
 }
 
 .mb-project-switcher__description {
+    font: var(--typography-typography-label-xs), sans-serif;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-label-xs-font-size);
-    line-height: var(--typography-typography-label-xs-line-height);
 }
 
 .mb-project-switcher--disabled {

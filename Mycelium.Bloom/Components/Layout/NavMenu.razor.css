@@ -11,7 +11,7 @@
     justify-content: space-between;
     min-height: 3.5rem;
     padding-inline: var(--spacing-16);
-    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .mb-nav-menu__brand-link {
@@ -19,7 +19,7 @@
     align-items: center;
     min-width: 0;
     gap: var(--spacing-8);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
     color: var(--foreground);
     font-size: 1rem;
     line-height: 1.5rem;
@@ -46,10 +46,10 @@
     width: 2.25rem;
     height: 2.25rem;
     padding: 0.5rem;
-    border: var(--border-width-default) solid var(--border);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-6);
     background: var(--card);
-    color: var(--foreground-muted);
+    color: var(--muted-foreground);
 }
 
 .mb-nav-menu__toggle:hover {
@@ -67,6 +67,7 @@
 }
 
 .mb-nav-menu__links ::deep .mb-nav-menu__link {
+    font: var(--typography-typography-body-sm), sans-serif;
     position: relative;
     display: flex;
     align-items: center;
@@ -74,15 +75,13 @@
     min-height: 2.5rem;
     gap: var(--spacing-12);
     padding: var(--spacing-8) var(--spacing-12);
-    border-radius: var(--radius-md);
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    border-radius: var(--radius-6);
+    color: var(--muted-foreground);
     font-weight: 500;
     transition:
-        background-color var(--motion-duration-fast) var(--motion-easing-standard),
-        color var(--motion-duration-fast) var(--motion-easing-standard),
-        box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+        background-color 150ms ease,
+        color 150ms ease,
+        box-shadow 150ms ease;
 }
 
 .mb-nav-menu__links ::deep .mb-nav-menu__link .mb-nav-menu__icon {
@@ -136,7 +135,7 @@
         display: none;
         flex: none;
         padding: var(--spacing-8) var(--spacing-12) var(--spacing-12);
-        border-bottom: var(--border-width-default) solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
         overflow: visible;
     }
 

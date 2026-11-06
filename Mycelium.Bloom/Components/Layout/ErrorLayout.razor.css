@@ -20,9 +20,9 @@
 }
 
 .error-layout__brand:focus-visible {
-    outline: var(--border-width-default) solid var(--ring);
+    outline: 1px solid var(--ring);
     outline-offset: var(--spacing-4);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
 }
 
 .error-layout__mark {
@@ -38,10 +38,9 @@
 }
 
 .error-layout__footer {
+    font: var(--typography-typography-body-sm), sans-serif;
     padding: var(--spacing-16) var(--spacing-24);
-    border-top: var(--border-width-default) solid var(--border-subtle);
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    border-top: 1px solid var(--border-subtle);
+    color: var(--muted-foreground);
     text-align: center;
 }

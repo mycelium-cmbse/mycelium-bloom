@@ -145,7 +145,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 IFeature => "var(--sysml-requirements-header)",
                 IType => "var(--sysml-verification-header)",
                 INamespace => "var(--sysml-structure-header)",
-                _ => "var(--foreground-muted)"
+                _ => "var(--muted-foreground)"
             };
         }
 

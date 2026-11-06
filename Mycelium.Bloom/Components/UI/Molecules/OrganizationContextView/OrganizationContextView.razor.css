@@ -4,3 +4,7 @@
     gap: var(--spacing-16);
     width: 100%;
 }
+
+.mb-organization-context-view__content {
+    display: contents;
+}

@@ -1,0 +1,178 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ProjectsView.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Icons.Lucide.Components
+@using BlazorBlueprint.Primitives
+@using Humanizer
+@using Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
+@using Mycelium.Bloom.Extensions
+@using Mycelium.Bloom.ViewModel.Organization
+@inherits BloomReactiveComponentBase<IProjectsViewModel>
+
+<div class="@(this.BuildRootCssClass("mb-projects-view"))" @attributes="this.AdditionalAttributes">
+    <header class="mb-projects-view__header">
+        <h1 class="mb-projects-view__title">Projects</h1>
+
+        @if (this.ViewModel.CanCreateProject)
+        {
+            <BbButton Class="mb-projects-view__new">
+                <Icon>
+                    <LucideIcon Name="plus" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                </Icon>
+                <ChildContent>New project</ChildContent>
+            </BbButton>
+        }
+    </header>
+
+    @if (this.ShowsToolbar)
+    {
+        <div class="mb-projects-view__toolbar">
+            <BbInputGroup Class="mb-projects-view__search">
+                <BbInputGroupAddon Align="InputGroupAlign.InlineStart" aria-hidden="true">
+                    <LucideIcon Name="search" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                </BbInputGroupAddon>
+                <BbInputGroupInput Id="projects-search"
+                                   Class="mb-projects-view__search-input"
+                                   Value="@(this.SearchText)"
+                                   ValueChanged="@(text => this.SearchText = text ?? string.Empty)"
+                                   Placeholder="Search projects…"
+                                   AriaLabel="Search projects"
+                                   UpdateTiming="UpdateTiming.Immediate" />
+            </BbInputGroup>
+
+            <BbDropdownMenu>
+                <BbDropdownMenuTrigger AsChild="true">
+                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                              Class="mb-projects-view__filter"
+                              title="Filter by status"
+                              aria-label="@(this.StatusFilterLabel)">
+                        @(this.StatusFilterLabel)
+                        <LucideIcon Name="chevron-down" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    </BbButton>
+                </BbDropdownMenuTrigger>
+                <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
+                    @foreach (var status in StatusChoices)
+                    {
+                        <BbDropdownMenuItem OnClick="_ => this.StatusFilter = status">
+                            @(status?.Humanize() ?? AllLabel)
+                            @if (status == this.StatusFilter)
+                            {
+                                <span class="sr-only">Current selection</span>
+                            }
+                        </BbDropdownMenuItem>
+                    }
+                </BbDropdownMenuContent>
+            </BbDropdownMenu>
+
+            <BbDropdownMenu>
+                <BbDropdownMenuTrigger AsChild="true">
+                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                              Class="mb-projects-view__filter"
+                              title="Filter by mode"
+                              aria-label="@(this.ModeFilterLabel)">
+                        @(this.ModeFilterLabel)
+                        <LucideIcon Name="chevron-down" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    </BbButton>
+                </BbDropdownMenuTrigger>
+                <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
+                    @foreach (var mode in ModeChoices)
+                    {
+                        <BbDropdownMenuItem OnClick="_ => this.ModeFilter = mode">
+                            @(mode?.Humanize() ?? AllLabel)
+                            @if (mode == this.ModeFilter)
+                            {
+                                <span class="sr-only">Current selection</span>
+                            }
+                        </BbDropdownMenuItem>
+                    }
+                </BbDropdownMenuContent>
+            </BbDropdownMenu>
+        </div>
+    }
+
+    @if (this.HasFailed)
+    {
+        <p class="mb-projects-view__error" role="alert">The projects could not be loaded. Try again later.</p>
+    }
+    else if (this.ShowsSkeleton)
+    {
+        <div class="mb-projects-view__loading" role="status" aria-live="polite" aria-busy="true">
+            <BbSkeleton Width="100%" Height="100%" />
+            <span class="sr-only">Loading</span>
+        </div>
+    }
+    else if (this.ShowsEmptyOrganization)
+    {
+        <BbEmpty Title="No projects yet" Description="The projects of this organization will appear here.">
+            <Icon>
+                <LucideIcon Name="folder-open" Size="24" StrokeWidth="1.5" role="presentation" aria-hidden="true" focusable="false" />
+            </Icon>
+        </BbEmpty>
+    }
+    else
+    {
+        <BbDataTable TData="ProjectRowViewModel"
+                     Class="mb-projects-view__table"
+                     Data="@(this.FilteredRows)"
+                     ShowToolbar="false"
+                     ShowPagination="@(this.FilteredRows.Count > PageSize)"
+                     InitialPageSize="PageSize"
+                     AriaLabel="Projects">
+            <EmptyTemplate>
+                <BbEmpty Title="@(this.NoResultsTitle)" Description="Clear the search, or widen the Status and Mode filters.">
+                    <Icon>
+                        <LucideIcon Name="search" Size="24" StrokeWidth="1.5" role="presentation" aria-hidden="true" focusable="false" />
+                    </Icon>
+                    <ChildContent>
+                        <BbButton OnClick="this.HandleClearClicked">Clear search and filters</BbButton>
+                    </ChildContent>
+                </BbEmpty>
+            </EmptyTemplate>
+            <Columns>
+                <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Project">
+                    <CellTemplate>
+                        <div class="mb-projects-view__name">
+                            <span class="mb-projects-view__name-text">@(context.Name)</span>
+                            <span class="mb-projects-view__description" title="@(context.Description)">@(context.Description)</span>
+                        </div>
+                    </CellTemplate>
+                </BbDataTableColumn>
+                <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Visibility">
+                    <CellTemplate>
+                        <span class="mb-projects-view__visibility">
+                            <LucideIcon Name="@(context.Visibility.Icon)" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                            @(context.Visibility.Humanize())
+                        </span>
+                    </CellTemplate>
+                </BbDataTableColumn>
+                <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Mode">
+                    <CellTemplate>
+                        <BbBadge Variant="BadgeVariant.Secondary"
+                                 Class="@(GetModeCssClass(context))">
+                            @(context.Mode.Humanize())
+                        </BbBadge>
+                    </CellTemplate>
+                </BbDataTableColumn>
+                <BbDataTableColumn TData="ProjectRowViewModel" TValue="int" Header="Members" Property="@(row => row.MemberCount)" />
+                <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Status">
+                    <CellTemplate>
+                        <StatusIndicator Label="@(context.Lifecycle.Humanize())" State="@(context.Lifecycle)" />
+                    </CellTemplate>
+                </BbDataTableColumn>
+                <BbDataTableColumn TData="ProjectRowViewModel"
+                                   TValue="string"
+                                   Header="Updated"
+                                   Property="@(row => row.UpdatedText)"
+                                   CellClass="mb-projects-view__updated" />
+            </Columns>
+        </BbDataTable>
+
+        <p class="mb-projects-view__showing" aria-live="polite">@(this.ShowingText)</p>
+    }
+</div>

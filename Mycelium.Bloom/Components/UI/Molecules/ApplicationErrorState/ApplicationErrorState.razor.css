@@ -11,36 +11,32 @@
     padding: clamp(var(--spacing-24), 6vw, var(--spacing-64));
     color: var(--foreground);
     background: var(--card);
-    border: var(--border-width-default) solid var(--border-subtle);
-    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-12);
     box-shadow: var(--shadow-sm);
 }
 
 .application-error-state h1 {
+    font: var(--typography-typography-display-lg), sans-serif;
     margin: 0;
-    font-size: var(--typography-typography-display-lg-font-size);
-    font-weight: var(--typography-typography-display-lg-font-weight);
-    line-height: var(--typography-typography-display-lg-line-height);
     letter-spacing: var(--typography-typography-display-lg-letter-spacing);
     overflow-wrap: anywhere;
 }
 
 .application-error-state__description {
+    font: var(--typography-typography-body-md), sans-serif;
     margin-top: var(--spacing-12);
     margin-bottom: 0;
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-md-font-size);
-    line-height: var(--typography-typography-body-md-line-height);
+    color: var(--muted-foreground);
 }
 
 .application-error-state__reference {
+    font: var(--typography-typography-body-sm), sans-serif;
     margin-top: var(--spacing-24);
     margin-bottom: 0;
     padding-top: var(--spacing-16);
-    border-top: var(--border-width-default) solid var(--border-subtle);
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    border-top: 1px solid var(--border-subtle);
+    color: var(--muted-foreground);
 }
 
 .application-error-state__reference dd {
@@ -49,9 +45,7 @@
 }
 
 .application-error-state__reference code {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: var(--typography-typography-mono-sm-font-size);
-    line-height: var(--typography-typography-mono-sm-line-height);
+    font: var(--typography-typography-mono-sm), monospace;
     overflow-wrap: anywhere;
 }
 

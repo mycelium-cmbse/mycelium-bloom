@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
 {
+    using System;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Linq;
@@ -25,8 +26,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
     using Moq;
 
     using Mycelium.Bloom.Components.UI.Molecules.OrganizationContextView;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.SDK.POCO;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
+
+    using PageHeaderComponent = Mycelium.Bloom.Components.UI.Molecules.PageHeader.PageHeader;
 
     [TestFixture]
     public sealed class OrganizationContextViewTestFixture
@@ -72,6 +79,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
                 Assert.That(component.FindAll("[role='status']"), Has.Count.EqualTo(isLoading ? 1 : 0));
                 Assert.That(component.Markup, isLoading ? Does.Not.Contain("Page content") : Does.Contain("Page content"));
             }
+        }
+
+        [Test]
+        public void VerifyPageIsCreatedAgainWhenTheOrganizationChanges()
+        {
+            var first = new Organization { Id = Guid.NewGuid(), Name = "Orbital Systems" };
+            var second = new Organization { Id = Guid.NewGuid(), Name = "Payload Lab" };
+            RenderFragment page = builder =>
+            {
+                builder.OpenComponent<PageHeaderComponent>(0);
+                builder.AddAttribute(1, nameof(PageHeaderComponent.Title), "Projects");
+                builder.CloseComponent();
+            };
+            this.viewModel.SetupGet(model => model.Organization).Returns(first);
+            var cut = this.context.Render<OrganizationContextView>(parameters => parameters.Add(view => view.ChildContent, page));
+            var pageOfFirst = cut.FindComponent<PageHeaderComponent>().Instance;
+
+            this.viewModel.SetupGet(model => model.Organization).Returns(second);
+            this.viewModel.Raise(model => model.PropertyChanged += null, new PropertyChangedEventArgs(nameof(IOrganizationContextViewModel.Organization)));
+
+            cut.WaitForAssertion(() => Assert.That(cut.FindComponent<PageHeaderComponent>().Instance, Is.Not.SameAs(pageOfFirst)));
         }
 
         [TestCase(ErrorType.NotFound, false, true)]

@@ -13,9 +13,13 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
     using ErrorOr;
 
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK.POCO;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     using ReactiveUI;
 
@@ -76,7 +80,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <summary>
         /// Gets the current account, <see langword="null" /> until it is resolved.
         /// </summary>
-        public Account Account
+        public User Account
         {
             get;
             private set => this.RaiseAndSetIfChanged(ref field, value);
@@ -207,7 +211,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
             {
                 this.LogResolutionFailure(exception);
 
-                var error = Error.Unexpected(OrganizationErrorCodes.Unavailable, "The organization context could not be resolved.");
+                var error = Error.Unexpected(ErrorCodes.Unavailable, "The organization context could not be resolved.");
 
                 return OrganizationContextResolution.CreateRefused(location, [error]);
             }

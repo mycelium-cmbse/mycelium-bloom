@@ -15,7 +15,7 @@
     height: 100vh;
     position: sticky;
     top: 0;
-    border-inline-end: var(--border-width-default) solid var(--border-subtle);
+    border-inline-end: 1px solid var(--border-subtle);
     background: var(--card);
 }
 
@@ -32,15 +32,14 @@
     justify-content: flex-end;
     height: 3.5rem;
     padding-inline: var(--spacing-16);
-    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
     background: var(--card);
 }
 
 .mb-main-layout__about-link {
-    border-radius: var(--radius-sm);
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    font: var(--typography-typography-body-sm), sans-serif;
+    border-radius: var(--radius-4);
+    color: var(--muted-foreground);
     font-weight: 500;
 }
 
@@ -60,6 +59,7 @@
 }
 
 .mb-main-layout__error {
+    font: var(--typography-typography-body-sm), sans-serif;
     position: fixed;
     z-index: 50;
     right: 0;
@@ -67,12 +67,10 @@
     left: 0;
     display: none;
     padding: var(--spacing-12) var(--spacing-16);
-    border-top: var(--border-width-default) solid var(--destructive-strong);
+    border-top: 1px solid var(--destructive);
     background: var(--destructive-subtle);
     box-shadow: var(--shadow-modal);
-    color: var(--destructive-strong);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    color: var(--destructive);
 }
 
 .mb-main-layout__error a {
@@ -86,7 +84,7 @@
     margin-inline-start: var(--spacing-16);
     padding: 0;
     border: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
     background: transparent;
     color: inherit;
     cursor: pointer;
