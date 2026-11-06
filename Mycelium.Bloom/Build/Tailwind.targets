@@ -41,20 +41,23 @@
     </PropertyGroup>
 
     <Target Name="ValidateMyceliumTokenArtifacts">
-        <Error Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/css/tokens.css')"
-               Text="Cannot read wwwroot/css/tokens.css. Restore the checked-in generated artifact before building Bloom." />
-        <Error Condition="!Exists('$(MSBuildProjectDirectory)/Styles/Generated/MyceliumTokens/theme.css')"
-               Text="Cannot read Styles/Generated/MyceliumTokens/theme.css. Restore the checked-in generated artifact before building Bloom." />
-        <ReadLinesFromFile File="$(MSBuildProjectDirectory)/wwwroot/css/tokens.css">
-            <Output TaskParameter="Lines" ItemName="_MyceliumRuntimeTokenLines" />
+        <Error Condition="!Exists('$(MyceliumDesignBloomTokensCssPath)')"
+               Text="Mycelium.Design.Bloom runtime CSS is missing: $(MyceliumDesignBloomTokensCssPath). Restore the pinned NuGet package before building." />
+        <Error Condition="!Exists('$(MyceliumDesignBloomThemeCssPath)')"
+               Text="Mycelium.Design.Bloom Tailwind theme is missing: $(MyceliumDesignBloomThemeCssPath). Restore the pinned NuGet package before building." />
+        <ReadLinesFromFile File="$(MyceliumDesignBloomTokensCssPath)">
+            <Output TaskParameter="Lines" ItemName="_MyceliumRuntimeLines" />
         </ReadLinesFromFile>
-        <ReadLinesFromFile File="$(MSBuildProjectDirectory)/Styles/Generated/MyceliumTokens/theme.css">
-            <Output TaskParameter="Lines" ItemName="_MyceliumThemeTokenLines" />
+        <ReadLinesFromFile File="$(MyceliumDesignBloomThemeCssPath)">
+            <Output TaskParameter="Lines" ItemName="_MyceliumThemeLines" />
         </ReadLinesFromFile>
-        <Error Condition="'@(_MyceliumRuntimeTokenLines->Count())' == '0'"
-               Text="wwwroot/css/tokens.css is empty. Replace it with validated upstream output; do not edit token values manually." />
-        <Error Condition="'@(_MyceliumThemeTokenLines->Count())' == '0'"
-               Text="Styles/Generated/MyceliumTokens/theme.css is empty. Replace it with validated upstream output; do not edit token values manually." />
+        <Error Condition="'@(_MyceliumRuntimeLines->Count())' == '0' or '@(_MyceliumThemeLines->Count())' == '0'"
+               Text="Mycelium.Design.Bloom package CSS is empty. Restore a valid published package." />
+    </Target>
+
+    <Target Name="StageMyceliumStyles" DependsOnTargets="ValidateMyceliumTokenArtifacts">
+        <Copy SourceFiles="$(MyceliumDesignBloomTokensCssPath)" DestinationFiles="wwwroot/css/tokens-bloom.css" />
+        <Copy SourceFiles="$(MyceliumDesignBloomThemeCssPath)" DestinationFiles="Styles/Generated/MyceliumDesign/theme-mycelium.css" />
     </Target>
 
     <Target Name="RestoreTailwind" DependsOnTargets="ValidateMyceliumTokenArtifacts">
@@ -75,23 +78,15 @@
         <Exec Command="chmod +x &quot;$(TailwindExecutable)&quot;" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
     </Target>
 
-    <Target Name="RegenerateMyceliumStyles" DependsOnTargets="RestoreTailwind">
+    <Target Name="RegenerateMyceliumStyles" DependsOnTargets="StageMyceliumStyles;RestoreTailwind">
         <Exec Command="&quot;$(TailwindExecutable)&quot; -i Styles/tailwind.css -o wwwroot/css/app.css $(TailwindArguments)"
               WorkingDirectory="$(MSBuildProjectDirectory)" />
     </Target>
 
     <Target Name="ValidateMyceliumStyles" BeforeTargets="PrepareForBuild"
-            DependsOnTargets="ValidateMyceliumTokenArtifacts" Condition="'$(DesignTimeBuild)' != 'true'">
-        <Error Condition="!Exists('wwwroot/css/app.css')"
-               Text="Committed wwwroot/css/app.css is missing. Restore it from Git or run dotnet msbuild -t:RegenerateMyceliumStyles." />
-        <ReadLinesFromFile File="wwwroot/css/app.css">
-            <Output TaskParameter="Lines" ItemName="_MyceliumApplicationStyleLines" />
-        </ReadLinesFromFile>
-        <Error Condition="'@(_MyceliumApplicationStyleLines->Count())' == '0'"
-               Text="Committed wwwroot/css/app.css is empty. Run dotnet msbuild -t:RegenerateMyceliumStyles; do not edit generated CSS manually." />
-    </Target>
+            DependsOnTargets="RegenerateMyceliumStyles" Condition="'$(DesignTimeBuild)' != 'true'" />
 
-    <Target Name="VerifyMyceliumStyles" DependsOnTargets="ValidateMyceliumStyles;RestoreTailwind">
+    <Target Name="VerifyMyceliumStyles" DependsOnTargets="StageMyceliumStyles;RestoreTailwind">
         <PropertyGroup>
             <_MyceliumStylesVerificationDirectory>$(BaseIntermediateOutputPath)tailwind/verify/$(Configuration)/$(TargetFramework)/</_MyceliumStylesVerificationDirectory>
             <_MyceliumStylesVerificationOutput>$(_MyceliumStylesVerificationDirectory)app.css</_MyceliumStylesVerificationOutput>

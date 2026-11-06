@@ -5,7 +5,7 @@
 }
 
 .mb-project-browser-node__row {
-    --project-browser-node-element-color: var(--foreground-muted);
+    --project-browser-node-element-color: var(--muted-foreground);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -15,12 +15,12 @@
     height: 32px;
     padding: 0 8px;
     border: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
     background: transparent;
     color: var(--foreground);
     text-align: left;
-    transition: background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    color var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: background-color 150ms ease,
+    color 150ms ease;
 }
 
 .mb-project-browser-node__row:hover {
@@ -63,23 +63,17 @@
 }
 
 .mb-project-browser-node__stereotype {
+    font: var(--typography-typography-mono-xs), monospace;
     flex: 0 0 auto;
     color: var(--muted-foreground);
-    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--typography-typography-mono-xs-font-size);
-    line-height: var(--typography-typography-mono-xs-line-height);
-    font-weight: var(--typography-typography-mono-xs-font-weight);
     white-space: nowrap;
 }
 
 .mb-project-browser-node__title {
+    font: var(--typography-typography-body-md), sans-serif;
     flex: 0 0 auto;
     min-width: max-content;
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: var(--typography-typography-body-md-font-size);
-    line-height: var(--typography-typography-body-md-line-height);
-    font-weight: var(--typography-typography-body-md-font-weight);
     white-space: nowrap;
 }
 

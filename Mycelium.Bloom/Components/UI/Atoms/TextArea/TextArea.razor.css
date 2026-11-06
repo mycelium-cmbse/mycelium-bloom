@@ -15,9 +15,8 @@
 }
 
 .mb-text-area__count {
+    font: var(--typography-typography-body-sm), sans-serif;
     justify-self: end;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
     font-variant-numeric: tabular-nums;
 }

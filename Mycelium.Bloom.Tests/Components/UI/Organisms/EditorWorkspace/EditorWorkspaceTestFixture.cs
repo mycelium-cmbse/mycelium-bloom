@@ -282,7 +282,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__splitter-line\s*\{[^}]*width:\s*var\(--border-width-default\);[^}]*height:\s*100%;"));
+                        @"(?s)\.mb-editor-workspace__splitter-line\s*\{[^}]*width:\s*1px;[^}]*height:\s*100%;"));
                 Assert.That(style, Does.Contain("@container mb-editor-workspace (max-width: 45rem)"));
                 Assert.That(
                     style,
@@ -307,11 +307,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-drop-marker--before\s*\{[^}]*left:\s*0;[^}]*border-left:\s*var\(--border-width-default\)\s+solid\s+var\(--primary\);[^}]*transform-origin:\s*left\s+center;"));
+                        @"(?s)\.mb-editor-workspace__tab-drop-marker--before\s*\{[^}]*left:\s*0;[^}]*border-left:\s*1px\s+solid\s+var\(--primary\);[^}]*transform-origin:\s*left\s+center;"));
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-drop-marker--end\s*\{[^}]*right:\s*0;[^}]*border-right:\s*var\(--border-width-default\)\s+solid\s+var\(--primary\);[^}]*transform-origin:\s*right\s+center;"));
+                        @"(?s)\.mb-editor-workspace__tab-drop-marker--end\s*\{[^}]*right:\s*0;[^}]*border-right:\s*1px\s+solid\s+var\(--primary\);[^}]*transform-origin:\s*right\s+center;"));
                 Assert.That(
                     style,
                     Does.Match(
@@ -327,7 +327,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
                 Assert.That(
                     style,
                     Does.Match(
-                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*5;[^}]*top:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*50%;[^}]*border-left:\s*var\(--border-width-default\)\s+solid\s+var\(--primary\);[^}]*pointer-events:\s*none;"));
+                        @"(?s)\.mb-editor-workspace__tab-split-drop-target\s*\{[^}]*position:\s*absolute;[^}]*z-index:\s*5;[^}]*top:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*50%;[^}]*border-left:\s*1px\s+solid\s+var\(--primary\);[^}]*pointer-events:\s*none;"));
                 Assert.That(
                     style,
                     Does.Match(

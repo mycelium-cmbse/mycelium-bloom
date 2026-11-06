@@ -30,7 +30,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         {
             var project = TestRepository.GetDirectoryPath("Mycelium.Bloom");
             var css = File.ReadAllText(Path.Combine(project, stylesheet));
-            var tokens = File.ReadAllText(Path.Combine(project, "wwwroot", "css", "tokens.css"));
+            var tokens = File.ReadAllText(Path.Combine(project, "wwwroot", "css", "tokens-bloom.css"));
             var references = TokenReference().Matches(css);
 
             using (Assert.EnterMultipleScope())

@@ -95,7 +95,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [TestCase("var(--sysml-requirements-header)", TypeArgs = [typeof(IFeature)])]
         [TestCase("var(--sysml-verification-header)", TypeArgs = [typeof(IType)])]
         [TestCase("var(--sysml-structure-header)", TypeArgs = [typeof(INamespace)])]
-        [TestCase("var(--foreground-muted)", TypeArgs = [typeof(IElement)])]
+        [TestCase("var(--muted-foreground)", TypeArgs = [typeof(IElement)])]
         public void VerifyRenderUsesCanonicalElementColor<TElement>(string expectedColor)
             where TElement : class, IElement
         {

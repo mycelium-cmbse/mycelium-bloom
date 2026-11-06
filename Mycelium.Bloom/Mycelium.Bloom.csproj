@@ -55,6 +55,7 @@
           against this package's public API.
         -->
         <PackageReference Include="BlazorBlueprint.Icons.Lucide" Version="2.0.2" />
+        <PackageReference Include="Mycelium.Design.Bloom" Version="1.1.0" />
         <PackageReference Include="DynamicData" Version="9.4.33" />
         <PackageReference Include="ErrorOr" Version="2.1.1" />
         <!-- Intentionally direct: selects reviewed HtmlSanitizer 9.2.1039 used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when either dependency is upgraded. -->
@@ -66,6 +67,11 @@
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
         <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Remove="wwwroot/css/tokens-bloom.css;wwwroot/css/app.css" />
+        <Content Include="wwwroot/css/tokens-bloom.css;wwwroot/css/app.css" />
     </ItemGroup>
 
     <Import Project="Build/Tailwind.targets" />

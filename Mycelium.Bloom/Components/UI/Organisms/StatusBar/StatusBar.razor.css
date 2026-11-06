@@ -1,4 +1,5 @@
 .mb-status-bar {
+    font: var(--typography-typography-label-sm), sans-serif;
     --status-bar-min-height: 2rem;
     --status-bar-compact-min-height: 1.75rem;
 
@@ -10,11 +11,9 @@
     min-width: 0;
     min-height: var(--status-bar-min-height);
     padding: 0 var(--spacing-12);
-    border-top: var(--border-width-default) solid var(--border-subtle);
+    border-top: 1px solid var(--border-subtle);
     background: var(--card);
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-label-sm-font-size);
-    line-height: var(--typography-typography-label-sm-line-height);
 }
 
 .mb-status-bar--compact {

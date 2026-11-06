@@ -19,15 +19,11 @@
     margin: 0;
     color: var(--foreground);
     font-size: var(--text-28);
-    font-weight: var(--typography-typography-heading-md-font-weight);
-    line-height: var(--typography-typography-display-xl-line-height);
 }
 
 .mb-page-header__subtitle {
     margin: 0;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    font-weight: var(--typography-typography-body-sm-font-weight);
 }
 
 .mb-page-header__actions {

@@ -35,7 +35,7 @@
     min-height: 0;
     padding: 16px 6px;
     overflow: hidden;
-    border-right: var(--border-width-default) solid var(--border-subtle);
+    border-right: 1px solid var(--border-subtle);
     background: var(--background);
     color: var(--muted-foreground);
 }
@@ -172,13 +172,13 @@
     height: var(--navigation-rail-target-size);
     padding: 0;
     overflow: hidden;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-8);
     background: transparent;
     color: var(--muted-foreground);
     transition:
-        background-color var(--motion-duration-fast) var(--motion-easing-standard),
-        color var(--motion-duration-fast) var(--motion-easing-standard),
-        outline-color var(--motion-duration-fast) var(--motion-easing-standard);
+        background-color 150ms ease,
+        color 150ms ease,
+        outline-color 150ms ease;
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link::before {
@@ -190,11 +190,11 @@
     );
     width: var(--navigation-rail-active-size);
     height: var(--navigation-rail-active-size);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-6);
     background: transparent;
     content: "";
     transform: translateY(-50%);
-    transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: background-color 150ms ease;
 }
 
 .mb-navigation-rail ::deep .mb-navigation-rail__link:hover {
@@ -254,13 +254,11 @@
 }
 
 .mb-navigation-rail__label-text {
+    font: var(--typography-typography-body-sm), sans-serif;
     display: block;
     width: max-content;
     padding-inline-start: var(--spacing-12);
     padding-inline-end: var(--spacing-8);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
-    font-weight: var(--typography-typography-body-sm-font-weight);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -277,8 +275,9 @@
 
 .mb-navigation-rail:not(.mb-navigation-rail--collapsed)
     .mb-navigation-rail__section-marker--named {
+    font: var(--typography-typography-label-xs), sans-serif;
     height: calc(
-        var(--typography-typography-label-xs-line-height) + var(--spacing-12) + var(--spacing-4)
+        1lh + var(--spacing-12) + var(--spacing-4)
     );
 }
 
@@ -286,7 +285,7 @@
     position: absolute;
     inset: 0;
     opacity: 1;
-    transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: opacity 150ms ease;
 }
 
 .mb-navigation-rail__divider::before {
@@ -312,15 +311,13 @@
 }
 
 .mb-navigation-rail__group-heading-label {
+    font: var(--typography-typography-label-xs), sans-serif;
     box-sizing: border-box;
     display: block;
     width: max-content;
     padding: var(--spacing-12) var(--spacing-8) var(--spacing-4) var(--spacing-12);
     overflow: hidden;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-label-xs-font-size);
-    line-height: var(--typography-typography-label-xs-line-height);
-    font-weight: var(--typography-typography-label-xs-font-weight);
     letter-spacing: 0.08em;
     pointer-events: none;
     text-align: start;
@@ -353,7 +350,7 @@
     height: var(--navigation-rail-collapse-size);
     margin: 0;
     padding: 0;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-6);
     color: var(--primary);
 }
 
@@ -394,7 +391,6 @@
 .mb-navigation-rail__control-menu-content ::deep .mb-navigation-rail__control-option--selected:focus {
     background: var(--accent);
     color: var(--primary);
-    font-weight: var(--typography-typography-label-xs-font-weight);
 }
 
 .mb-navigation-rail--collapsed .mb-navigation-rail__label {
@@ -411,24 +407,24 @@
     }
 
     .mb-navigation-rail:not(.mb-navigation-rail--hover-overlay) {
-        transition: width var(--motion-duration-fast) var(--motion-easing-standard);
+        transition: width 150ms ease;
     }
 
     .mb-navigation-rail__section-marker {
-        transition: height var(--motion-duration-fast) var(--motion-easing-standard);
+        transition: height 150ms ease;
     }
 
     .mb-navigation-rail ::deep .mb-navigation-rail__link {
         transition:
-            background-color var(--motion-duration-fast) var(--motion-easing-standard),
-            color var(--motion-duration-fast) var(--motion-easing-standard),
-            outline-color var(--motion-duration-fast) var(--motion-easing-standard);
+            background-color 150ms ease,
+            color 150ms ease,
+            outline-color 150ms ease;
     }
 
     .mb-navigation-rail__label {
         display: block;
         opacity: 1;
-        transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+        transition: opacity 150ms ease;
     }
 
     .mb-navigation-rail--collapsed .mb-navigation-rail__label {
@@ -438,8 +434,8 @@
 
     .mb-navigation-rail--hover-overlay .mb-navigation-rail__label {
         transition:
-            width var(--motion-duration-fast) var(--motion-easing-standard),
-            opacity var(--motion-duration-fast) var(--motion-easing-standard);
+            width 150ms ease,
+            opacity 150ms ease;
     }
 
     .mb-navigation-rail--hover-overlay.mb-navigation-rail--collapsed
@@ -449,7 +445,7 @@
 
     .mb-navigation-rail__group-heading {
         display: block;
-        transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+        transition: opacity 150ms ease;
     }
 
     .mb-navigation-rail--collapsed .mb-navigation-rail__group-heading {
@@ -459,8 +455,8 @@
 
     .mb-navigation-rail--hover-overlay .mb-navigation-rail__group-heading {
         transition:
-            width var(--motion-duration-fast) var(--motion-easing-standard),
-            opacity var(--motion-duration-fast) var(--motion-easing-standard);
+            width 150ms ease,
+            opacity 150ms ease;
     }
 
     .mb-navigation-rail--hover-overlay.mb-navigation-rail--collapsed

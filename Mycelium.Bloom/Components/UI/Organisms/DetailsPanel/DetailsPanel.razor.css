@@ -9,7 +9,7 @@
     overflow-y: auto;
     background: var(--card);
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .mb-details-panel__header {
@@ -18,7 +18,7 @@
     justify-content: space-between;
     gap: var(--spacing-8);
     padding-bottom: var(--spacing-12);
-    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .mb-details-panel__heading-content {
@@ -34,29 +34,24 @@
 }
 
 .mb-details-panel__title {
+    font: var(--typography-typography-label-sm), sans-serif;
     margin: 0;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-label-sm-font-size);
-    line-height: var(--typography-typography-label-sm-line-height);
-    font-weight: var(--typography-typography-label-sm-font-weight);
 }
 
 .mb-details-panel__element-name {
+    font: var(--typography-typography-heading-xs), sans-serif;
     margin: var(--spacing-4) 0 0;
     overflow-wrap: anywhere;
     color: var(--foreground);
-    font-size: var(--typography-typography-heading-xs-font-size);
-    line-height: var(--typography-typography-heading-xs-line-height);
-    font-weight: var(--typography-typography-heading-xs-font-weight);
 }
 
 .mb-details-panel__empty {
+    font: var(--typography-typography-body-sm), sans-serif;
     margin: 0;
     padding: var(--spacing-16) 0;
     overflow-wrap: anywhere;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
 }
 
 .mb-details-panel__properties {
@@ -68,25 +63,21 @@
     grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr);
     gap: var(--spacing-8);
     padding: var(--spacing-8) 0;
-    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .mb-details-panel__label {
+    font: var(--typography-typography-label-sm), sans-serif;
     min-width: 0;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-label-sm-font-size);
-    line-height: var(--typography-typography-label-sm-line-height);
-    font-weight: var(--typography-typography-label-sm-font-weight);
 }
 
 .mb-details-panel__value {
+    font: var(--typography-typography-mono-xs), monospace;
     min-width: 0;
     margin: 0;
     overflow-wrap: anywhere;
-    color: var(--foreground-muted);
-    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--typography-typography-mono-xs-font-size);
-    line-height: var(--typography-typography-mono-xs-line-height);
+    color: var(--muted-foreground);
 }
 
 @media (max-width: 24rem) {
