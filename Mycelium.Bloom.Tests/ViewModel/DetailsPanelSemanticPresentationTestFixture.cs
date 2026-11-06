@@ -172,6 +172,65 @@ namespace Mycelium.Bloom.Tests.ViewModel
             }
         }
 
+        [TestCase(4096, false)]
+        [TestCase(4097, true)]
+        public void VerifySpecializationTraversalLimit(int elementCount, bool truncated)
+        {
+            var root = new Namespace { DeclaredName = "Model" };
+            var general = new PartDefinition { DeclaredName = "Base" };
+            var first = new PartDefinition { DeclaredName = "First" };
+            var last = new PartDefinition { DeclaredName = "Last" };
+            Own<OwningMembership>(root, general);
+            Own<OwningMembership>(root, first);
+            Own<OwningMembership>(root, last);
+            AddRelationship(first, new Specialization { General = general, Specific = first });
+
+            // Seven elements including the memberships, plus the first and last specializations.
+            for (var index = 0; index < elementCount - 9; index++)
+            {
+                AddRelationship(last, new Membership { MemberElement = first });
+            }
+
+            AddRelationship(last, new Specialization { General = general, Specific = last });
+            var hierarchy = new DetailsPanelPresentation(general).DisplaySections.Single(section => section.Title == "Specializations / Type hierarchy");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(hierarchy.Tab, Is.EqualTo("Relations"));
+                Assert.That(hierarchy.Links.First().Element, Is.SameAs(first));
+                Assert.That(hierarchy.Links.All(link => link.Role == "Specialized by"), Is.True);
+                Assert.That(hierarchy.Links, Has.Count.EqualTo(truncated ? 1 : 2));
+                Assert.That(hierarchy.Paragraphs, Is.EqualTo(truncated
+                    ? new[] { "Some specializations are not shown because the loaded model exceeds the inspection limit." }
+                    : System.Array.Empty<string>()));
+
+                if (!truncated)
+                {
+                    Assert.That(hierarchy.Links.Last().Element, Is.SameAs(last));
+                }
+            }
+        }
+
+        [Test]
+        public void VerifySpecializationTraversalPreservesCanonicalTargetsWithCyclesAndDuplicates()
+        {
+            // Intentionally malformed ownership: the loaded root contains itself and repeats a child.
+            var root = new Mock<INamespace>();
+            var general = new Mock<IPartDefinition>();
+            general.SetupGet(element => element.owner).Returns(root.Object);
+            var specific = new PartDefinition { DeclaredName = "Specific" };
+            root.SetupGet(element => element.ownedElement).Returns([general.Object, specific, root.Object, specific]);
+            AddRelationship(specific, new Specialization { General = general.Object, Specific = specific });
+            AddRelationship(specific, new Specialization { General = general.Object, Specific = specific });
+            var hierarchy = new DetailsPanelPresentation(general.Object).DisplaySections.Single(section => section.Title == "Specializations / Type hierarchy");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(hierarchy.Links.Single().Element, Is.SameAs(specific));
+                Assert.That(hierarchy.Paragraphs, Is.Empty);
+            }
+        }
+
         [Test]
         public void VerifyIncompleteTransitionRoleDoesNotHideValidSiblings()
         {

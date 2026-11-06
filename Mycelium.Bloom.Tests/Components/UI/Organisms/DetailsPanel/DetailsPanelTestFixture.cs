@@ -87,6 +87,38 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
         }
 
         [Test]
+        public void VerifySelectedElementIdIsRenderedOnceInPropertiesIdentity()
+        {
+            var selected = new PartUsage { ElementId = "selected-part", Id = Guid.NewGuid(), DeclaredName = "Harness" };
+            this.SetPresentation(selected);
+            var component = this.Render<Panel>();
+            var identity = component.Find("[role='tabpanel'] section[aria-label='Identity']");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                Assert.That(identity.QuerySelector("[data-property-name='id'] dd")?.TextContent.Trim(), Is.EqualTo(selected.ElementId));
+                Assert.That(component.FindAll("dd").Count(field => field.TextContent.Trim() == selected.ElementId), Is.EqualTo(1));
+                Assert.That(component.Markup, Does.Not.Contain(selected.Id.ToString()).And.Not.Contain("Advanced metadata"));
+            }
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void VerifyMissingElementIdDoesNotUseSdkIdAsFallback(string elementId)
+        {
+            var selected = new PartUsage { ElementId = elementId, Id = Guid.NewGuid(), DeclaredName = "Harness" };
+            this.SetPresentation(selected);
+            var component = this.Render<Panel>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("[data-property-name='id']"), Is.Empty);
+                Assert.That(component.Markup, Does.Not.Contain(selected.Id.ToString()));
+            }
+        }
+
+        [Test]
         public async Task VerifyCanonicalReferenceAndBrowserCallbacks()
         {
             var target = new PartDefinition { DeclaredName = "HarnessDef" };

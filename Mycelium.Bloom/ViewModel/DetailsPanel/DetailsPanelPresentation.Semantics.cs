@@ -54,7 +54,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var identity = this.Sections.Single(section => section.Title == "Identity");
             sections.Add(identity with
             {
-                Properties = BuildIdentityFields(identity)
+                Properties = this.BuildIdentityFields(identity)
             });
             var memberNotices = new List<KeyValuePair<string, string>>();
             var members = GetOwnedMembers(this.Element, memberNotices).ToArray();
@@ -120,15 +120,17 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 .ToArray();
         }
 
-        /// <summary>Labels SDK effective names consistently while retaining a differing or absent declaration.</summary>
+        /// <summary>Displays the SDK element identifier and effective names while retaining a differing or absent declaration.</summary>
         /// <param name="identity">The cached identity facts, including incomplete-model explanations.</param>
         /// <returns>Design-facing identity fields without synthesizing a name.</returns>
-        private static IReadOnlyList<KeyValuePair<string, string>> BuildIdentityFields(PropertySectionPresentation identity)
+        private IReadOnlyList<KeyValuePair<string, string>> BuildIdentityFields(PropertySectionPresentation identity)
         {
             var facts = identity.Properties.ToDictionary(property => property.Key, property => property.Value);
             var effectiveName = facts.GetValueOrDefault("Effective name");
             var effectiveShortName = facts.GetValueOrDefault("Effective short name");
-            var fields = new List<KeyValuePair<string, string>> { new("name", effectiveName ?? "No effective name") };
+            var fields = new List<KeyValuePair<string, string>>();
+            Add(fields, "id", this.Element.ElementId);
+            fields.Add(new("name", effectiveName ?? "No effective name"));
             Add(fields, "shortName", effectiveShortName);
             Add(fields, "qualifiedName", facts.GetValueOrDefault("Qualified name"));
             Add(fields, "visibility", facts.GetValueOrDefault("Visibility"));
@@ -442,11 +444,18 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             var visited = new HashSet<IElement>(ReferenceEqualityComparer.Instance);
             var links = new List<ElementLinkPresentation>();
 
-            while (pending.TryDequeue(out var element) && visited.Count < 4096)
+            while (pending.TryDequeue(out var element))
             {
                 if (!visited.Add(element))
                 {
                     continue;
+                }
+
+                if (visited.Count > 4096)
+                {
+                    notices.Add(
+                        "Some specializations are not shown because the loaded model exceeds the inspection limit.");
+                    break;
                 }
 
                 if (element is ISpecialization specialization &&
@@ -474,12 +483,6 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 {
                     pending.Enqueue(relationship);
                 }
-            }
-
-            if (pending.Count > 0)
-            {
-                notices.Add(
-                    "Some specializations are not shown because the loaded model exceeds the inspection limit.");
             }
 
             return links.DistinctBy(link => link.Element, ReferenceEqualityComparer.Instance).ToArray();
