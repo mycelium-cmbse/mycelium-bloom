@@ -172,6 +172,7 @@ test('workspace right splitter commits captured pointer resizing and releases ca
     const shell = createResizableShell();
     try {
         shell.pointer('pointerdown', 600);
+        assert.equal(shell.handle.dataset.resizing, 'true');
         shell.pointer('pointermove', 500);
         assert.equal(shell.handle.getAttribute('aria-valuenow'), '480');
         assert.deepEqual(shell.changes, []);
@@ -179,6 +180,7 @@ test('workspace right splitter commits captured pointer resizing and releases ca
         await shell.committed;
         assert.deepEqual(shell.changes, [480]);
         assert.equal(shell.captures.size, 0);
+        assert.equal(shell.handle.dataset.resizing, undefined);
     } finally { shell.interaction.dispose(); }
 });
 
@@ -187,6 +189,7 @@ test('workspace right splitter cancels drag and ignores compact or disposed keyb
     shell.pointer('pointerdown', 600);
     shell.pointer('pointermove', 400);
     shell.pointer('pointercancel', 400);
+    assert.equal(shell.handle.dataset.resizing, undefined);
     assert.equal(shell.handle.getAttribute('aria-valuenow'), '380');
     assert.equal(shell.captures.size, 0);
     shell.body.style.display = 'block';
@@ -195,6 +198,21 @@ test('workspace right splitter cancels drag and ignores compact or disposed keyb
     shell.interaction.dispose();
     shell.body.style.display = 'grid';
     shell.pointer('pointerdown', 600);
+    assert.equal(shell.captures.size, 0);
+});
+
+test('workspace right splitter clears drag highlighting on lost capture and disposal', () => {
+    const shell = createResizableShell();
+    shell.pointer('pointerdown', 600);
+    shell.pointer('pointermove', 500);
+    shell.pointer('lostpointercapture', 500);
+    assert.equal(shell.handle.dataset.resizing, undefined);
+    assert.equal(shell.handle.getAttribute('aria-valuenow'), '380');
+    assert.deepEqual(shell.changes, []);
+    shell.pointer('pointerdown', 600);
+    assert.equal(shell.handle.dataset.resizing, 'true');
+    shell.interaction.dispose();
+    assert.equal(shell.handle.dataset.resizing, undefined);
     assert.equal(shell.captures.size, 0);
 });
 
