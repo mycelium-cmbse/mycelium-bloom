@@ -136,10 +136,15 @@
     width: var(--border-width-default);
     background: var(--border);
     pointer-events: none;
+    transition:
+        width var(--motion-duration-fast) var(--motion-easing-standard),
+        background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .mb-workspace-shell__right-splitter:hover::after,
+.mb-workspace-shell__right-splitter[data-resizing="true"]::after,
 .mb-workspace-shell__right-splitter:focus-visible::after {
+    width: 3px;
     background: var(--primary);
 }
 
@@ -255,7 +260,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .mb-workspace-shell__left-panel {
+    .mb-workspace-shell__left-panel,
+    .mb-workspace-shell__right-splitter::after {
         transition: none;
     }
 }

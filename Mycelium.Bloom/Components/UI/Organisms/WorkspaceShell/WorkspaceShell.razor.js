@@ -60,6 +60,7 @@ export function create(root, receiver) {
     function cancelDrag() {
         const previous = drag;
         drag = null;
+        if (previous) delete previous.handle.dataset.resizing;
         if (previous?.handle.hasPointerCapture(previous.pointerId)) {
             previous.handle.releasePointerCapture(previous.pointerId);
         }
@@ -87,6 +88,7 @@ export function create(root, receiver) {
         handle.setPointerCapture(event.pointerId);
         const width = measuredWidth ?? panel().getBoundingClientRect().width;
         drag = { handle, pointerId: event.pointerId, startX: event.clientX, initialWidth: width, width };
+        handle.dataset.resizing = 'true';
     }, { signal: listeners.signal });
 
     root.addEventListener('pointermove', event => {

@@ -31,11 +31,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private const int DefaultEditorGroupCount = 3;
 
         /// <summary>
-        /// The composition-owned action that creates generic empty editor content.
-        /// </summary>
-        private const string EmptyEditorActionId = "empty-editor";
-
-        /// <summary>
         /// The composition-owned action that opens independent Project Browser content.
         /// </summary>
         private const string ProjectBrowserActionId = "open-project-browser";
@@ -60,7 +55,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private static readonly EditorTypePresentation[] EditorTypes =
         [
-            new(EmptyEditorActionId, "Empty editor", PlaceholderViewTypeKey, SymbolIconName.Document),
             new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree)
         ];
 
@@ -117,6 +111,28 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [CascadingParameter(Name = "PropertiesRequested")]
         private EventCallback PropertiesRequested { get; set; }
 
+        /// <summary>Gets or sets the layout's local Browser reveal registration callback.</summary>
+        [CascadingParameter(Name = "RegisterBrowserReveal")]
+        private Action<object, EventCallback<SysML2.NET.Core.POCO.Root.Elements.IElement>> RegisterBrowserReveal { get; set; }
+
+        /// <summary>Tracks whether this page currently exposes a Browser reveal callback to its layout.</summary>
+        private bool browserRevealRegistered;
+
+        /// <inheritdoc />
+        protected override Task OnAfterRenderAsync(bool firstRender)
+        {
+            var canReveal = !this.isDisposed && this.projectBrowserViewModels.Count > 0;
+            if (firstRender || canReveal != this.browserRevealRegistered)
+            {
+                this.browserRevealRegistered = canReveal;
+                this.RegisterBrowserReveal?.Invoke(this, canReveal
+                    ? EventCallback.Factory.Create<SysML2.NET.Core.POCO.Root.Elements.IElement>(this,
+                        element => this.FocusRestoredElementAsync(element, CancellationToken.None))
+                    : default);
+            }
+            return base.OnAfterRenderAsync(firstRender);
+        }
+
         /// <summary>Forwards explicit browser selection, including a repeated click on the same object.</summary>
         private Task HandleBrowserSelectionAsync(ProjectBrowserNodeViewModel node) =>
             this.isDisposed ? Task.CompletedTask : this.PropertiesRequested.InvokeAsync();
@@ -163,6 +179,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             this.isDisposed = true;
+            this.RegisterBrowserReveal?.Invoke(this, default);
             this.subscriptions.Dispose();
             this.DisposeProjectBrowserViewModels();
             this.WorkspaceEditorViewModel?.Dispose();
@@ -410,9 +427,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             switch (item.Id)
             {
-                case EmptyEditorActionId:
-                    this.OpenPlaceholderTab(groupId);
-                    break;
                 case ProjectBrowserActionId:
                     _ = this.OpenProjectBrowserTab(groupId);
                     break;
@@ -533,6 +547,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private static string GetEditorTabIconName(EditorTabItem tab)
         {
             ArgumentNullException.ThrowIfNull(tab);
+
+            if (tab.ViewTypeKey == PlaceholderViewTypeKey)
+            {
+                return SymbolIconName.Document.ToLucideName();
+            }
 
             var editorType = EditorTypes.FirstOrDefault(candidate => string.Equals(
                 candidate.ViewTypeKey,
