@@ -465,6 +465,16 @@
     height: 100%;
     background: var(--border-subtle);
     pointer-events: none;
+    transition:
+        width var(--motion-duration-fast) var(--motion-easing-standard),
+        background-color var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.mb-editor-workspace__splitter:hover .mb-editor-workspace__splitter-line,
+.mb-editor-workspace__splitter[data-resizing="true"] .mb-editor-workspace__splitter-line,
+.mb-editor-workspace__splitter:focus-visible .mb-editor-workspace__splitter-line {
+    width: 2px;
+    background: var(--primary);
 }
 
 .mb-editor-workspace__split-add-host {

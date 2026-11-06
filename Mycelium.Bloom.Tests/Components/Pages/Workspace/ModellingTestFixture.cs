@@ -206,7 +206,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(addTabMenus, Has.Count.EqualTo(3));
                 Assert.That(
                     addTabMenus.All(menu => menu.Instance.Items.Select(item => item.Symbol)
-                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Document, SymbolIconName.Tree })),
+                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Tree })),
                     Is.True);
                 Assert.That(renderedTabIcons[composition.Editor.Groups[0].ActiveTab.Id], Is.EqualTo("list-tree"));
                 Assert.That(
@@ -284,7 +284,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         [Test]
-        public async Task VerifyEmptyEditorActionTargetsExactOwningGroup()
+        public async Task VerifyAddTabOffersOnlyProjectBrowserAndTargetsExactOwningGroup()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -304,11 +304,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(composition.Editor.Groups[2].Tabs, Has.Count.EqualTo(1));
             }
 
-            var emptyEditorAction = this.FindPortalledMenuItem("Empty editor");
+            var projectBrowserAction = this.FindPortalledMenuItem("Project Browser");
 
-            Assert.That(emptyEditorAction.QuerySelector("svg"), Is.Not.Null);
+            Assert.That(this.portalHost.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(new[] { "Project Browser" }));
+            Assert.That(projectBrowserAction.QuerySelector("svg"), Is.Not.Null);
 
-            await emptyEditorAction.ClickAsync();
+            await projectBrowserAction.ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -318,11 +319,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Assert.That(targetGroup.Tabs, Has.Count.EqualTo(2));
                     Assert.That(composition.Editor.Groups[2].Tabs, Has.Count.EqualTo(1));
                     Assert.That(composition.Editor.FocusedGroup, Is.SameAs(targetGroup));
-                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Editor 4"));
-                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Project Browser"));
+                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                     Assert.That(component.Find(
                             $"[data-testid='workspace-editor-tab-icon'][data-tab-id='{targetGroup.ActiveTab.Id}']")
-                        .GetAttribute("data-icon-name"), Is.EqualTo("file-text"));
+                        .GetAttribute("data-icon-name"), Is.EqualTo("list-tree"));
                 }
             });
         }
@@ -615,7 +616,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         [Test]
-        public async Task VerifyClosingProjectBrowserReleasesInstanceWithoutConsumingPlaceholderNumber()
+        public async Task VerifyClosingProjectBrowserReleasesInstanceAndAllowsReplacement()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -642,15 +643,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.WaitForAssertionAsync(() =>
                 Assert.That(targetGroup.Tabs.Any(tab => tab.ViewTypeKey == "project-browser"), Is.True));
 
-            await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
-
             await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Editor 4"));
-                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Project Browser"));
+                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                     Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
                         .Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(1));
                     Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(2));
@@ -661,7 +659,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         [Test]
-        public async Task VerifyClosingAllWorkspaceTabsResetsPlaceholderNumbering()
+        public async Task VerifyClosingAllWorkspaceTabsAllowsProjectBrowserInRemainingGroup()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -681,20 +679,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var remainingGroup = composition.Editor.Groups.Single();
             await FindAddTabMenu(component, remainingGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Editor 1"));
-                    Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Project Browser"));
+                    Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                 }
             });
         }
 
         [Test]
-        public async Task VerifyClosingPlaceholdersDoesNotResetNumberingWhileProjectBrowserRemains()
+        public async Task VerifyClosingPlaceholdersRetainsProjectBrowserAndAllowsAnotherInstance()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -719,14 +717,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var browserGroup = composition.Editor.Groups.Single();
             await FindAddTabMenu(component, browserGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(browserGroup.ActiveTab.Title, Is.EqualTo("Editor 4")));
+                Assert.That(browserGroup.Tabs.Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(2)));
         }
 
         [Test]
-        public async Task VerifyClosingFinalProjectBrowserResetsPlaceholderNumberingWhenWorkspaceBecomesEmpty()
+        public async Task VerifyClosingFinalProjectBrowserAllowsReopeningWhenWorkspaceBecomesEmpty()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -758,10 +756,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var remainingGroup = composition.Editor.Groups.Single();
             await FindAddTabMenu(component, remainingGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Editor 1")));
+                Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser")));
         }
 
         [Test]
@@ -1189,8 +1187,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var focusedGroup = composition.Editor.Groups[2];
             await this.OpenProjectBrowserAsync(component, focusedGroup.Id);
             var projectBrowserTab = focusedGroup.ActiveTab;
-            await FindAddTabMenu(component, focusedGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await component.InvokeAsync(() => Assert.That(composition.Editor.ActivateTab(focusedGroup.Id,
+                focusedGroup.Tabs.Single(tab => tab.ViewTypeKey == "placeholder").Id), Is.True));
             var restoredElement = new Namespace { ElementId = "restored" };
 
             await component.InvokeAsync(() => restorations.OnNext(
@@ -1244,8 +1242,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var component = host.FindComponent<Modelling>();
             var projectBrowserGroup = composition.Editor.Groups[0];
             var projectBrowserTab = projectBrowserGroup.ActiveTab;
-            await FindAddTabMenu(component, projectBrowserGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await component.InvokeAsync(() => Assert.That(composition.Editor.TryOpenTab(projectBrowserGroup.Id,
+                "Existing editor", "placeholder", out _), Is.True));
             Assert.That(composition.Editor.FocusGroup(composition.Editor.Groups[2].Id), Is.True);
             var restoredElement = new Namespace { ElementId = "restored" };
 
@@ -1468,7 +1466,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
         private IElement FindPortalledMenuItem(string label)
         {
-            return this.portalHost.WaitForElements("[role='menuitem']", 2)
+            return this.portalHost.WaitForElements("[role='menuitem']", 1)
                 .Single(item => string.Equals(item.TextContent.Trim(), label, StringComparison.Ordinal));
         }
 
