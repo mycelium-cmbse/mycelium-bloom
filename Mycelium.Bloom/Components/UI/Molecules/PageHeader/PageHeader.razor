@@ -11,11 +11,11 @@
 
 <header class="@(this.BuildRootCssClass("mb-page-header"))" @attributes="this.AdditionalAttributes">
     <div class="mb-page-header__text">
-        <h1 class="mb-page-header__title">@(this.Title)</h1>
+        <h1 class="mb-page-header__title leading-display-xl [font-weight:--theme(--font-weight-heading-md)]">@(this.Title)</h1>
 
         @if (!string.IsNullOrWhiteSpace(this.Subtitle))
         {
-            <p class="mb-page-header__subtitle">@(this.Subtitle)</p>
+            <p class="mb-page-header__subtitle text-body-sm [font-weight:--theme(--font-weight-body-sm)]">@(this.Subtitle)</p>
         }
     </div>
 

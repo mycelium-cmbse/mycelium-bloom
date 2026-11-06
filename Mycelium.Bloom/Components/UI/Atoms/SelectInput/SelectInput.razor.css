@@ -37,7 +37,7 @@
 
 .mb-select-input__control ::deep .mb-select-input__chevron {
     color: var(--muted-foreground);
-    transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: transform 150ms ease;
 }
 
 .mb-select-input--open ::deep .mb-select-input__chevron {

@@ -11,14 +11,12 @@
 }
 
 .mb-workspace-dashboard h1 {
+    font: var(--typography-typography-display-lg), sans-serif;
     margin: 0;
-    font-size: var(--typography-typography-display-lg-font-size);
-    line-height: var(--typography-typography-display-lg-line-height);
 }
 
 .mb-workspace-dashboard p {
+    font: var(--typography-typography-body-sm), sans-serif;
     margin: var(--spacing-8) 0 0;
-    color: var(--foreground-muted);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    color: var(--muted-foreground);
 }

@@ -19,9 +19,9 @@
 
 .mb-organization-header__brand:focus-visible,
 .mb-organization-header__segment:focus-visible {
-    outline: var(--border-width-default) solid var(--ring);
+    outline: 1px solid var(--ring);
     outline-offset: var(--spacing-4);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
 }
 
 /* BrandMark is sized in em, so this font size sets the width of the logo. */
@@ -36,7 +36,6 @@
     gap: var(--spacing-6);
     color: var(--foreground);
     font-size: var(--text-13);
-    font-weight: var(--typography-typography-body-md-medium-font-weight);
     text-decoration: none;
 }
 

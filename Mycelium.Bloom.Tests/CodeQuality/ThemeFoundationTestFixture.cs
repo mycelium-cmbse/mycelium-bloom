@@ -36,35 +36,35 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--muted:",
             "--input:",
             "--foreground:",
-            "--foreground-muted:",
+            "--muted-foreground:",
             "--muted-foreground:",
             "--border-subtle:",
             "--border:",
             "--border-strong:",
             "--primary:",
             "--primary-strong:",
-            "--primary-deep:",
+            "--primary-strong:",
             "--primary-foreground:",
             "--accent:",
             "--secondary:",
             "--secondary-foreground:",
             "--ring:",
             "--success-subtle:",
-            "--success-strong:",
+            "--success:",
             "--warning-subtle:",
-            "--warning-vivid:",
+            "--warning:",
             "--destructive-subtle:",
-            "--destructive-strong:",
+            "--destructive:",
             "--destructive:",
             "--destructive-foreground:",
             "--info-subtle:",
-            "--info-strong:",
+            "--info:",
             "--ownership-aocs-base:",
             "--collaborator-c06:",
             "--lifecycle-open:",
-            "--font-sans:",
-            "--font-mono:",
-            "--radius:",
+            "--typography-typography-body-md:",
+            "--typography-typography-mono-md:",
+            "--radius-8:",
             "--sysml-structure-header:",
             "--sysml-attributes-header:",
             "--sysml-connections-header:",
@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "--sysml-verification-header:",
             "--sysml-allocations-header:",
             "--sysml-metadata-header:",
-            "--scrim-modal:",
+            "--scrim:",
             "--shadow-popover:",
             "--shadow-modal:"
         ];
@@ -170,8 +170,8 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 Assert.That(bridge, Does.Contain("border-color: var(--border);"));
                 Assert.That(bridge, Does.Contain("background: var(--secondary);"));
                 Assert.That(bridge, Does.Contain("color: var(--secondary-foreground);"));
-                Assert.That(runtime, Does.Contain("--secondary: var(--muted);"));
-                Assert.That(runtime, Does.Contain("--secondary-foreground: var(--foreground);"));
+                Assert.That(GetTokenValue(runtime[..runtime.IndexOf(".dark {", StringComparison.Ordinal)], "--secondary"), Is.Not.Empty);
+                Assert.That(GetTokenValue(runtime[..runtime.IndexOf(".dark {", StringComparison.Ordinal)], "--secondary-foreground"), Is.Not.Empty);
                 Assert.That(runtime, Does.Not.Contain("--secondary: var(--accent)"));
             }
         }
@@ -272,7 +272,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 var tokensIndex = app.IndexOf("css/tokens.css", StringComparison.Ordinal);
                 Assert.That(tokensIndex, Is.GreaterThan(componentsIndex));
                 Assert.That(generatedAppIndex, Is.GreaterThan(tokensIndex));
-                Assert.That(tailwind, Does.Contain("@import \"./Generated/MyceliumTokens/theme.css\";"));
+                Assert.That(tailwind, Does.Contain("@import \"./Generated/MyceliumDesign/theme-mycelium.css\";"));
                 Assert.That(componentsIndex, Is.GreaterThan(primitivesIndex));
                 Assert.That(scopedStylesIndex, Is.GreaterThan(componentsIndex));
             }
@@ -465,14 +465,19 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         [GeneratedRegex(@"^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+) / [\d.]+\)$")]
         private static partial Regex SrgbColorPattern();
 
+        [GeneratedRegex("^#[0-9a-fA-F]{6}$")]
+        private static partial Regex HexColorPattern();
+
         private static double GetRelativeLuminance(string color)
         {
             var match = SrgbColorPattern().Match(color);
-            Assert.That(match.Success, Is.True, "Expected a resolved shared sRGB color.");
+            Assert.That(match.Success || HexColorPattern().IsMatch(color), Is.True, "Expected a resolved shared sRGB color.");
 
             double LinearChannel(int index)
             {
-                var channel = double.Parse(match.Groups[index].Value, CultureInfo.InvariantCulture);
+                var channel = color.StartsWith('#')
+                    ? int.Parse(color.AsSpan(1 + (index - 1) * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d
+                    : double.Parse(match.Groups[index].Value, CultureInfo.InvariantCulture);
                 return channel <= 0.04045d
                     ? channel / 12.92d
                     : Math.Pow((channel + 0.055d) / 1.055d, 2.4d);

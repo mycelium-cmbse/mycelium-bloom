@@ -5,9 +5,9 @@
     flex: 0 0 auto;
     width: 28px;
     height: 28px;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-8);
     background: var(--muted);
-    color: var(--foreground-muted);
+    color: var(--muted-foreground);
     font-size: 14px;
     line-height: 1;
     font-weight: 700;
@@ -15,10 +15,10 @@
 
 .mb-confirm-dialog__indicator--warning {
     background: var(--warning-subtle);
-    color: var(--warning-vivid);
+    color: var(--warning);
 }
 
 .mb-confirm-dialog__indicator--danger {
     background: var(--destructive-subtle);
-    color: var(--destructive-strong);
+    color: var(--destructive);
 }

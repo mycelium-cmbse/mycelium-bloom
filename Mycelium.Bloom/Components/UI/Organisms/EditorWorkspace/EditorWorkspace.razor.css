@@ -15,7 +15,7 @@
     overflow: hidden;
     background: var(--card);
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .mb-editor-workspace__compact-switcher {
@@ -116,19 +116,19 @@
     pointer-events: none;
     transform: scaleX(0);
     transition:
-        opacity var(--motion-duration-fast) var(--motion-easing-standard),
-        transform var(--motion-duration-fast) var(--motion-easing-standard);
+        opacity 150ms ease,
+        transform 150ms ease;
 }
 
 .mb-editor-workspace__tab-drop-marker--before {
     left: 0;
-    border-left: var(--border-width-default) solid var(--primary);
+    border-left: 1px solid var(--primary);
     transform-origin: left center;
 }
 
 .mb-editor-workspace__tab-drop-marker--end {
     right: 0;
-    border-right: var(--border-width-default) solid var(--primary);
+    border-right: 1px solid var(--primary);
     transform-origin: right center;
 }
 
@@ -141,12 +141,13 @@
 .mb-editor-workspace__tab-item--dragging {
     z-index: 3;
     box-shadow:
-        inset 0 0 0 var(--border-width-default) var(--primary),
+        inset 0 0 0 1px var(--primary),
         var(--shadow-popover);
     opacity: 0.55;
 }
 
 .mb-editor-workspace__tab {
+    font: var(--typography-typography-label-sm), sans-serif;
     display: inline-flex;
     align-items: center;
     align-self: stretch;
@@ -158,10 +159,7 @@
     border: 0;
     background: transparent;
     color: inherit;
-    font: inherit;
-    font-size: var(--typography-typography-label-sm-font-size);
     line-height: 15px;
-    font-weight: var(--typography-typography-label-sm-font-weight);
     cursor: grab;
 }
 
@@ -297,8 +295,8 @@
     background: transparent;
     pointer-events: none;
     transition:
-        background-color var(--motion-duration-fast) var(--motion-easing-standard),
-        box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+        background-color 150ms ease,
+        box-shadow 150ms ease;
 }
 
 .mb-editor-workspace__group-drop-surface--available {
@@ -346,6 +344,7 @@
 }
 
 .mb-editor-workspace__empty-group {
+    font: var(--typography-typography-body-sm), sans-serif;
     box-sizing: border-box;
     display: grid;
     place-items: center;
@@ -354,8 +353,6 @@
     padding: var(--spacing-16);
     background: var(--card);
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
 }
 
 .mb-editor-workspace__tab-split-docking-surface {
@@ -379,17 +376,17 @@
     display: grid;
     place-items: center;
     padding: 0;
-    border-left: var(--border-width-default) solid var(--primary);
+    border-left: 1px solid var(--primary);
     background: color-mix(in srgb, var(--accent) 72%, transparent);
     color: var(--primary);
     opacity: 0;
     pointer-events: none;
     transform-origin: right center;
     transition:
-        opacity var(--motion-duration-fast) var(--motion-easing-standard),
-        background-color var(--motion-duration-fast) var(--motion-easing-standard),
-        border-left-color var(--motion-duration-fast) var(--motion-easing-standard),
-        box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+        opacity 150ms ease,
+        background-color 150ms ease,
+        border-left-color 150ms ease,
+        box-shadow 150ms ease;
 }
 
 .mb-editor-workspace__tab-split-drop-target--available {
@@ -400,24 +397,24 @@
     border-left-color: var(--primary);
     background-color: color-mix(in srgb, var(--accent) 88%, transparent);
     box-shadow:
-        inset 0 0 0 var(--border-width-default) color-mix(in srgb, var(--primary) 48%, transparent),
+        inset 0 0 0 1px color-mix(in srgb, var(--primary) 48%, transparent),
         var(--shadow-popover);
     opacity: 1;
 }
 
 .mb-editor-workspace__tab-split-docking-plus {
+    font: var(--typography-typography-label-sm), sans-serif;
     box-sizing: border-box;
     display: grid;
     place-items: center;
     width: var(--editor-workspace-tab-split-preview-icon-size);
     height: var(--editor-workspace-tab-split-preview-icon-size);
-    border: var(--border-width-default) solid var(--primary);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-6);
     background: color-mix(in srgb, var(--accent) 72%, var(--card));
     box-shadow: var(--shadow-popover);
     pointer-events: none;
     font-size: var(--editor-workspace-split-add-icon-size);
-    font-weight: var(--typography-typography-label-sm-font-weight);
     line-height: 1;
 }
 
@@ -461,7 +458,7 @@
 }
 
 .mb-editor-workspace__splitter-line {
-    width: var(--border-width-default);
+    width: 1px;
     height: 100%;
     background: var(--border-subtle);
     pointer-events: none;
@@ -479,7 +476,7 @@
     opacity: 0.34;
     pointer-events: none;
     transform: translate(-50%, -50%);
-    transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: opacity 150ms ease;
 }
 
 .mb-editor-workspace__splitter:hover + .mb-editor-workspace__split-add-host,
@@ -512,8 +509,8 @@
     box-sizing: border-box;
     width: var(--editor-workspace-split-add-visible-size);
     height: var(--editor-workspace-split-add-visible-size);
-    border: var(--border-width-default) solid var(--border-subtle);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-6);
     background: var(--card);
     content: "";
     transform: translate(-50%, -50%);
@@ -557,14 +554,14 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: var(--border-width-default);
+    width: 1px;
     background: var(--border-subtle);
     content: "";
     pointer-events: none;
 }
 
 .mb-editor-workspace__right-edge-split-add-host .mb-editor-workspace__split-add {
-    transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+    transition: opacity 150ms ease;
 }
 
 .mb-editor-workspace__right-edge-split-add-host:hover .mb-editor-workspace__split-add,
@@ -578,17 +575,14 @@
 }
 
 .mb-editor-workspace__compact-button {
+    font: var(--typography-typography-label-sm), sans-serif;
     flex: 0 0 auto;
     min-height: var(--spacing-28);
     padding: var(--spacing-4) var(--spacing-8);
-    border: var(--border-width-default) solid transparent;
-    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    border-radius: var(--radius-6);
     background: transparent;
-    color: var(--foreground-muted);
-    font-family: inherit;
-    font-size: var(--typography-typography-label-sm-font-size);
-    line-height: var(--typography-typography-label-sm-line-height);
-    font-weight: var(--typography-typography-label-sm-font-weight);
+    color: var(--muted-foreground);
 }
 
 .mb-editor-workspace__compact-button:hover {
@@ -609,7 +603,7 @@
         gap: var(--spacing-4);
         min-width: 0;
         padding: var(--spacing-4) var(--spacing-8);
-        border-bottom: var(--border-width-default) solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
         background: var(--card);
         overflow-x: auto;
     }

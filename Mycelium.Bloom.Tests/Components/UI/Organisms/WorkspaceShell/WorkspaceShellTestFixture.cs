@@ -339,7 +339,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
                 Assert.That(embeddedRule, Does.Contain("min-width: 0;"));
                 Assert.That(embeddedRule, Does.Contain("min-height: 0;"));
                 Assert.That(embeddedRule, Does.Contain("overflow: hidden;"));
-                Assert.That(embeddedRule, Does.Contain("border: var(--border-width-default) solid var(--border-subtle);"));
+                Assert.That(embeddedRule, Does.Contain("border: 1px solid var(--border-subtle);"));
                 Assert.That(fullApplicationRule, Does.Contain("--workspace-shell-left-panel-collapsed-width: var(--spacing-52);"));
                 Assert.That(fullApplicationRule, Does.Contain("margin: 0;"));
                 Assert.That(fullApplicationRule, Does.Contain("padding: 0;"));

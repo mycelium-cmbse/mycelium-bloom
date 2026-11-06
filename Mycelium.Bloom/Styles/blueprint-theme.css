@@ -6,19 +6,19 @@
 @source inline("rounded-sm rounded-md rounded-lg rounded-xl");
 
 @utility rounded-sm {
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
 }
 
 @utility rounded-md {
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-6);
 }
 
 @utility rounded-lg {
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-8);
 }
 
 @utility rounded-xl {
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-12);
 }
 
 .mb-secondary {

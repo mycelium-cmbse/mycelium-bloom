@@ -15,7 +15,7 @@
     RenderFragment organizationSegments =
         @<text>
             <span class="mb-organization-header__separator" aria-hidden="true">/</span>
-            <a class="mb-organization-header__segment" href="@(this.ViewModel.Presentation.OrganizationPath)">
+            <a class="mb-organization-header__segment [font-weight:--theme(--font-weight-body-md-medium)]" href="@(this.ViewModel.Presentation.OrganizationPath)">
                 <LucideIcon Name="building-2" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                 @(this.ViewModel.Presentation.OrganizationName)
             </a>
@@ -41,7 +41,7 @@
     RenderFragment accountSegment =
         @<text>
             <span class="mb-organization-header__separator" aria-hidden="true">/</span>
-            <span class="mb-organization-header__segment">
+            <span class="mb-organization-header__segment [font-weight:--theme(--font-weight-body-md-medium)]">
                 <LucideIcon Name="user" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                 Account
             </span>
