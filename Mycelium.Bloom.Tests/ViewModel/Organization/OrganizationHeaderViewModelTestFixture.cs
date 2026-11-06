@@ -21,9 +21,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     [TestFixture]
     public sealed class OrganizationHeaderViewModelTestFixture

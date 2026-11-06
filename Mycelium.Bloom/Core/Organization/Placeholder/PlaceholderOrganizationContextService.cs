@@ -16,7 +16,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Model;
     using Mycelium.SDK;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
     /// <summary>
     /// Answers with the sample account and organizations until the Fabric client provides the real ones. The sample
@@ -63,7 +63,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// </summary>
         /// <param name="slug">The canonical slug of the organization, which is lower case.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
-        /// <returns>The context, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the slug.</returns>
+        /// <returns>The context, or an <see cref="ErrorCodes.NotFound" /> error when no sample organization has the slug.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
         public Task<ErrorOr<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken)
         {
@@ -71,7 +71,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
             if (!OrganizationPlaceholderData.Organizations.TryGetValue(slug, out var organization))
             {
-                return Task.FromResult<ErrorOr<OrganizationContext>>(Error.NotFound(OrganizationErrorCodes.NotFound, "The organization does not exist."));
+                return Task.FromResult<ErrorOr<OrganizationContext>>(Error.NotFound(ErrorCodes.NotFound, "The organization does not exist."));
             }
 
             var isAdministrator = this.options.Value.PlaceholderRole == OrganizationMembershipRole.Administrator;

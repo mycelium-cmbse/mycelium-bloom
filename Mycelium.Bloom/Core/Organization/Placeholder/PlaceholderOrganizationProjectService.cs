@@ -13,7 +13,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
     using Mycelium.Bloom.Model;
     using Mycelium.SDK;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
     /// <summary>
     /// Answers with the sample projects until the Fabric client provides the real ones. It applies no visibility
@@ -29,7 +29,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// <summary>
         /// The error returned for an identifier that no sample organization has.
         /// </summary>
-        private static readonly Error OrganizationNotFound = Error.NotFound(OrganizationErrorCodes.NotFound, "The organization does not exist.");
+        private static readonly Error OrganizationNotFound = Error.NotFound(ErrorCodes.NotFound, "The organization does not exist.");
 
         /// <summary>
         /// Provides the current time, from which the age of each sample project gives its last update.
@@ -48,17 +48,16 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         }
 
         /// <summary>
-        /// Gets the sample projects of an organization that match a filter, the most recently updated first.
+        /// Gets the sample projects of an organization.
         /// </summary>
         /// <param name="organizationId">The identifier of the organization.</param>
-        /// <param name="filter">The criteria that the sample projects must match.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>
-        /// The projects, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the
+        /// The projects, or an <see cref="ErrorCodes.NotFound" /> error when no sample organization has the
         /// identifier.
         /// </returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<IReadOnlyList<FunctionalProject>>> GetProjectsAsync(Guid organizationId, ProjectFilter filter, CancellationToken cancellationToken)
+        public Task<ErrorOr<IReadOnlyList<FunctionalProject>>> GetProjectsAsync(Guid organizationId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -69,63 +68,9 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
             var now = this.timeProvider.GetUtcNow().UtcDateTime;
 
-            IReadOnlyList<FunctionalProject> projects =
-            [
-                .. samples
-                    .Where(sample => Matches(sample, filter))
-                    .Select(sample => ToProject(sample, now))
-                    .OrderByDescending(project => project.UpdatedOn)
-            ];
+            IReadOnlyList<FunctionalProject> projects = [.. samples.Select(sample => ToProject(sample, now))];
 
             return Task.FromResult<ErrorOr<IReadOnlyList<FunctionalProject>>>(ErrorOrFactory.From(projects));
-        }
-
-        /// <summary>
-        /// Gets the number of sample projects of an organization, in total and by lifecycle state.
-        /// </summary>
-        /// <param name="organizationId">The identifier of the organization.</param>
-        /// <param name="cancellationToken">The token that cancels the request.</param>
-        /// <returns>The counts, or an <see cref="OrganizationErrorCodes.NotFound" /> error when no sample organization has the identifier.</returns>
-        /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<ProjectCounts>> GetProjectCountsAsync(Guid organizationId, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!OrganizationPlaceholderData.Projects.TryGetValue(organizationId, out var samples))
-            {
-                return Task.FromResult<ErrorOr<ProjectCounts>>(OrganizationNotFound);
-            }
-
-            var counts = new ProjectCounts(samples.Count, CountIn(samples, ProjectLifecycleKind.Preparation),
-                CountIn(samples, ProjectLifecycleKind.Open), CountIn(samples, ProjectLifecycleKind.Review),
-                CountIn(samples, ProjectLifecycleKind.Archived));
-
-            return Task.FromResult<ErrorOr<ProjectCounts>>(counts);
-        }
-
-        /// <summary>
-        /// Counts the sample projects in a lifecycle state.
-        /// </summary>
-        /// <param name="samples">The sample projects of the organization.</param>
-        /// <param name="lifecycle">The lifecycle state to count.</param>
-        /// <returns>The number of sample projects in the state.</returns>
-        private static int CountIn(IReadOnlyList<ProjectSample> samples, ProjectLifecycleKind lifecycle)
-        {
-            return samples.Count(sample => sample.Lifecycle == lifecycle);
-        }
-
-        /// <summary>
-        /// Tells whether a sample project satisfies every criterion of a filter.
-        /// </summary>
-        /// <param name="sample">The sample project.</param>
-        /// <param name="filter">The criteria.</param>
-        /// <returns><see langword="true" /> when the sample project matches.</returns>
-        private static bool Matches(ProjectSample sample, ProjectFilter filter)
-        {
-            return (filter.Lifecycle is null || sample.Lifecycle == filter.Lifecycle)
-                   && (filter.Mode is null || sample.Mode == filter.Mode)
-                   && (sample.Name.Contains(filter.SearchText, StringComparison.OrdinalIgnoreCase)
-                       || sample.Description.Contains(filter.SearchText, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
@@ -145,7 +90,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
                 Visibility = sample.Visibility,
                 CurrentMode = sample.Mode,
                 Lifecycle = sample.Lifecycle,
-                Involves = [.. Enumerable.Range(0, sample.MemberCount).Select(_ => Guid.NewGuid())],
+                Involves = [.. Enumerable.Range(0, sample.MemberCount).Select(_ => new ProjectMember { Id = Guid.NewGuid() })],
                 UpdatedOn = now - sample.Age
             };
         }

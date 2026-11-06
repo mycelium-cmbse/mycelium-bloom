@@ -10,9 +10,9 @@
 namespace Mycelium.Bloom.Core.Organization.Placeholder
 {
     using Mycelium.SDK;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Holds the fictional sample data that every placeholder organization service answers with.

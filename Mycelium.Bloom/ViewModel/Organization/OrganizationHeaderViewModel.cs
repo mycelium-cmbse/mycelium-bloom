@@ -14,9 +14,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     using ReactiveUI;
     using ReactiveUI.Primitives.Concurrency;

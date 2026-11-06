@@ -11,11 +11,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
 {
     using ErrorOr;
 
-    using Mycelium.Bloom.Core.Organization;
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Model;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Describes the outcome of resolving a location, published as one unit to the properties of the
@@ -69,10 +69,10 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Creates the resolution of a location that designates nothing the account can reach.
         /// </summary>
         /// <param name="location">The resolved location.</param>
-        /// <returns>The resolution refused with an <see cref="OrganizationErrorCodes.NotFound" /> error.</returns>
+        /// <returns>The resolution refused with an <see cref="ErrorCodes.NotFound" /> error.</returns>
         public static OrganizationContextResolution CreateNotFound(OrganizationLocation location)
         {
-            return CreateRefused(location, [Error.NotFound(OrganizationErrorCodes.NotFound, "The page does not exist.")]);
+            return CreateRefused(location, [Error.NotFound(ErrorCodes.NotFound, "The page does not exist.")]);
         }
     }
 }

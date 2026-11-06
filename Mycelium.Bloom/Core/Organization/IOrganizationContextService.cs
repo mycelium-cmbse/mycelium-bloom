@@ -12,7 +12,7 @@ namespace Mycelium.Bloom.Core.Organization
     using ErrorOr;
 
     using Mycelium.Bloom.Model;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
     /// <summary>
     /// Provides what the layout of the account and organization pages needs, in one request per context. A page
@@ -24,7 +24,7 @@ namespace Mycelium.Bloom.Core.Organization
         /// Gets the account that is using Bloom.
         /// </summary>
         /// <param name="cancellationToken">The token that cancels the request.</param>
-        /// <returns>The current account, or an <see cref="OrganizationErrorCodes.Unavailable" /> error when it cannot be retrieved.</returns>
+        /// <returns>The current account, or an <see cref="ErrorCodes.Unavailable" /> error when it cannot be retrieved.</returns>
         Task<ErrorOr<User>> GetAccountAsync(CancellationToken cancellationToken);
 
         /// <summary>
@@ -33,9 +33,9 @@ namespace Mycelium.Bloom.Core.Organization
         /// <param name="slug">The canonical slug of the organization, which is lower case.</param>
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>
-        /// The context, or an error: <see cref="OrganizationErrorCodes.NotFound" /> when the organization does not exist,
-        /// <see cref="OrganizationErrorCodes.Forbidden" /> when the account has no access to it, and
-        /// <see cref="OrganizationErrorCodes.Unavailable" /> when it cannot be retrieved.
+        /// The context, or an error: <see cref="ErrorCodes.NotFound" /> when the organization does not exist,
+        /// <see cref="ErrorCodes.Forbidden" /> when the account has no access to it, and
+        /// <see cref="ErrorCodes.Unavailable" /> when it cannot be retrieved.
         /// </returns>
         Task<ErrorOr<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken);
     }

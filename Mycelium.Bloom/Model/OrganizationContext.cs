@@ -9,9 +9,9 @@
 
 namespace Mycelium.Bloom.Model
 {
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Describes everything the layout of an organization page needs from one request: who is using Bloom, which

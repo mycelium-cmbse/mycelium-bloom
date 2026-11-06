@@ -24,11 +24,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
     using Moq;
 
     using Mycelium.Bloom.Components.UI.Organisms.ProjectsView;
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
     using Mycelium.SDK;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
     using ReactiveUI;
 
@@ -73,8 +74,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
         {
             this.SetUpRows(rowCount);
             this.viewModel.SetupGet(model => model.IsBusy).Returns(isBusy);
-            this.viewModel.SetupGet(model => model.Counts).Returns(total < 0 ? null : new ProjectCounts(total, 0, total, 0, 0));
-            this.viewModel.SetupGet(model => model.Errors).Returns(failed ? [Error.Unexpected("Projects.LoadFailed", "Failed.")] : []);
+            this.viewModel.SetupGet(model => model.TotalCount).Returns(Math.Max(total, 0));
+            this.viewModel.SetupGet(model => model.Errors).Returns(failed ? [Error.Unexpected(ErrorCodes.Unavailable, "Failed.")] : []);
             this.viewModel.SetupGet(model => model.CanCreateProject).Returns(canCreateProject);
 
             var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
@@ -95,7 +96,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
         public async Task VerifyTypingSetsTheSearchTextAndTheNoResultsActionClearsTheSearchAndFilters()
         {
             var cleared = 0;
-            this.viewModel.SetupGet(model => model.Counts).Returns(new ProjectCounts(4, 0, 4, 0, 0));
+            this.viewModel.SetupGet(model => model.TotalCount).Returns(4);
             this.viewModel.Object.SearchText = "thermal";
             this.viewModel.SetupGet(model => model.ClearFiltersCommand).Returns(ReactiveCommand.Create(() => { cleared++; }));
 
@@ -118,7 +119,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
         public async Task VerifyPickingAFilterEntryAppliesItToTheViewModel(bool isStatusMenu, ProjectLifecycleKind? expectedStatus, ProjectMode? expectedMode)
         {
             this.SetUpRows(4);
-            this.viewModel.SetupGet(model => model.Counts).Returns(new ProjectCounts(4, 0, 4, 0, 0));
+            this.viewModel.SetupGet(model => model.TotalCount).Returns(4);
             var entryCount = (isStatusMenu ? Enum.GetValues<ProjectLifecycleKind>().Length : Enum.GetValues<ProjectMode>().Length) + 1;
 
             var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
@@ -143,7 +144,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
                 Visibility = (ProjectVisibility)(index % 3),
                 CurrentMode = (ProjectMode)(index % 2),
                 Lifecycle = (ProjectLifecycleKind)(index % 4),
-                Involves = [Guid.NewGuid()],
+                Involves = [new ProjectMember { Id = Guid.NewGuid() }],
                 UpdatedOn = this.now.UtcDateTime
             });
 
