@@ -92,7 +92,7 @@
 }
 
 .mb-menu {
-    border: var(--border-width-default) solid var(--border-strong);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-8);
     background: var(--card);
     box-shadow: var(--shadow-menu);

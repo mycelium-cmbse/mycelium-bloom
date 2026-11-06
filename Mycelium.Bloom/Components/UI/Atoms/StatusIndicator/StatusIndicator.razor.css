@@ -3,8 +3,7 @@
     align-items: center;
     gap: var(--spacing-8);
     color: var(--foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    font-weight: var(--typography-typography-body-sm-font-weight);
+    font: var(--typography-typography-body-sm), sans-serif;
 }
 
 .mb-status-indicator__dot {
