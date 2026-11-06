@@ -12,11 +12,14 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.SDK;
 
     /// <summary>
-    /// Gives the icon by which the projects list shows the visibility of a project. The labels come from Humanizer, which
-    /// writes them from the names of the members.
+    /// Gives the icon by which the projects list shows the visibility of a project.
     /// </summary>
     public static class ProjectExtensions
     {
+        /// <summary>
+        /// Defines what the projects list shows about the visibility of a project.
+        /// </summary>
+        /// <param name="visibility">The visibility whose icon is read.</param>
         extension(ProjectVisibility visibility)
         {
             /// <summary>

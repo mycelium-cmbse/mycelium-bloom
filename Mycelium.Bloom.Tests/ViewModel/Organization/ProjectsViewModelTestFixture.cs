@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         }
 
         [Test]
-        public void VerifyProjectsAreLoadedNewestFirstAndCounted()
+        public void VerifyProjectsAreLoadedNewestFirst()
         {
             this.SetUpProjects([this.CreateProject("Older", hoursAgo: 5), this.CreateProject("Newer", hoursAgo: 2)]);
 
@@ -84,7 +84,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(viewModel.IsBusy, Is.False);
                 Assert.That(viewModel.Errors, Is.Empty);
                 Assert.That(viewModel.CanCreateProject, Is.True);
-                Assert.That(viewModel.TotalCount, Is.EqualTo(2));
                 Assert.That(viewModel.Projects.Count, Is.EqualTo(2));
                 Assert.That(viewModel.Rows.Select(row => row.Name), Is.EqualTo(new[] { "Newer", "Older" }));
                 Assert.That(viewModel.Rows[0].Visibility, Is.EqualTo(ProjectVisibility.Private));
@@ -95,94 +94,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
         }
 
-        [TestCase(ProjectLifecycleKind.Open, null, new[] { "Aurora Orbiter" })]
-        [TestCase(null, ProjectMode.Concurrent, new[] { "Lunar Relay" })]
-        [TestCase(ProjectLifecycleKind.Archived, ProjectMode.Concurrent, new string[0])]
-        public void VerifyTheFiltersNarrowTheRowsWithoutReloading(ProjectLifecycleKind? status, ProjectMode? mode, string[] expected)
-        {
-            this.SetUpProjects(
-            [
-                this.CreateProject("Aurora Orbiter", hoursAgo: 1),
-                this.CreateProject("Lunar Relay", hoursAgo: 2, lifecycle: ProjectLifecycleKind.Review, projectMode: ProjectMode.Concurrent)
-            ]);
-
-            using var viewModel = this.CreateViewModel();
-            viewModel.StatusFilter = status;
-            viewModel.ModeFilter = mode;
-            var narrowed = viewModel.Rows.Select(row => row.Name).ToArray();
-            viewModel.StatusFilter = null;
-            viewModel.ModeFilter = null;
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(narrowed, Is.EqualTo(expected));
-                Assert.That(viewModel.Rows, Has.Count.EqualTo(2));
-                Assert.That(viewModel.TotalCount, Is.EqualTo(2));
-                this.projectService.Verify(service => service.GetProjectsAsync(this.organization.Id, It.IsAny<CancellationToken>()), Times.Once);
-            }
-        }
-
         [Test]
-        public void VerifyTypingNarrowsTheRowsOncePerPauseAndEmptyingTheSearchShowsThemAtOnce()
-        {
-            this.SetUpProjects([this.CreateProject("Aurora Orbiter", hoursAgo: 1), this.CreateProject("Lunar Relay", hoursAgo: 2, description: "Phase A")]);
-
-            using var viewModel = this.CreateViewModel();
-            viewModel.SearchText = "a";
-            viewModel.SearchText = " PHASE ";
-            var rowsBeforeThePause = viewModel.Rows.Count;
-
-            Assert.That(() => viewModel.Rows.Count == 1, Is.True.After(5000, 20));
-            var narrowed = viewModel.Rows.Single().Name;
-            viewModel.SearchText = string.Empty;
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(rowsBeforeThePause, Is.EqualTo(2));
-                Assert.That(narrowed, Is.EqualTo("Lunar Relay"));
-                Assert.That(viewModel.Rows, Has.Count.EqualTo(2));
-                this.projectService.Verify(service => service.GetProjectsAsync(this.organization.Id, It.IsAny<CancellationToken>()), Times.Once);
-            }
-        }
-
-        [Test]
-        public async Task VerifyClearingTheFiltersShowsEveryProjectAgain()
-        {
-            this.SetUpProjects([this.CreateProject("Aurora Orbiter", hoursAgo: 1), this.CreateProject("Lunar Relay", hoursAgo: 2)]);
-
-            using var viewModel = this.CreateViewModel();
-            viewModel.ModeFilter = ProjectMode.Concurrent;
-            var rowsWithoutMatch = viewModel.Rows.Count;
-            viewModel.StatusFilter = ProjectLifecycleKind.Open;
-            viewModel.SearchText = "x";
-            await viewModel.ClearFiltersCommand.Execute().ToTask();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(rowsWithoutMatch, Is.Zero);
-                Assert.That(viewModel.SearchText, Is.Empty);
-                Assert.That(viewModel.StatusFilter, Is.Null);
-                Assert.That(viewModel.ModeFilter, Is.Null);
-                Assert.That(viewModel.Rows, Has.Count.EqualTo(2));
-            }
-        }
-
-        [Test]
-        public void VerifyAProjectAddedToTheSourceListJoinsTheRowsWhenItMatches()
+        public void VerifyAProjectAddedToTheSourceListJoinsTheRowsWithoutAnotherLoad()
         {
             this.SetUpProjects([this.CreateProject("Aurora Orbiter", hoursAgo: 1)]);
 
             using var viewModel = this.CreateViewModel();
-            viewModel.StatusFilter = ProjectLifecycleKind.Open;
             viewModel.Projects.Add(new ProjectRowViewModel(this.CreateProject("Draft", hoursAgo: 0, lifecycle: ProjectLifecycleKind.Preparation), this.now));
-            var withTheDraftHidden = viewModel.Rows.Count;
-            viewModel.StatusFilter = null;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(withTheDraftHidden, Is.EqualTo(1));
+                this.projectService.Verify(service => service.GetProjectsAsync(this.organization.Id, It.IsAny<CancellationToken>()), Times.Once);
                 Assert.That(viewModel.Rows, Has.Count.EqualTo(2));
-                Assert.That(viewModel.TotalCount, Is.EqualTo(2));
             }
         }
 
@@ -198,7 +121,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             {
                 Assert.That(viewModel.IsBusy, Is.False);
                 Assert.That(viewModel.Rows, Is.Empty);
-                Assert.That(viewModel.TotalCount, Is.Zero);
                 Assert.That(viewModel.CanCreateProject, Is.False);
             }
         }
@@ -225,7 +147,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(viewModel.IsBusy, Is.False);
                 Assert.That(viewModel.Errors.Single().Code, Is.EqualTo(ErrorCodes.Unavailable));
                 Assert.That(viewModel.Rows, Is.Empty);
-                Assert.That(viewModel.TotalCount, Is.Zero);
             }
         }
 
@@ -260,23 +181,23 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(viewModel.IsBusy, Is.True);
                 Assert.That(viewModel.Errors, Is.Empty);
                 Assert.That(viewModel.Rows, Is.Empty);
-                Assert.That(viewModel.TotalCount, Is.Zero);
             }
         }
 
         [Test]
-        public void VerifyTheLoadAndTheSearchRunOnTheContextTheViewModelWasCreatedOn()
+        public void VerifyTheLoadRunsOnTheContextTheViewModelWasCreatedOn()
         {
             var renderContext = new CountingSynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(renderContext);
             this.SetUpProjects([this.CreateProject("Aurora Orbiter", hoursAgo: 1)]);
 
             using var viewModel = this.CreateViewModel();
-            var postsAfterTheLoad = renderContext.Posts;
-            viewModel.SearchText = "no such project";
 
-            Assert.That(() => viewModel.Rows.Count, Is.Zero.After(5000, 20));
-            Assert.That(renderContext.Posts, Is.GreaterThan(postsAfterTheLoad));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(viewModel.Rows, Has.Count.EqualTo(1));
+                Assert.That(renderContext.Posts, Is.GreaterThan(0));
+            }
         }
 
         private FunctionalProject CreateProject(string name, int hoursAgo, string description = "Description", ProjectLifecycleKind lifecycle = ProjectLifecycleKind.Open,

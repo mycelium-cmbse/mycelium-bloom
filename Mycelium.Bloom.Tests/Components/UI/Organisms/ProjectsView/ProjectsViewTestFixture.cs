@@ -31,8 +31,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
     using Mycelium.SDK;
     using Mycelium.SDK.POCO;
 
-    using ReactiveUI;
-
     [TestFixture]
     public sealed class ProjectsViewTestFixture
     {
@@ -52,9 +50,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
             this.now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
             this.viewModel = new Mock<IProjectsViewModel>();
             this.viewModel.SetupGet(model => model.Errors).Returns([]);
-            this.viewModel.SetupProperty(model => model.SearchText, string.Empty);
-            this.viewModel.SetupProperty(model => model.StatusFilter);
-            this.viewModel.SetupProperty(model => model.ModeFilter);
             this.SetUpRows(0);
         }
 
@@ -65,16 +60,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
             await this.context.DisposeAsync();
         }
 
-        [TestCase(true, -1, 0, false, true, 1, 0, 0, 0, 0, 0, 1)]
-        [TestCase(false, 4, 4, false, true, 0, 4, 0, 1, 0, 0, 1)]
-        [TestCase(false, 30, 30, false, true, 0, 25, 0, 1, 0, 1, 1)]
-        [TestCase(false, 0, 0, false, false, 0, 0, 0, 0, 1, 0, 0)]
-        [TestCase(false, -1, 0, true, true, 0, 0, 1, 1, 0, 0, 1)]
-        public void VerifyTheViewFlipsOnBusyErrorsAndRows(bool isBusy, int total, int rowCount, bool failed, bool canCreateProject, int skeletons, int rows, int alerts, int searchBoxes, int emptyStates, int pagers, int createButtons)
+        [TestCase(true, 0, false, true, 1, 0, 0, 0, 0, 0, 1)]
+        [TestCase(false, 4, false, true, 0, 4, 0, 1, 0, 0, 1)]
+        [TestCase(false, 30, false, true, 0, 25, 0, 1, 0, 1, 1)]
+        [TestCase(false, 0, false, false, 0, 0, 0, 0, 1, 0, 0)]
+        [TestCase(false, 0, true, true, 0, 0, 1, 1, 0, 0, 1)]
+        public void VerifyTheViewFlipsOnBusyErrorsAndRows(bool isBusy, int rowCount, bool failed, bool canCreateProject, int skeletons, int rows, int alerts, int searchBoxes, int emptyStates, int pagers, int createButtons)
         {
             this.SetUpRows(rowCount);
             this.viewModel.SetupGet(model => model.IsBusy).Returns(isBusy);
-            this.viewModel.SetupGet(model => model.TotalCount).Returns(Math.Max(total, 0));
             this.viewModel.SetupGet(model => model.Errors).Returns(failed ? [Error.Unexpected(ErrorCodes.Unavailable, "Failed.")] : []);
             this.viewModel.SetupGet(model => model.CanCreateProject).Returns(canCreateProject);
 
@@ -93,45 +87,47 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
         }
 
         [Test]
-        public async Task VerifyTypingSetsTheSearchTextAndTheNoResultsActionClearsTheSearchAndFilters()
+        public async Task VerifyTheSearchNarrowsTheRowsAndTheNoResultsActionShowsThemAgain()
         {
-            var cleared = 0;
-            this.viewModel.SetupGet(model => model.TotalCount).Returns(4);
-            this.viewModel.Object.SearchText = "thermal";
-            this.viewModel.SetupGet(model => model.ClearFiltersCommand).Returns(ReactiveCommand.Create(() => { cleared++; }));
+            this.SetUpRows(4);
 
             var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
+            await cut.InvokeAsync(() => cut.FindComponent<BbInputGroupInput>().Instance.JsOnInput("Project 2"));
+            var narrowed = cut.FindAll("tbody tr").Count;
+            var showing = cut.Find("p[aria-live]").TextContent;
+            await cut.InvokeAsync(() => cut.FindComponent<BbInputGroupInput>().Instance.JsOnInput(" PHASE "));
+            var narrowedByDescription = cut.FindAll("tbody tr").Count;
+            await cut.InvokeAsync(() => cut.FindComponent<BbInputGroupInput>().Instance.JsOnInput("thermal"));
             var title = cut.FindComponent<BbEmpty>().Instance.Title;
-            await cut.InvokeAsync(() => cut.FindComponent<BbInputGroupInput>().Instance.JsOnInput("cold"));
-            var typed = this.viewModel.Object.SearchText;
+            var searchBoxes = cut.FindAll("#projects-search").Count;
             cut.FindAll("button").Single(button => button.TextContent.Contains("Clear search and filters", StringComparison.Ordinal)).Click();
 
             using (Assert.EnterMultipleScope())
             {
+                Assert.That(narrowed, Is.EqualTo(1));
+                Assert.That(showing, Is.EqualTo("Showing 1 of 4 projects"));
+                Assert.That(narrowedByDescription, Is.EqualTo(1));
                 Assert.That(title, Is.EqualTo("No projects match \"thermal\""));
-                Assert.That(typed, Is.EqualTo("cold"));
-                Assert.That(cleared, Is.EqualTo(1));
+                Assert.That(searchBoxes, Is.EqualTo(1));
+                Assert.That(cut.FindAll("tbody tr"), Has.Count.EqualTo(4));
             }
         }
 
-        [TestCase(true, ProjectLifecycleKind.Review, null)]
-        [TestCase(false, null, ProjectMode.Concurrent)]
-        public async Task VerifyPickingAFilterEntryAppliesItToTheViewModel(bool isStatusMenu, ProjectLifecycleKind? expectedStatus, ProjectMode? expectedMode)
+        [TestCase(true, 1, "Status: Review")]
+        [TestCase(false, 2, "Mode: Concurrent")]
+        public async Task VerifyPickingAFilterEntryNarrowsTheRowsAndNamesTheChoiceInTheMenu(bool isStatusMenu, int expected, string label)
         {
             this.SetUpRows(4);
-            this.viewModel.SetupGet(model => model.TotalCount).Returns(4);
             var entryCount = (isStatusMenu ? Enum.GetValues<ProjectLifecycleKind>().Length : Enum.GetValues<ProjectMode>().Length) + 1;
 
             var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
             await cut.Find(isStatusMenu ? "button[title='Filter by status']" : "button[title='Filter by mode']").ClickAsync();
             var entries = await this.portalHost.WaitForElementsAsync("[role='menuitem']", entryCount);
             entries.Single(entry => entry.TextContent.Contains(isStatusMenu ? "Review" : "Concurrent", StringComparison.Ordinal)).Click();
+            await cut.WaitForAssertionAsync(() => Assert.That(cut.FindAll("tbody tr"), Has.Count.EqualTo(expected)));
+            var trigger = cut.Find(isStatusMenu ? "button[title='Filter by status']" : "button[title='Filter by mode']").TextContent.Trim();
 
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(this.viewModel.Object.StatusFilter, Is.EqualTo(expectedStatus));
-                Assert.That(this.viewModel.Object.ModeFilter, Is.EqualTo(expectedMode));
-            }
+            Assert.That(trigger, Is.EqualTo(label));
         }
 
         private void SetUpRows(int rowCount)
@@ -140,7 +136,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
             {
                 Id = Guid.NewGuid(),
                 Name = $"Project {index}",
-                Description = "Description",
+                Description = index == 3 ? "Phase A" : "Description",
                 Visibility = (ProjectVisibility)(index % 3),
                 CurrentMode = (ProjectMode)(index % 2),
                 Lifecycle = (ProjectLifecycleKind)(index % 4),
