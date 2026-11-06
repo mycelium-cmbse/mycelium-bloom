@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
     using Mycelium.SDK;
 
     /// <summary>
-    /// Shows the projects page of an organization: its title and counts, the search and the filters, and the projects list.
+    /// Shows the projects page of an organization: its title, the search and the filters, and the projects list.
     /// It flips between the loading, failed, empty and ready content from whether the ViewModel is busy, its errors and its
     /// rows, and it pages the rows that the ViewModel holds.
     /// </summary>
@@ -59,15 +59,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
         private bool HasFailed => this.ViewModel.Errors.Count > 0;
 
         /// <summary>
-        /// Gets a value indicating whether the search or a filter narrows the projects.
-        /// </summary>
-        private bool HasFilters => this.ViewModel.SearchText.Length > 0 || this.ViewModel.StatusFilter is not null || this.ViewModel.ModeFilter is not null;
-
-        /// <summary>
         /// Gets a value indicating whether the toolbar is shown: it stays for as long as the organization has projects, even
-        /// while a reload narrows the rows to none, so that the search box keeps its focus, and it stays when a load failed.
+        /// while the search narrows the rows to none, so that the search box keeps its focus, and it stays when a load failed.
         /// </summary>
-        private bool ShowsToolbar => this.HasFailed || this.ViewModel.Counts is { Total: > 0 };
+        private bool ShowsToolbar => this.HasFailed || this.ViewModel.TotalCount > 0;
 
         /// <summary>
         /// Gets a value indicating whether the skeleton stands in for the rows, which is only until the first rows arrive.
@@ -77,7 +72,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
         /// <summary>
         /// Gets a value indicating whether the organization has no project at all.
         /// </summary>
-        private bool ShowsEmptyOrganization => !this.ViewModel.IsBusy && this.ViewModel.Rows.Count == 0 && !this.HasFilters;
+        private bool ShowsEmptyOrganization => !this.ViewModel.IsBusy && this.ViewModel.TotalCount == 0;
+
+        /// <summary>
+        /// Gets the words under the table: how many projects it shows out of the projects of the organization.
+        /// </summary>
+        private string ShowingText => $"Showing {this.ViewModel.Rows.Count} of {"project".ToQuantity(this.ViewModel.TotalCount)}";
 
         /// <summary>
         /// Gets the title of the state shown when the search and the filters match no project.

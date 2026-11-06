@@ -14,7 +14,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Humanizer;
 
     using Mycelium.SDK;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
     /// <summary>
     /// Holds one row of the projects list: the project as the SDK describes it, its number of members and how long ago it

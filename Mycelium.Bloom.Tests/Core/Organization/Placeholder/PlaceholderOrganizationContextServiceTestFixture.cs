@@ -16,6 +16,7 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
 
     using Microsoft.Extensions.Options;
 
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Core.Organization.Placeholder;
@@ -71,7 +72,7 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result.FirstError.Type, Is.EqualTo(ErrorType.NotFound));
-                Assert.That(result.FirstError.Code, Is.EqualTo(OrganizationErrorCodes.NotFound));
+                Assert.That(result.FirstError.Code, Is.EqualTo(ErrorCodes.NotFound));
             }
         }
     }

@@ -29,9 +29,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     using PageHeaderComponent = Mycelium.Bloom.Components.UI.Molecules.PageHeader.PageHeader;
 

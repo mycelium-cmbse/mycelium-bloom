@@ -13,7 +13,6 @@ namespace Mycelium.Bloom.Tests.Extensions
     using System.Linq;
 
     using Mycelium.Bloom.Extensions;
-    using Mycelium.Bloom.Model;
     using Mycelium.SDK;
 
     [TestFixture]
@@ -24,16 +23,7 @@ namespace Mycelium.Bloom.Tests.Extensions
         [Test]
         public void VerifyEveryVisibilityHasItsIcon()
         {
-            Assert.That(Enum.GetValues<ProjectVisibility>().Select(visibility => visibility.GetIcon()), Is.EqualTo(VisibilityIcons));
-        }
-
-        [TestCase(1, 1, "Showing 1 of 1 project")]
-        [TestCase(3, 2, "Showing 2 of 3 projects")]
-        public void VerifyTheShownCountIsWrittenInWords(int total, int shown, string expectedShowing)
-        {
-            var counts = new ProjectCounts(total, 0, total, 0, 0);
-
-            Assert.That(counts.GetShowingText(shown), Is.EqualTo(expectedShowing));
+            Assert.That(Enum.GetValues<ProjectVisibility>().Select(visibility => visibility.Icon), Is.EqualTo(VisibilityIcons));
         }
     }
 }

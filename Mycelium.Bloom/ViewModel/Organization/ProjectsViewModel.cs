@@ -17,8 +17,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
     using ErrorOr;
 
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Organization;
-    using Mycelium.Bloom.Model;
     using Mycelium.SDK;
 
     using ReactiveUI;
@@ -26,14 +26,15 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using RxVoid = ReactiveUI.Primitives.RxVoid;
 
     /// <summary>
-    /// Loads the projects of the organization of the page and the counts of its projects. The counts are loaded once; a
-    /// search or a filter reloads the projects only. Every load runs on the synchronization context that the ViewModel was
-    /// created on, which is the one of the renderer, so that the rows are never changed while the view reads them.
+    /// Loads the projects of the organization of the page once and narrows them locally by a search and two filters. The
+    /// projects live in a source list that others can subscribe to or add to, and the rows the view shows are the part of it
+    /// that matches. The load runs on the synchronization context that the ViewModel was created on, which is the one of the
+    /// renderer, so that the rows are never changed while the view reads them.
     /// </summary>
     public sealed partial class ProjectsViewModel : DisposableViewModel, IProjectsViewModel
     {
         /// <summary>
-        /// The pause in typing after which the search reloads the projects.
+        /// The pause in typing after which the search narrows the projects.
         /// </summary>
         private static readonly TimeSpan SearchDelay = TimeSpan.FromMilliseconds(300);
 
@@ -41,10 +42,10 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// The error reported when the projects cannot be retrieved for a reason that the service did not name. The cause is
         /// logged, not shown.
         /// </summary>
-        private static readonly Error LoadFailed = Error.Unexpected("Projects.LoadFailed", "The projects could not be loaded.");
+        private static readonly Error LoadFailed = Error.Unexpected(ErrorCodes.Unavailable, "The projects could not be loaded.");
 
         /// <summary>
-        /// Provides the projects and their counts.
+        /// Provides the projects.
         /// </summary>
         private readonly IOrganizationProjectService projectService;
 
@@ -59,9 +60,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
         private readonly ILogger<ProjectsViewModel> logger;
 
         /// <summary>
-        /// Holds the rows of the projects list.
+        /// Holds every project of the organization.
         /// </summary>
-        private readonly SourceList<ProjectRowViewModel> rowSource = new();
+        private readonly SourceList<ProjectRowViewModel> projects = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectsViewModel" /> class and starts loading the projects.
@@ -69,7 +70,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <param name="context">
         /// The context of the organization whose projects are listed, resolved before the page that owns this ViewModel is shown.
         /// </param>
-        /// <param name="projectService">The service that provides the projects and their counts.</param>
+        /// <param name="projectService">The service that provides the projects.</param>
         /// <param name="timeProvider">The provider of the current time.</param>
         /// <param name="logger">The logger that receives a failure to load the projects.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="projectService" />, <paramref name="timeProvider" /> or <paramref name="logger" /> is <see langword="null" />.</exception>
@@ -86,9 +87,20 @@ namespace Mycelium.Bloom.ViewModel.Organization
             this.CanCreateProject = context.Capabilities is { CanCreateProject: true };
 
             var organizationId = context.Organization.Id;
+            var renderContext = SynchronizationContext.Current;
+            IScheduler scheduler = renderContext is null ? Scheduler.Immediate : new SynchronizationContextScheduler(renderContext);
 
-            var rowBinding = this.rowSource.Connect().Bind(out var rows).Subscribe();
+            var search = this.WhenAnyValue(model => model.SearchText)
+                .Select(text => text.Length == 0 ? Observable.Return(text) : Observable.Timer(SearchDelay).Select(_ => text))
+                .Switch();
+            var matches = search
+                .CombineLatest(this.WhenAnyValue(model => model.StatusFilter), this.WhenAnyValue(model => model.ModeFilter),
+                    (text, lifecycle, mode) => (Func<ProjectRowViewModel, bool>)(row => Matches(row, text.Trim(), lifecycle, mode)))
+                .ObserveOn(scheduler);
+            var rowBinding = this.projects.Connect().Filter(matches).Bind(out var rows).Subscribe(_ => this.RaisePropertyChanged(nameof(this.Rows)));
             this.Rows = rows;
+
+            var countBinding = this.projects.CountChanged.Subscribe(count => this.TotalCount = count);
 
             this.ClearFiltersCommand = ReactiveCommand.Create(() =>
             {
@@ -99,21 +111,13 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
             var commandFailures = this.ClearFiltersCommand.ThrownExceptions.Subscribe(this.LogCommandFailure);
 
-            var renderContext = SynchronizationContext.Current;
-            IScheduler scheduler = renderContext is null ? Scheduler.Immediate : new SynchronizationContextScheduler(renderContext);
-
-            var loads = this.WhenAnyValue(model => model.SearchText)
-                .Select(text => text.Length == 0 ? Observable.Return(text) : Observable.Timer(SearchDelay).Select(_ => text))
-                .Switch()
-                .CombineLatest(this.WhenAnyValue(model => model.StatusFilter), this.WhenAnyValue(model => model.ModeFilter),
-                    (text, lifecycle, mode) => new ProjectFilter(text.Trim(), lifecycle, mode))
-                .DistinctUntilChanged()
+            var load = Observable.Return(organizationId)
                 .ObserveOn(scheduler)
-                .Select(filter => Observable.FromAsync(cancellationToken => this.LoadAsync(organizationId, filter, cancellationToken)))
+                .Select(id => Observable.FromAsync(cancellationToken => this.LoadAsync(id, cancellationToken)))
                 .Switch()
                 .Subscribe();
 
-            this.Disposables.AddRange([loads, commandFailures, this.ClearFiltersCommand, rowBinding, this.rowSource]);
+            this.Disposables.AddRange([load, commandFailures, this.ClearFiltersCommand, rowBinding, countBinding, this.projects]);
         }
 
         /// <summary>
@@ -126,7 +130,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         } = true;
 
         /// <summary>
-        /// Gets the errors that the last load returned, or an empty list when it succeeded.
+        /// Gets the errors that the load returned, or an empty list when it succeeded.
         /// </summary>
         public IReadOnlyList<Error> Errors
         {
@@ -135,18 +139,17 @@ namespace Mycelium.Bloom.ViewModel.Organization
         } = [];
 
         /// <summary>
-        /// Gets the number of projects of the organization, in total and by lifecycle state, or <see langword="null" /> until
-        /// they are loaded.
+        /// Gets the number of projects of the organization, whatever the search and the filters.
         /// </summary>
-        public ProjectCounts Counts
+        public int TotalCount
         {
             get;
             private set => this.RaiseAndSetIfChanged(ref field, value);
         }
 
         /// <summary>
-        /// Gets or sets the text that the name or the description of the projects must contain. The projects follow it once
-        /// the typing pauses.
+        /// Gets or sets the text that the name or the description of the projects must contain. The rows follow it once the
+        /// typing pauses.
         /// </summary>
         public string SearchText
         {
@@ -155,7 +158,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the lifecycle state that the projects must be in, or <see langword="null" /> for any.
+        /// Gets or sets the lifecycle state that the projects must have, or <see langword="null" /> for every state.
         /// </summary>
         public ProjectLifecycleKind? StatusFilter
         {
@@ -164,7 +167,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         }
 
         /// <summary>
-        /// Gets or sets the mode that the projects must have, or <see langword="null" /> for any.
+        /// Gets or sets the mode that the projects must have, or <see langword="null" /> for every mode.
         /// </summary>
         public ProjectMode? ModeFilter
         {
@@ -173,7 +176,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         }
 
         /// <summary>
-        /// Gets the rows of the projects list, the most recently updated project first.
+        /// Gets every project of the organization, which a later ViewModel can subscribe to or add the created project to.
+        /// </summary>
+        public ISourceList<ProjectRowViewModel> Projects => this.projects;
+
+        /// <summary>
+        /// Gets the projects that match the search and the filters, the most recently updated first.
         /// </summary>
         public ReadOnlyObservableCollection<ProjectRowViewModel> Rows { get; }
 
@@ -188,6 +196,21 @@ namespace Mycelium.Bloom.ViewModel.Organization
         public ReactiveCommand<RxVoid, RxVoid> ClearFiltersCommand { get; }
 
         /// <summary>
+        /// Tells whether a row matches the search and the filters.
+        /// </summary>
+        /// <param name="row">The row.</param>
+        /// <param name="text">The trimmed text that the name or the description must contain, whatever the case.</param>
+        /// <param name="lifecycle">The lifecycle state to match, or <see langword="null" /> for any.</param>
+        /// <param name="mode">The mode to match, or <see langword="null" /> for any.</param>
+        /// <returns><see langword="true" /> when the row matches all three.</returns>
+        private static bool Matches(ProjectRowViewModel row, string text, ProjectLifecycleKind? lifecycle, ProjectMode? mode)
+        {
+            return (lifecycle is null || row.Lifecycle == lifecycle)
+                   && (mode is null || row.Mode == mode)
+                   && (row.Name.Contains(text, StringComparison.OrdinalIgnoreCase) || row.Description.Contains(text, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
         /// Logs the failure to load the projects.
         /// </summary>
         /// <param name="exception">The failure.</param>
@@ -195,60 +218,49 @@ namespace Mycelium.Bloom.ViewModel.Organization
         private partial void LogLoadFailure(Exception exception);
 
         /// <summary>
-        /// Logs the code of the error that the project service returned instead of the projects or their counts.
+        /// Logs the error code of a refused load of the projects.
         /// </summary>
         /// <param name="code">The code of the error.</param>
         [LoggerMessage(Level = LogLevel.Warning, Message = "The projects of the organization could not be loaded: {Code}.")]
         private partial void LogLoadError(string code);
 
         /// <summary>
-        /// Logs the failure of a command of the page.
+        /// Logs the failure of a command of the projects page.
         /// </summary>
         /// <param name="exception">The failure.</param>
         [LoggerMessage(Level = LogLevel.Error, Message = "A command of the projects page failed.")]
         private partial void LogCommandFailure(Exception exception);
 
         /// <summary>
-        /// Gets the projects that match a filter, and the counts when they are not loaded yet, in parallel requests, then
-        /// shows them, or keeps the errors when either request returns an error or fails. A load that a newer filter or the
-        /// disposal cancelled shows nothing and leaves the ViewModel busy for the newer load.
+        /// Loads the projects of the organization, then shows them or the failure. A load that the disposal cancelled shows
+        /// nothing.
         /// </summary>
         /// <param name="organizationId">The identifier of the organization.</param>
-        /// <param name="filter">The criteria that the projects must match.</param>
         /// <param name="cancellationToken">The token that cancels the load.</param>
-        /// <returns>A task that completes when the projects are shown or the errors are kept.</returns>
-        private async Task LoadAsync(Guid organizationId, ProjectFilter filter, CancellationToken cancellationToken)
+        /// <returns>A task that completes when the projects or the failure are shown.</returns>
+        private async Task LoadAsync(Guid organizationId, CancellationToken cancellationToken)
         {
             this.IsBusy = true;
 
             try
             {
-                var projectsRequest = this.projectService.GetProjectsAsync(organizationId, filter, cancellationToken);
-                var countsRequest = this.Counts is null
-                    ? this.projectService.GetProjectCountsAsync(organizationId, cancellationToken)
-                    : Task.FromResult<ErrorOr<ProjectCounts>>(this.Counts);
-                await Task.WhenAll(projectsRequest, countsRequest);
-                var projects = await projectsRequest;
-                var counts = await countsRequest;
+                var result = await this.projectService.GetProjectsAsync(organizationId, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (projects.IsError || counts.IsError)
+                if (result.IsError)
                 {
-                    var errors = projects.IsError ? projects.Errors : counts.Errors;
-                    this.LogLoadError(errors[0].Code);
-                    this.rowSource.Clear();
-                    this.Counts = null;
-                    this.Errors = errors;
+                    this.LogLoadError(result.FirstError.Code);
+                    this.projects.Clear();
+                    this.Errors = result.Errors;
                     return;
                 }
 
                 var now = this.timeProvider.GetUtcNow();
-                this.rowSource.Edit(rows =>
+                this.projects.Edit(list =>
                 {
-                    rows.Clear();
-                    rows.AddRange(projects.Value.Select(project => new ProjectRowViewModel(project, now)));
+                    list.Clear();
+                    list.AddRange(result.Value.OrderByDescending(project => project.UpdatedOn).Select(project => new ProjectRowViewModel(project, now)));
                 });
-                this.Counts = counts.Value;
                 this.Errors = [];
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -258,8 +270,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
             catch (Exception exception)
             {
                 this.LogLoadFailure(exception);
-                this.rowSource.Clear();
-                this.Counts = null;
+                this.projects.Clear();
                 this.Errors = [LoadFailed];
             }
             finally

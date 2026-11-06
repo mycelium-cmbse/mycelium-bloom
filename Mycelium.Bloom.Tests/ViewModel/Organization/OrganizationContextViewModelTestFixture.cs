@@ -20,13 +20,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
     using Moq;
 
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Organization;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     [TestFixture]
     public sealed class OrganizationContextViewModelTestFixture
@@ -105,7 +106,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [TestCase(false)]
         public void VerifyErrorOfTheServiceIsExposed(bool isAccountPage)
         {
-            var error = Error.Forbidden(OrganizationErrorCodes.Forbidden, "Refused.");
+            var error = Error.Forbidden(ErrorCodes.Forbidden, "Refused.");
             this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(error);
             this.contextService.Setup(service => service.GetOrganizationContextAsync("orbital-systems", It.IsAny<CancellationToken>())).ReturnsAsync(error);
 
@@ -142,7 +143,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(this.viewModel.Errors[0].Type, Is.EqualTo(ErrorType.Unexpected));
-                Assert.That(this.viewModel.Errors[0].Code, Is.EqualTo(OrganizationErrorCodes.Unavailable));
+                Assert.That(this.viewModel.Errors[0].Code, Is.EqualTo(ErrorCodes.Unavailable));
             }
         }
 

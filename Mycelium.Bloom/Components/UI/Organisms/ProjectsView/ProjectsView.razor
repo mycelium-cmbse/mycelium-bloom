@@ -147,7 +147,7 @@
                 <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Visibility">
                     <CellTemplate>
                         <span class="mb-projects-view__visibility">
-                            <LucideIcon Name="@(context.Visibility.GetIcon())" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                            <LucideIcon Name="@(context.Visibility.Icon)" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                             @(context.Visibility.Humanize())
                         </span>
                     </CellTemplate>
@@ -174,9 +174,6 @@
             </Columns>
         </BbDataTable>
 
-        @if (this.ViewModel.Counts is not null)
-        {
-            <p class="mb-projects-view__showing" aria-live="polite">@(this.ViewModel.Counts.GetShowingText(this.ViewModel.Rows.Count))</p>
-        }
+        <p class="mb-projects-view__showing" aria-live="polite">@(this.ShowingText)</p>
     }
 </div>

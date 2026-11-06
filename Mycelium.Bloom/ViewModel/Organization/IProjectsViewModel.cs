@@ -12,9 +12,10 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using System.Collections.ObjectModel;
     using System.ComponentModel;
 
+    using DynamicData;
+
     using ErrorOr;
 
-    using Mycelium.Bloom.Model;
     using Mycelium.SDK;
 
     using ReactiveUI;
@@ -37,10 +38,14 @@ namespace Mycelium.Bloom.ViewModel.Organization
         IReadOnlyList<Error> Errors { get; }
 
         /// <summary>
-        /// Gets the number of projects of the organization, in total and by lifecycle state, or <see langword="null" /> until
-        /// they are loaded.
+        /// Gets the number of projects of the organization, whatever the search and the filters.
         /// </summary>
-        ProjectCounts Counts { get; }
+        int TotalCount { get; }
+
+        /// <summary>
+        /// Gets every project of the organization, which a later ViewModel can subscribe to or add the created project to.
+        /// </summary>
+        ISourceList<ProjectRowViewModel> Projects { get; }
 
         /// <summary>
         /// Gets or sets the text that the name or the description of the projects must contain. The projects follow it once
@@ -59,7 +64,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         ProjectMode? ModeFilter { get; set; }
 
         /// <summary>
-        /// Gets the rows of the projects list, the most recently updated project first.
+        /// Gets the projects that match the search and the filters, the most recently updated first.
         /// </summary>
         ReadOnlyObservableCollection<ProjectRowViewModel> Rows { get; }
 

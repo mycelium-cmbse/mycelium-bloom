@@ -17,14 +17,12 @@ namespace Mycelium.Bloom.Extensions
     /// </summary>
     public static class ProjectExtensions
     {
-        /// <summary>
-        /// Gets the name of the icon of a visibility.
-        /// </summary>
-        /// <param name="visibility">The visibility.</param>
-        /// <returns>The name of the icon to show.</returns>
-        public static string GetIcon(this ProjectVisibility visibility)
+        extension(ProjectVisibility visibility)
         {
-            return visibility switch
+            /// <summary>
+            /// Gets the name of the icon of the visibility.
+            /// </summary>
+            public string Icon => visibility switch
             {
                 ProjectVisibility.Private => "lock",
                 ProjectVisibility.Organization => "building-2",

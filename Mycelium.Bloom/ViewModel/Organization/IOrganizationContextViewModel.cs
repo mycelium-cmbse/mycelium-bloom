@@ -14,9 +14,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using ErrorOr;
 
     using Mycelium.Bloom.Model;
-    using Mycelium.SDK.DTO;
+    using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.DTO.Organization;
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Defines the reactive state of the organization designated by the current browser location.
