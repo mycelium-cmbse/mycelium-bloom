@@ -1,0 +1,53 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="InterconnectionCanvas.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Microsoft.AspNetCore.Components.Forms
+
+<section class="interconnection" aria-label="Interconnection diagram" data-testid="interconnection-x6">
+    <div class="interconnection__toolbar" role="toolbar" aria-label="Diagram actions">
+        @if (this.ShowDiagnostics)
+        {
+            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                      Disabled="@(!this.ViewModel.CanEditPresentation)" OnClick="this.AddBrowserSelection">Add browser selection</BbButton>
+            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                      Disabled="@(!this.ViewModel.CanEditPresentation)" OnClick="this.ViewModel.AddManualBend">Manual bend</BbButton>
+        }
+        <span class="interconnection__spacer"></span>
+        <ZoomControls Zoom="@(this.ViewModel.State.Viewport.Zoom * 100)" ZoomChanged="this.ChangeZoom"
+                      OnResetZoom="this.ResetZoom" OnFitToView="this.FitToViewAsync" Compact="true" />
+    </div>
+    @if (this.ShowDiagnostics)
+    {
+        <div class="interconnection__toolbar" role="toolbar" aria-label="Prototype presentation">
+            <Checkbox Checked="this.ViewModel.IsReadOnly" CheckedChanged="this.SetReadOnly" Label="Read-only" />
+            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                      OnClick="this.ExportSvgAsync" Disabled="@(!this.mounted)">Export SVG</BbButton>
+            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                      OnClick="this.ExportPresentationAsync" Disabled="@(!this.mounted)">Export presentation</BbButton>
+            <label class="interconnection__import">
+                Import presentation
+                <InputFile OnChange="this.ImportPresentationAsync" accept=".json,application/json" disabled="@(!this.ViewModel.CanEditPresentation)" />
+            </label>
+        </div>
+    }
+    <div class="interconnection__canvas" @ref="this.canvas"></div>
+    @if (this.ShowDiagnostics)
+    {
+        <div class="interconnection__status" role="status" aria-live="polite">
+            <strong>@(this.IsBenchmark ? "Benchmark · AntV X6" : "AntV X6")</strong>
+            <span>@this.ViewModel.State.Occurrences.Length parts · @this.ViewModel.State.Routes.Length connections</span>
+            <span>@(this.ViewModel.CanEditPresentation ? "Presentation only" : "Read-only")</span>
+            <span>@this.ViewModel.Notice</span>
+        </div>
+        <details class="interconnection__diagnostics">
+            <summary>Projection diagnostics (@this.ViewModel.Projection.Diagnostics.Length)</summary>
+            <ul>@foreach (var diagnostic in this.ViewModel.Projection.Diagnostics) { <li>@diagnostic</li> }</ul>
+        </details>
+    }
+</section>

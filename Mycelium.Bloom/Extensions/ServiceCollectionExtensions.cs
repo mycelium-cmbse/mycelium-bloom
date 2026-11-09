@@ -108,6 +108,7 @@ namespace Mycelium.Bloom.Extensions
             ArgumentNullException.ThrowIfNull(services);
 
             services.AddScoped<IAssembler, Assembler>();
+            services.AddScoped<Func<IAssembler>>(provider => () => new Assembler(provider.GetRequiredService<ILoggerFactory>()));
             services.AddScoped<IDeSerializer, DeSerializer>();
             services.AddScoped<IModelLoaderService, ModelLoaderService>();
             services.AddScoped<IElementIdResolver, ElementIdResolver>();
@@ -125,6 +126,7 @@ namespace Mycelium.Bloom.Extensions
                 () => ActivatorUtilities.CreateInstance<WorkspaceUrlContextService>(serviceProvider));
             services.AddScoped<Func<IWorkspaceEditorViewModel>>(serviceProvider =>
                 () => ActivatorUtilities.CreateInstance<WorkspaceEditorViewModel>(serviceProvider));
+            services.AddDiagramPrototype();
 
             return services;
         }

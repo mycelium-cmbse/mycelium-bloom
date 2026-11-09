@@ -1,0 +1,57 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ModelOpening.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Microsoft.AspNetCore.Components.Forms
+@implements IDisposable
+
+
+
+
+
+
+<span @ref="this.trigger"><BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Size="BlazorBlueprint.Components.ButtonSize.Small" OnClick="this.Show">@this.Label</BbButton></span>
+
+<ModalShell IsOpen="this.open" IsOpenChanged="this.SetOpen"
+            Title="Open model for this session"
+            Description="Open a session-local model and view. Other open models are unchanged; nothing is committed to Fabric."
+            CloseOnBackdropClick="false" Size="ModalSize.Medium">
+    <ChildContent>
+        <div class="model-opening">
+            @if (this.ExistingModels.Count > 0)
+            {
+                <SelectInput Label="Already-open model" Placeholder="Choose an open model" Options="this.ExistingOptions"
+                             Value="@this.existingId" ValueChanged="this.SelectExisting" Disabled="this.viewModel.State.Busy" />
+            }
+            <label class="model-opening__file">
+                <span>Choose a .json model file</span>
+                <span class="model-opening__hint">OMG Systems Modelling API JSON · up to 64 MiB</span>
+                <InputFile @ref="this.fileInput" OnChange="this.SelectFile" accept=".json,application/json" disabled="@this.viewModel.State.Busy" aria-label="Choose model file" />
+            </label>
+            <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Size="BlazorBlueprint.Components.ButtonSize.Small" Disabled="this.viewModel.State.Busy" OnClick="this.SelectExample" aria-pressed="@this.exampleSelected">Example interconnection model</BbButton>
+            @if (this.exampleSelected)
+            {
+                <p class="model-opening__hint">Selected: example interconnection model. Choose Open for this session to load it.</p>
+            }
+            <p class="model-opening__hint">Each view keeps its model and layout. Files and layouts are session-local, not saved to Fabric. Refresh starts a new session; a brief reconnect may resume this one.</p>
+            @if (this.viewModel.State.Busy)
+            {
+                <progress max="100" value="@this.viewModel.State.Progress" aria-label="Model upload progress"></progress>
+            }
+            <p role="status">@this.viewModel.State.Status</p>
+            @if (!string.IsNullOrEmpty(this.viewModel.State.Error))
+            {
+                <p role="alert">@this.viewModel.State.Error</p>
+            }
+        </div>
+    </ChildContent>
+    <FooterContent>
+        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" Size="BlazorBlueprint.Components.ButtonSize.Small" OnClick="this.Cancel">Cancel</BbButton>
+        <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Disabled="@((this.file is null && !this.exampleSelected && string.IsNullOrEmpty(this.existingId)) || this.viewModel.State.Busy)" OnClick="this.OpenFileAsync">Open for this session</BbButton>
+    </FooterContent>
+</ModalShell>

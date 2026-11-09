@@ -21,7 +21,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
     /// <summary>
     /// Provides operations to load SysML model files.
     /// </summary>
-    public sealed class ModelLoaderService : IModelLoaderService
+    public sealed partial class ModelLoaderService : IModelLoaderService
     {
         /// <summary>
         /// The file name of the local SysML v2 API-shaped Quantities payload.
@@ -32,6 +32,8 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// The SDK assembler that owns canonical POCO identity for this model session.
         /// </summary>
         private readonly IAssembler assembler;
+
+        private readonly Func<IAssembler> createUploadAssembler;
 
         /// <summary>
         /// The SDK deserializer that reads SysML v2 API-shaped JSON payloads.
@@ -60,15 +62,18 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// <param name="deSerializer">The SDK JSON deserializer used to read PSM DTOs.</param>
         /// <param name="assembler">The SDK assembler that owns the canonical POCO graph.</param>
         /// <param name="logger">The logger used to write model loading messages.</param>
+        /// <param name="createUploadAssembler">Creates an isolated SDK identity owner for each upload candidate.</param>
         public ModelLoaderService(
             IHostEnvironment hostEnvironment,
             IDeSerializer deSerializer,
             IAssembler assembler,
-            ILogger<ModelLoaderService> logger)
+            ILogger<ModelLoaderService> logger,
+            Func<IAssembler> createUploadAssembler = null)
         {
             this.hostEnvironment = hostEnvironment ?? throw new ArgumentNullException(nameof(hostEnvironment));
             this.deSerializer = deSerializer ?? throw new ArgumentNullException(nameof(deSerializer));
             this.assembler = assembler ?? throw new ArgumentNullException(nameof(assembler));
+            this.createUploadAssembler = createUploadAssembler ?? (() => new Assembler());
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.quantitiesModel = new Lazy<INamespace>(this.LoadQuantitiesModelResource);
         }
@@ -81,6 +86,11 @@ namespace Mycelium.Bloom.Core.ModelLoading
         public INamespace LoadModel(Uri modelUri)
         {
             ArgumentNullException.ThrowIfNull(modelUri);
+
+            if (!modelUri.IsAbsoluteUri || !modelUri.IsFile)
+            {
+                throw new NotSupportedException("The model loader supports absolute local file URIs only.");
+            }
 
             var filePath = modelUri.LocalPath;
 

@@ -1,0 +1,31 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="GroupSvg.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Blazor.Diagrams.Core.Models
+@using Blazor.Diagrams.Components.Renderers
+
+<PartSvg Node="this.Group" />
+<g transform="@FormattableString.Invariant($"translate({-this.Group.Position.X} {-this.Group.Position.Y})")">
+    @foreach (var child in this.Group.Children)
+    {
+        @if (child is GroupModel group)
+        {
+            <GroupRenderer @key="child.Id" Group="group" />
+        }
+        else
+        {
+            <NodeRenderer @key="child.Id" Node="child" />
+        }
+    }
+</g>
+
+@code {
+    /// <summary>Gets or sets the mounted container.</summary>
+    [Parameter] public GroupModel Group { get; set; }
+}

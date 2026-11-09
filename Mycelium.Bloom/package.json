@@ -5,9 +5,9 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --test Tests/JavaScript/InteropModules.test.js",
+    "test": "node --test Tests/JavaScript/InteropModules.test.js Tests/JavaScript/DiagramCanvas.test.js",
     "test:converter": "node --test Tests/JavaScript/ConvertLcovToSonar.test.js",
-    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js Mycelium.Bloom/Tests/JavaScript/DesignTokenConsumer.test.mjs",
+    "test:coverage": "cd .. && node --test --experimental-test-coverage --test-coverage-include=\"Mycelium.Bloom/Components/**/*.razor.js\" --test-coverage-lines=80 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info Mycelium.Bloom/Tests/JavaScript/InteropModules.test.js Mycelium.Bloom/Tests/JavaScript/DiagramCanvas.test.js Mycelium.Bloom/Tests/JavaScript/DesignTokenConsumer.test.mjs",
     "coverage:sonar": "cd .. && node Mycelium.Bloom/Tests/JavaScript/ConvertLcovToSonar.mjs lcov.info sonar-js-coverage.xml",
     "test:coverage:sonar": "npm run test:converter && npm run test:coverage && npm run coverage:sonar",
     "test:tokens": "node --test Tests/JavaScript/DesignTokenConsumer.test.mjs"

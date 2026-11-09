@@ -103,6 +103,10 @@ namespace Mycelium.Bloom.Components.UI.Molecules.ZoomControls
         [Parameter]
         public bool ShowZoomValue { get; set; } = true;
 
+        /// <summary>Gets or sets whether the reset action is displayed.</summary>
+        [Parameter]
+        public bool ShowReset { get; set; } = true;
+
         /// <summary>
         /// Gets the final CSS class list applied to the zoom-controls root.
         /// </summary>

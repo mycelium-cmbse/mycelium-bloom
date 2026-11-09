@@ -44,12 +44,12 @@ async function fixture(context, fullSource = false) {
     await copyFile(join(projectDirectory, '../Nuget.Config'), join(root, 'Nuget.Config'));
     if (fullSource) {
         const excluded = new Set(['bin', 'obj', 'node_modules', 'TestResults', '.local']);
-        await cp(projectDirectory, directory, { recursive: true, filter: source => !excluded.has(relative(projectDirectory, source).split(/[\\/]/)[0]) });
+        await cp(projectDirectory, directory, { recursive: true, filter: source => !relative(projectDirectory, source).split(/[\\/]/).some(segment => excluded.has(segment)) });
         const restored = msbuild(directory, '-t:Restore');
         assert.equal(restored.status, 0, output(restored));
         return directory;
     }
-    for (const name of ['Mycelium.Bloom.csproj', 'Build/Tailwind.targets', runtimeName, themeName, appName]) {
+    for (const name of ['Mycelium.Bloom.csproj', 'Build/Tailwind.targets', 'Build/DiagramAssets.targets', runtimeName, themeName, appName]) {
         const destination = join(directory, name);
         await mkdir(dirname(destination), { recursive: true });
         await copyFile(join(projectDirectory, name), destination);

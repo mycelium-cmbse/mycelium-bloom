@@ -56,22 +56,25 @@
                     focusable="false" />
     </BbButton>
 
-    <BbButton
-        Type="BlazorBlueprint.Components.ButtonType.Button"
-        Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
-        Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-        Class="mb-zoom-controls__action"
-        AriaLabel="Reset zoom"
-        title="Reset zoom"
-        Disabled="@(this.Disabled)"
-        OnClick="this.HandleResetZoomAsync">
-        <LucideIcon Name="scan-line"
-                    Size="16"
-                    StrokeWidth="1.75"
-                    role="presentation"
-                    aria-hidden="true"
-                    focusable="false" />
-    </BbButton>
+    @if (this.ShowReset)
+    {
+        <BbButton
+            Type="BlazorBlueprint.Components.ButtonType.Button"
+            Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+            Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+            Class="mb-zoom-controls__action"
+            AriaLabel="Reset zoom"
+            title="Reset zoom"
+            Disabled="@(this.Disabled)"
+            OnClick="this.HandleResetZoomAsync">
+            <LucideIcon Name="scan-line"
+                        Size="16"
+                        StrokeWidth="1.75"
+                        role="presentation"
+                        aria-hidden="true"
+                        focusable="false" />
+        </BbButton>
+    }
 
     <BbButton
         Type="BlazorBlueprint.Components.ButtonType.Button"

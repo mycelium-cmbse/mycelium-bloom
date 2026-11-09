@@ -1,0 +1,12 @@
+.part-svg { font-family: var(--typography-typography-label-sm-font-family), sans-serif; }
+.part-svg__body { fill: var(--sysml-structure-surface); }
+.dark .part-svg__body { fill: var(--card); }
+.part-svg__outline { fill: none; stroke: var(--sysml-structure-border); stroke-width: calc(var(--border-width-default) * 2); pointer-events: none; }
+.part-svg--selected .part-svg__outline { stroke: var(--ring); }
+.part-svg__header { fill: var(--sysml-structure-header); }
+.part-svg svg { color: var(--primary-foreground); }
+.part-svg__kind { fill: var(--primary-foreground); font-size: var(--text-10); font-weight: 400; }
+.part-svg__name { fill: var(--primary-foreground); font-size: var(--typography-typography-label-sm-font-size); font-weight: var(--typography-typography-label-sm-font-weight); letter-spacing: var(--typography-typography-label-sm-letter-spacing); }
+.part-svg__attribute { fill: var(--foreground-muted); font-family: var(--typography-typography-mono-xs-font-family), monospace; font-size: var(--text-10); font-weight: 400; }
+.part-svg__attribute--leading { font-size: var(--typography-typography-mono-xs-font-size); font-weight: var(--typography-typography-mono-xs-font-weight); }
+.part-svg__port rect { fill: var(--card); stroke: var(--sysml-connections-header); stroke-width: var(--border-width-default); }

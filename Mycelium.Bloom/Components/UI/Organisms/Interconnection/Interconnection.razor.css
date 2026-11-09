@@ -1,0 +1,9 @@
+.interconnection { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; color: var(--foreground); background: var(--card); font-size: var(--text-12); }
+.interconnection__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6); min-height: var(--spacing-40); padding: var(--spacing-6) var(--spacing-12); border-bottom: var(--border-width-default) solid var(--border); }
+.interconnection__spacer { flex: 1; }
+.interconnection__canvas { flex: 1; min-height: 160px; position: relative; overflow: hidden; background-color: var(--muted); background-image: radial-gradient(var(--border-strong) 1px, transparent 1px); background-size: var(--spacing-20) var(--spacing-20); }
+.interconnection__status { display: flex; flex-wrap: wrap; gap: var(--spacing-12); padding: var(--spacing-4) var(--spacing-8); color: var(--foreground-muted); border-top: var(--border-width-default) solid var(--border); font-size: var(--text-10); }
+.interconnection__import { display: flex; flex-direction: column; gap: var(--spacing-2); max-width: 180px; font-size: var(--text-10); }
+.interconnection__import ::deep input { max-width: 100%; font-size: var(--text-10); }
+.interconnection__diagnostics { padding: var(--spacing-4) var(--spacing-8); max-height: 100px; overflow: auto; font-size: var(--text-10); }
+.interconnection__diagnostics ul { padding-left: var(--spacing-16); }

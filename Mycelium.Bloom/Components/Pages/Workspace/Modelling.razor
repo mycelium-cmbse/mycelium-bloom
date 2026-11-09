@@ -12,6 +12,9 @@
 @layout WorkspaceLayout
 @using BlazorBlueprint.Icons.Lucide.Components
 @using Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
+@using Mycelium.Bloom.Components.UI.Organisms.Interconnection
+@using Mycelium.Bloom.Components.UI.Organisms.InterconnectionCanvas
+@using Mycelium.Bloom.Components.UI.Organisms.DiagramBenchmarkProbe
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
@@ -60,12 +63,55 @@
         </AddTabControl>
 
         <EditorContent Context="tab">
-            @if (IsProjectBrowserTab(tab))
+            @if (tab.ViewTypeKey is DiagramViewTypeKey or DiagramBenchmarkViewTypeKey && this.diagramViewModels.TryGetValue(tab.Id, out var diagramViewModel))
+            {
+                @if (diagramViewModel.IsWorkspaceBound && (!diagramViewModel.IsScopeAvailable || diagramViewModel.State is null || diagramViewModel.State.Occurrences.Length == 0))
+                {
+                    <div class="mb-main-workspace__editor-placeholder" role="status" data-testid="interconnection-scope-status">
+                        <strong>@(diagramViewModel.ScopeName ?? "Interconnection")</strong>
+                        @if (diagramViewModel.State is { Occurrences.Length: 0 })
+                        {
+                            <strong>No structural parts to display</strong>
+                        }
+                        <span>@DiagramStatus(diagramViewModel)</span>
+                        <Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening
+                            ExistingModels="this.CompatibleModels" Opened="lease => this.AttachModelAsync(tab.Id, lease)" />
+                    </div>
+                }
+                else
+                {
+                    <Interconnection @key="diagramViewModel" ViewModel="diagramViewModel" IsBenchmark="@IsBenchmarkView(tab.ViewTypeKey)" ShowDiagnostics="@(this.BenchmarkOptions.Value.Enabled && !diagramViewModel.IsWorkspaceBound)">
+                        <ModelActions>
+                            @if (diagramViewModel.IsWorkspaceBound)
+                            {
+                                <Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening Label="Open another model"
+                                    ExistingModels="this.CompatibleModels" Opened="lease => this.AttachModelAsync(tab.Id, lease)" />
+                            }
+                        </ModelActions>
+                    </Interconnection>
+                }
+                @if (this.BenchmarkOptions.Value.Enabled && !diagramViewModel.IsWorkspaceBound)
+                {
+                    <DiagramBenchmarkProbe @key="(tab.Id, true)" ViewModel="diagramViewModel" />
+                }
+            }
+            else if (tab.ViewTypeKey is CanvasViewTypeKey or CanvasBenchmarkViewTypeKey && this.diagramViewModels.TryGetValue(tab.Id, out var canvasViewModel))
+            {
+                <InterconnectionCanvas @key="tab.Id" ViewModel="canvasViewModel" IsBenchmark="@IsBenchmarkView(tab.ViewTypeKey)" ShowDiagnostics="@this.BenchmarkOptions.Value.Enabled" />
+                @if (this.BenchmarkOptions.Value.Enabled)
+                {
+                    <DiagramBenchmarkProbe @key="(tab.Id, true)" ViewModel="canvasViewModel" />
+                }
+            }
+            else if (IsProjectBrowserTab(tab))
             {
                 @if (this.TryGetProjectBrowserViewModel(tab, out var projectBrowserViewModel))
                 {
-                    <ProjectBrowser @key="tab.Id"
+                    <ProjectBrowser @key="projectBrowserViewModel"
                                     ViewModel="projectBrowserViewModel"
+                                    ScrollPosition="this.browserScroll.GetValueOrDefault(tab.Id)"
+                                    ScrollPositionChanged="@(this.diagramBrowsers.ContainsValue(tab.Id) ? EventCallback.Factory.Create<Mycelium.Bloom.Model.BrowserScrollPosition>(this, position => this.CaptureBrowserScroll(tab.Id, position)) : default)"
+                                    SelectedNodeChanged="node => this.RevealBrowserSelectionAsync(tab.Id, node)"
                                     data-testid="workspace-project-browser"
                                     data-tab-id="@(tab.Id)" />
                 }

@@ -11,3 +11,34 @@ Original project: https://github.com/blazorblueprintui/ui
 If you use this software or create derivative works, you must include this
 NOTICE file (or its contents) in your distribution, as required by the
 Apache License 2.0.
+
+Blazor.Diagrams 3.0.4.1
+Copyright (c) 2018 zHaytam
+https://github.com/Blazor-Diagrams/Blazor.Diagrams
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+AntV X6 3.1.7 (MIT), dom-align 1.12.4 (MIT), lodash-es 4.18.1 (MIT),
+mousetrap 1.6.5 (Apache-2.0 WITH LLVM-exception), utility-types 3.11.0 (MIT),
+tslib 2.8.1 (0BSD).
+The development diagram adapter bundles these libraries from npm registry archives.
+Complete copyright and license texts accompany the generated module in
+wwwroot/vendor/x6/LICENSES.txt. Source: https://github.com/antvis/X6

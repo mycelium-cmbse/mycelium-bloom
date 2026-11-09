@@ -18,34 +18,29 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using System.Reactive.Subjects;
     using System.Threading;
     using System.Threading.Tasks;
-
     using AngleSharp.Dom;
-
     using BlazorBlueprint.Primitives.Services;
-
     using Bunit;
-
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging.Abstractions;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Options;
     using Microsoft.AspNetCore.Components.Web;
-
     using Moq;
-
     using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Components.Layout;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
-
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
@@ -54,9 +49,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
     using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
-
     using SysML2.NET.Core.POCO.Root.Namespaces;
-
     using SysML2Element = SysML2.NET.Core.POCO.Root.Elements.IElement;
 
     /// <summary>
@@ -169,21 +162,24 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Is.EqualTo(ExpectedWorkspaceBodyElementNames));
                 Assert.That(component.FindAll(".mb-editor-workspace [data-testid='workspace-project-browser']"),
                     Has.Count.EqualTo(1));
-                Assert.That(component.FindAll(".mb-workspace-shell__right-panel [data-testid='workspace-details-panel']"),
+                Assert.That(
+                    component.FindAll(".mb-workspace-shell__right-panel [data-testid='workspace-details-panel']"),
                     Has.Count.EqualTo(1));
                 Assert.That(composition.Editor.Groups, Has.Count.EqualTo(3));
                 Assert.That(composition.Editor.Groups.All(group => group.Tabs.Count == 1), Is.True);
                 Assert.That(composition.Editor.Groups[0].ActiveTab.Title, Is.EqualTo("Project Browser"));
                 Assert.That(composition.Editor.Groups[0].ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                 Assert.That(composition.Editor.Groups.Skip(1)
-                    .All(group => group.ActiveTab.ViewTypeKey == "placeholder"), Is.True);
+                        .Select(group => group.ActiveTab.ViewTypeKey),
+                    Is.EqualTo(new[] { "placeholder", "interconnection" }));
                 Assert.That(renderedWeights, Is.EqualTo(ExpectedDefaultGroupWeights));
                 Assert.That(component.FindAll("[data-testid='workspace-editor-placeholder']"),
-                    Has.Count.EqualTo(2));
+                    Has.Count.EqualTo(1));
                 Assert.That(addTabMenus, Has.Count.EqualTo(3));
                 Assert.That(
                     addTabMenus.All(menu => menu.Instance.Items.Select(item => item.Symbol)
-                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Document, SymbolIconName.Tree })),
+                        .SequenceEqual(new SymbolIconName?[]
+                            { SymbolIconName.Document, SymbolIconName.Tree, SymbolIconName.Document })),
                     Is.True);
                 Assert.That(renderedTabIcons[composition.Editor.Groups[0].ActiveTab.Id], Is.EqualTo("list-tree"));
                 Assert.That(
@@ -193,10 +189,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
 
             Assert.That(
-                component.Find($"[data-testid='workspace-project-browser'][data-tab-id='{composition.Editor.Groups[0].ActiveTab.Id}']"),
+                component.Find(
+                    $"[data-testid='workspace-project-browser'][data-tab-id='{composition.Editor.Groups[0].ActiveTab.Id}']"),
                 Is.Not.Null);
 
-            foreach (var group in composition.Editor.Groups.Skip(1))
+            foreach (var group in composition.Editor.Groups.Skip(1).Take(1))
             {
                 Assert.That(
                     component.Find($"[data-testid='workspace-editor-placeholder'][data-tab-id='{group.ActiveTab.Id}']"),
@@ -232,10 +229,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Has.Count.EqualTo(expectedGroupCount));
                 Assert.That(component.FindAll("[data-testid='workspace-project-browser']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindAll("[data-testid='workspace-editor-placeholder']"),
-                    Has.Count.EqualTo(expectedGroupCount - 1));
+                    Has.Count.EqualTo(Math.Min(1, expectedGroupCount - 1)));
                 Assert.That(composition.Editor.Groups[0].ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
-                Assert.That(composition.Editor.Groups.Skip(1)
+                Assert.That(composition.Editor.Groups.Skip(1).Take(1)
                     .All(group => group.ActiveTab.ViewTypeKey == "placeholder"), Is.True);
+                if (expectedGroupCount == 3)
+                {
+                    Assert.That(composition.Editor.Groups[2].ActiveTab.ViewTypeKey, Is.EqualTo("interconnection"));
+                }
+
                 Assert.That(editorWorkspace.Instance.InitialGroupWeights,
                     Has.Count.EqualTo(expectsFigmaWeights ? 3 : 0));
             }
@@ -682,7 +684,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             foreach (var tab in tabs)
             {
-                await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
+                await component
+                    .Find(
+                        $"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
                     .ClickAsync();
             }
 
@@ -711,13 +715,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using var component = this.Render<Modelling>();
             var placeholderTabs = composition.Editor.RenderState.Groups
                 .SelectMany(group => group.Tabs
-                    .Where(tab => tab.Item.ViewTypeKey == "placeholder")
+                    .Where(tab => tab.Item.ViewTypeKey != "project-browser")
                     .Select(tab => (GroupId: group.Id, TabId: tab.Id)))
                 .ToArray();
 
             foreach (var tab in placeholderTabs)
             {
-                await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
+                await component
+                    .Find(
+                        $"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
                     .ClickAsync();
             }
 
@@ -746,13 +752,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using var component = this.Render<Modelling>();
             var placeholderTabs = composition.Editor.RenderState.Groups
                 .SelectMany(group => group.Tabs
-                    .Where(tab => tab.Item.ViewTypeKey == "placeholder")
+                    .Where(tab => tab.Item.ViewTypeKey != "project-browser")
                     .Select(tab => (GroupId: group.Id, TabId: tab.Id)))
                 .ToArray();
 
             foreach (var tab in placeholderTabs)
             {
-                await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
+                await component
+                    .Find(
+                        $"[data-testid='editor-workspace-tab-close'][data-group-id='{tab.GroupId}'][data-tab-id='{tab.TabId}']")
                     .ClickAsync();
             }
 
@@ -763,7 +771,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var projectBrowserTab = composition.Editor.RenderState.Groups
                 .SelectMany(group => group.Tabs.Select(tab => (GroupId: group.Id, TabId: tab.Id)))
                 .Single();
-            await component.Find($"[data-testid='editor-workspace-tab-close'][data-group-id='{projectBrowserTab.GroupId}'][data-tab-id='{projectBrowserTab.TabId}']")
+            await component
+                .Find(
+                    $"[data-testid='editor-workspace-tab-close'][data-group-id='{projectBrowserTab.GroupId}'][data-tab-id='{projectBrowserTab.TabId}']")
                 .ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
@@ -941,8 +951,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             initializingViewModel.SetupGet(viewModel => viewModel.IsLoading).Returns(false);
             initializingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
             initializingViewModel.Setup(viewModel => viewModel.ClearFilter());
-            initializingViewModel.Setup(
-                viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
+            initializingViewModel.Setup(viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
             initializingViewModel
                 .Setup(viewModel => viewModel.InitializeAsync(It.IsAny<CancellationToken>()))
                 .Returns<CancellationToken>(token =>
@@ -967,8 +976,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             survivingViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
             survivingViewModel.Setup(viewModel => viewModel.Dispose());
             survivingViewModel.Setup(viewModel => viewModel.ClearFilter());
-            survivingViewModel.Setup(
-                viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
+            survivingViewModel.Setup(viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
             var projectBrowserViewModels = new Queue<IProjectBrowserViewModel>(
                 [initializingViewModel.Object, survivingViewModel.Object]);
             var composition = this.RegisterWorkspaceServices(
@@ -1056,7 +1064,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 {
                     Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(4));
                     Assert.That(composition.ProjectBrowsers.Take(3)
-                        .Any(previous => ReferenceEquals(previous.Object, composition.ProjectBrowsers[3].Object)),
+                            .Any(previous => ReferenceEquals(previous.Object, composition.ProjectBrowsers[3].Object)),
                         Is.False);
                     Assert.That(
                         GetRenderedProjectBrowserViewModel(component, newTab.Id),
@@ -1092,7 +1100,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                         "placeholder",
                         out _),
                     Is.False);
-                Assert.That(composition.Context, Is.SameAs(this.Services.GetRequiredService<IElementSelectionService>()));
+                Assert.That(composition.Context,
+                    Is.SameAs(this.Services.GetRequiredService<IElementSelectionService>()));
             }
         }
 
@@ -1409,7 +1418,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Assert.That(shell.GetAttribute("data-navigation-collapsed"), Is.EqualTo("true"));
                     Assert.That(component.Find("nav.mb-navigation-rail").GetAttribute("data-overlay-expanded"),
                         Is.EqualTo("true"));
-                    Assert.That(component.FindComponent<EditorWorkspaceComponent>().Instance, Is.SameAs(editorWorkspace));
+                    Assert.That(component.FindComponent<EditorWorkspaceComponent>().Instance,
+                        Is.SameAs(editorWorkspace));
                 }
             });
         }
@@ -1491,6 +1501,58 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             return urlContext;
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task VerifyOwnedBrowserInitializationObservesFailureAndPageCancellation(bool disposeFirst)
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var started =
+                new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var failure = new InvalidOperationException("Browser initialization failed");
+            var logger = new Mock<Microsoft.Extensions.Logging.ILogger<Modelling>>();
+            var logged = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            logger.Setup(value => value.Log(It.IsAny<Microsoft.Extensions.Logging.LogLevel>(),
+                    It.IsAny<Microsoft.Extensions.Logging.EventId>(), It.IsAny<It.IsAnyType>(),
+                    failure, It.IsAny<Func<It.IsAnyType, Exception, string>>()))
+                .Callback(() => logged.TrySetResult());
+            this.Services.AddSingleton(logger.Object);
+            var browser = new Mock<IProjectBrowserViewModel>();
+            browser.SetupGet(value => value.IsLoading).Returns(true);
+            browser.SetupGet(value => value.AvailableElementTypes).Returns(EmptyElementTypes);
+            browser.SetupGet(value => value.SelectedElementTypes).Returns(EmptyElementTypes);
+            browser.SetupGet(value => value.RootNodes).Returns(
+                new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
+                    new ObservableCollection<ProjectBrowserNodeViewModel>()));
+            browser.Setup(value => value.InitializeAsync(It.IsAny<INamespace>(), It.IsAny<CancellationToken>()))
+                .Returns((INamespace _, CancellationToken token) =>
+                {
+                    started.TrySetResult(token);
+                    return completion.Task;
+                });
+            var composition = this.RegisterWorkspaceServices(3, _ => browser.Object);
+            using var navigation = composition.Navigation;
+            var session = this.Services.GetRequiredService<WorkspaceModelSession>();
+            session.Activate((INamespace)ProjectBrowserNodeTestFactory.CreateNamespaceNode("owned", "Owned")
+                .SourceElement);
+            using var component = this.Render<Modelling>();
+            var token = await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.That(token.IsCancellationRequested, Is.False);
+            if (disposeFirst)
+            {
+                await component.InvokeAsync(component.Instance.Dispose);
+                Assert.That(token.IsCancellationRequested, Is.True);
+            }
+
+            completion.SetException(failure);
+            if (!disposeFirst)
+            {
+                await logged.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                await component.InvokeAsync(component.Instance.Dispose);
+            }
+
+            browser.Verify(value => value.Dispose(), Times.Once);
+        }
+
         /// <summary>
         /// Opens a Project Browser through the add-tab menu owned by one exact editor group.
         /// </summary>
@@ -1538,7 +1600,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         /// <returns>The matching menu item.</returns>
         private IElement FindPortalledMenuItem(string label)
         {
-            return this.portalHost.WaitForElements("[role='menuitem']", 2)
+            return this.portalHost.WaitForElements("[role='menuitem']", 3)
                 .Single(item => string.Equals(item.TextContent.Trim(), label, StringComparison.Ordinal));
         }
 
@@ -1554,8 +1616,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             List<Mock<IProjectBrowserViewModel>> ProjectBrowsers,
             ContextAwareService Context,
             List<ProjectBrowserNodeViewModel> ProjectBrowserNodes) RegisterWorkspaceServices(
-            int maximumGroupCount,
-            Func<ContextAwareService, IProjectBrowserViewModel> createProjectBrowserViewModel = null)
+                int maximumGroupCount,
+                Func<ContextAwareService, IProjectBrowserViewModel> createProjectBrowserViewModel = null)
         {
             var context = new ContextAwareService();
             var editorViewModel = new WorkspaceEditorViewModel(
@@ -1603,8 +1665,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     projectBrowserViewModel.SetupGet(viewModel => viewModel.ErrorMessage).Returns(string.Empty);
                     projectBrowserViewModel.Setup(viewModel => viewModel.Dispose());
                     projectBrowserViewModel.Setup(viewModel => viewModel.ClearFilter());
-                    projectBrowserViewModel.Setup(
-                        viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
+                    projectBrowserViewModel.Setup(viewModel => viewModel.ToggleElementTypeFilter(It.IsAny<Type>()));
                     projectBrowserViewModel.Setup(viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()));
                     projectBrowserViewModel
                         .Setup(viewModel => viewModel.SelectNode(projectBrowserNode))
@@ -1633,12 +1694,18 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                             ? context.SelectedElement
                             : null));
             this.Services.AddSingleton(elementIdResolver.Object);
+            var environment = new Mock<IHostEnvironment>(MockBehavior.Strict);
+            environment.SetupGet(value => value.EnvironmentName).Returns(Environments.Production);
+            this.Services.AddSingleton(environment.Object);
+            this.Services.AddSingleton(new Mock<IModelLoaderService>(MockBehavior.Strict).Object);
+            this.Services.AddDiagramPrototype();
             this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
                 () => new WorkspaceUrlContextService(
                     serviceProvider.GetRequiredService<NavigationManager>(),
                     elementIdResolver.Object,
                     context,
                     NullLogger<WorkspaceUrlContextService>.Instance));
+            this.Services.GetRequiredService<WorkspaceModelSession>().Clear();
             this.portalHost = this.Render<BbPortalHost>();
 
             return (

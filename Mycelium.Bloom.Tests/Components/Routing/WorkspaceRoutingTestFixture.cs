@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Components.Routing
 {
+
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -23,6 +24,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
+    using Microsoft.Extensions.Hosting;
 
     using Moq;
 
@@ -32,6 +34,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -110,12 +113,18 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                     return viewModel;
                 });
             this.Services.AddScoped<Func<IProjectBrowserViewModel>>(_ => this.CreateProjectBrowserViewModel);
+            var environment = new Mock<IHostEnvironment>(MockBehavior.Strict);
+            environment.SetupGet(value => value.EnvironmentName).Returns(Environments.Production);
+            this.Services.AddSingleton(environment.Object);
+            this.Services.AddSingleton(new Mock<IModelLoaderService>(MockBehavior.Strict).Object);
+            this.Services.AddDiagramPrototype();
 
             var themeModule = this.JSInterop.SetupModule(
                 "./_content/BlazorBlueprint.Components/js/theme.js");
             themeModule.SetupVoid("applyTheme", invocation => true).SetVoidResult();
             themeModule.SetupVoid("applyDarkMode", invocation => true).SetVoidResult();
             themeModule.SetupVoid("saveTheme", invocation => true).SetVoidResult();
+            this.Services.GetRequiredService<WorkspaceModelSession>().Clear();
         }
 
         /// <summary>

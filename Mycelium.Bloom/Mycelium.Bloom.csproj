@@ -21,6 +21,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Content Remove="package.json;package-lock.json" />
+        <EmbeddedResource Include="Resources/Diagram/*.svg" />
         <Content Update="Resources\**\*.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
@@ -68,6 +69,7 @@
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
         <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
+        <PackageReference Include="Z.Blazor.Diagrams" Version="3.0.4.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -76,5 +78,6 @@
     </ItemGroup>
 
     <Import Project="Build/Tailwind.targets" />
+    <Import Project="Build/DiagramAssets.targets" />
 
 </Project>

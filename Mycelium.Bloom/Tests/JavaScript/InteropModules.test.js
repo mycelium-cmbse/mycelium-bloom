@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { afterEach, before, beforeEach, test } from "node:test";
 
 import { JSDOM } from "jsdom";
+import { openFile } from "../../Components/UI/Organisms/ModelOpening/ModelOpening.razor.js";
+import { readScroll, restoreScroll } from "../../Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js";
+
+import { mount, unmount, measureScene, exportSvg, exportSvgFile, download, completeSvg, focusOccurrence } from "../../Components/UI/Organisms/Interconnection/Interconnection.razor.js";
 
 import {
     clearSearchInputValue,
@@ -32,6 +36,23 @@ const emptySpaceRegistrationIds = new Set();
 const selectRegistrationIds = new Set();
 const workspaceGuardIds = new Set();
 
+test("Browser scroll restoration retains each tab's independent native position", () => {
+    const first = { scrollLeft: 12, scrollTop: 240 };
+    const second = { scrollLeft: 0, scrollTop: 30 };
+    const saved = readScroll(first);
+    restoreScroll(first, { left: 0, top: 0 });
+    restoreScroll(first, saved);
+    assert.deepEqual(readScroll(first), { left: 12, top: 240 });
+    assert.deepEqual(readScroll(second), { left: 0, top: 30 });
+});
+
+test("model upload streams only the explicitly selected browser file", () => {
+    const file = new Blob(['[]'], { type: 'application/json' });
+    assert.throws(() => openFile(null), /Select a model file/);
+    assert.throws(() => openFile({ files: [] }), /Select a model file/);
+    assert.equal(openFile({ files: [file] }), file);
+});
+
 before(async () => {
     const bootstrap = new JSDOM("<!doctype html><html><body></body></html>");
     globalThis.document = bootstrap.window.document;
@@ -57,6 +78,9 @@ beforeEach(() => {
     globalThis.HTMLInputElement = dom.window.HTMLInputElement;
     globalThis.InputEvent = dom.window.InputEvent;
     globalThis.MutationObserver = dom.window.MutationObserver;
+    globalThis.XMLSerializer = dom.window.XMLSerializer;
+    globalThis.DOMParser = dom.window.DOMParser;
+    globalThis.PointerEvent = dom.window.PointerEvent;
     globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
     globalThis.requestAnimationFrame = callback => {
         animationFrameQueue.push(callback);
@@ -94,6 +118,8 @@ afterEach(() => {
     delete globalThis.HTMLInputElement;
     delete globalThis.InputEvent;
     delete globalThis.MutationObserver;
+    delete globalThis.XMLSerializer;
+    delete globalThis.PointerEvent;
     delete globalThis.getComputedStyle;
     delete globalThis.requestAnimationFrame;
 });
@@ -654,3 +680,171 @@ function flushAnimationFrames() {
 async function settleMutationObserver() {
     await new Promise(resolve => setTimeout(resolve, 0));
 }
+
+test("diagram export resolves native SVG styles and covers content outside the viewport", () => {
+    document.body.innerHTML = `<section id="diagram"><div class="diagram-canvas"><svg class="diagram-svg-layer" style="transform:translate(800px,200px) scale(.5)">
+        <defs><marker id="arrow"><path d="M0 0 L8 4 L0 8" /></marker></defs>
+        <g data-element-id="part" b-scope=""><rect width="200" height="130" style="fill:rgb(20,30,40);stroke:rgb(50,60,70)"/><text>part : System</text></g>
+        <g transform="translate(2000,1400)"><text>Offscreen compartment</text><rect data-port-id="port" width="8" height="8"/></g>
+        <path class="connection-svg__line" marker-end="url(#arrow)" d="M0 0L2000 1400"/>
+        <text>[1..*]</text><circle class="diagram-link-vertex" r="5"/><path class="connection-svg__hit" d="M0 0L20 0"/>
+    </svg></div></section>`;
+    const root = document.querySelector("#diagram");
+    const svg = root.querySelector("svg");
+    svg.getBBox = () => ({ x: -40, y: -50, width: 2400, height: 1500 });
+    Object.defineProperties(root.querySelector(".diagram-canvas"), {
+        clientWidth: { value: 800 }, clientHeight: { value: 600 }
+    });
+    assert.deepEqual(measureScene(root), [-40, -50, 2400, 1500, 800, 600]);
+    const exported = exportSvg(root);
+    const parsed = new dom.window.DOMParser().parseFromString(exported, "image/svg+xml");
+    assert.equal(parsed.querySelector("parsererror"), null);
+    assert.equal(parsed.documentElement.getAttribute("viewBox"), "-64 -74 2448 1548");
+    assert.equal(parsed.documentElement.getAttribute("width"), "2448");
+    assert.equal(parsed.documentElement.getAttribute("height"), "1548");
+    assert.equal(parsed.documentElement.style.transform, "");
+    assert.equal(parsed.querySelector("rect").style.fill, "rgb(20, 30, 40)");
+    assert.ok(parsed.querySelector("defs #arrow"));
+    assert.match(parsed.documentElement.textContent, /Offscreen compartment/);
+    assert.match(parsed.documentElement.textContent, /\[1\.\.\*\]/);
+    assert.equal(parsed.querySelector(".diagram-link-vertex, .connection-svg__hit, [data-element-id], [b-scope]"), null);
+    assert.ok(svg.querySelector(".diagram-link-vertex"));
+});
+
+test("diagram export fails explicitly for unmounted or nonportable content", () => {
+    const root = document.createElement("section");
+    assert.throws(() => exportSvg(root), /not mounted/);
+    root.innerHTML = `<svg class="diagram-svg-layer"><foreignObject/></svg>`;
+    assert.throws(() => exportSvg(root), /native SVG/);
+});
+
+test("diagram forwards an owned gesture to the remounted canvas and stops after release or disposal", () => {
+    const root = document.createElement("section");
+    root.innerHTML = '<div class="diagram-canvas"></div>';
+    document.body.append(root);
+    const original = root.firstChild;
+    original.setPointerCapture = () => {};
+    original.hasPointerCapture = () => false;
+    mount(root);
+    original.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 7, button: 0 }));
+    const current = document.createElement("div");
+    current.className = "diagram-canvas";
+    original.replaceWith(current);
+    const received = [];
+    for (const type of ["pointermove", "pointerup"]) current.addEventListener(type, event => received.push([type, event.clientX]));
+    document.body.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 8, clientX: 10 }));
+    document.body.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 7, clientX: 20 }));
+    document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 7, clientX: 30 }));
+    document.body.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 7, clientX: 40 }));
+    assert.deepEqual(received, [["pointermove", 20], ["pointerup", 30]]);
+    unmount(root);
+    document.body.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 7, clientX: 50 }));
+    assert.equal(received.length, 2);
+    root.remove();
+});
+
+test("diagram mounts own independent pointer capture and release it on disposal", () => {
+    document.body.innerHTML = `<section><div class="diagram-canvas"><svg><rect/></svg></div><button>Toolbar</button></section><section><div class="diagram-canvas"><svg><rect/></svg></div></section>`;
+    const roots = [...document.querySelectorAll("section")];
+    const captures = roots.map(root => {
+        const active = new Set();
+        const canvas = root.querySelector(".diagram-canvas");
+        canvas.setPointerCapture = id => active.add(id);
+        canvas.hasPointerCapture = id => active.has(id);
+        canvas.releasePointerCapture = id => active.delete(id);
+        mount(root);
+        mount(root);
+        return active;
+    });
+    const pointer = (target, type, id, button = 0) => target.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, pointerId: id, button, clientX: 10, clientY: 20
+    }));
+    pointer(roots[0].querySelector("button"), "pointerdown", 1);
+    pointer(roots[0].querySelector("rect"), "pointerdown", 2, 1);
+    assert.equal(captures[0].size, 0);
+    pointer(roots[0].querySelector("rect"), "pointerdown", 3);
+    pointer(roots[1].querySelector("rect"), "pointerdown", 4);
+    assert.deepEqual([...captures[0]], [3]);
+    unmount(roots[0]);
+    unmount(roots[0]);
+    assert.equal(captures[0].size, 0);
+    assert.deepEqual([...captures[1]], [4]);
+    pointer(roots[0].querySelector("rect"), "pointerdown", 5);
+    assert.equal(captures[0].size, 0);
+    let cancelledCompletion;
+    roots[1].addEventListener("pointerup", event => { cancelledCompletion = event.pointerId; });
+    pointer(roots[1].querySelector("rect"), "pointercancel", 4);
+    assert.equal(cancelledCompletion, 4);
+    captures[1].delete(4);
+    pointer(roots[1].querySelector("rect"), "pointerdown", 6);
+    pointer(roots[1].querySelector("rect"), "pointerup", 6);
+    captures[1].delete(6);
+    unmount(roots[1]);
+    assert.equal(captures[1].size, 0);
+});
+
+test("diagram downloads a self-contained file and releases its temporary URL", async () => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    const originalClick = dom.window.HTMLAnchorElement.prototype.click;
+    let blob;
+    let anchor;
+    const revoked = new Promise(resolve => {
+        URL.revokeObjectURL = resolve;
+    });
+    URL.createObjectURL = value => { blob = value; return "blob:diagram-download"; };
+    dom.window.HTMLAnchorElement.prototype.click = function () { anchor = this; };
+    try {
+        download("diagram.svg", "image/svg+xml", "<svg/>");
+        assert.equal(anchor.download, "diagram.svg");
+        assert.equal(anchor.href, "blob:diagram-download");
+        assert.equal(blob.type, "image/svg+xml");
+        assert.equal(await blob.text(), "<svg/>");
+        assert.equal(await revoked, "blob:diagram-download");
+        document.body.innerHTML = `<section><svg class="diagram-svg-layer"><text>Portable export</text></svg></section>`;
+        document.querySelector("svg").getBBox = () => ({ x: 0, y: 0, width: 200, height: 100 });
+        const exportRevoked = new Promise(resolve => { URL.revokeObjectURL = resolve; });
+        exportSvgFile(document.querySelector("section"));
+        assert.equal(anchor.download, "interconnection.svg");
+        assert.match(await blob.text(), /Portable export/);
+        await exportRevoked;
+    } finally {
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+        dom.window.HTMLAnchorElement.prototype.click = originalClick;
+    }
+});
+
+
+test("complete diagram export uses full detached content and resolves canonical styles", () => {
+    document.head.innerHTML = '<style>.part-svg__body[b-scope] { fill: var(--card); } .connection-svg__line { stroke: var(--primary); }</style>';
+    document.body.innerHTML = '<section style="--card:rgb(10,20,30);--primary:teal;--background:white"><svg><g class="part-svg"/></svg></section>';
+    const root = document.querySelector('section');
+    const content = '<svg viewBox="-20 -30 9000 1000"><g class="part-svg" b-scope><rect class="part-svg__body" width="200"/></g><g transform="translate(8000 0)" class="part-svg"><text>Offscreen &amp; retained</text></g><path class="connection-svg__line" d="M0 0L8000 0"/><text>[1..*]</text></svg>';
+    const result = completeSvg(root, content);
+    const parsed = new DOMParser().parseFromString(result, 'image/svg+xml');
+    assert.equal(parsed.querySelector('parsererror'), null);
+    assert.equal(parsed.querySelectorAll('.part-svg').length, 2);
+    assert.equal(parsed.documentElement.getAttribute('viewBox'), '-20 -30 9000 1000');
+    assert.match(parsed.querySelector('style').textContent, /rgb\(10,20,30\)/);
+    assert.ok(!result.includes('var(') && !result.includes('b-scope'));
+    assert.equal(root.querySelectorAll('.part-svg').length, 1);
+    assert.throws(() => completeSvg(root, '<svg><foreignObject/></svg>'), /Invalid/);
+    assert.throws(() => completeSvg(root, '<p>missing</p>'), /Missing/);
+});
+
+test("diagram focus ignores absent occurrences and disposed mounts", () => {
+    document.body.innerHTML = '<section><svg><g data-node-id="part"/></svg></section>';
+    const root = document.querySelector('section'), node = root.querySelector('g');
+    let calls = 0;
+    node.focus = () => calls++;
+    assert.equal(focusOccurrence(root, 'part'), false);
+    assert.equal(calls, 0);
+    mount(root);
+    assert.equal(focusOccurrence(root, 'absent'), false);
+    assert.equal(focusOccurrence(root, 'part'), true);
+    assert.equal(calls, 1);
+    unmount(root);
+    assert.equal(focusOccurrence(root, 'part'), false);
+    assert.equal(calls, 1);
+});

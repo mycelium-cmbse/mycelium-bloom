@@ -246,9 +246,11 @@ namespace Mycelium.Bloom.Core.Context
 
             try
             {
-                var element = await this.elementIdResolver.ResolveAsync(
-                    parsedLocation.ElementId,
-                    cancellationToken);
+                var selected = this.elementSelectionService.SelectedElement;
+                var element = !parsedLocation.ShouldFocusSelectedElement
+                              && string.Equals(selected?.ElementId, parsedLocation.ElementId, StringComparison.Ordinal)
+                    ? selected
+                    : await this.elementIdResolver.ResolveAsync(parsedLocation.ElementId, cancellationToken);
                 string canonicalUri;
 
                 if (element is null)
