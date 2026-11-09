@@ -20,9 +20,18 @@ MSBuild validates `MyceliumDesignBloomTokensCssPath` and
 `MyceliumDesignBloomThemeCssPath`, supplied by the package through
 `MyceliumDesignBloomCssDir`. It stages the runtime file at
 `wwwroot/css/tokens.css` and the build-time mapping at
-`Styles/Generated/MyceliumDesign/theme-mycelium.css`. These ignored files are
+`Styles/AutoGen/MyceliumDesign/theme-mycelium.css`. These ignored files are
 replaced from the package on each build; never edit or commit them. The package
 is content-only and does not provide an RCL `_content` URL.
+
+The theme is explicitly included as a `None` item with `AutoGen=true`, even before
+the first build stages it. SonarScanner for .NET excludes this generated item from
+its analysis file list; the directory name alone does not provide that metadata.
+SonarQube Cloud centrally excludes `**/AutoGen*/**/*` and `**/wwwroot/css/*.css`
+from source and duplication analysis. The latter covers every CSS file directly
+in `wwwroot/css`, including authored files, but not nested directories or other
+file types. Authored `Styles/tailwind.css` remains eligible for analysis; the
+workflow does not override the central exclusions.
 
 The package's `css/tokens-bloom.css` is served as `css/tokens.css`, preserving
 the existing application URL and ASP.NET asset fingerprinting. The former

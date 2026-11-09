@@ -40,6 +40,11 @@
         <TailwindExecutable>$([System.IO.Path]::Combine('$(TailwindToolsDirectory)', '$(TailwindFileName)'))</TailwindExecutable>
     </PropertyGroup>
 
+    <ItemGroup>
+        <None Remove="Styles/AutoGen/MyceliumDesign/theme-mycelium.css" />
+        <None Include="Styles/AutoGen/MyceliumDesign/theme-mycelium.css" AutoGen="true" />
+    </ItemGroup>
+
     <Target Name="ValidateMyceliumTokenArtifacts">
         <Error Condition="!Exists('$(MyceliumDesignBloomTokensCssPath)')"
                Text="Mycelium.Design.Bloom runtime CSS is missing: $(MyceliumDesignBloomTokensCssPath). Restore the pinned NuGet package before building." />
@@ -57,7 +62,7 @@
 
     <Target Name="StageMyceliumStyles" DependsOnTargets="ValidateMyceliumTokenArtifacts">
         <Copy SourceFiles="$(MyceliumDesignBloomTokensCssPath)" DestinationFiles="wwwroot/css/tokens.css" />
-        <Copy SourceFiles="$(MyceliumDesignBloomThemeCssPath)" DestinationFiles="Styles/Generated/MyceliumDesign/theme-mycelium.css" />
+        <Copy SourceFiles="$(MyceliumDesignBloomThemeCssPath)" DestinationFiles="Styles/AutoGen/MyceliumDesign/theme-mycelium.css" />
     </Target>
 
     <Target Name="RestoreTailwind" DependsOnTargets="ValidateMyceliumTokenArtifacts">

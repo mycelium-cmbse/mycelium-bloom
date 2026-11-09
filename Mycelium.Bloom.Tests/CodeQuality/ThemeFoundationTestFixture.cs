@@ -272,7 +272,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
                 var tokensIndex = app.IndexOf("css/tokens.css", StringComparison.Ordinal);
                 Assert.That(tokensIndex, Is.GreaterThan(componentsIndex));
                 Assert.That(generatedAppIndex, Is.GreaterThan(tokensIndex));
-                Assert.That(tailwind, Does.Contain("@import \"./Generated/MyceliumDesign/theme-mycelium.css\";"));
+                Assert.That(tailwind, Does.Contain("@import \"./AutoGen/MyceliumDesign/theme-mycelium.css\";"));
                 Assert.That(componentsIndex, Is.GreaterThan(primitivesIndex));
                 Assert.That(scopedStylesIndex, Is.GreaterThan(componentsIndex));
             }

@@ -1,5 +1,5 @@
 @import "tailwindcss" source(none);
-@import "./Generated/MyceliumDesign/theme-mycelium.css";
+@import "./AutoGen/MyceliumDesign/theme-mycelium.css";
 @import "./variables.css";
 @import "./blueprint-theme.css";
 @import "./blueprint-overlays.css";

@@ -77,7 +77,7 @@ jobs:
         run: |
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-coverage
-          dotnet sonarscanner begin /k:"mycelium-cmbse_mycelium-bloom" /o:"mycelium-cmbse" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.coverageReportPaths="sonar-js-coverage.xml" /d:sonar.cpd.exclusions="**/wwwroot/css/app.css,**/wwwroot/css/tokens.css,**/Styles/Generated/MyceliumDesign/theme-mycelium.css" /d:sonar.exclusions="**/wwwroot/css/app.css,**/wwwroot/css/tokens.css,**/Styles/Generated/MyceliumDesign/theme-mycelium.css"
+          dotnet sonarscanner begin /k:"mycelium-cmbse_mycelium-bloom" /o:"mycelium-cmbse" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.coverageReportPaths="sonar-js-coverage.xml"
 
       - name: Run JavaScript Tests and Compute Coverage Reports
         working-directory: Mycelium.Bloom

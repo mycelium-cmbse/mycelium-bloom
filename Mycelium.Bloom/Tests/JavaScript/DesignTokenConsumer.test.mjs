@@ -10,7 +10,7 @@ import { test } from 'node:test';
 
 const projectDirectory = fileURLToPath(new URL('../../', import.meta.url));
 const runtimeName = 'wwwroot/css/tokens.css';
-const themeName = 'Styles/Generated/MyceliumDesign/theme-mycelium.css';
+const themeName = 'Styles/AutoGen/MyceliumDesign/theme-mycelium.css';
 const runtimePath = join(projectDirectory, runtimeName);
 const themePath = join(projectDirectory, themeName);
 const appName = 'wwwroot/css/app.css';
@@ -241,7 +241,7 @@ test('stale verification detects a Razor utility change without overwriting CSS 
     const directory = await fixture(context);
     const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
     const tools = `-p:TailwindToolsDirectory=${dirname(executable)}`;
-    await writeFile(join(directory, 'Styles/tailwind.css'), '@import "tailwindcss";\n@import "./Generated/MyceliumDesign/theme-mycelium.css";\n');
+    await writeFile(join(directory, 'Styles/tailwind.css'), '@import "tailwindcss";\n@import "./AutoGen/MyceliumDesign/theme-mycelium.css";\n');
     await rm(join(directory, appName));
     let result = msbuild(directory, '-t:RegenerateMyceliumStyles', tools);
     assert.equal(result.status, 0, output(result));
@@ -374,6 +374,11 @@ for (const target of ['Build', 'Publish']) {
     test(`first ${target} discovers generated static web assets`, async context => {
         const directory = await fixture(context, true);
         for (const name of [runtimeName, themeName, appName]) await rm(join(directory, name));
+        const evaluated = msbuild(directory, '-getItem:None');
+        assert.equal(evaluated.status, 0, output(evaluated));
+        const themeItems = JSON.parse(evaluated.stdout).Items.None.filter(item => item.Identity.replaceAll('\\', '/') === themeName);
+        assert.equal(themeItems.length, 1);
+        assert.equal(themeItems[0].AutoGen, 'true');
         const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
         const result = msbuild(directory, `-t:${target}`, `-p:TailwindToolsDirectory=${dirname(executable)}`);
         assert.equal(result.status, 0, output(result));
