@@ -38,6 +38,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     [TestFixture, FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class DetailsPanelIntegrationTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedDimensionsQualifiedNameSegments = ["Quantities::", "TensorQuantityValue::", "dimensions"];
+
         private readonly ContextAwareService selection = new();
 
         public DetailsPanelIntegrationTestFixture()
@@ -98,7 +100,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 var qualified = component.Find("[data-property-name='qualifiedName'] dd");
                 Assert.That(qualified.TextContent, Is.EqualTo(element.qualifiedName));
                 Assert.That(qualified.QuerySelectorAll(".mb-qualified-name-segment").Select(segment => segment.TextContent),
-                    Is.EqualTo(new[] { "Quantities::", "TensorQuantityValue::", "dimensions" }));
+                    Is.EqualTo(ExpectedDimensionsQualifiedNameSegments));
                 Assert.That(component.FindAll("button[aria-label='Inspect Value expression: mRef.dimensions']"), Has.Count.EqualTo(1));
             }
 
@@ -133,17 +135,23 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var snapshot = owned.Presentation;
             selected.DeclaredName = "Updated";
             component.Render(parameters => parameters.Add(panel => panel.Class, "rerender"));
-            Assert.That(owned.Presentation, Is.SameAs(snapshot));
-            Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Initial"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owned.Presentation, Is.SameAs(snapshot));
+                Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Initial"));
+            }
             await component.InvokeAsync(owned.Refresh);
-            component.WaitForAssertion(() => Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Updated")));
+            await component.WaitForAssertionAsync(() => Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Updated")));
             var retained = owned.Presentation;
             await this.DisposeComponentsAsync();
             await Task.Run(() => this.selection.SelectedElement = new Namespace { DeclaredName = "Reopened" });
             Assert.That(owned.Presentation, Is.SameAs(retained));
             var reopened = this.Render<Panel>();
-            Assert.That(reopened.Instance.ViewModel, Is.Not.SameAs(owned));
-            Assert.That(reopened.Instance.ViewModel.Presentation.Element, Is.SameAs(this.selection.SelectedElement));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(reopened.Instance.ViewModel, Is.Not.SameAs(owned));
+                Assert.That(reopened.Instance.ViewModel.Presentation.Element, Is.SameAs(this.selection.SelectedElement));
+            }
             await Task.Run(() => this.selection.SelectedElement = new Namespace { DeclaredName = "Background" });
             await reopened.WaitForAssertionAsync(() => Assert.That(reopened.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Background")));
         }

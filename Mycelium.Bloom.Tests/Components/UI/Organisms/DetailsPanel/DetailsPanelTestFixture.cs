@@ -32,6 +32,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     [TestFixture, FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class DetailsPanelTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedTabTitles = ["Properties", "Relations", "Comments", "Attachments"];
+
         private readonly Mock<IDetailsPanelViewModel> viewModel = new();
 
         public DetailsPanelTestFixture()
@@ -66,7 +68,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             var component = this.Render<Panel>(parameters => parameters.Add(panel => panel.CloseRequested, () => closed = true));
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.FindAll("[role='tab']").Select(tab => tab.TextContent.Trim()), Is.EqualTo(new[] { "Properties", "Relations", "Comments", "Attachments" }));
+                Assert.That(component.FindAll("[role='tab']").Select(tab => tab.TextContent.Trim()), Is.EqualTo(ExpectedTabTitles));
                 Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
                 Assert.That(component.Markup, Does.Not.Contain("Back to previous").And.Not.Contain("SDK textual notation").And.Not.Contain("Advanced metadata"));
                 Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
@@ -75,8 +77,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             }
 
             await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Attachments").ClickAsync();
-            Assert.That(component.Find("[role='tabpanel']").TextContent, Does.Contain("Attachments are not available for this model."));
-            Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("[role='tabpanel']").TextContent, Does.Contain("Attachments are not available for this model."));
+                Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
+            }
             await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Comments").ClickAsync();
             Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Harness"));
             await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Relations").ClickAsync();
@@ -143,9 +148,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             this.SetPresentation(new Namespace { DeclaredName = "First" });
             var component = this.Render<Panel>();
             await component.InvokeAsync(() => this.SetPresentation(new Namespace { DeclaredName = "Second" }));
-            component.WaitForAssertion(() => Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Second")));
+            await component.WaitForAssertionAsync(() => Assert.That(component.Find(".mb-details-panel__element-name").TextContent, Is.EqualTo("Second")));
             await component.InvokeAsync(() => this.SetPresentation(null));
-            component.WaitForAssertion(() => Assert.That(component.FindAll("dl"), Is.Empty));
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("dl"), Is.Empty));
         }
 
         [TestCase(true)]

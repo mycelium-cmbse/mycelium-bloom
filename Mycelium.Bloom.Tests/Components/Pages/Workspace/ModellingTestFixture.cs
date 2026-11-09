@@ -119,6 +119,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
         private static readonly string[] ExpectedPlaceholderTabIconNames = ["file-text", "file-text"];
 
+        private static readonly string[] ExpectedAddTabActions = ["Project Browser"];
+
         private static readonly ReadOnlyObservableCollection<Type> EmptyElementTypes =
             new(new ObservableCollection<Type>());
 
@@ -306,8 +308,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var projectBrowserAction = this.FindPortalledMenuItem("Project Browser");
 
-            Assert.That(this.portalHost.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(new[] { "Project Browser" }));
-            Assert.That(projectBrowserAction.QuerySelector("svg"), Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.portalHost.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(ExpectedAddTabActions));
+                Assert.That(projectBrowserAction.QuerySelector("svg"), Is.Not.Null);
+            }
 
             await projectBrowserAction.ClickAsync();
 

@@ -31,6 +31,15 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
     public sealed partial class DetailsPanelPresentation
     {
+        /// <summary>Identifies the destination for relationship sections across semantic and visual projections.</summary>
+        private const string RelationsTab = "Relations";
+
+        /// <summary>Identifies transition sections and their state-machine count.</summary>
+        private const string TransitionsLabel = "Transitions";
+
+        /// <summary>Identifies the canonical target role of imports, transitions and relationships.</summary>
+        private const string TargetRole = "Target";
+
         /// <summary>Gets the sections in their semantic destination and design order.</summary>
         public IReadOnlyList<PropertySectionPresentation> ContentSections { get; }
 
@@ -48,7 +57,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
         /// <summary>Builds the read-only Part/Attribute shell and explicitly supported semantic sections.</summary>
         /// <returns>Sections containing available model information, without synthetic SDK dumps.</returns>
-        private IReadOnlyList<PropertySectionPresentation> BuildContentSections()
+        private PropertySectionPresentation[] BuildContentSections()
         {
             var sections = new List<PropertySectionPresentation>();
             var identity = this.Sections.Single(section => section.Title == "Identity");
@@ -123,7 +132,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>Displays the SDK element identifier and effective names while retaining a differing or absent declaration.</summary>
         /// <param name="identity">The cached identity facts, including incomplete-model explanations.</param>
         /// <returns>Design-facing identity fields without synthesizing a name.</returns>
-        private IReadOnlyList<KeyValuePair<string, string>> BuildIdentityFields(PropertySectionPresentation identity)
+        private List<KeyValuePair<string, string>> BuildIdentityFields(PropertySectionPresentation identity)
         {
             var facts = identity.Properties.ToDictionary(property => property.Key, property => property.Value);
             var effectiveName = facts.GetValueOrDefault("Effective name");
@@ -188,34 +197,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             if (this.Element is IStateDefinition or IStateUsage)
             {
-                var parallel = this.Element is IStateDefinition definition
-                    ? definition.IsParallel
-                    : ((IStateUsage)this.Element).IsParallel;
-                var structure = new List<ElementLinkPresentation>();
-                var states = members.OfType<IStateUsage>().Where(state => state is not ITransitionUsage).ToArray();
-                var initial = states
-                    .Where(state => ProjectBrowserRowPresentation.For(state).Indicators.Contains("Initial")).ToArray();
-
-                foreach (var state in initial)
-                {
-                    structure.Add(Link("Initial state", state));
-                }
-
-                structure.AddRange(states.Select(state => Link("Nested state", state)));
-                sections.Add(new("State structure", [new("Execution", parallel ? "Parallel" : "Exclusive")],
-                        initial.Length == 0 && !parallel ? ["No unconditional initial state resolved"] : [])
-                { Links = structure });
-                var actions = new List<ElementLinkPresentation>();
-                AddLink(actions, "Entry", () => this.Element is IStateDefinition state
-                        ? state.entryAction
-                        : ((IStateUsage)this.Element).entryAction, false);
-                AddLink(actions, "Do", () => this.Element is IStateDefinition state
-                        ? state.doAction
-                        : ((IStateUsage)this.Element).doAction, false);
-                AddLink(actions, "Exit", () => this.Element is IStateDefinition state
-                        ? state.exitAction
-                        : ((IStateUsage)this.Element).exitAction, false);
-                sections.Add(new("State behaviour", [], []) { Links = actions });
+                this.AddStateStructureAndActions(sections, members);
             }
 
             var transitions = this.Element is ITransitionUsage selected
@@ -226,11 +208,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 var links = new List<ElementLinkPresentation> { Link("Transition", transition) };
                 AddLink(links, "Source", () => transition.source);
-                AddLink(links, "Target", () => transition.target);
+                AddLink(links, TargetRole, () => transition.target);
                 AddLinks(links, "Trigger", () => transition.triggerAction);
                 AddLinks(links, "Guard", () => transition.guardExpression);
                 AddLinks(links, "Effect", () => transition.effectAction);
-                sections.Add(new("Transitions", [], []) { Links = links });
+                sections.Add(new(TransitionsLabel, [], []) { Links = links });
             }
 
             foreach (var succession in members.OfType<ISuccession>().Where(member => member is not ITransitionUsage))
@@ -238,9 +220,47 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 var links = new List<ElementLinkPresentation>();
                 AddLink(links, "Source", () => succession.sourceFeature);
                 var targets = Read(() => succession.targetFeature, out _);
-                links.AddRange((targets ?? []).Select(target => Link("Target", target)));
-                sections.Add(new("Control sequencing", [], []) { Links = links, Tab = "Relations" });
+                links.AddRange((targets ?? []).Select(target => Link(TargetRole, target)));
+                sections.Add(new("Control sequencing", [], []) { Links = links, Tab = RelationsTab });
             }
+        }
+
+        /// <summary>Describes nested and initial states, followed by entry, do and exit actions.</summary>
+        /// <param name="sections">The sections being assembled.</param>
+        /// <param name="members">Direct owned members of the selected state definition or usage.</param>
+        private void AddStateStructureAndActions(List<PropertySectionPresentation> sections, IElement[] members)
+        {
+            var parallel = this.Element switch
+            {
+                IStateDefinition definition => definition.IsParallel,
+                IStateUsage usage => usage.IsParallel,
+                _ => throw new InvalidOperationException("State structure requires a state definition or usage.")
+            };
+            var structure = new List<ElementLinkPresentation>();
+            var states = members.OfType<IStateUsage>().Where(state => state is not ITransitionUsage).ToArray();
+            var initial = states
+                .Where(state => ProjectBrowserRowPresentation.For(state).Indicators.Contains("Initial")).ToArray();
+
+            foreach (var state in initial)
+            {
+                structure.Add(Link("Initial state", state));
+            }
+
+            structure.AddRange(states.Select(state => Link("Nested state", state)));
+            sections.Add(new("State structure", [new("Execution", parallel ? "Parallel" : "Exclusive")],
+                    initial.Length == 0 && !parallel ? ["No unconditional initial state resolved"] : [])
+            { Links = structure });
+            var actions = new List<ElementLinkPresentation>();
+            AddLink(actions, "Entry", () => this.Element is IStateDefinition state
+                    ? state.entryAction
+                    : ((IStateUsage)this.Element).entryAction, false);
+            AddLink(actions, "Do", () => this.Element is IStateDefinition state
+                    ? state.doAction
+                    : ((IStateUsage)this.Element).doAction, false);
+            AddLink(actions, "Exit", () => this.Element is IStateDefinition state
+                    ? state.exitAction
+                    : ((IStateUsage)this.Element).exitAction, false);
+            sections.Add(new("State behaviour", [], []) { Links = actions });
         }
 
         /// <summary>Displays connector and association ends with referents, multiplicity and direction.</summary>
@@ -325,14 +345,85 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                          .Concat(this.Element is IImport selectedImport ? [selectedImport] : []))
             {
                 var links = new List<ElementLinkPresentation>();
-                AddLink(links, "Target", () => import.importedElement);
+                AddLink(links, TargetRole, () => import.importedElement);
                 sections.Add(new("Imports", [
                     new("Kind", import is INamespaceImport ? "Namespace import" : "Membership import"), new("Recursive", import.IsRecursive.ToString().ToLowerInvariant()),
                     new("Import all", import.IsImportAll.ToString().ToLowerInvariant()), new("Visibility", import.Visibility.ToString().ToLowerInvariant())
                 ], [])
-                { Links = links, Tab = "Relations" });
+                { Links = links, Tab = RelationsTab });
             }
 
+            this.AddTypeHierarchy(sections, relationships);
+
+            foreach (var constraint in relationships.OfType<IRequirementConstraintMembership>())
+            {
+                var links = new List<ElementLinkPresentation>();
+                AddLink(links, constraint.Kind.ToString(), () => constraint.referencedConstraint ?? constraint.ownedConstraint);
+                sections.Add(new("Constraints", [], []) { Links = links });
+            }
+
+            this.AddEnumerationValues(sections, members);
+
+            var variants = relationships.OfType<IVariantMembership>()
+                .Select(membership => Link("Variant", membership.MemberElement)).ToArray();
+
+            if (this.Element is not IEnumerationDefinition)
+            {
+                sections.Add(new("Variants", [], []) { Links = variants });
+            }
+
+            var memberships = relationships.OfType<IMembership>()
+                .Where(membership => membership is not IOwningMembership)
+                .Select(membership =>
+                    Link($"{membership.MemberName ?? "Member"} ({membership.Visibility.ToString().ToLowerInvariant()})", membership.MemberElement)).ToArray();
+            sections.Add(new("Memberships", [], []) { Links = memberships, Tab = RelationsTab });
+            var other = relationships.Where(relationship => relationship is not IMembership and not ISpecialization
+                    and not IImport and not IConjugation and not IAnnotation)
+                .Concat(members.OfType<IRelationship>().Where(relationship => relationship is not IType)).ToList();
+
+            if (this.Element is IRelationship selectedRelationship)
+            {
+                other.Add(selectedRelationship);
+            }
+
+            foreach (var relationship in other.Distinct())
+            {
+                var sources = Read(() => relationship.Source, out _);
+                var targets = Read(() => relationship.Target, out _);
+                sections.Add(new("Relationships", [new("Kind", ElementPresentation.GetKindName(relationship.GetType()))], [])
+                {
+                    Tab = RelationsTab,
+                    Links = (sources ?? []).Select(source => Link("Source", source))
+                        .Concat((targets ?? []).Select(target => Link(TargetRole, target))).ToArray()
+                });
+            }
+        }
+
+        /// <summary>Describes owned enumeration values and their available documentation.</summary>
+        /// <param name="sections">The sections being assembled.</param>
+        /// <param name="members">Direct owned members of the selected element.</param>
+        private void AddEnumerationValues(List<PropertySectionPresentation> sections, IElement[] members)
+        {
+            if (this.Element is IEnumerationDefinition)
+            {
+                foreach (var value in members.OfType<IEnumerationUsage>())
+                {
+                    var documentation = Read(() => value.documentation, out _);
+                    var properties = value.OwnedRelationship?.OfType<IFeatureValue>().Any() == true
+                        ? new KeyValuePair<string, string>[] { new("Value", this.GetValue(value)) }
+                        : [];
+                    sections.Add(new("Enumeration values", properties, (documentation ?? []).Select(document => document.Body)
+                            .Where(body => !string.IsNullOrWhiteSpace(body)).ToArray())
+                    { Links = [Link("Name", value)] });
+                }
+            }
+        }
+
+        /// <summary>Preserves outgoing and loaded inverse specializations, conjugation and inherited features.</summary>
+        /// <param name="sections">The sections being assembled.</param>
+        /// <param name="relationships">The selected element's owned relationships.</param>
+        private void AddTypeHierarchy(List<PropertySectionPresentation> sections, IReadOnlyList<IRelationship> relationships)
+        {
             var generalizations = new List<ElementLinkPresentation>();
 
             foreach (var specialization in relationships.OfType<ISpecialization>())
@@ -354,73 +445,18 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             sections.Add(new("Specializations / Type hierarchy", [], hierarchyNotices)
-            { Links = generalizations, Tab = "Relations" });
+            { Links = generalizations, Tab = RelationsTab });
 
             if (this.Element is IType conjugated && Read(() => conjugated.ownedConjugator, out _) is not null)
             {
                 var inherited = Read(() => conjugated.inheritedFeature, out var incomplete);
                 sections.Add(new("Inherited features", [], incomplete ? [IncompleteProperty] : [])
                 {
-                    Tab = "Relations",
+                    Tab = RelationsTab,
                     Links = (inherited ?? []).Select(feature =>
                         Link(
                             ReadText(() => conjugated.DirectionOf(feature)?.ToString().ToLowerInvariant()) ??
                             "Unspecified direction", feature)).ToArray()
-                });
-            }
-
-            foreach (var constraint in relationships.OfType<IRequirementConstraintMembership>())
-            {
-                var links = new List<ElementLinkPresentation>();
-                AddLink(links, constraint.Kind.ToString(), () => constraint.referencedConstraint ?? constraint.ownedConstraint);
-                sections.Add(new("Constraints", [], []) { Links = links });
-            }
-
-            if (this.Element is IEnumerationDefinition)
-            {
-                foreach (var value in members.OfType<IEnumerationUsage>())
-                {
-                    var documentation = Read(() => value.documentation, out _);
-                    var properties = value.OwnedRelationship?.OfType<IFeatureValue>().Any() == true
-                        ? new KeyValuePair<string, string>[] { new("Value", this.GetValue(value)) }
-                        : [];
-                    sections.Add(new("Enumeration values", properties, (documentation ?? []).Select(document => document.Body)
-                            .Where(body => !string.IsNullOrWhiteSpace(body)).ToArray())
-                    { Links = [Link("Name", value)] });
-                }
-            }
-
-            var variants = relationships.OfType<IVariantMembership>()
-                .Select(membership => Link("Variant", membership.MemberElement)).ToArray();
-
-            if (this.Element is not IEnumerationDefinition)
-            {
-                sections.Add(new("Variants", [], []) { Links = variants });
-            }
-
-            var memberships = relationships.OfType<IMembership>()
-                .Where(membership => membership is not IOwningMembership)
-                .Select(membership =>
-                    Link($"{membership.MemberName ?? "Member"} ({membership.Visibility.ToString().ToLowerInvariant()})", membership.MemberElement)).ToArray();
-            sections.Add(new("Memberships", [], []) { Links = memberships, Tab = "Relations" });
-            var other = relationships.Where(relationship => relationship is not IMembership and not ISpecialization
-                    and not IImport and not IConjugation and not IAnnotation)
-                .Concat(members.OfType<IRelationship>().Where(relationship => relationship is not IType)).ToList();
-
-            if (this.Element is IRelationship selectedRelationship)
-            {
-                other.Add(selectedRelationship);
-            }
-
-            foreach (var relationship in other.Distinct())
-            {
-                var sources = Read(() => relationship.Source, out _);
-                var targets = Read(() => relationship.Target, out _);
-                sections.Add(new("Relationships", [new("Kind", ElementPresentation.GetKindName(relationship.GetType()))], [])
-                {
-                    Tab = "Relations",
-                    Links = (sources ?? []).Select(source => Link("Source", source))
-                        .Concat((targets ?? []).Select(target => Link("Target", target))).ToArray()
                 });
             }
         }
@@ -429,7 +465,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <param name="type">The canonical selected type.</param>
         /// <param name="notices">Explanations when the bounded loaded graph is incomplete.</param>
         /// <returns>Canonical specific types in model ownership order.</returns>
-        private static IReadOnlyList<ElementLinkPresentation> GetLoadedSpecializations(IType type, List<string> notices)
+        private static ElementLinkPresentation[] GetLoadedSpecializations(IType type, List<string> notices)
         {
             IElement root = type;
             var ancestors = new HashSet<IElement>(ReferenceEqualityComparer.Instance) { root };
@@ -464,28 +500,34 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     AddLink(links, "Specialized by", () => specialization.Specific);
                 }
 
-                var children = Read(() => element.ownedElement, out var incomplete);
-
-                if (incomplete && !notices.Contains(IncompleteProperty))
-                {
-                    notices.Add(IncompleteProperty);
-                }
-
-                foreach (var child in children ?? [])
-                {
-                    if (child is not null)
-                    {
-                        pending.Enqueue(child);
-                    }
-                }
-
-                foreach (var relationship in element.OwnedRelationship ?? [])
-                {
-                    pending.Enqueue(relationship);
-                }
+                EnqueueOwnedElements(notices, element, pending);
             }
 
             return links.DistinctBy(link => link.Element, ReferenceEqualityComparer.Instance).ToArray();
+        }
+
+        /// <summary>Queues owned children followed by relationships, retaining incomplete-model notices.</summary>
+        /// <param name="notices">Explanations when ownership cannot be completely read.</param>
+        /// <param name="element">The current canonical element.</param>
+        /// <param name="pending">The ownership traversal queue.</param>
+        private static void EnqueueOwnedElements(List<string> notices, IElement element, Queue<IElement> pending)
+        {
+            var children = Read(() => element.ownedElement, out var incomplete);
+
+            if (incomplete && !notices.Contains(IncompleteProperty))
+            {
+                notices.Add(IncompleteProperty);
+            }
+
+            foreach (var child in (children ?? []).Where(child => child is not null))
+            {
+                pending.Enqueue(child);
+            }
+
+            foreach (var relationship in element.OwnedRelationship ?? [])
+            {
+                pending.Enqueue(relationship);
+            }
         }
 
         /// <summary>Creates a canonical reference, using supported expression text where appropriate.</summary>
@@ -494,13 +536,19 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <returns>A navigable reference or an explicit unresolved value.</returns>
         private static ElementLinkPresentation Link(string role, IElement element)
         {
-            return new(role, element, element is null
-                ? "Not resolved"
-                : element is ILiteralInfinity && role is "Lower bound" or "Upper bound"
-                    ? "*"
-                : element is IExpression expression and not IUsage
-                    ? ExpressionText(expression)
-                    : GetDisplayName(element));
+            if (element is null)
+            {
+                return new(role, element, "Not resolved");
+            }
+
+            if (element is ILiteralInfinity && role is "Lower bound" or "Upper bound")
+            {
+                return new(role, element, "*");
+            }
+
+            return new(role, element, element is IExpression expression and not IUsage
+                ? ExpressionText(expression)
+                : GetDisplayName(element));
         }
 
         /// <summary>Reads a reference without hiding incomplete data behind an absent section.</summary>

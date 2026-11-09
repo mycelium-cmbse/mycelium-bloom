@@ -28,18 +28,18 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
         /// <summary>Applies the supplied visual hierarchy without replacing semantic mappings or canonical targets.</summary>
         /// <returns>Read-only sections for the panel.</returns>
-        private IReadOnlyList<PropertySectionPresentation> BuildDisplaySections()
+        private PropertySectionPresentation[] BuildDisplaySections()
         {
             var sections = this.ContentSections.Select(section => section with
             {
-                Layout = section.Tab == "Relations" ? "relations" : section.Title switch
+                Layout = section.Tab == RelationsTab ? "relations" : section.Title switch
                 {
                     "Attributes" => "attributes",
                     "Comments" => "comment",
                     "Textual representation" => "text",
                     _ => "fields"
                 },
-                Count = section.Tab == "Relations" || section.Title == "Attributes" ? section.Links.Count : null
+                Count = section.Tab == RelationsTab || section.Title == "Attributes" ? section.Links.Count : null
             }).ToList();
 
             var typing = this.ContentSections.FirstOrDefault(section => section.Title == "Classification")?.Links ?? [];
@@ -48,7 +48,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 sections.Insert(0, new("Typing", [], [])
                 {
-                    Tab = "Relations",
+                    Tab = RelationsTab,
                     Layout = "relations",
                     Count = typing.Count,
                     Links = typing
@@ -71,7 +71,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 sections.Add(new("Owned features", [], [])
                 {
-                    Tab = "Relations",
+                    Tab = RelationsTab,
                     Layout = "relations",
                     Links = ownedFeatures,
                     Count = ownedFeatures.Length
@@ -97,14 +97,14 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
             var states = structure.Links.Where(link => link.Role == "Nested state").ToArray();
             var initial = structure.Links.Where(link => link.Role == "Initial state").ToArray();
-            var transitions = this.ContentSections.Where(section => section.Title == "Transitions").ToArray();
+            var transitions = this.ContentSections.Where(section => section.Title == TransitionsLabel).ToArray();
             var machine = new List<PropertySectionPresentation>
             {
                 new("State machine", structure.Properties.Concat(new KeyValuePair<string, string>[]
                 {
                     new("State usages", states.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                     new("Parallel regions", states.Count(link => link.Element is IStateUsage { IsParallel: true }).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                    new("Transitions", transitions.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    new(TransitionsLabel, transitions.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 }).ToArray(), structure.Paragraphs) { Links = initial }
             };
             var ordinary = states.Where(link => link.Element is IStateUsage { IsParallel: false }).ToArray();
@@ -129,13 +129,13 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 });
             }
 
-            machine.Add(new("Transitions", [], [])
+            machine.Add(new(TransitionsLabel, [], [])
             {
                 Layout = "cards",
                 Count = transitions.Length,
                 Cards = transitions.Select(section => new PropertyCardPresentation(section.Links[0], section.Links.Skip(1).ToArray())).ToArray()
             });
-            sections.RemoveAll(section => section.Title is "State structure" or "Transitions");
+            sections.RemoveAll(section => section.Title is "State structure" or TransitionsLabel);
             var identity = sections.FindIndex(section => section.Title == "Identity");
             sections.InsertRange(identity + 1, machine);
         }

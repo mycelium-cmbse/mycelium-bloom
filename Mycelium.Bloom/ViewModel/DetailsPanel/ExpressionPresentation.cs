@@ -88,7 +88,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
         /// <summary>Collects a single owned value path while preserving canonical identities.</summary>
         /// <returns>The ordered visible path starting at this expression.</returns>
-        private IReadOnlyList<ExpressionPresentation> GetDisplayPath()
+        private List<ExpressionPresentation> GetDisplayPath()
         {
             var result = new List<ExpressionPresentation> { this };
             var current = this;

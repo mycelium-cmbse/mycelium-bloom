@@ -37,6 +37,17 @@ namespace Mycelium.Bloom.Tests.ViewModel
     [TestFixture]
     public sealed class DetailsPanelSemanticPresentationTestFixture
     {
+        private static readonly string[] ExpectedPartSectionTitles = ["Identity", "Attributes", "Documentation", "Classification"];
+
+        private static readonly string[] ExpectedAttributeSectionTitles = ["Identity", "Documentation", "Value", "Classification"];
+
+        private static readonly string[] ExpectedImportFlags = ["Namespace import", "true", "true", "private"];
+
+        private static readonly string[] ExpectedTraversalLimitNotices =
+            ["Some specializations are not shown because the loaded model exceeds the inspection limit."];
+
+        private static readonly string[] ExpectedStateSectionTitles = ["Identity", "State machine", "State usages"];
+
         [Test]
         public void VerifyPartAndAttributeSectionOrderAndUnitValue()
         {
@@ -49,8 +60,8 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var attributeView = new DetailsPanelPresentation(quantity.Attribute);
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(partView.ContentSections.Select(section => section.Title).Take(4), Is.EqualTo(new[] { "Identity", "Attributes", "Documentation", "Classification" }));
-                Assert.That(attributeView.ContentSections.Select(section => section.Title).Take(4), Is.EqualTo(new[] { "Identity", "Documentation", "Value", "Classification" }));
+                Assert.That(partView.ContentSections.Select(section => section.Title).Take(4), Is.EqualTo(ExpectedPartSectionTitles));
+                Assert.That(attributeView.ContentSections.Select(section => section.Title).Take(4), Is.EqualTo(ExpectedAttributeSectionTitles));
                 Assert.That(partView.ContentSections.Single(section => section.Title == "Attributes").Links.Single().Element, Is.SameAs(quantity.Attribute));
                 Assert.That(attributeView.Summary, Is.EqualTo("3[SI::kg]"));
                 Assert.That(attributeView.ContentSections.Single(section => section.Title == "Value references").Links.Single(link => link.Role == "Reference").Element,
@@ -165,7 +176,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             {
                 Assert.That(import.Tab, Is.EqualTo("Relations"));
                 Assert.That(import.Links.Single().Element, Is.SameAs(imported));
-                Assert.That(import.Properties.Select(field => field.Value), Is.EqualTo(new[] { "Namespace import", "true", "true", "private" }));
+                Assert.That(import.Properties.Select(field => field.Value), Is.EqualTo(ExpectedImportFlags));
                 Assert.That(sections.Single(section => section.Title == "Specializations / Type hierarchy").Links.Single().Element, Is.SameAs(general));
                 Assert.That(new DetailsPanelPresentation(general).ContentSections.Single(section => section.Title == "Specializations / Type hierarchy")
                     .Links.Single(link => link.Role == "Specialized by").Element, Is.SameAs(owner));
@@ -197,16 +208,16 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(hierarchy.Tab, Is.EqualTo("Relations"));
-                Assert.That(hierarchy.Links.First().Element, Is.SameAs(first));
+                Assert.That(hierarchy.Links[0].Element, Is.SameAs(first));
                 Assert.That(hierarchy.Links.All(link => link.Role == "Specialized by"), Is.True);
                 Assert.That(hierarchy.Links, Has.Count.EqualTo(truncated ? 1 : 2));
                 Assert.That(hierarchy.Paragraphs, Is.EqualTo(truncated
-                    ? new[] { "Some specializations are not shown because the loaded model exceeds the inspection limit." }
+                    ? ExpectedTraversalLimitNotices
                     : System.Array.Empty<string>()));
 
                 if (!truncated)
                 {
-                    Assert.That(hierarchy.Links.Last().Element, Is.SameAs(last));
+                    Assert.That(hierarchy.Links[^1].Element, Is.SameAs(last));
                 }
             }
         }
@@ -240,8 +251,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var effect = new ActionUsage { DeclaredName = "Retained" };
             transition.SetupGet(element => element.effectAction).Returns([effect]);
             var roles = new DetailsPanelPresentation(transition.Object).ContentSections.Single(section => section.Title == "Transitions").Links;
-            Assert.That(roles.Single(link => link.Role == "Trigger").Label, Does.Contain("incomplete"));
-            Assert.That(roles.Single(link => link.Role == "Effect").Element, Is.SameAs(effect));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(roles.Single(link => link.Role == "Trigger").Label, Does.Contain("incomplete"));
+                Assert.That(roles.Single(link => link.Role == "Effect").Element, Is.SameAs(effect));
+            }
         }
 
         [Test]
@@ -261,7 +275,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             {
                 Assert.That(presentation.ShowSelectionSummary, Is.False);
                 Assert.That(presentation.DisplaySections.Where(section => section.Tab == "Properties").Take(3).Select(section => section.Title),
-                    Is.EqualTo(new[] { "Identity", "State machine", "State usages" }));
+                    Is.EqualTo(ExpectedStateSectionTitles));
                 Assert.That(initial.Badge, Is.EqualTo("initial"));
                 Assert.That(initial.Links.Single(link => link.Role == "Do").Element, Is.SameAs(action));
                 Assert.That(presentation.DisplaySections.Single(section => section.Title == "Parallel region · Housekeeping")
