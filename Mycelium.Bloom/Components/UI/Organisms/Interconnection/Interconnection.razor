@@ -7,41 +7,13 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using Microsoft.AspNetCore.Components.Forms
-
 <section class="interconnection" @ref="this.root" aria-label="@(this.ViewModel.IsWorkspaceBound ? $"Interconnection: {this.ViewModel.ScopeName}" : "Interconnection diagram")" data-testid="interconnection">
     <div class="interconnection__toolbar" role="toolbar" aria-label="Diagram actions">
         @this.ModelActions
-        @if (this.ShowDiagnostics)
-        {
-            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                      Disabled="@(!this.ViewModel.CanEditPresentation)" OnClick="this.AddBrowserSelection">Add browser selection</BbButton>
-            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                      Disabled="@(!this.ViewModel.CanEditPresentation)" OnClick="this.ViewModel.AddManualBend">Manual bend</BbButton>
-        }
         <span class="interconnection__spacer"></span>
-        @if (this.ShowDiagnostics)
-        {
-            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                      OnClick="this.RevealSelection">Reveal selection</BbButton>
-        }
         <ZoomControls Class="mb-zoom-controls--diagram" Zoom="@(this.ViewModel.State.Viewport.Zoom * 100)" ZoomChanged="this.ChangeZoom"
                       OnResetZoom="this.ResetZoom" OnFitToView="this.FitToViewAsync" Compact="true" ShowReset="false" MinimumZoom="@(this.MinimumZoom * 100)" />
     </div>
-    @if (this.ShowDiagnostics)
-    {
-        <div class="interconnection__toolbar" role="toolbar" aria-label="Prototype presentation">
-            <Checkbox Checked="this.ViewModel.IsReadOnly" CheckedChanged="this.SetReadOnly" Label="Read-only" />
-            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                      OnClick="this.ExportSvgAsync" Disabled="@(this.module is null)">Export SVG</BbButton>
-            <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
-                      OnClick="this.ExportPresentationAsync" Disabled="@(this.module is null)">Export presentation</BbButton>
-            <label class="interconnection__import">
-                Import presentation
-                <InputFile OnChange="this.ImportPresentationAsync" accept=".json,application/json" disabled="@(!this.ViewModel.CanEditPresentation)" />
-            </label>
-        </div>
-    }
     <div class="interconnection__canvas" @ondblclick="this.CapturePresentation">
         @if (this.isInteractive && this.diagram is not null)
         {
@@ -50,32 +22,4 @@
             </CascadingValue>
         }
     </div>
-    @if (this.ShowDiagnostics)
-    {
-        <div class="interconnection__status" role="status" aria-live="polite">
-            @if (this.ViewModel.DataSession is { } session)
-            {
-                <output data-testid="diagram-data-stats" data-bundles="@session.AssembledBundles" data-sdk-objects="@session.CanonicalObjects"
-                        data-cache-count="@session.Cache.Statistics.CurrentEntryCount" data-cache-bytes="@session.Cache.Statistics.CurrentEstimatedSize"
-                        data-cache-hits="@session.Cache.Hits" data-cache-misses="@session.Cache.Misses" data-cache-evictions="@session.Cache.Evictions"
-                        data-renderer-nodes="@this.nodes.Count" data-renderer-links="@this.links.Count"
-                        data-renderer-pan-x="@this.diagram?.Pan.X" data-renderer-pan-y="@this.diagram?.Pan.Y"
-                        data-interaction-active="@this.interactionActive"
-                        data-source-reads="@((session.Source as Mycelium.Bloom.Core.ModelLoading.OnDemandDiagramSource)?.Reads)"
-                        data-source-bytes="@((session.Source as Mycelium.Bloom.Core.ModelLoading.OnDemandDiagramSource)?.Bytes)">On-demand fixture · @this.ViewModel.LoadingError</output>
-            }
-            <strong>@(this.IsBenchmark ? "Benchmark · Z.Blazor.Diagrams" : "Z.Blazor.Diagrams")</strong>
-            <span>@this.ViewModel.State.Occurrences.Length parts · @this.ViewModel.State.Routes.Length connections</span>
-            <span>@(this.ViewModel.CanEditPresentation ? "Presentation only" : "Read-only")</span>
-            <span>@this.ViewModel.Notice</span>
-            @if (this.visibleCount > this.ViewportOptions.Value.DensityWarningCount)
-            {
-                <span>Dense viewport: @this.visibleCount parts; all relevant content remains visible.</span>
-            }
-        </div>
-        <details class="interconnection__diagnostics">
-            <summary>Projection diagnostics (@this.ViewModel.Projection.Diagnostics.Length)</summary>
-            <ul>@foreach (var diagnostic in this.ViewModel.Projection.Diagnostics) { <li>@diagnostic</li> }</ul>
-        </details>
-    }
 </section>

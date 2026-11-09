@@ -13,10 +13,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
     using System.Reactive.Linq;
     using ReactiveUI;
     using Microsoft.AspNetCore.Components;
-    using Microsoft.Extensions.Options;
-    using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
-    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -53,17 +50,8 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private const string PlaceholderViewTypeKey = "placeholder";
 
-        /// <summary>The composition key for the explicitly chosen interconnection prototype.</summary>
+        /// <summary>The composition key for the Interconnection editor.</summary>
         private const string DiagramViewTypeKey = "interconnection";
-
-        /// <summary>The development-only alternative renderer's composition key.</summary>
-        private const string CanvasViewTypeKey = "interconnection-x6";
-
-        /// <summary>The Z renderer's explicitly generated diagnostic scene.</summary>
-        private const string DiagramBenchmarkViewTypeKey = "interconnection-stress";
-
-        /// <summary>The browser renderer's explicitly generated diagnostic scene.</summary>
-        private const string CanvasBenchmarkViewTypeKey = "interconnection-x6-stress";
 
         /// <summary>The exact tab-owned presentation state retained across renderer remounts.</summary>
         private readonly Dictionary<Guid, DiagramViewModel> diagramViewModels = [];
@@ -83,16 +71,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [
             new(EmptyEditorActionId, "Empty editor", PlaceholderViewTypeKey, SymbolIconName.Document),
             new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree),
-            new("open-interconnection", "Interconnection", DiagramViewTypeKey, SymbolIconName.Document),
-            new("open-interconnection-demo", "Interconnection — Z.Blazor.Diagrams", DiagramViewTypeKey,
-                SymbolIconName.Document),
-            new("open-demonstration-browser", "Demonstration Project Browser", ProjectBrowserViewTypeKey,
-                SymbolIconName.Tree),
-            new("open-interconnection-x6", "Interconnection — AntV X6", CanvasViewTypeKey, SymbolIconName.Document),
-            new("open-interconnection-stress", "Stress Test — Z.Blazor.Diagrams", DiagramBenchmarkViewTypeKey,
-                SymbolIconName.Document),
-            new("open-interconnection-x6-stress", "Stress Test — AntV X6", CanvasBenchmarkViewTypeKey,
-                SymbolIconName.Document)
+            new("open-interconnection", "Interconnection", DiagramViewTypeKey, SymbolIconName.Document)
         ];
 
         /// <summary>
@@ -139,31 +118,9 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [Inject]
         private Func<DiagramViewModel> DiagramViewModelFactory { get; set; }
 
-        /// <summary>Gets or sets the circuit's canonical demonstration model source.</summary>
-        [Inject]
-        private InterconnectionPrototype InterconnectionPrototype { get; set; }
-
-        /// <summary>Gets or sets the startup-validated diagnostic configuration.</summary>
-        [Inject]
-        private IOptions<DiagramBenchmarkOptions> BenchmarkOptions { get; set; }
-
         /// <summary>Gets or sets the circuit owner of canonical model contexts.</summary>
         [Inject]
         private WorkspaceModelSession WorkspaceModel { get; set; }
-
-        /// <summary>Identifies explicit diagnostic Browsers excluded from initial workspace binding.</summary>
-        private readonly HashSet<Guid> demonstrationBrowsers = [];
-
-        /// <summary>Gets or sets bounded diagnostic fetched-data settings.</summary>
-        [Inject]
-        private IOptions<DiagramDataOptions> DataOptions { get; set; }
-
-        /// <summary>Gets or sets scoped dependencies for caller-owned diagnostic sessions.</summary>
-        [Inject]
-        private IServiceProvider Services { get; set; }
-
-        /// <summary>Owns the optional diagnostic data session until this page ends.</summary>
-        private DiagramModelSession dataSession;
 
         /// <summary>
         /// Gets or sets the logger used for renderer-bound focus failures.
@@ -252,7 +209,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             this.tabModels.Clear();
-            this.dataSession?.Dispose();
             this.WorkspaceEditorViewModel?.Dispose();
         }
 
@@ -504,9 +460,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private ActionMenuItem[] CreateAddTabActions()
         {
             return EditorTypes
-                .Where(editorType => this.BenchmarkOptions.Value.Enabled
-                                     || editorType.ActionId is EmptyEditorActionId or ProjectBrowserActionId
-                                         or "open-interconnection")
                 .Select(editorType => new ActionMenuItem
                 {
                     Id = editorType.ActionId,
@@ -521,7 +474,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         /// <param name="groupId">The group requesting new editor content.</param>
         /// <param name="item">The selected generic action metadata.</param>
-        private async Task HandleAddTabActionSelected(Guid groupId, ActionMenuItem item)
+        private void HandleAddTabActionSelected(Guid groupId, ActionMenuItem item)
         {
             ArgumentNullException.ThrowIfNull(item);
 
@@ -536,21 +489,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                 case "open-interconnection":
                     this.OpenWorkspaceInterconnection(groupId);
                     break;
-                case "open-interconnection-demo" when this.BenchmarkOptions.Value.Enabled:
-                    this.OpenInterconnection(groupId);
-                    break;
-                case "open-interconnection-x6" when this.BenchmarkOptions.Value.Enabled:
-                    this.OpenInterconnection(groupId, CanvasViewTypeKey);
-                    break;
-                case "open-interconnection-stress" when this.BenchmarkOptions.Value.Enabled:
-                    this.OpenInterconnection(groupId, DiagramBenchmarkViewTypeKey);
-                    break;
-                case "open-interconnection-x6-stress" when this.BenchmarkOptions.Value.Enabled:
-                    this.OpenInterconnection(groupId, CanvasBenchmarkViewTypeKey);
-                    break;
-                case "open-demonstration-browser" when this.BenchmarkOptions.Value.Enabled:
-                    await this.OpenDemonstrationBrowserAsync(groupId);
-                    break;
             }
         }
 
@@ -561,7 +499,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private void HandleTabClosed(EditorTabItem tab)
         {
             ArgumentNullException.ThrowIfNull(tab);
-            this.demonstrationBrowsers.Remove(tab.Id);
             this.browserScroll.Remove(tab.Id);
             if (this.modelOpenings.Remove(tab.Id, out var opening))
             {
@@ -734,8 +671,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             if (snapshot.Root is not null)
             {
-                foreach (var id in this.projectBrowserViewModels.Keys
-                             .Where(id => !this.demonstrationBrowsers.Contains(id)).ToArray())
+                foreach (var id in this.projectBrowserViewModels.Keys.ToArray())
                 {
                     if (!this.tabModels.ContainsKey(id))
                     {
@@ -769,105 +705,6 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                     _ =>
                         "This model has no supported parts for an Interconnection view. Open a compatible model or choose the example to get started."
                 };
-
-        /// <summary>Opens a fresh independently owned diagram against the shared canonical demonstration.</summary>
-        /// <param name="groupId">The requesting editor group.</param>
-        /// <param name="viewTypeKey">The independently owned renderer composition.</param>
-        private void OpenInterconnection(Guid groupId, string viewTypeKey = DiagramViewTypeKey)
-        {
-            var viewModel = this.DiagramViewModelFactory();
-            var transferred = false;
-            try
-            {
-                var benchmark = IsBenchmarkView(viewTypeKey);
-                if (benchmark)
-                {
-                    viewModel.ConfigureBenchmark(this.BenchmarkOptions.Value);
-                }
-
-                viewModel.Initialize(this.InterconnectionPrototype.Model);
-                if (viewTypeKey == DiagramBenchmarkViewTypeKey && this.BenchmarkOptions.Value.OnDemandTiles > 0)
-                {
-                    if (this.dataSession is null)
-                    {
-                        var source = this.InterconnectionPrototype.CreateOnDemandSource(viewModel.Projection,
-                            viewModel.State, this.BenchmarkOptions.Value.OnDemandTiles);
-                        this.dataSession =
-                            ActivatorUtilities.CreateInstance<DiagramModelSession>(this.Services, source,
-                                this.DataOptions.Value);
-                    }
-
-                    viewModel.InitializeOnDemand(this.dataSession, this.BenchmarkOptions.Value.PreloadOnDemandFixture);
-                }
-                else if (benchmark)
-                {
-                    viewModel.DisplayStressScene();
-                }
-
-                var engine = viewTypeKey is CanvasViewTypeKey or CanvasBenchmarkViewTypeKey
-                    ? "AntV X6"
-                    : "Z.Blazor.Diagrams";
-                var title = this.BenchmarkOptions.Value.Enabled
-                    ? $"{(benchmark ? "Stress Test" : "Interconnection")} — {engine}"
-                    : "Interconnection (demonstration)";
-                if (this.WorkspaceEditorViewModel.TryOpenTab(groupId, title, viewTypeKey, out var tab))
-                {
-                    this.diagramViewModels.Add(tab.Id, viewModel);
-                    transferred = true;
-                }
-            }
-            finally
-            {
-                if (!transferred)
-                {
-                    viewModel.Dispose();
-                }
-            }
-        }
-
-        /// <summary>Identifies presentation-only diagnostic editor kinds.</summary>
-        /// <param name="viewTypeKey">The composition-owned editor kind.</param>
-        /// <returns>Whether the editor is a stress scene.</returns>
-        private static bool IsBenchmarkView(string viewTypeKey) =>
-            viewTypeKey is DiagramBenchmarkViewTypeKey or CanvasBenchmarkViewTypeKey;
-
-        /// <summary>Opens a browser over the same canonical objects as the explicit diagram demonstration.</summary>
-        /// <param name="groupId">The requesting editor group.</param>
-        /// <returns>A task completing model initialization before the tab is published.</returns>
-        private async Task OpenDemonstrationBrowserAsync(Guid groupId)
-        {
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            var viewModel = this.CreateProjectBrowserViewModel();
-            var transferred = false;
-            try
-            {
-                using var dataLease = this.dataSession?.Acquire();
-                var model = this.dataSession is null
-                    ? this.InterconnectionPrototype.Model
-                    : (SysML2.NET.Core.POCO.Root.Namespaces.INamespace)await this.dataSession.ResolveAsync(
-                        this.dataSession.Source.Bundles[this.dataSession.Source.Presentation.Occurrences[0].ElementId],
-                        this.lifetimeCancellation.Token);
-                if (await viewModel.InitializeAsync(model, this.lifetimeCancellation.Token)
-                    && !this.isDisposed && this.WorkspaceEditorViewModel.TryOpenTab(
-                        groupId, "Interconnection model", ProjectBrowserViewTypeKey, out var tab))
-                {
-                    this.projectBrowserViewModels.Add(tab.Id, viewModel);
-                    this.demonstrationBrowsers.Add(tab.Id);
-                    transferred = true;
-                }
-            }
-            finally
-            {
-                if (!transferred)
-                {
-                    viewModel.Dispose();
-                }
-            }
-        }
 
         /// <summary>
         /// Attempts to open one rendering-neutral placeholder tab in a workspace-owned group.

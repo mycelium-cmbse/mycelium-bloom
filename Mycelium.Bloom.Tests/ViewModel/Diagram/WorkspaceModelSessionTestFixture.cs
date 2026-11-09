@@ -56,7 +56,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(browser.RootNodes.Single().SourceElement, Is.SameAs(firstRoot));
                 Assert.That(context.SelectedElement, Is.SameAs(canonical));
                 Assert.That(first.State.ModelScope, Is.EqualTo(firstRoot.ElementId));
-                Assert.That(first.DataSession, Is.Null);
                 Assert.That(first.Projection.Parts.Single().Value.Name, Is.EqualTo("pump"));
                 Assert.That(first.State.DiagramId, Is.Not.EqualTo(independent.State.DiagramId));
                 Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(3));
@@ -86,11 +85,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             using var services = CreateServices();
             var session = services.GetRequiredService<WorkspaceModelSession>();
-            var root = services.GetRequiredService<InterconnectionPrototype>().Model;
-            session.Activate(root);
+            var root = await session.OpenAsync(new Uri(Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom"),
+                "Resources", "Prototypes", "Interconnection.json")));
             using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
             diagram.BindWorkspace(session);
-            var canonical = InterconnectionProjection.Traverse(root).ToDictionary(element => element.ElementId);
+            var canonical = services.GetRequiredService<IAssembler>().Cache.Values.Select(value => value.Value).ToDictionary(element => element.ElementId);
             var context = services.GetRequiredService<IContextAwareService>();
             foreach (var item in diagram.State.Occurrences.Select(node => (node.Id, node.ElementId))
                          .Concat(diagram.State.Routes.Select(route => (route.Id, route.ElementId))))
@@ -396,15 +395,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using var file = new LargeWorkspaceFile(10_000);
             using var services = CreateServices();
             var session = services.GetRequiredService<WorkspaceModelSession>();
-            var clock = Stopwatch.StartNew();
             var root = await session.OpenAsync(file.Uri);
-            var loadMilliseconds = clock.Elapsed.TotalMilliseconds;
             Assert.That(root, Is.Not.Null);
             using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
-            clock.Restart();
             diagram.BindWorkspace(session);
             await diagram.Preparation;
-            var projectionMilliseconds = clock.Elapsed.TotalMilliseconds;
             Assert.That(diagram.PreparationStatus, Is.Empty);
             var original = diagram.State;
             using (Assert.EnterMultipleScope())
@@ -422,7 +417,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(diagram.Region.Occurrences, Is.Empty);
                 Assert.That(diagram.WorkspaceDetailCache.CurrentEntryCount, Is.Zero);
                 Assert.That(diagram.Projection.Parts.Values.All(part => part.Attributes.IsEmpty), Is.True);
-                Assert.That(diagram.DataSession, Is.Null);
             }
 
             diagram.RequestRegion(900, 700, 200);
@@ -469,27 +463,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             diagram.IsReadOnly = true;
             Assert.That(diagram.ApplyPresentation(original), Is.False);
             Assert.That(diagram.RevealOccurrence(distant.ElementId, 900, 700, 0.5), Is.EqualTo(distant.Id));
-            var report = new
-            {
-                loadMilliseconds,
-                projectionMilliseconds,
-                semanticObjects = file.ElementCount,
-                occurrences = original.Occurrences.Length,
-                ports = 10_000,
-                connections = original.Routes.Length,
-                partNestingDepth = 7,
-                initialRegion = firstRegion.Occurrences.Length,
-                cache = diagram.WorkspaceDetailCache,
-                sdkObjects = services.GetRequiredService<IAssembler>().Cache.Count
-            };
-            TestContext.Out.WriteLine(JsonSerializer.Serialize(report));
-            if (TestContext.Parameters.Get("ModelEvidenceDirectory", null) is { } directory)
-            {
-                Directory.CreateDirectory(directory);
-                File.Copy(file.Path, Path.Combine(directory, "large-workspace.json"), true);
-                File.WriteAllText(Path.Combine(directory, "normal-path-test.json"), JsonSerializer.Serialize(report));
-            }
-
             diagram.Dispose();
             Assert.That(diagram.IndexedElementCount, Is.Zero);
             Assert.That(diagram.WorkspaceDetailCache, Is.Null);
@@ -578,6 +551,143 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             Assert.That(diagram.Projection.Parts[target.ElementId].Attributes, Is.EqualTo(previous.Attributes));
             await diagram.SelectAsync([target.Id], target.Id);
             Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(canonical));
+        }
+
+        [TestCase(double.NaN)]
+        [TestCase(double.PositiveInfinity)]
+        [TestCase(double.NegativeInfinity)]
+        [TestCase(-1)]
+        public async Task VerifyRegionRejectsInvalidDimensionsWithoutReplacingAcceptedContent(double invalid)
+        {
+            using var services = CreateServices();
+            using var file = new LargeWorkspaceFile(40);
+            var session = services.GetRequiredService<WorkspaceModelSession>();
+            await session.OpenAsync(file.Uri);
+            using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
+            diagram.UpdateWorkspace(session.Current);
+            await diagram.Preparation;
+            diagram.RequestRegion(900, 700, 200);
+            var region = diagram.Region;
+            var projection = diagram.Projection;
+            var accepted = diagram.State;
+            var cache = diagram.WorkspaceDetailCache;
+
+            diagram.RequestRegion(invalid, 700, 200);
+            diagram.RequestRegion(900, invalid, 200);
+            diagram.RequestRegion(900, 700, invalid);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.Region, Is.SameAs(region));
+                Assert.That(diagram.Projection, Is.SameAs(projection));
+                Assert.That(diagram.State, Is.SameAs(accepted));
+                Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.EqualTo(cache.TotalHits));
+                Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(cache.TotalMisses));
+            }
+
+            var outside = -accepted.Occurrences.Max(node => node.Geometry.X + node.Geometry.Width) - 1000;
+            Assert.That(diagram.ApplyPresentation(accepted with { Viewport = new DiagramViewport(outside, 0, 1) }), Is.True);
+            diagram.RequestRegion(900, 700, 200);
+            Assert.That(diagram.Region.Occurrences, Is.Empty);
+            Assert.That(diagram.ApplyPresentation(accepted), Is.True);
+            diagram.RequestRegion(900, 700, 200);
+            Assert.That(diagram.Region.Occurrences, Is.EqualTo(region.Occurrences));
+        }
+
+        [TestCase("width")]
+        [TestCase("height")]
+        [TestCase("zoom")]
+        public async Task VerifyRegionReusesIdenticalRequestsAndRetainsSmallBoundaryChanges(string dimension)
+        {
+            using var services = CreateServices();
+            using var file = new WorkspaceModelFile("Scope", "part");
+            var session = services.GetRequiredService<WorkspaceModelSession>();
+            await session.OpenAsync(file.Uri);
+            using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
+            diagram.UpdateWorkspace(session.Current);
+            await diagram.Preparation;
+            var node = diagram.State.Occurrences.Single();
+            Assert.That(diagram.ApplyPresentation(diagram.State with
+            {
+                Occurrences = [node with { Geometry = node.Geometry with { X = 200, Y = 200 } }],
+                Viewport = new DiagramViewport(0, 0, 1)
+            }), Is.True);
+            diagram.RequestRegion(100, 100, 100);
+            Assert.That(diagram.Region.Occurrences, Has.Length.EqualTo(1));
+            var region = diagram.Region;
+            var projection = diagram.Projection;
+            var cache = diagram.WorkspaceDetailCache;
+            for (var index = 0; index < 3; index++)
+            {
+                diagram.RequestRegion(100, 100, 100);
+            }
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.Region, Is.SameAs(region));
+                Assert.That(diagram.Projection, Is.SameAs(projection));
+                Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.EqualTo(cache.TotalHits));
+                Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(cache.TotalMisses));
+            }
+
+            const double delta = 1.0 / 1024;
+            if (dimension == "zoom")
+            {
+                Assert.That(diagram.ApplyPresentation(diagram.State with { Viewport = new DiagramViewport(0, 0, 1 + delta) }), Is.True);
+            }
+
+            diagram.RequestRegion(dimension == "width" ? 100 - delta : 100,
+                dimension == "height" ? 100 - delta : 100, 100);
+            Assert.That(diagram.Region.Occurrences, Is.Empty);
+            Assert.That(diagram.ApplyPresentation(diagram.State with { Viewport = new DiagramViewport(0, 0, 1) }), Is.True);
+            diagram.RequestRegion(100, 100, 100);
+            Assert.That(diagram.Region.Occurrences, Is.EqualTo(region.Occurrences));
+        }
+
+        [TestCase(double.NaN)]
+        [TestCase(double.PositiveInfinity)]
+        [TestCase(double.NegativeInfinity)]
+        public async Task VerifyPresentationRejectsNonFiniteValuesAndPreservesExactAcceptedCoordinates(double invalid)
+        {
+            using var services = CreateServices();
+            using var file = new WorkspaceModelFile("Scope", "part");
+            var session = services.GetRequiredService<WorkspaceModelSession>();
+            await session.OpenAsync(file.Uri);
+            using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
+            diagram.UpdateWorkspace(session.Current);
+            await diagram.Preparation;
+            var original = diagram.State;
+            var node = original.Occurrences.Single();
+            var invalidGeometries = new[]
+            {
+                node.Geometry with { X = invalid }, node.Geometry with { Y = invalid },
+                node.Geometry with { Width = invalid }, node.Geometry with { Height = invalid }
+            };
+            foreach (var geometry in invalidGeometries)
+            {
+                Assert.That(diagram.ApplyPresentation(original with { Occurrences = [node with { Geometry = geometry }] }), Is.False);
+                Assert.That(diagram.State, Is.SameAs(original));
+            }
+
+            foreach (var viewport in new[] { new DiagramViewport(invalid, 0, 1), new DiagramViewport(0, invalid, 1), new DiagramViewport(0, 0, invalid) })
+            {
+                Assert.That(diagram.ApplyPresentation(original with { Viewport = viewport }), Is.False);
+                Assert.That(diagram.State, Is.SameAs(original));
+            }
+
+            var exact = original with
+            {
+                Occurrences = [node with { Geometry = node.Geometry with { X = Math.BitIncrement(node.Geometry.X) } }],
+                Viewport = new DiagramViewport(Math.BitIncrement(1), -0.0, Math.BitDecrement(4))
+            };
+            Assert.That(diagram.ApplyPresentation(exact), Is.True);
+            Assert.That(diagram.State, Is.SameAs(exact));
+            var encoded = DiagramPresentationSerializer.Export(exact);
+            Assert.That(DiagramPresentationSerializer.TryImport(encoded, diagram.Projection, out var restored, out _, diagram.Limits), Is.True);
+            Assert.That(restored.Occurrences, Is.EqualTo(exact.Occurrences));
+            Assert.That(restored.Viewport, Is.EqualTo(exact.Viewport));
+            Assert.That(diagram.ApplyPresentation(exact with { Viewport = exact.Viewport with { Zoom = Math.BitIncrement(4) } }), Is.False);
+            Assert.That(diagram.State, Is.SameAs(exact));
         }
     }
 

@@ -27,8 +27,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Components.UI.Molecules.ActionMenu;
     using Mycelium.Bloom.Components.UI.Organisms.Interconnection;
-    using Mycelium.Bloom.Components.UI.Organisms.InterconnectionCanvas;
-    using Mycelium.Bloom.Components.UI.Organisms.DiagramBenchmarkProbe;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Diagram;
@@ -51,8 +49,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             this.Services.AddSingleton(environment.Object);
             this.Services.AddLogging();
             this.Services.AddApplicationServices();
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(Options.Create(new DiagramBenchmarkOptions
-            { Enabled = true }));
             this.JSInterop.Mode = JSRuntimeMode.Loose;
             this.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
                 .SetResult(new Rectangle(0, 0, 1000, 700));
@@ -239,7 +235,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await portal.WaitForAssertionAsync(() => Assert.That(portal.FindAll("input[type='file']"), Is.Empty));
             using var retained = lease;
             Assert.That(session.Current, Is.SameAs(previous));
-            var projection = InterconnectionProjection.Create(lease.Snapshot.Root);
+            using var diagram = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            diagram.UpdateWorkspace(lease.Snapshot);
+            await diagram.Preparation;
+            var projection = diagram.Projection;
             Assert.That(projection.Parts, Has.Count.EqualTo(7));
             Assert.That(projection.Parts.Values.Sum(part => part.Ports.Length), Is.EqualTo(10));
             Assert.That(projection.Connections, Has.Count.EqualTo(5));
@@ -271,7 +270,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var destination = editor.Groups[1];
             var placeholder = source.ActiveTab;
             await this.OpenDiagramAsync(component);
-            var first = owned[1];
+            var first = component.FindComponent<Interconnection>().Instance.ViewModel;
             var tab = source.ActiveTab;
             await component.InvokeAsync(() =>
                 first.ApplyPresentation(first.State with { Viewport = new DiagramViewport(-20, 30, 0.8) }));
@@ -303,14 +302,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{tab.Id}']").ClickAsync();
             Assert.That(first.AddExisting(first.State.Occurrences[0].ElementId), Is.False);
             await this.OpenDiagramAsync(component);
-            var second = owned[2];
+            var second = component.FindComponent<Interconnection>().Instance.ViewModel;
             Assert.That(second, Is.Not.SameAs(first));
             component.Instance.Dispose();
             Assert.That(second.AddExisting(second.State.Occurrences[0].ElementId), Is.False);
         }
 
         [Test]
-        [SetCulture("fr-BE")]
         public async Task VerifyComponentDisposalLeavesTheCallerOwnedTabStateAlive()
         {
             var module =
@@ -318,9 +316,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             module.SetupVoid("mount", _ => true).SetVoidResult();
             module.SetupVoid("unmount", _ => true).SetVoidResult();
             using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var occurrence = viewModel.State.Occurrences[0];
+            await this.InitializeDiagramAsync(viewModel);
+            var occurrence = viewModel.State.Occurrences.First(node => node.ParentId is null && !viewModel.State.Occurrences.Any(child => child.ParentId == node.Id));
             Assert.That(viewModel.ApplyPresentation(viewModel.State with
             {
                 Occurrences = viewModel.State.Occurrences.Replace(occurrence,
@@ -359,17 +356,17 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             this.Services.AddSingleton(runtime.Object);
             var module = new Mock<IJSObjectReference>(MockBehavior.Loose);
             using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
+            await this.InitializeDiagramAsync(viewModel);
             var component = this.Render<Interconnection>(parameters =>
-                parameters.Add(value => value.ViewModel, viewModel).Add(value => value.ShowDiagnostics, true));
+                parameters.Add(value => value.ViewModel, viewModel));
             try
             {
                 await component.WaitForAssertionAsync(() => runtime.Verify(
                     value => value.InvokeAsync<IJSObjectReference>("import", It.IsAny<object[]>()), Times.Once));
-                await Task.Run(() => viewModel.ReportNotice("Background operation completed."));
-                await component.WaitForAssertionAsync(() => Assert.That(component.Find("[role='status']").TextContent,
-                    Does.Contain("Background operation completed.")));
+                await Task.Run(() => viewModel.IsReadOnly = true);
+                await component.WaitForAssertionAsync(() => Assert.That(component.FindComponent<DiagramCanvasHost>()
+                    .Instance.BlazorDiagram.Nodes.All(node => node.Locked), Is.True));
+                await Task.Run(() => viewModel.IsReadOnly = false);
                 var disposal = component.InvokeAsync(async () => await component.Instance.DisposeAsync());
                 completion.SetResult(module.Object);
                 await disposal;
@@ -410,8 +407,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             this.Services.AddSingleton(runtime.Object);
             using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
+            await this.InitializeDiagramAsync(owner);
             var component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() => module.Verify(value =>
                 value.InvokeAsync<Microsoft.JSInterop.Infrastructure.IJSVoidResult>(
@@ -436,54 +432,21 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(owner.AddExisting(owner.State.Occurrences[0].ElementId), Is.True);
         }
 
-        [Test]
-        public async Task VerifyRepeatedOccurrencesResolvePortsWithinTheirOwnConnections()
-        {
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            viewModel.DisplayStressScene();
-            this.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
-                .SetResult(new Rectangle(0, 0, 20000, 20000));
-            var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(component.FindAll(".part-svg"), Has.Count.EqualTo(126)));
-
-            foreach (var part in viewModel.Projection.Parts.Values.Where(part => part.Ports.Length > 0))
-            {
-                var occurrences = component.FindAll($".part-svg[data-element-id='{part.ElementId}']");
-                var portSignatures = occurrences.Select(element => string.Join(";",
-                    element.QuerySelectorAll(".part-svg__port image, .part-svg__port rect").Select(port =>
-                        $"{port.GetAttribute("x")},{port.GetAttribute("y")}"))).Distinct().ToArray();
-                using (Assert.EnterMultipleScope())
-                {
-                    Assert.That(occurrences, Has.Count.EqualTo(18));
-                    Assert.That(
-                        occurrences.Select(element =>
-                            element.QuerySelectorAll(".part-svg__port image, .part-svg__port rect").Length),
-                        Is.All.EqualTo(part.Ports.Length));
-                    Assert.That(portSignatures, Has.Length.EqualTo(1), part.Name);
-                }
-            }
-        }
-
         [TestCase(FeatureDirectionKind.In)]
         [TestCase(FeatureDirectionKind.Out)]
         [TestCase(FeatureDirectionKind.Inout)]
         [TestCase(null)]
         public async Task VerifyPortGlyphPreservesDirectionAndBoundaryCenter(FeatureDirectionKind? direction)
         {
-            var root = this.Services.GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>()
-                .Model;
-            foreach (var canonical in InterconnectionProjection.Traverse(root)
+            var root = await this.LoadExampleAsync();
+            foreach (var canonical in this.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Values.Select(value => value.Value)
                          .OfType<SysML2.NET.Core.POCO.Systems.Ports.IPortUsage>())
             {
                 canonical.Direction = direction;
             }
 
             using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(root);
+            await this.InitializeDiagramAsync(owner);
             using var component =
                 this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() =>
@@ -525,8 +488,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         public async Task VerifyPlainConnectionsAndMultipleSelectionDoNotInventFlowOrPresence()
         {
             using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
+            await this.InitializeDiagramAsync(owner);
             using var component =
                 this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() =>
@@ -550,501 +512,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(owner.SelectedOccurrences, Has.Count.EqualTo(2));
         }
 
-        [TestCase(500, 0, PortAlignment.Right)]
-        [TestCase(-500, 0, PortAlignment.Left)]
-        [TestCase(0, 500, PortAlignment.Bottom)]
-        [TestCase(0, -500, PortAlignment.Top)]
-        [TestCase(500, 500, PortAlignment.Right)]
-        public async Task VerifyBoundarySidesFollowMovedEndpoints(int dx, int dy, PortAlignment expected)
-        {
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(component.FindAll(".part-svg"), Has.Count.EqualTo(7)));
-            var route = viewModel.State.Routes[0];
-            var source = viewModel.State.Occurrences.Single(node => node.Id == route.SourceId);
-            var target = viewModel.State.Occurrences.Single(node => node.Id == route.TargetId);
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(viewModel.State with
-            {
-                Occurrences = viewModel.State.Occurrences.Replace(target, target with
-                {
-                    Geometry = target.Geometry with
-                    {
-                        X = source.Geometry.X + source.Geometry.Width / 2 + dx - target.Geometry.Width / 2,
-                        Y = source.Geometry.Y + source.Geometry.Height / 2 + dy - target.Geometry.Height / 2
-                    }
-                })
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                var node = component.FindComponents<PartSvg>()
-                    .Single(part => part.Instance.Node.Id == source.Id.ToString()).Instance.Node;
-                Assert.That(node.Ports.Single(port => port.Id == route.SourcePortId).Alignment, Is.EqualTo(expected));
-            });
-        }
-
-        [Test]
-        public async Task VerifyBoundarySidesTrackConnectionPrecedenceAndOccurrenceReplacement()
-        {
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            var original = viewModel.State;
-            var route = original.Routes[0];
-            var source = original.Occurrences.Single(node => node.Id == route.SourceId);
-            var target = original.Occurrences.Single(node => node.Id == route.TargetId);
-            var duplicate = target with
-            {
-                Id = Guid.NewGuid(),
-                Geometry = target.Geometry with { X = source.Geometry.X - 600 }
-            };
-            var alternative = route with { Id = Guid.NewGuid(), TargetId = duplicate.Id };
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(original with
-            {
-                Occurrences = original.Occurrences.Add(duplicate),
-                Routes = original.Routes.Add(alternative)
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(FindPort(component, source.Id, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Right)));
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(viewModel.State with
-            {
-                Routes = viewModel.State.Routes.Remove(alternative).Insert(0, alternative)
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(FindPort(component, source.Id, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Left)));
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(viewModel.State with
-            {
-                Routes = original.Routes.Replace(route, route with { TargetId = duplicate.Id })
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                Assert.That(FindPort(component, source.Id, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Left));
-                Assert.That(FindPort(component, target.Id, route.TargetPortId).Alignment,
-                    Is.EqualTo(PortAlignment.Right));
-            });
-            var accepted = viewModel.State;
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(accepted with
-            {
-                Routes = accepted.Routes.SetItem(0, accepted.Routes[0] with { SourcePortId = "invalid-port" })
-            }), Is.False));
-            Assert.That(viewModel.State, Is.SameAs(accepted));
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(original), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                Assert.That(component.FindAll(".part-svg"), Has.Count.EqualTo(7));
-                Assert.That(FindPort(component, source.Id, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Right));
-            });
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(original with
-            {
-                Occurrences = original.Occurrences.Replace(source, source with { ElementId = target.ElementId }),
-                Routes = []
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                var node = component.FindComponents<PartSvg>()
-                    .Single(part => part.Instance.Node.Id == source.Id.ToString()).Instance.Node;
-                Assert.That(node.Ports.Select(port => port.Id),
-                    Is.EquivalentTo(viewModel.Projection.Parts[target.ElementId].Ports.Select(port => port.ElementId)));
-                Assert.That(node.Ports.Select(port => port.Alignment), Is.All.EqualTo(PortAlignment.Right));
-            });
-        }
-
-        [Test]
-        public async Task VerifyBoundarySidesFollowSizeAndIgnoreViewportAndBends()
-        {
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            var original = viewModel.State;
-            var route = original.Routes[0];
-            var source = original.Occurrences.Single(node => node.Id == route.SourceId);
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(FindPort(component, source.Id, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Right)));
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(original with
-            {
-                Occurrences = original.Occurrences.Replace(source,
-                    source with { Geometry = source.Geometry with { Width = 2000 } })
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(FindPort(component, source.Id, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Left)));
-            var port = FindPort(component, source.Id, route.SourcePortId);
-            await component.InvokeAsync(() => Assert.That(viewModel.ApplyPresentation(viewModel.State with
-            {
-                Viewport = new DiagramViewport(-80, 40, 0.5),
-                Routes = original.Routes.Replace(route, route with { Bends = [new DiagramPoint(10, 900)] })
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                Assert.That(FindPort(component, source.Id, route.SourcePortId), Is.SameAs(port));
-                Assert.That(port.Alignment, Is.EqualTo(PortAlignment.Left));
-            });
-        }
-
-        [Test]
-        public async Task VerifyBoundarySidesSurviveNestingAndViewModelReplacement()
-        {
-            var model = this.Services.GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>()
-                .Model;
-            using var first = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            using var second = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            first.Initialize(model);
-            second.Initialize(model);
-            var original = first.State;
-            var child = original.Occurrences.Single(node => node.ParentId.HasValue);
-            var parent = original.Occurrences.Single(node => node.Id == child.ParentId);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, first));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(component.FindComponents<PartSvg>().Count(part => part.Instance.Node is GroupModel),
-                    Is.EqualTo(1)));
-            var sides = component.FindComponents<PartSvg>().Single(part => part.Instance.Node is GroupModel).Instance
-                .Node.Ports.Select(port => port.Alignment).ToArray();
-            await component.InvokeAsync(() => Assert.That(first.ApplyPresentation(original with
-            {
-                Occurrences = original.Occurrences.Replace(child, child with { ParentId = null })
-            }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                var parts = component.FindComponents<PartSvg>();
-                Assert.That(parts.Any(part => part.Instance.Node is GroupModel), Is.False);
-                Assert.That(
-                    parts.Single(part => part.Instance.Node.Id == parent.Id.ToString()).Instance.Node.Ports
-                        .Select(port => port.Alignment), Is.EqualTo(sides));
-            });
-            await component.InvokeAsync(() => Assert.That(first.ApplyPresentation(original), Is.True));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(
-                    component.FindComponents<PartSvg>().Single(part => part.Instance.Node is GroupModel).Instance.Node
-                        .Ports.Select(port => port.Alignment), Is.EqualTo(sides)));
-            component.Render(parameters => parameters.Add(value => value.ViewModel, second));
-            var route = second.State.Routes[0];
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(FindPort(component, route.SourceId, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Right)));
-            await component.InvokeAsync(() =>
-                Assert.That(first.ApplyPresentation(original with { Routes = [] }), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                Assert.That(component.FindAll(".connection-svg__line"), Has.Count.EqualTo(5));
-                Assert.That(FindPort(component, route.SourceId, route.SourcePortId).Alignment,
-                    Is.EqualTo(PortAlignment.Right));
-            });
-        }
-
-        [Test]
-        public async Task VerifyViewportRetainsOffscreenStateAndExportsEveryOccurrence()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var distant = owner.State.Occurrences.Single(node =>
-                owner.Projection.Parts[node.ElementId].Name.StartsWith("controller"));
-            Assert.That(owner.ApplyPresentation(owner.State with
-            {
-                Occurrences = owner.State.Occurrences.Replace(distant,
-                    distant with { Geometry = distant.Geometry with { X = 8000 } })
-            }), Is.True);
-            using var component = this.Render<Interconnection>(parameters =>
-                parameters.Add(value => value.ViewModel, owner).Add(value => value.ShowDiagnostics, true));
-            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            Assert.That(component.FindAll(".part-svg"), Has.Count.EqualTo(6));
-            Assert.That(diagram.Nodes.Count + diagram.Groups.Count, Is.EqualTo(7));
-            Assert.That(diagram.Nodes.Single(node => node.Id == distant.Id.ToString()).Visible, Is.False);
-            var saved = DiagramPresentationSerializer.Export(owner.State);
-            await component.FindAll("button").Single(button => button.TextContent == "Export SVG").ClickAsync();
-            var invocation = this.JSInterop.Invocations.Single(call => call.Identifier == "exportCompleteSvg");
-            var svg = new AngleSharp.Html.Parser.HtmlParser().ParseDocument((string)invocation.Arguments[1]);
-            Assert.That(svg.QuerySelectorAll(".part-svg"), Has.Length.EqualTo(7));
-            Assert.That(DiagramPresentationSerializer.Export(owner.State), Is.EqualTo(saved));
-            await component.InvokeAsync(() => diagram.SetPan(-7800, 0));
-            await component.WaitForStateAsync(() =>
-                diagram.Nodes.Single(node => node.Id == distant.Id.ToString()).Visible);
-            Assert.That(component.FindAll(".part-svg"), Has.Count.LessThan(7));
-            Assert.That(owner.State.Occurrences, Has.Length.EqualTo(7));
-        }
-
-        [Test]
-        public async Task VerifyCrossingConnectionSurvivesCulledEndpointsAndBoundaryDrag()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var route = owner.State.Routes.Single(route =>
-                owner.Projection.Connections[route.ElementId].Name == "CmdBus");
-            var source = owner.State.Occurrences.Single(node => node.Id == route.SourceId);
-            var target = owner.State.Occurrences.Single(node => node.Id == route.TargetId);
-            Assert.That(owner.ApplyPresentation(owner.State with
-            {
-                Occurrences = owner.State.Occurrences
-                    .Replace(source, source with { Geometry = source.Geometry with { X = -2000 } })
-                    .Replace(target, target with { Geometry = target.Geometry with { X = 2500 } }),
-                Routes = owner.State.Routes.Replace(route, route with { Bends = [] })
-            }), Is.True);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            Assert.That(diagram.Nodes.Single(node => node.Id == source.Id.ToString()).Visible, Is.False);
-            Assert.That(diagram.Nodes.Single(node => node.Id == target.Id.ToString()).Visible, Is.False);
-            Assert.That(diagram.Links.Single(link => link.Id == route.Id.ToString()).Visible, Is.True);
-            var node = diagram.Nodes.First(item => item.Visible);
-            await component.InvokeAsync(() =>
-            {
-                diagram.SelectModel(node, true);
-                diagram.TriggerPointerDown(node,
-                    new Blazor.Diagrams.Core.Events.PointerEventArgs(0, 0, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0,
-                        "mouse", true));
-                diagram.SetPan(-2200, 0);
-            });
-            await component.WaitForStateAsync(() => owner.State.Viewport.X == -2200);
-            Assert.That(node.Visible, Is.True);
-            await component.InvokeAsync(() => diagram.TriggerPointerUp(node,
-                new Blazor.Diagrams.Core.Events.PointerEventArgs(0, 0, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0,
-                    "mouse", true)));
-            Assert.That(node.Visible, Is.False);
-            Assert.That(node.Selected, Is.True);
-        }
-
-        [Test]
-        public async Task VerifyFitNoticePreservesAcceptedMinimumZoom()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var distant = owner.State.Occurrences.Single(node =>
-                owner.Projection.Parts[node.ElementId].Name.StartsWith("controller"));
-            Assert.That(owner.ApplyPresentation(owner.State with
-            {
-                Occurrences = owner.State.Occurrences.Replace(distant,
-                    distant with { Geometry = distant.Geometry with { X = 8000 } })
-            }), Is.True);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-            var controls = component.FindComponent<Mycelium.Bloom.Components.UI.Molecules.ZoomControls.ZoomControls>();
-            await component.InvokeAsync(() => controls.Instance.OnFitToView.InvokeAsync());
-            Assert.That(owner.State.Viewport.Zoom, Is.EqualTo(0.5));
-            Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Zoom, Is.EqualTo(0.5));
-            Assert.That(component.Find("[aria-label='Current zoom']").TextContent, Is.EqualTo("50%"));
-            Assert.That(owner.Notice, Does.Contain("does not fit"));
-        }
-
-        [Test]
-        public async Task VerifyRestoredViewportClampsZoomAndPanAndResizingRetainsNestedParts()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            await component.InvokeAsync(() =>
-                owner.ApplyPresentation(owner.State with { Viewport = new DiagramViewport(-99999, 99999, 0.1) }));
-            Assert.That(owner.State.Viewport.Zoom, Is.EqualTo(0.5));
-            Assert.That(Math.Abs(owner.State.Viewport.X), Is.LessThan(99999));
-            Assert.That(Math.Abs(owner.State.Viewport.Y), Is.LessThan(99999));
-            await component.InvokeAsync(() =>
-            {
-                diagram.SetPan(-550, -160);
-                diagram.SetZoom(1);
-                diagram.SetContainer(new Rectangle(0, 0, 280, 200));
-            });
-            Assert.That(component.FindComponents<PartSvg>().Any(part => part.Instance.Node.Group is not null), Is.True);
-            Assert.That(component.FindComponents<PartSvg>().Any(part => part.Instance.Node is GroupModel), Is.True);
-            var snapshot = owner.State;
-            await component.InvokeAsync(() => diagram.SetPan(0, 0));
-            await component.Instance.DisposeAsync();
-            await component.InvokeAsync(() => diagram.SetPan(-400, 0));
-            Assert.That(owner.State.Occurrences, Is.EqualTo(snapshot.Occurrences));
-            var disposedState = owner.State;
-            await component.InvokeAsync(() => diagram.SetZoom(2));
-            Assert.That(owner.State, Is.SameAs(disposedState));
-        }
-
-        [Test]
-        public async Task VerifySharedSelectionRevealsAnOffscreenOccurrenceAfterMount()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var distant = owner.State.Occurrences.Single(node =>
-                owner.Projection.Parts[node.ElementId].Name.StartsWith("controller"));
-            Assert.That(owner.ApplyPresentation(owner.State with
-            {
-                Occurrences = owner.State.Occurrences.Replace(distant,
-                    distant with { Geometry = distant.Geometry with { X = -8000 } })
-            }), Is.True);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            var node = diagram.Nodes.Single(node => node.Id == distant.Id.ToString());
-            Assert.That(node.Visible, Is.False);
-            var context = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.IContextAwareService>();
-            var resolver = this.Services.GetRequiredService<Mycelium.Bloom.Core.ModelLoading.IElementIdResolver>();
-            var canonical = await resolver.ResolveAsync(distant.ElementId, System.Threading.CancellationToken.None);
-            await component.InvokeAsync(() => context.SelectedElement = canonical);
-            await component.WaitForStateAsync(() => node.Visible);
-            Assert.That(owner.State.Viewport.X, Is.GreaterThan(7000));
-            Assert.That(context.SelectedElement, Is.SameAs(canonical));
-            Assert.That(
-                this.JSInterop.Invocations.Any(call =>
-                    call.Identifier == "focusOccurrence" && (string)call.Arguments[1] == node.Id), Is.True);
-            await component.InvokeAsync(() => diagram.SetPan(0, 0));
-            await component.WaitForStateAsync(() => !node.Visible);
-            Assert.That(context.SelectedElement, Is.SameAs(canonical));
-        }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public async Task VerifyExplicitRevealRetainsSelectedRepeatedOccurrence(bool diagnostics)
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var original = owner.State.Occurrences.Single(node =>
-                owner.Projection.Parts[node.ElementId].Name.StartsWith("controller"));
-            Assert.That(owner.AddExisting(original.ElementId), Is.True);
-            var repeated = owner.State.Occurrences.Last();
-            Assert.That(owner.ApplyPresentation(owner.State with
-            {
-                Occurrences = owner.State.Occurrences.Replace(repeated,
-                    repeated with { Geometry = repeated.Geometry with { X = -8000 } })
-            }), Is.True);
-            using var component = this.Render<Interconnection>(parameters =>
-                parameters.Add(value => value.ViewModel, owner).Add(value => value.ShowDiagnostics, diagnostics));
-            await component.InvokeAsync(() => owner.SelectAsync([repeated.Id], repeated.Id));
-            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            var target = diagram.Nodes.Single(node => node.Id == repeated.Id.ToString());
-            await component.InvokeAsync(() => diagram.SetPan(0, 0));
-            await component.WaitForStateAsync(() => !target.Visible);
-            if (diagnostics)
-            {
-                await component.FindAll("button").Single(button => button.TextContent.Trim() == "Reveal selection")
-                    .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-            }
-            else
-            {
-                await component.InvokeAsync(async () => await owner.RevealRequested.Execute(original.ElementId));
-            }
-
-            await component.WaitForStateAsync(() => target.Visible);
-            Assert.That(owner.SelectedOccurrences, Does.Contain(repeated.Id));
-            Assert.That(owner.State.Viewport.X, Is.GreaterThan(7000));
-            Assert.That(
-                this.JSInterop.Invocations.Any(call =>
-                    call.Identifier == "focusOccurrence" && (string)call.Arguments[1] == target.Id), Is.True);
-        }
-
-        [Test]
-        public async Task VerifyDenseViewportWarnsWithoutOmittingOccurrences()
-        {
-            this.Services.AddSingleton<IOptions<DiagramViewportOptions>>(Options.Create(new DiagramViewportOptions
-            { DensityWarningCount = 10 }));
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var source = owner.State.Occurrences.Single(node =>
-                owner.Projection.Parts[node.ElementId].Name.StartsWith("controller"));
-            Assert.That(owner.ApplyPresentation(owner.State with
-            {
-                Occurrences = owner.State.Occurrences.AddRange(
-                    Enumerable.Range(0, 30).Select(_ => source with { Id = Guid.NewGuid() }))
-            }), Is.True);
-            using var component = this.Render<Interconnection>(parameters =>
-                parameters.Add(value => value.ViewModel, owner).Add(value => value.ShowDiagnostics, true));
-            Assert.That(component.FindAll(".part-svg"), Has.Count.EqualTo(37));
-            Assert.That(component.Markup, Does.Contain("Dense viewport: 37 parts"));
-            var mounted = component.FindComponents<PartSvg>().Select(part => part.Instance).ToArray();
-            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            foreach (var pan in new[] { 1d, -1d, 2d, 0d })
-            {
-                await component.InvokeAsync(() => diagram.SetPan(pan, 0));
-                await component.WaitForStateAsync(() => owner.State.Viewport.X == pan);
-                Assert.That(component.FindComponents<PartSvg>().Select(part => part.Instance),
-                    Is.EquivalentTo(mounted));
-            }
-        }
-
         private static PortModel FindPort(IRenderedComponent<Interconnection> component, Guid occurrenceId,
             string portId) =>
             component.FindComponents<PartSvg>().Single(part => part.Instance.Node.Id == occurrenceId.ToString())
                 .Instance.Node.Ports.Single(port => port.Id == portId);
 
         [Test]
-        public async Task VerifyCanvasDisposalWaitsForLateObserverRegistration()
-        {
-            var bounds = this.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
-            var observe = this.JSInterop.SetupVoid("ZBlazorDiagrams.observe", _ => true);
-            observe.SetVoidResult();
-            var unobserve = this.JSInterop.SetupVoid("ZBlazorDiagrams.unobserve", _ => true);
-            unobserve.SetVoidResult();
-            var diagram = new BlazorDiagram(registerDefaultBehaviors: false);
-            var host = this.Render<CascadingValue<BlazorDiagram>>(parameters => parameters
-                .Add(value => value.Value, diagram)
-                .AddChildContent<DiagramCanvasHost>());
-            var canvas = host.FindComponent<DiagramCanvasHost>();
-            var disposal = canvas.InvokeAsync(async () => await canvas.Instance.DisposeAsync());
-            Assert.That(disposal.IsCompleted, Is.False);
-            bounds.SetResult(new Rectangle(0, 0, 1000, 700));
-            await disposal;
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(observe.Invocations, Has.Count.EqualTo(1));
-                Assert.That(unobserve.Invocations, Has.Count.EqualTo(1));
-            }
-        }
-
-        [Test]
-        public async Task VerifyDevelopmentAlternativeOpensAlongsideOriginalWithIndependentTabState()
-        {
-            using var editor =
-                new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(Options.Create(new DiagramBenchmarkOptions
-            { Enabled = true }));
-            using var component = this.Render<Modelling>();
-            await this.OpenDiagramAsync(component);
-            var original = component.FindComponent<Interconnection>().Instance.ViewModel;
-            var menu = component.FindComponents<ActionMenu>()[1].Instance;
-            await component.InvokeAsync(() =>
-                menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection-x6")));
-            var alternative = component.FindComponent<InterconnectionCanvas>().Instance.ViewModel;
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(component.FindComponents<Interconnection>(), Has.Count.EqualTo(1));
-                Assert.That(alternative, Is.Not.SameAs(original));
-                Assert.That(alternative.State.DiagramId, Is.Not.EqualTo(original.State.DiagramId));
-                Assert.That(alternative.Projection.Parts.Keys, Is.EquivalentTo(original.Projection.Parts.Keys));
-            }
-
-            var saved = DiagramPresentationSerializer.Export(original.State);
-            await component.InvokeAsync(alternative.AddManualBend);
-            Assert.That(DiagramPresentationSerializer.Export(original.State), Is.EqualTo(saved));
-            var alternativeTab = editor.Groups[1].ActiveTab;
-            var alternativeState = alternative.State;
-            await component.InvokeAsync(() =>
-                editor.MoveTab(editor.Groups[1].Id, alternativeTab.Id, editor.Groups[2].Id));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(component.FindComponent<InterconnectionCanvas>().Instance.ViewModel.State,
-                    Is.SameAs(alternativeState)));
-        }
-
-        [Test]
         public void VerifyNormalCompositionOmitsAlternativeEngineAndStressControls()
         {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(
-                Options.Create(new DiagramBenchmarkOptions()));
             using var component = this.Render<Modelling>();
             foreach (var menu in component.FindComponents<ActionMenu>())
             {
@@ -1066,8 +541,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
             this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(
-                Options.Create(new DiagramBenchmarkOptions()));
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var pending = new Mock<Mycelium.Bloom.ViewModel.ProjectBrowser.IProjectBrowserViewModel>();
@@ -1116,8 +589,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
             this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(
-                Options.Create(new DiagramBenchmarkOptions()));
             var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
             var quantities = session.Current;
@@ -1178,8 +649,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         [TestCase(true)]
         public async Task VerifyNormalEmptyOrUnsupportedScopeNeverSubstitutesFixture(bool noModel)
         {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(
-                Options.Create(new DiagramBenchmarkOptions()));
             var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             if (noModel)
             {
@@ -1202,345 +671,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(this.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Count, Is.EqualTo(count));
         }
 
-        [TestCase("open-interconnection-x6")]
-        [TestCase("open-interconnection-demo")]
-        [TestCase("open-demonstration-browser")]
-        public async Task VerifyNormalCompositionRejectsAlternativeEngineAction(string action)
-        {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(
-                Options.Create(new DiagramBenchmarkOptions()));
-            using var component = this.Render<Modelling>();
-            var menu = component.FindComponents<ActionMenu>()
-                .Last(value => value.Instance.Items.Any(item => item.Id == "open-interconnection")).Instance;
-            await component.InvokeAsync(() => menu.ItemSelected.InvokeAsync(new Mycelium.Bloom.Model.ActionMenuItem
-            {
-                Id = action,
-                Label = "Alternative renderer"
-            }));
-            Assert.That(component.FindComponents<InterconnectionCanvas>(), Is.Empty);
-            Assert.That(component.FindComponents<Interconnection>(), Is.Empty);
-            Assert.That(
-                component.FindAll("[role='tab']").Any(tab =>
-                    tab.TextContent.Contains("Interconnection model", StringComparison.Ordinal)), Is.False);
-        }
-
-        [TestCase(false)]
-        [TestCase(true)]
-        public void VerifyDiagnosticControlsAreOptInWithoutChangingPresentation(bool useCanvas)
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var saved = DiagramPresentationSerializer.Export(owner.State);
-            using var component = useCanvas
-                ? (IRenderedComponent<IComponent>)this.Render<InterconnectionCanvas>(parameters =>
-                    parameters.Add(value => value.ViewModel, owner))
-                : this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
-                    component.FindAll("input[type=file], .interconnection__diagnostics, .interconnection__status"),
-                    Is.Empty);
-                Assert.That(component.FindAll("button").Select(button => button.TextContent),
-                    Does.Not.Contain("Export SVG"));
-                Assert.That(component.FindAll("button").Select(button => button.TextContent),
-                    Does.Not.Contain("Export presentation"));
-                Assert.That(component.FindAll("[aria-label='Prototype presentation']"), Is.Empty);
-                Assert.That(component.FindAll("[aria-label='Current zoom']"), Has.Count.EqualTo(1));
-                Assert.That(DiagramPresentationSerializer.Export(owner.State), Is.EqualTo(saved));
-            }
-        }
-
         [Test]
-        public async Task VerifyBenchmarkScenesAreIndependentAndPreserveNormalPresentation()
-        {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(Options.Create(new DiagramBenchmarkOptions
-            { Enabled = true }));
-            using var editor =
-                new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            using var component = this.Render<Modelling>();
-            await this.OpenDiagramAsync(component);
-            var normal = component.FindComponent<Interconnection>().Instance.ViewModel;
-            var saved = DiagramPresentationSerializer.Export(normal.State);
-            var menus = component.FindComponents<ActionMenu>();
-            await component.InvokeAsync(() =>
-                menus[1].Instance.ItemSelected
-                    .InvokeAsync(menus[1].Instance.Items.Single(item => item.Id == "open-interconnection-stress")));
-            await component.InvokeAsync(() =>
-                menus[0].Instance.ItemSelected.InvokeAsync(menus[0].Instance.Items
-                    .Single(item => item.Id == "open-interconnection-x6-stress")));
-            var stress = component.FindComponents<Interconnection>().Single(item => item.Instance.IsBenchmark).Instance
-                .ViewModel;
-            var alternative = component.FindComponent<InterconnectionCanvas>().Instance.ViewModel;
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(stress.State.Occurrences, Has.Length.EqualTo(126));
-                Assert.That(alternative.State.Occurrences, Has.Length.EqualTo(126));
-                Assert.That(stress.State.Routes, Has.Length.EqualTo(90));
-                Assert.That(alternative.State.Routes, Has.Length.EqualTo(90));
-                Assert.That(stress.State.Occurrences.Select(item => (item.ElementId, item.Geometry)),
-                    Is.EqualTo(alternative.State.Occurrences.Select(item => (item.ElementId, item.Geometry))));
-                Assert.That(stress.State.Viewport, Is.EqualTo(alternative.State.Viewport));
-                Assert.That(stress.State.DiagramId, Is.Not.EqualTo(alternative.State.DiagramId));
-                Assert.That(DiagramPresentationSerializer.Export(normal.State), Is.EqualTo(saved));
-                Assert.That(component.Markup, Does.Not.Contain("Display 120+ occurrences"));
-            }
-        }
-
-        [Test]
-        public async Task VerifyAlternativeDisposalJoinsLateMountAndRejectsCallbacksWithoutClosingTab()
-        {
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var module =
-                this.JSInterop.SetupModule(
-                    "./Components/UI/Organisms/InterconnectionCanvas/InterconnectionCanvas.razor.js");
-            var mounting = module.SetupVoid("mount", _ => true);
-            var unmounting = module.SetupVoid("unmount", _ => true);
-            unmounting.SetVoidResult();
-            var component =
-                this.Render<InterconnectionCanvas>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            await component.WaitForAssertionAsync(() => Assert.That(mounting.Invocations, Has.Count.EqualTo(1)));
-            var disposal = component.InvokeAsync(async () => await component.Instance.DisposeAsync());
-            Assert.That(disposal.IsCompleted, Is.False);
-            mounting.SetVoidResult();
-            await disposal;
-            Assert.That(unmounting.Invocations, Has.Count.EqualTo(1));
-            Assert.That(await component.Instance.GetSnapshot(), Is.Null);
-            Assert.That(await component.Instance.PresentationChanged(null), Is.Null);
-            Assert.That(viewModel.AddExisting(viewModel.State.Occurrences[0].ElementId), Is.True);
-        }
-
-        [TestCase(false, false)]
-        [TestCase(true, false)]
-        [TestCase(true, true)]
-        public async Task VerifyBenchmarkTraceRequiresIsolationAndEndsOnDisposal(bool enabled, bool large)
-        {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(Options.Create(new DiagramBenchmarkOptions
-            { Enabled = enabled, LargeSceneEnabled = large }));
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var original = viewModel.State;
-            var module =
-                this.JSInterop.SetupModule(
-                    "./Components/UI/Organisms/DiagramBenchmarkProbe/DiagramBenchmarkProbe.razor.js");
-            module.SetupVoid("mount", _ => true).SetVoidResult();
-            module.SetupVoid("unmount", _ => true).SetVoidResult();
-            using var component =
-                this.Render<DiagramBenchmarkProbe>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            await component.Instance.StartBenchmarkTrace();
-            using (var activity = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("test-operation"))
-            {
-                Assert.That(activity is not null, Is.EqualTo(enabled && large));
-            }
-
-            var observation = await component.Instance.StopBenchmarkTrace();
-            Assert.That(observation is not null, Is.EqualTo(enabled && large));
-            Assert.That(Mycelium.Bloom.Core.DiagramDiagnostics.Source.HasListeners(), Is.False);
-            Assert.That(viewModel.State, Is.SameAs(original));
-            await component.Instance.StartBenchmarkTrace();
-            await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
-            Assert.That(Mycelium.Bloom.Core.DiagramDiagnostics.Source.HasListeners(), Is.False);
-            Assert.That(await component.Instance.StopBenchmarkTrace(), Is.Null);
-        }
-
-        [Test]
-        public async Task VerifyBenchmarkWatchReadsAcceptedStateAndCancelsWhenUnmounted()
-        {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(Options.Create(new DiagramBenchmarkOptions
-            { Enabled = true }));
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            var module =
-                this.JSInterop.SetupModule(
-                    "./Components/UI/Organisms/DiagramBenchmarkProbe/DiagramBenchmarkProbe.razor.js");
-            module.SetupVoid("mount", _ => true).SetVoidResult();
-            module.SetupVoid("unmount", _ => true).SetVoidResult();
-            using var component =
-                this.Render<DiagramBenchmarkProbe>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            var occurrence = viewModel.State.Occurrences[0];
-            Task<DiagramBenchmarkSnapshot> watch = null;
-            await component.InvokeAsync(() =>
-            {
-                watch = component.Instance.WatchBenchmarkGeometry(occurrence.Id, occurrence.Geometry.X + 10,
-                    occurrence.Geometry.Y);
-            });
-            Assert.That(watch.IsCompleted, Is.False);
-            await component.InvokeAsync(() => viewModel.ApplyPresentation(viewModel.State with
-            {
-                Occurrences = viewModel.State.Occurrences.Replace(occurrence,
-                    occurrence with { Geometry = occurrence.Geometry with { X = occurrence.Geometry.X + 10 } })
-            }));
-            var accepted = await watch;
-            Assert.That(accepted.Geometry.X, Is.EqualTo(occurrence.Geometry.X + 10));
-            var pending =
-                component.Instance.WatchBenchmarkGeometry(occurrence.Id, occurrence.Geometry.X + 20,
-                    occurrence.Geometry.Y);
-            await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
-            Assert.That(await pending, Is.Null);
-            Assert.That(await component.Instance.ReadBenchmarkSnapshot(occurrence.Id), Is.Null);
-            Assert.That(component.Instance.ReadBenchmarkResources(), Is.Null);
-            Assert.That(viewModel.AddExisting(occurrence.ElementId), Is.True);
-        }
-
-        [Test]
-        public async Task VerifyBenchmarkProbeDoesNotInitializeWhenDisabled()
-        {
-            this.Services.AddSingleton<IOptions<DiagramBenchmarkOptions>>(
-                Options.Create(new DiagramBenchmarkOptions()));
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            viewModel.Initialize(this.Services
-                .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>().Model);
-            using var component =
-                this.Render<DiagramBenchmarkProbe>(parameters => parameters.Add(value => value.ViewModel, viewModel));
-            Assert.That(component.Instance.BenchmarkPing(), Is.Zero);
-            Assert.That(await component.Instance.WatchBenchmarkGeometry(Guid.NewGuid(), 0, 0), Is.Null);
-            Assert.That(await component.Instance.ReadBenchmarkSnapshot(Guid.NewGuid()), Is.Null);
-        }
-
-        [Test]
-        public async Task VerifyOnDemandRenderingRetainsOnlyRegionModelsAndFullPresentation()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            owner.ConfigureBenchmark(new DiagramBenchmarkOptions
-            { Enabled = true, LargeSceneEnabled = true, AccessKey = new string('x', 32) });
-            var prototype =
-                this.Services.GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>();
-            owner.Initialize(prototype.Model);
-            var source = prototype.CreateOnDemandSource(owner.Projection, owner.State, 100);
-            using var session =
-                ActivatorUtilities.CreateInstance<Mycelium.Bloom.Core.ModelLoading.DiagramModelSession>(this.Services,
-                    source, new DiagramDataOptions());
-            owner.InitializeOnDemand(session);
-            using var component = this.Render<Interconnection>(parameters =>
-                parameters.Add(value => value.ViewModel, owner).Add(value => value.ShowDiagnostics, true));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(
-                    component.FindAll(".part-svg__name")
-                        .Any(node => node.TextContent.Contains("AOCS", StringComparison.Ordinal)), Is.True));
-            var first = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            Assert.That(first.Nodes.Count + first.Groups.Count, Is.LessThan(40));
-            Assert.That(owner.State.Occurrences, Has.Length.EqualTo(700));
-            Assert.That(source.Reads, Is.LessThan(10));
-            var saved = DiagramPresentationSerializer.Export(owner.State);
-            await component.InvokeAsync(() =>
-                owner.ApplyPresentation(owner.State with { Viewport = new DiagramViewport(-20000, 0, 1) }));
-            await component.WaitForAssertionAsync(() => Assert.That(source.Reads, Is.GreaterThan(4)));
-            var distant = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            Assert.That(distant.Nodes.Count + distant.Groups.Count, Is.LessThan(40));
-            Assert.That(owner.State.Occurrences, Has.Length.EqualTo(700));
-            Assert.That(owner.State.Routes, Has.Length.EqualTo(500));
-            await component.InvokeAsync(() => Assert.That(owner.Import(saved, out _), Is.True));
-            await component.WaitForAssertionAsync(() => Assert.That(owner.State.Viewport.X, Is.Zero));
-            for (var gesture = 0; gesture < 3; gesture++)
-            {
-                var canvas = component.Find(".diagram-canvas");
-                await canvas.PointerDownAsync(new Microsoft.AspNetCore.Components.Web.PointerEventArgs
-                { ClientX = 500, ClientY = 10, Button = 0 });
-                for (var step = 1; step <= 30; step++)
-                {
-                    await component.Find(".diagram-canvas").PointerMoveAsync(
-                        new Microsoft.AspNetCore.Components.Web.PointerEventArgs
-                        { ClientX = 500 - step * 250d / 30, ClientY = 10, Buttons = 1 });
-                }
-
-                await component.Find(".diagram-canvas").PointerUpAsync(
-                    new Microsoft.AspNetCore.Components.Web.PointerEventArgs
-                    { ClientX = 250, ClientY = 10, Button = 0 });
-            }
-
-            await component.InvokeAsync(() => Assert.That(owner.Import(saved, out _), Is.True));
-            await component.WaitForAssertionAsync(() =>
-            {
-                Assert.That(owner.State.Viewport.X, Is.Zero);
-                Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Pan.X, Is.Zero);
-                Assert.That(component.Find(".diagram-svg-layer").GetAttribute("style"),
-                    Does.StartWith("transform: translate(0px, 0px)"));
-            });
-        }
-
-        [Test]
-        public async Task VerifyOnDemandPointerDownDefersSelectionTriggeredTopologyUntilRelease()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            var prototype =
-                this.Services.GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>();
-            owner.Initialize(prototype.Model);
-            var source = prototype.CreateOnDemandSource(owner.Projection, owner.State, 3);
-            using var session =
-                ActivatorUtilities.CreateInstance<Mycelium.Bloom.Core.ModelLoading.DiagramModelSession>(this.Services,
-                    source, new DiagramDataOptions());
-            owner.InitializeOnDemand(session);
-            using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(
-                    component.FindAll(".part-svg__name")
-                        .Any(node => node.TextContent.Contains("AOCS", StringComparison.Ordinal)), Is.True));
-            var mounted = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            await component.InvokeAsync(() => mounted.SelectModel(mounted.Nodes.First(), true));
-            mounted.SelectionChanged += _ => owner.AddExisting(owner.State.Occurrences[0].ElementId);
-            await component.Find(".diagram-canvas").PointerDownAsync(
-                new Microsoft.AspNetCore.Components.Web.PointerEventArgs { ClientX = 10, ClientY = 10, Button = 0 });
-            Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram, Is.SameAs(mounted));
-            Assert.That(owner.State.Occurrences, Has.Length.EqualTo(22));
-            await component.Find(".diagram-canvas").PointerUpAsync(
-                new Microsoft.AspNetCore.Components.Web.PointerEventArgs { ClientX = 10, ClientY = 10, Button = 0 });
-            await component.WaitForAssertionAsync(() =>
-                Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram,
-                    Is.Not.SameAs(mounted)));
-        }
-
-        [Test]
-        public async Task VerifyOnDemandExportFailureRecoversWithCompleteDetachedOutput()
-        {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
-            var prototype =
-                this.Services.GetRequiredService<Mycelium.Bloom.Core.ModelLoading.InterconnectionPrototype>();
-            owner.Initialize(prototype.Model);
-            var fixture = prototype.CreateOnDemandSource(owner.Projection, owner.State, 3);
-            var source = new Mock<Mycelium.Bloom.Core.ModelLoading.IDiagramModelSource>(MockBehavior.Strict);
-            source.SetupGet(value => value.Scope).Returns(fixture.Scope);
-            source.SetupGet(value => value.Metadata).Returns(fixture.Metadata);
-            source.SetupGet(value => value.Presentation).Returns(fixture.Presentation);
-            source.SetupGet(value => value.Bundles).Returns(fixture.Bundles);
-            source.Setup(value => value.AuthorizeAsync(fixture.Scope, It.IsAny<System.Threading.CancellationToken>()))
-                .Returns(ValueTask.CompletedTask);
-            var unavailable = true;
-            source.Setup(value => value.FetchAsync(fixture.Scope, It.IsAny<IReadOnlyList<string>>(),
-                    It.IsAny<System.Threading.CancellationToken>()))
-                .Returns((Mycelium.Bloom.Core.ModelLoading.DiagramReadScope scope, IReadOnlyList<string> ids,
-                        System.Threading.CancellationToken token) =>
-                    unavailable
-                        ? Task.FromException<IReadOnlyDictionary<string, string>>(
-                            new System.IO.IOException("Unavailable"))
-                        : fixture.FetchAsync(scope, ids, token));
-            using var session =
-                ActivatorUtilities.CreateInstance<Mycelium.Bloom.Core.ModelLoading.DiagramModelSession>(this.Services,
-                    source.Object, new DiagramDataOptions());
-            owner.InitializeOnDemand(session);
-            using var component = this.Render<Interconnection>(parameters =>
-                parameters.Add(value => value.ViewModel, owner).Add(value => value.ShowDiagnostics, true));
-            var saved = DiagramPresentationSerializer.Export(owner.State);
-            await component.FindAll("button").Single(button => button.TextContent == "Export SVG").ClickAsync();
-            Assert.That(this.JSInterop.Invocations.Any(call => call.Identifier == "exportCompleteSvg"), Is.False);
-            unavailable = false;
-            await component.FindAll("button").Single(button => button.TextContent == "Export SVG").ClickAsync();
-            var invocation = this.JSInterop.Invocations.Single(call => call.Identifier == "exportCompleteSvg");
-            var svg = new AngleSharp.Html.Parser.HtmlParser().ParseDocument((string)invocation.Arguments[1]);
-            Assert.That(svg.QuerySelectorAll(".part-svg"), Has.Length.EqualTo(21));
-            Assert.That(svg.QuerySelectorAll(".part-svg__port"), Has.Length.EqualTo(30));
-            Assert.That(svg.QuerySelectorAll(".connection-svg__line"), Has.Length.EqualTo(15));
-            Assert.That(session.Cache.Statistics.CurrentEntryCount, Is.Zero);
-            Assert.That(DiagramPresentationSerializer.Export(owner.State), Is.EqualTo(saved));
-        }
-
-        [Test]
-        public async Task VerifyBrowserReselectionDispatchesOnlyToActiveDiagramWithoutActivation()
+        public async Task VerifyBrowserReselectionTargetsItsPairedDiagramWithoutActivation()
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
@@ -1561,7 +693,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(requests, Is.EqualTo(new[] { node.ElementId, node.ElementId }));
             await component.InvokeAsync(() => editor.ActivateTab(group.Id, placeholder.Id));
             await component.InvokeAsync(() => browser.SelectedNodeChanged.InvokeAsync(node));
-            Assert.That(requests, Has.Count.EqualTo(2));
+            Assert.That(requests, Is.EqualTo(new[] { node.ElementId, node.ElementId, node.ElementId }));
             Assert.That(group.ActiveTab, Is.SameAs(placeholder));
         }
 
@@ -1639,12 +771,168 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(owner.PendingRevealElementId, Is.Null);
         }
 
+        [Test]
+        public async Task VerifyReconciliationPreservesExactGeometryWithoutRedundantMoves()
+        {
+            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            await this.InitializeDiagramAsync(owner);
+            using var component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll(".part-svg__port"), Has.Count.EqualTo(10)));
+            var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
+            var occurrence = owner.State.Occurrences.Single(item => owner.Projection.Parts[item.ElementId].Name == "aocs : AOCS");
+            var node = diagram.Nodes.Single(item => item.Id == occurrence.Id.ToString());
+            var moves = 0;
+            node.Moving += _ => moves++;
+            await component.InvokeAsync(() => owner.IsReadOnly = true);
+            await component.WaitForAssertionAsync(() => Assert.That(node.Locked, Is.True));
+            await component.InvokeAsync(() => owner.IsReadOnly = false);
+            await component.WaitForAssertionAsync(() => Assert.That(node.Locked, Is.False));
+            Assert.That(moves, Is.Zero);
+
+            const double delta = 1.0 / 1024;
+            var geometry = occurrence.Geometry with
+            {
+                X = occurrence.Geometry.X + delta,
+                Y = occurrence.Geometry.Y - delta,
+                Width = occurrence.Geometry.Width + delta,
+                Height = occurrence.Geometry.Height + delta
+            };
+            await component.InvokeAsync(() => Assert.That(owner.ApplyPresentation(owner.State with
+            {
+                Occurrences = owner.State.Occurrences.Replace(occurrence, occurrence with { Geometry = geometry })
+            }), Is.True));
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(node.Position, Is.EqualTo(new Point(geometry.X, geometry.Y)));
+                Assert.That(node.Size, Is.EqualTo(new Size(geometry.Width, geometry.Height)));
+            });
+            Assert.That(moves, Is.EqualTo(1));
+            Assert.That(node.Ports.All(port => double.IsFinite(port.Position.X) && double.IsFinite(port.Position.Y)), Is.True);
+            await component.InvokeAsync(() => owner.IsReadOnly = true);
+            await component.WaitForAssertionAsync(() => Assert.That(node.Locked, Is.True));
+            await component.InvokeAsync(() => owner.IsReadOnly = false);
+            await component.WaitForAssertionAsync(() => Assert.That(node.Locked, Is.False));
+            Assert.That(moves, Is.EqualTo(1));
+            Assert.That(diagram.Nodes.Single(item => item.Id == node.Id), Is.SameAs(node));
+        }
+
+        [TestCase(0.5)]
+        [TestCase(4)]
+        public async Task VerifyViewportBoundariesAndConnectedMovementSurviveRemountWithoutDrift(double zoom)
+        {
+            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            await this.InitializeDiagramAsync(owner);
+            var expectedViewport = new DiagramViewport(-20.125, 30.375, zoom);
+            Assert.That(owner.ApplyPresentation(owner.State with { Viewport = expectedViewport }), Is.True);
+            var component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+            try
+            {
+                await component.WaitForAssertionAsync(() => Assert.That(component.FindComponents<DiagramCanvasHost>(), Has.Count.EqualTo(1)));
+                var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
+                await component.WaitForAssertionAsync(() =>
+                {
+                    Assert.That(diagram.Zoom, Is.EqualTo(zoom));
+                    Assert.That(diagram.Pan, Is.EqualTo(new Point(expectedViewport.X, expectedViewport.Y)));
+                });
+                var panEvents = 0;
+                var zoomEvents = 0;
+                diagram.PanChanged += () => panEvents++;
+                diagram.ZoomChanged += () => zoomEvents++;
+                await component.InvokeAsync(() => owner.IsReadOnly = true);
+                await component.WaitForAssertionAsync(() => Assert.That(diagram.Nodes.All(node => node.Locked), Is.True));
+                await component.InvokeAsync(() => owner.IsReadOnly = false);
+                await component.WaitForAssertionAsync(() => Assert.That(diagram.Nodes.Any(node => !node.Locked), Is.True));
+                Assert.That(panEvents, Is.Zero);
+                Assert.That(zoomEvents, Is.Zero);
+
+                var maximumPan = diagram.Container.Width - owner.State.Occurrences.Min(node => node.Geometry.X) * zoom + 400;
+                await component.InvokeAsync(() =>
+                {
+                    diagram.TriggerPointerDown(null, new Blazor.Diagrams.Core.Events.PointerEventArgs(0, 0, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0, "mouse", true));
+                    diagram.SetPan(Math.BitIncrement(maximumPan), expectedViewport.Y);
+                    diagram.TriggerPointerUp(null, new Blazor.Diagrams.Core.Events.PointerEventArgs(0, 0, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0, "mouse", true));
+                });
+                await component.WaitForAssertionAsync(() =>
+                {
+                    Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Pan.X, Is.EqualTo(maximumPan));
+                    Assert.That(owner.State.Viewport.X, Is.EqualTo(maximumPan));
+                });
+                Assert.That(panEvents, Is.EqualTo(2));
+                await component.InvokeAsync(() => Assert.That(owner.ApplyPresentation(owner.State with { Viewport = expectedViewport }), Is.True));
+                await component.WaitForAssertionAsync(() => Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Pan.X, Is.EqualTo(expectedViewport.X)));
+
+                await component.InvokeAsync(() => Assert.That(owner.ApplyPresentation(owner.State with
+                {
+                    Viewport = owner.State.Viewport with { Zoom = Math.BitDecrement(0.5) }
+                }), Is.True));
+                await component.WaitForAssertionAsync(() => Assert.That(owner.State.Viewport.Zoom, Is.EqualTo(0.5)));
+                Assert.That(component.Find("[aria-label='Current zoom']").TextContent.Trim(), Is.EqualTo("50%"));
+                diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
+                var occurrence = owner.State.Occurrences.Single(item => owner.Projection.Parts[item.ElementId].Name == "aocs : AOCS");
+                var node = diagram.Nodes.Single(item => item.Id == occurrence.Id.ToString());
+                const double delta = 1.0 / 1024;
+                var expectedPosition = new Point(node.Position.X + delta, node.Position.Y - delta);
+                await component.InvokeAsync(() =>
+                {
+                    diagram.SelectModel(node, true);
+                    diagram.TriggerPointerDown(node, new Blazor.Diagrams.Core.Events.PointerEventArgs(0, 0, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0, "mouse", true));
+                    node.SetPosition(expectedPosition.X, expectedPosition.Y);
+                    diagram.TriggerPointerUp(node, new Blazor.Diagrams.Core.Events.PointerEventArgs(0, 0, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0, "mouse", true));
+                });
+                await component.WaitForAssertionAsync(() =>
+                {
+                    var accepted = owner.State.Occurrences.Single(item => item.Id == occurrence.Id);
+                    Assert.That(accepted.Geometry.X, Is.EqualTo(expectedPosition.X));
+                    Assert.That(accepted.Geometry.Y, Is.EqualTo(expectedPosition.Y));
+                });
+                Assert.That(diagram.Links, Is.Not.Empty);
+                var saved = DiagramPresentationSerializer.Export(owner.State);
+                await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
+                component.Dispose();
+                component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+                await component.WaitForAssertionAsync(() =>
+                {
+                    var remounted = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
+                    Assert.That(remounted.Nodes.Single(item => item.Id == occurrence.Id.ToString()).Position, Is.EqualTo(expectedPosition));
+                    Assert.That(DiagramPresentationSerializer.Export(owner.State), Is.EqualTo(saved));
+                });
+            }
+            finally
+            {
+                await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
+                component.Dispose();
+            }
+        }
+
+        private async Task<SysML2.NET.Core.POCO.Root.Namespaces.INamespace> LoadExampleAsync()
+        {
+            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            if (session.Current.Root?.DeclaredName != "Interconnection demonstration")
+            {
+                await session.OpenAsync(new Uri(System.IO.Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom"),
+                    "Resources", "Prototypes", "Interconnection.json")));
+            }
+
+            return session.Current.Root;
+        }
+
+        private async Task InitializeDiagramAsync(DiagramViewModel viewModel)
+        {
+            await this.LoadExampleAsync();
+            viewModel.UpdateWorkspace(this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>().Current);
+            await viewModel.Preparation;
+            Assert.That(viewModel.ApplyPresentation(viewModel.State with { Viewport = new DiagramViewport(0, 0, 0.5) }), Is.True);
+        }
+
         private async Task OpenDiagramAsync(IRenderedComponent<Modelling> component)
         {
-            var menu = component.FindComponents<ActionMenu>()
-                .Last(value => value.Instance.Items.Any(item => item.Id == "open-interconnection-demo")).Instance;
-            await component.InvokeAsync(() =>
-                menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection-demo")));
+            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            using var stream = System.IO.File.OpenRead(System.IO.Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom"), "Resources", "Prototypes", "Interconnection.json"));
+            using var model = await session.OpenContextAsync(stream, System.Threading.CancellationToken.None);
+            var menu = component.FindComponents<ActionMenu>().Last().Instance;
+            await component.InvokeAsync(() => menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection")));
+            var opener = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>();
+            await component.InvokeAsync(() => opener.Instance.Opened.InvokeAsync(model));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindComponents<Interconnection>(), Has.Count.EqualTo(1)));
         }

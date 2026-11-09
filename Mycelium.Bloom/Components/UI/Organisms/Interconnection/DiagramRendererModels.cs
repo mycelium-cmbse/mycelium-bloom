@@ -99,7 +99,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <returns>The route points excluding endpoint anchors.</returns>
         public override Point[] GetRoute(Diagram diagram, BaseLinkModel link)
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("connector-route");
             if (link.Vertices.Count == 0)
             {
                 return this.automatic.GetRoute(diagram, link);

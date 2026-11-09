@@ -13,7 +13,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using System.Text.Json.Serialization;
     using Mycelium.Bloom.Model.Diagram;
 
-    /// <summary>Validates prototype presentation snapshots against their canonical projection.</summary>
+    /// <summary>Validates presentation snapshots against their canonical projection.</summary>
     public static class DiagramPresentationSerializer
     {
         /// <summary>Defines deterministic, strict presentation JSON conventions.</summary>
@@ -29,7 +29,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <returns>The versioned JSON representation.</returns>
         public static string Export(DiagramPresentationState state)
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("serialize-presentation");
             return JsonSerializer.Serialize(state, Options);
         }
 
@@ -81,7 +80,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         public static bool Validate(DiagramPresentationState state, DiagramProjection projection, out string error,
             DiagramPresentationLimits limits = null)
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("validate-presentation");
             limits ??= DiagramPresentationLimits.Default;
             error = "Unsupported version, model scope, or presentation size.";
 
@@ -160,7 +158,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             return true;
         }
 
-        /// <summary>Bounds finite coordinates to a useful prototype workspace.</summary>
+        /// <summary>Bounds finite coordinates to a useful workspace.</summary>
         private static bool Coordinate(double value) => double.IsFinite(value) && Math.Abs(value) <= 100_000;
 
         /// <summary>Checks that the child fits below the container's compartments.</summary>

@@ -1698,7 +1698,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             environment.SetupGet(value => value.EnvironmentName).Returns(Environments.Production);
             this.Services.AddSingleton(environment.Object);
             this.Services.AddSingleton(new Mock<IModelLoaderService>(MockBehavior.Strict).Object);
-            this.Services.AddDiagramPrototype();
+            this.Services.AddInterconnection();
             this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>
                 () => new WorkspaceUrlContextService(
                     serviceProvider.GetRequiredService<NavigationManager>(),

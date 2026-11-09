@@ -117,7 +117,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             environment.SetupGet(value => value.EnvironmentName).Returns(Environments.Production);
             this.Services.AddSingleton(environment.Object);
             this.Services.AddSingleton(new Mock<IModelLoaderService>(MockBehavior.Strict).Object);
-            this.Services.AddDiagramPrototype();
+            this.Services.AddInterconnection();
 
             var themeModule = this.JSInterop.SetupModule(
                 "./_content/BlazorBlueprint.Components/js/theme.js");

@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
             this.Services.AddSingleton(new Mock<IModelLoaderService>(MockBehavior.Strict).Object);
-            this.Services.AddDiagramPrototype();
+            this.Services.AddInterconnection();
             this.elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
             this.Services.AddSingleton(this.elementIdResolver.Object);
             this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>

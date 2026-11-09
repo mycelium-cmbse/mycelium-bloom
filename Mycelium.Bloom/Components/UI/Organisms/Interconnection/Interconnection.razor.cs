@@ -22,10 +22,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
     using Blazor.Diagrams.Core.PathGenerators;
     using Blazor.Diagrams.Options;
     using Microsoft.AspNetCore.Components;
-    using Microsoft.AspNetCore.Components.Forms;
     using Microsoft.JSInterop;
     using Microsoft.Extensions.Options;
-    using Microsoft.AspNetCore.Components.Web;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model.Diagram;
@@ -61,7 +59,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <summary>The caller-owned state currently observed.</summary>
         private DiagramViewModel observed;
 
-        /// <summary>The root used for canvas-scoped pointer capture and downloads.</summary>
+        /// <summary>The root used for canvas-scoped pointer capture.</summary>
         private ElementReference root;
 
         /// <summary>The mounted component's collocated module.</summary>
@@ -70,7 +68,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <summary>The initialization task awaited by final disposal.</summary>
         private Task initialization;
 
-        private readonly CancellationTokenSource exportLifetime = new();
+        /// <summary>Cancels selection operations owned by this mounted component.</summary>
+        private readonly CancellationTokenSource mountLifetime = new();
 
         /// <summary>Prevents JS-dependent library mounting during static rendering.</summary>
         private bool isInteractive;
@@ -97,12 +96,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         private int focusAttempts;
         private (string ElementId, bool Explicit)? pendingReveal;
 
-        /// <summary>Retains the last viewport intersection count for the density notice.</summary>
-        private int visibleCount;
-
-        /// <summary>Gets whether this mount uses native visibility culling.</summary>
-        private bool Virtualized => !this.IsBenchmark || this.ViewportOptions.Value.Enabled;
-
         /// <summary>Gets the detailed editor minimum independently of serialization capacity.</summary>
         private double MinimumZoom =>
             Math.Max(this.ViewModel.Limits.MinimumZoom, this.ViewportOptions.Value.MinimumZoom);
@@ -115,25 +108,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         [Inject]
         private IContextAwareService Context { get; set; }
 
-        /// <summary>Gets or sets services for detached Razor export.</summary>
-        [Inject]
-        private IServiceProvider Services { get; set; }
-
-        /// <summary>Gets or sets logging for detached export.</summary>
-        [Inject]
-        private ILoggerFactory LoggerFactory { get; set; }
-
         /// <summary>Gets or sets the exact caller-owned state for this editor tab.</summary>
         [Parameter, EditorRequired]
         public DiagramViewModel ViewModel { get; set; }
-
-        /// <summary>Gets or sets whether the composition selected an isolated benchmark scene.</summary>
-        [Parameter]
-        public bool IsBenchmark { get; set; }
-
-        /// <summary>Gets or sets whether the explicitly enabled developer facility exposes diagnostic controls.</summary>
-        [Parameter]
-        public bool ShowDiagnostics { get; set; }
 
         /// <summary>Gets or sets the browser interop boundary.</summary>
         [Inject]
@@ -252,7 +229,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <summary>Applies only changed topology and presentation, preserving existing model instances.</summary>
         private void Reconcile()
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("reconcile");
             if (this.disposed || !this.isInteractive || this.ViewModel.State is not { } state)
             {
                 return;
@@ -409,7 +385,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             this.rendering.Add(Disposable.Create(() => mounted.PointerDown -= started));
             this.diagram.SuspendRefresh = true;
             this.diagram.SuspendSorting = true;
-            this.diagram.Options.Virtualization.Enabled = this.Virtualized;
+            this.diagram.Options.Virtualization.Enabled = true;
             this.diagram.Options.Zoom.Minimum = this.MinimumZoom;
             this.diagram.Options.Zoom.Maximum = 4;
             this.diagram.Options.Links.DefaultPathGenerator = new StraightPathGenerator();
@@ -427,7 +403,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             foreach (var occurrence in state.Occurrences.Where(node => !childrenByParent.Contains(node.Id)))
             {
                 var node = new DiagramNodeModel(occurrence, this.ViewModel.Projection.Parts[occurrence.ElementId])
-                { Visible = !this.Virtualized };
+                { Visible = false };
                 this.nodes.Add(occurrence.Id, node);
                 this.diagram.Nodes.Add(node);
             }
@@ -448,7 +424,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                     var children = childrenByParent[occurrence.Id].Select(child => this.nodes[child.Id]);
                     var group = new DiagramGroupModel(occurrence, this.ViewModel.Projection.Parts[occurrence.ElementId],
                         children)
-                    { Visible = !this.Virtualized };
+                    { Visible = false };
                     this.nodes.Add(occurrence.Id, group);
                     this.diagram.Groups.Add(group);
                     pendingGroups.Remove(occurrence.Id);
@@ -481,7 +457,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 var link = new DiagramLinkModel(route, this.ViewModel.Projection.Connections[route.ElementId],
                     this.nodes[route.SourceId].Ports.Single(port => port.Id == route.SourcePortId),
                     this.nodes[route.TargetId].Ports.Single(port => port.Id == route.TargetPortId));
-                link.Visible = !this.Virtualized;
+                link.Visible = false;
                 this.links.Add(route.Id, link);
                 this.diagram.Links.Add(link);
             }
@@ -508,7 +484,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                         }
 
                         await this.ViewModel.SelectAsync(selected,
-                            model.Selected && primary != Guid.Empty ? primary : null);
+                            model.Selected && primary != Guid.Empty ? primary : null, this.mountLifetime.Token);
                     }
                 })))
                 .Concat().Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram selection failed.")));
@@ -608,7 +584,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         internal static Dictionary<(Guid OccurrenceId, string PortId), PortAlignment> GetPortAlignments(
             DiagramPresentationState state)
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("port-alignments");
             var geometries = state.Occurrences.ToDictionary(node => node.Id, node => node.Geometry);
             var alignments = new Dictionary<(Guid OccurrenceId, string PortId), PortAlignment>();
             foreach (var route in state.Routes)
@@ -640,7 +615,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <summary>Captures completed presentation changes without semantic mutation.</summary>
         private void CapturePresentation()
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("capture-presentation");
             if (this.applying || this.disposed || this.diagram is null || this.presented is null)
             {
                 return;
@@ -793,7 +767,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 this.ViewModel.RequestRegion(container.Width, container.Height, this.ViewportOptions.Value.Margin * 2);
             }
 
-            this.visibleCount = this.Virtualized ? this.visibility.Apply(this.interactionActive) : this.nodes.Count;
+            this.visibility.Apply(this.interactionActive);
             var viewport = new DiagramViewport(x, y, zoom);
             if (viewport != this.ViewModel.State.Viewport)
             {
@@ -831,105 +805,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             this.focusAttempts = 0;
             this.ViewModel.RequestRegion(container.Width, container.Height, this.ViewportOptions.Value.Margin * 2);
             this.StateHasChanged();
-        }
-
-        /// <summary>Changes the local inspection setting.</summary>
-        private void SetReadOnly(bool value) => this.ViewModel.IsReadOnly = value;
-
-        /// <summary>Reveals the current canonical selection even when its identity has not changed.</summary>
-        private void RevealSelection() => this.Reveal(this.Context.SelectedElement?.ElementId, true);
-
-        /// <summary>Adds the browser's shared identity without changing browser focus.</summary>
-        private void AddBrowserSelection() => this.ViewModel.AddSharedSelection();
-
-        /// <summary>Downloads the complete native SVG scene with resolved styles.</summary>
-        private async Task ExportSvgAsync()
-        {
-            if (this.module is not null && !this.disposed)
-            {
-                this.CapturePresentation();
-                try
-                {
-                    var state = this.ViewModel.State;
-                    var projection = await this.ViewModel.LoadExportProjectionAsync(this.exportLifetime.Token);
-                    if (this.disposed)
-                    {
-                        return;
-                    }
-
-                    using var renderer = new HtmlRenderer(this.Services, this.LoggerFactory);
-                    var parameters = !this.ViewModel.UsesRegionalRendering
-                        ? new Dictionary<string, object>
-                        {
-                            [nameof(DiagramSvgExport.Nodes)] = this.nodes.Values.ToArray(),
-                            [nameof(DiagramSvgExport.Links)] = this.links.Values.Cast<BaseLinkModel>().ToArray(),
-                            [nameof(DiagramSvgExport.Bounds)] = this.visibility.Bounds
-                        }
-                        : new Dictionary<string, object>
-                        {
-                            [nameof(DiagramSvgExport.State)] = state,
-                            [nameof(DiagramSvgExport.Projection)] = projection
-                        };
-                    var content = await renderer.Dispatcher.InvokeAsync(async () =>
-                    {
-                        var output =
-                            await renderer.RenderComponentAsync<DiagramSvgExport>(
-                                ParameterView.FromDictionary(parameters));
-                        return output.ToHtmlString();
-                    });
-                    if (!this.disposed)
-                    {
-                        await this.module.InvokeVoidAsync("exportCompleteSvg", this.root, content);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException
-                                                  or InvalidOperationException)
-                {
-                    if (!this.disposed)
-                    {
-                        this.ViewModel.ReportNotice(
-                            "Export could not retrieve complete model details; no file was created.");
-                    }
-                }
-            }
-        }
-
-        /// <summary>Downloads prototype presentation state independently of model persistence.</summary>
-        private async Task ExportPresentationAsync()
-        {
-            if (this.module is not null && !this.disposed)
-            {
-                this.CapturePresentation();
-                await this.module.InvokeVoidAsync("download", "interconnection.presentation.json", "application/json",
-                    DiagramPresentationSerializer.Export(this.ViewModel.State));
-            }
-        }
-
-        /// <summary>Reads a bounded user-selected snapshot and restores it only to its original tab owner.</summary>
-        private async Task ImportPresentationAsync(InputFileChangeEventArgs args)
-        {
-            var owner = this.ViewModel;
-            try
-            {
-                await using var stream = args.File.OpenReadStream(this.ViewModel.Limits.JsonBytes);
-                using var reader = new StreamReader(stream);
-                var json = await reader.ReadToEndAsync();
-                if (!this.disposed && ReferenceEquals(owner, this.observed))
-                {
-                    var imported = owner.Import(json, out var error);
-                    owner.ReportNotice(imported ? "Prototype presentation restored." : error);
-                }
-            }
-            catch (IOException)
-            {
-                if (!this.disposed)
-                {
-                    owner.ReportNotice("Could not read presentation; choose a JSON file smaller than 1 MiB.");
-                }
-            }
         }
 
         /// <summary>Detaches every library event, behavior and grouped child owned by this mount.</summary>
@@ -972,8 +847,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
 
             this.CapturePresentation();
             this.disposed = true;
-            this.exportLifetime.Cancel();
-            this.exportLifetime.Dispose();
+            this.mountLifetime.Cancel();
+            this.mountLifetime.Dispose();
             this.observation.Dispose();
             this.ClearRenderer();
             try

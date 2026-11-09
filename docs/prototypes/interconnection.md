@@ -1,9 +1,8 @@
 # Interconnection
 
 Bloom’s Interconnection view displays supported structural content from its tab’s
-canonical workspace model. Z.Blazor.Diagrams is the implementation direction;
-the preserved X6 adapter is available only in the explicitly enabled developer
-facility. Neither renderer defines SysML semantics or persistent model storage.
+canonical workspace model. Z.Blazor.Diagrams supplies the canvas; Bloom owns canonical identity,
+permissions and presentation state. The renderer does not provide persistent model storage.
 
 ## Run and use
 
@@ -49,7 +48,7 @@ or connections. Occurrence identities remain distinct from canonical element IDs
 Viewport rendering retains full presentation metadata while mounting regional
 content. Normal large-file coverage uses 10,000 distinct canonical Part Usages;
 it is separate from historical scenes repeating seven semantic parts. The 50%
-minimum zoom and payload-cache sizing are configurable settings requiring product
+minimum zoom and formatted-detail cache sizing are configurable settings requiring product
 review. Rendering virtualization does not imply backend lazy fetching or bounded
 total SDK memory.
 
@@ -60,19 +59,17 @@ consume checked-in assets without invoking Node/npm.
 
 ## Remaining integration and release dependencies
 
-Production file loading is eager. Partial fetching needs the supported backend
-adapter described in [the large-model assessment](diagram-engine-10000.md).
-Live semantic updates need a supported model-change pipeline. Canonical SDK
-objects remain owned by their model context; the bounded payload read cache does
+Production file loading is eager. Partial fetching requires an operational,
+revision-scoped backend source and a supported metadata/dependency adapter.
+Live semantic updates require a supported model-change pipeline. Canonical SDK
+objects remain owned by their model context; the bounded formatted-detail cache does
 not bound those graphs. Inter/JetBrains Mono delivery remains unresolved and
 fallback typography must not be described as exact Figma parity.
 
-The integrated development-base image passed the configured HIGH/CRITICAL
-security scan; see the large-model assessment for its exact digest. Hosted Sonar
-and PR checks remain release gates. Existing Blueprint callback findings remain
-recorded. Functional acceptance is not unrestricted deployment readiness.
+Rendering, upload validation and editor isolation have regression coverage in the
+application test suites. Ordinary CI collects application coverage; local
+performance experiments and investigation evidence are not shipped. Required asset generation is documented in `Mycelium.Bloom/Styles/README.md`.
 
-Historical investigation documents are preserved byte-for-byte under
-`.local/issue-79/audit-corrections-20261109/history/`; raw measurements retain their
-original directories and manifests. Current correction evidence is under
-`.local/issue-79/audit-corrections-20261109/`.
+Review the pull request's current CI, Sonar and image-security results before
+release. Functional acceptance is not a claim of multi-user capacity or
+unrestricted deployment readiness.

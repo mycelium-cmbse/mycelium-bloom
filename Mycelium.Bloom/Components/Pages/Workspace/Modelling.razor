@@ -13,8 +13,6 @@
 @using BlazorBlueprint.Icons.Lucide.Components
 @using Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace
 @using Mycelium.Bloom.Components.UI.Organisms.Interconnection
-@using Mycelium.Bloom.Components.UI.Organisms.InterconnectionCanvas
-@using Mycelium.Bloom.Components.UI.Organisms.DiagramBenchmarkProbe
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
@@ -63,7 +61,7 @@
         </AddTabControl>
 
         <EditorContent Context="tab">
-            @if (tab.ViewTypeKey is DiagramViewTypeKey or DiagramBenchmarkViewTypeKey && this.diagramViewModels.TryGetValue(tab.Id, out var diagramViewModel))
+            @if (tab.ViewTypeKey is DiagramViewTypeKey && this.diagramViewModels.TryGetValue(tab.Id, out var diagramViewModel))
             {
                 @if (diagramViewModel.IsWorkspaceBound && (!diagramViewModel.IsScopeAvailable || diagramViewModel.State is null || diagramViewModel.State.Occurrences.Length == 0))
                 {
@@ -80,7 +78,7 @@
                 }
                 else
                 {
-                    <Interconnection @key="diagramViewModel" ViewModel="diagramViewModel" IsBenchmark="@IsBenchmarkView(tab.ViewTypeKey)" ShowDiagnostics="@(this.BenchmarkOptions.Value.Enabled && !diagramViewModel.IsWorkspaceBound)">
+                    <Interconnection @key="diagramViewModel" ViewModel="diagramViewModel">
                         <ModelActions>
                             @if (diagramViewModel.IsWorkspaceBound)
                             {
@@ -89,18 +87,6 @@
                             }
                         </ModelActions>
                     </Interconnection>
-                }
-                @if (this.BenchmarkOptions.Value.Enabled && !diagramViewModel.IsWorkspaceBound)
-                {
-                    <DiagramBenchmarkProbe @key="(tab.Id, true)" ViewModel="diagramViewModel" />
-                }
-            }
-            else if (tab.ViewTypeKey is CanvasViewTypeKey or CanvasBenchmarkViewTypeKey && this.diagramViewModels.TryGetValue(tab.Id, out var canvasViewModel))
-            {
-                <InterconnectionCanvas @key="tab.Id" ViewModel="canvasViewModel" IsBenchmark="@IsBenchmarkView(tab.ViewTypeKey)" ShowDiagnostics="@this.BenchmarkOptions.Value.Enabled" />
-                @if (this.BenchmarkOptions.Value.Enabled)
-                {
-                    <DiagramBenchmarkProbe @key="(tab.Id, true)" ViewModel="canvasViewModel" />
                 }
             }
             else if (IsProjectBrowserTab(tab))

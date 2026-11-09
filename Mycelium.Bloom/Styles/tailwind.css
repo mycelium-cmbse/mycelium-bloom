@@ -7,8 +7,6 @@
 @source "../Components";
 @source "../ViewModel";
 @source "../Model";
-@source not "../wwwroot/vendor";
-@source not "../Build/DiagramAssets";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

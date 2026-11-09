@@ -9,7 +9,7 @@
 
 namespace Mycelium.Bloom.Model.Diagram
 {
-    /// <summary>Defines bounded presentation capacity for ordinary and isolated benchmark tabs.</summary>
+    /// <summary>Defines bounded presentation capacity for bounded diagram metadata.</summary>
     public sealed record DiagramPresentationLimits
     {
         private DiagramPresentationLimits(int nodes, int routes, int jsonBytes, double minimumZoom)
@@ -35,8 +35,6 @@ namespace Mycelium.Bloom.Model.Diagram
         /// <summary>Gets the CSS-pixel pan bound, allowing the complete workspace at maximum zoom.</summary>
         public double Pan => this == Workspace ? 1_000_000 : 100_000;
 
-        /// <summary>Gets the bounded capacity for explicitly isolated large-scene experiments.</summary>
-        public static DiagramPresentationLimits LargeBenchmark { get; } = new(10_000, 15_000, 16_777_216, 0.005);
 
         /// <summary>Gets the maximum graphical occurrence count.</summary>
         public int Nodes { get; }

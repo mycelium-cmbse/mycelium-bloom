@@ -77,7 +77,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
-        /// <summary>Gets whether this tab belongs to the active workspace rather than a diagnostic source.</summary>
+        /// <summary>Gets whether this tab is bound to a canonical workspace scope.</summary>
         public bool IsWorkspaceBound { get; private set; }
 
         /// <summary>Gets whether the captured scope is still available in the active context.</summary>
@@ -125,7 +125,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 if (!available)
                 {
                     this.workspacePreparation?.Cancel();
-                    this.loadingRevision++;
                     this.loadingSubscription?.Dispose();
                     this.workspaceIndex?.Dispose();
                     this.workspaceIndex = null;

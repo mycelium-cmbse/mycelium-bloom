@@ -110,25 +110,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Gets the immutable capacity selected before this tab is initialized.</summary>
         public DiagramPresentationLimits Limits { get; private set; } = DiagramPresentationLimits.Default;
 
-        /// <summary>Enables bounded large-scene capacity before creating an isolated diagnostic tab.</summary>
-        /// <param name="options">The startup-validated diagnostic configuration.</param>
-        public void ConfigureBenchmark(DiagramBenchmarkOptions options)
-        {
-            lock (this.mutationGate)
-            {
-                ObjectDisposedException.ThrowIf(this.disposed, this);
-                if (this.State is not null)
-                {
-                    throw new InvalidOperationException("Configure benchmark capacity before initialization.");
-                }
-
-                if (options.Enabled && options.LargeSceneEnabled && options.AccessKey.Length >= 32)
-                {
-                    this.Limits = DiagramPresentationLimits.LargeBenchmark;
-                }
-            }
-        }
-
         /// <summary>Gets the authoritative presentation snapshot.</summary>
         public DiagramPresentationState State
         {
@@ -143,7 +124,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             private set => this.RaiseAndSetIfChanged(ref field, value);
         } = [];
 
-        /// <summary>Gets or sets the prototype's local read-only inspection mode.</summary>
+        /// <summary>Gets or sets the local read-only state.</summary>
         public bool IsReadOnly
         {
             get;
@@ -162,7 +143,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Gets whether presentation changes are currently permitted.</summary>
         public bool CanEditPresentation => this.IsScopeAvailable && this.canEditPresentation.Value;
 
-        /// <summary>Gets the latest transient prototype operation result.</summary>
+        /// <summary>Gets the latest transient presentation operation result.</summary>
         public string Notice
         {
             get;
@@ -240,111 +221,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
-        /// <summary>Tiles occurrences and supported relationships for an explicit interaction assessment.</summary>
-        public void DisplayStressScene()
-        {
-            lock (this.mutationGate)
-            {
-                if (this.disposed || !this.CanEditPresentation || this.State is null
-                    || this.State.Occurrences.Length is 0 or >= 100)
-                {
-                    return;
-                }
-
-                var count = Math.Min(500 / this.State.Occurrences.Length,
-                    (int)Math.Ceiling(120d / this.State.Occurrences.Length));
-                var nodes = ImmutableArray.CreateBuilder<DiagramOccurrence>();
-                var routes = ImmutableArray.CreateBuilder<DiagramRoute>();
-
-                for (var index = 0; index < count; index++)
-                {
-                    var identities = this.State.Occurrences.ToDictionary(node => node.Id, _ => Guid.NewGuid());
-                    var dx = index % 4 * 1000d;
-                    var dy = index / 4 * 850d;
-                    nodes.AddRange(this.State.Occurrences.Select(node => node with
-                    {
-                        Id = identities[node.Id],
-                        ParentId = node.ParentId.HasValue ? identities[node.ParentId.Value] : null,
-                        Geometry = node.Geometry with { X = node.Geometry.X + dx, Y = node.Geometry.Y + dy }
-                    }));
-                    routes.AddRange(this.State.Routes.Select(route => route with
-                    {
-                        Id = Guid.NewGuid(),
-                        SourceId = identities[route.SourceId],
-                        TargetId = identities[route.TargetId],
-                        Bends = [.. route.Bends.Select(point => new DiagramPoint(point.X + dx, point.Y + dy))]
-                    }));
-                }
-
-                var candidate = this.State with { Occurrences = nodes.ToImmutable(), Routes = routes.ToImmutable() };
-                if (!this.ValidatePresentation(candidate))
-                {
-                    return;
-                }
-
-                this.SelectedOccurrences = [];
-                this.State = candidate;
-            }
-        }
-
-        /// <summary>Initializes a fresh presentation from an explicitly chosen canonical root.</summary>
-        /// <param name="root">The canonical model scope.</param>
-        /// <param name="demonstrationLayout">Whether to apply the explicit fixture layout.</param>
-        public void Initialize(IElement root, bool demonstrationLayout = true)
-        {
-            lock (this.mutationGate)
-            {
-                ObjectDisposedException.ThrowIf(this.disposed, this);
-
-                if (this.State is not null)
-                {
-                    throw new InvalidOperationException("The diagram already has a model scope.");
-                }
-
-                this.Projection = InterconnectionProjection.Create(root);
-                var occurrences = this.Projection.Parts.Values.OrderBy(part => part.Name, StringComparer.Ordinal)
-                    .Select((part, index) => new DiagramOccurrence(Guid.NewGuid(), part.ElementId,
-                        demonstrationLayout
-                            ? CreateInitialGeometry(part, index)
-                            : new DiagramGeometry(64 + index % 4 * 300, 66 + index / 4 * 320, 260, 270), null))
-                    .ToArray();
-                var byElement = occurrences.ToDictionary(node => node.ElementId, StringComparer.Ordinal);
-
-                for (var index = 0; index < occurrences.Length; index++)
-                {
-                    var node = occurrences[index];
-                    var parentElementId = this.Projection.Parts[node.ElementId].ParentElementId;
-
-                    if (parentElementId is not null && byElement.TryGetValue(parentElementId, out var parent))
-                    {
-                        occurrences[index] = node with
-                        {
-                            ParentId = parent.Id,
-                            Geometry = new DiagramGeometry(parent.Geometry.X + 16, parent.Geometry.Y + 140, 200, 110)
-                        };
-                    }
-                }
-
-                var routes = this.Projection.Connections.Values
-                    .OrderBy(connection => connection.Name, StringComparer.Ordinal)
-                    .Select(connection => new DiagramRoute(Guid.NewGuid(), connection.ElementId,
-                        byElement[connection.SourcePartId].Id, connection.SourcePortId,
-                        byElement[connection.TargetPartId].Id, connection.TargetPortId,
-                        demonstrationLayout && connection.Name == "CmdBus"
-                            ? [new DiagramPoint(300, 520), new DiagramPoint(560, 520)]
-                            : []))
-                    .ToImmutableArray();
-                this.State = new DiagramPresentationState(1, Guid.NewGuid(), root.ElementId,
-                    [.. occurrences], routes, new DiagramViewport(0, 0, 1));
-            }
-        }
-
         /// <summary>Publishes validated renderer geometry without modifying canonical model objects.</summary>
         /// <param name="candidate">The completed presentation change.</param>
         /// <returns>Whether the change was accepted.</returns>
         public bool ApplyPresentation(DiagramPresentationState candidate)
         {
-            using var trace = Mycelium.Bloom.Core.DiagramDiagnostics.Source.StartActivity("apply-presentation");
             lock (this.mutationGate)
             {
                 if (this.disposed || !this.IsScopeAvailable || this.State is null || candidate is null
@@ -446,59 +327,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
-        /// <summary>Validates browser deltas against the exact authoritative snapshot they observed.</summary>
-        /// <param name="expected">The observed presentation snapshot.</param>
-        /// <param name="change">The completed presentation-only changes.</param>
-        /// <returns>Whether all changes were accepted atomically.</returns>
-        public bool ApplyCanvasChange(DiagramPresentationState expected, DiagramCanvasChange change)
-        {
-            lock (this.mutationGate)
-            {
-                if (this.disposed || expected is null || !ReferenceEquals(this.State, expected) || change is null
-                    || change.Nodes.IsDefault || change.Routes.IsDefault || change.Nodes.Length > this.Limits.Nodes ||
-                    change.Routes.Length > this.Limits.Routes
-                    || (!this.CanEditPresentation && (change.Nodes.Length != 0 || change.Routes.Length != 0))
-                    || change.Nodes.Any(node => node is null || node.Geometry is null)
-                    || change.Routes.Any(route => route is null || route.Bends.IsDefault)
-                    || change.Nodes.Select(node => node.Id).Distinct().Count() != change.Nodes.Length
-                    || change.Routes.Select(route => route.Id).Distinct().Count() != change.Routes.Length)
-                {
-                    return false;
-                }
-
-                var nodes = change.Nodes.ToDictionary(node => node.Id);
-                var routes = change.Routes.ToDictionary(route => route.Id);
-                if (nodes.Keys.Except(expected.Occurrences.Select(node => node.Id)).Any()
-                    || routes.Keys.Except(expected.Routes.Select(route => route.Id)).Any())
-                {
-                    return false;
-                }
-
-                return this.ApplyPresentation(expected with
-                {
-                    Occurrences = nodes.Count == 0
-                        ? expected.Occurrences
-                        :
-                        [
-                            .. expected.Occurrences.Select(node =>
-                                nodes.TryGetValue(node.Id, out var updated)
-                                    ? node with { Geometry = updated.Geometry }
-                                    : node)
-                        ],
-                    Routes = routes.Count == 0
-                        ? expected.Routes
-                        :
-                        [
-                            .. expected.Routes.Select(route =>
-                                routes.TryGetValue(route.Id, out var updated)
-                                    ? route with { Bends = updated.Bends }
-                                    : route)
-                        ],
-                    Viewport = change.Viewport ?? expected.Viewport
-                });
-            }
-        }
-
         /// <summary>Adds a graphical occurrence of an existing supported element in this scope.</summary>
         /// <param name="elementId">The stable semantic identity from the browser or chooser.</param>
         /// <returns>Whether an occurrence was added.</returns>
@@ -583,9 +411,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken);
                 var element = workspaceBound
                     ? workspaceElement
-                    : this.DataSession is null
-                        ? await this.resolver.ResolveAsync(elementId, linked.Token)
-                        : await this.DataSession.ResolveAsync(elementId, linked.Token);
+                    : await this.resolver.ResolveAsync(elementId, linked.Token);
 
                 lock (this.mutationGate)
                 {
@@ -605,7 +431,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         }
 
         /// <summary>Restores a validated presentation atomically while retaining the current tab identity.</summary>
-        /// <param name="json">The prototype presentation file.</param>
+        /// <param name="json">The presentation file.</param>
         /// <param name="error">The import failure, when present.</param>
         /// <returns>Whether the presentation was restored.</returns>
         public bool Import(string json, out string error)
@@ -650,7 +476,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 this.RevealRequested.Dispose();
                 this.loadingSubscription?.Dispose();
                 this.regionRequests.Dispose();
-                this.dataLease?.Dispose();
+
             }
         }
 
@@ -666,17 +492,5 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             return false;
         }
 
-        /// <summary>Arranges the deterministic demonstration while preserving arbitrary supported names.</summary>
-        private static DiagramGeometry CreateInitialGeometry(DiagramPart part, int index) =>
-            part.Name.Split(' ')[0] switch
-            {
-                "aocs" => new(64, 66, 200, 130),
-                "power" => new(604, 66, 240, 270),
-                "comms" => new(64, 366, 200, 110),
-                "thermal" => new(604, 366, 200, 110),
-                "propulsion" => new(64, 566, 200, 110),
-                "controller" => new(334, 366, 200, 110),
-                _ => new(64 + index % 4 * 270, 66 + index / 4 * 200, 200, 110)
-            };
     }
 }

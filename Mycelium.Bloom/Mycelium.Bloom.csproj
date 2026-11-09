@@ -78,6 +78,5 @@
     </ItemGroup>
 
     <Import Project="Build/Tailwind.targets" />
-    <Import Project="Build/DiagramAssets.targets" />
 
 </Project>

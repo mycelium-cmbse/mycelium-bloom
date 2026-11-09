@@ -11,7 +11,7 @@ namespace Mycelium.Bloom.Model.Diagram
 {
     using System.Collections.Immutable;
 
-    /// <summary>Stores versioned prototype presentation independently of the semantic model.</summary>
+    /// <summary>Stores versioned presentation independently of the semantic model.</summary>
     /// <param name="Version">The presentation schema version.</param>
     /// <param name="DiagramId">The presentation identity.</param>
     /// <param name="ModelScope">The canonical root ElementId.</param>
