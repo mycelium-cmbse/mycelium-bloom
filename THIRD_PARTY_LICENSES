@@ -1,0 +1,19 @@
+THIRD-PARTY LICENSES
+====================
+
+This project includes the following third-party components, each
+distributed under its own license. These licenses apply only to the
+files listed for each component; the rest of this project is licensed
+under the Apache License, Version 2.0 (see LICENSE).
+
+------------------------------------------------------------------------
+
+Inter typeface
+  Location:  Mycelium.Bloom/wwwroot/fonts/inter/
+  Copyright: Copyright (c) 2016 The Inter Project Authors
+  Source:    https://github.com/rsms/inter
+  License:   SIL Open Font License, Version 1.1
+             Full text: Mycelium.Bloom/wwwroot/fonts/inter/LICENSE.txt
+             Also available at: https://openfontlicense.org
+
+------------------------------------------------------------------------
