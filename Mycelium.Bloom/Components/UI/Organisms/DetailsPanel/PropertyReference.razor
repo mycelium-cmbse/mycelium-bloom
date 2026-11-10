@@ -1,0 +1,36 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PropertyReference.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@if (this.Link.Element is not null && !ReferenceEquals(this.Link.Element, this.SelectedElement))
+{
+    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Link" Class="@this.Class"
+              AriaLabel="@($"Inspect {this.Link.Role}: {this.Link.Label}")" OnClick="this.Inspect">
+        @if (this.ChildContent is not null)
+        {
+            @this.ChildContent
+        }
+        else
+        {
+            @this.Link.Label
+        }
+    </BbButton>
+}
+else
+{
+    <span class="@this.Class">
+        @if (this.ChildContent is not null)
+        {
+            @this.ChildContent
+        }
+        else
+        {
+            @this.Link.Label
+        }
+    </span>
+}

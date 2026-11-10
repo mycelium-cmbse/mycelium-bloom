@@ -26,43 +26,39 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.Components.Web;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
-    using Microsoft.AspNetCore.Components.Web;
 
     using Moq;
 
-    using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Components.Layout;
+    using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
+    using SysML2.NET.Core.POCO.Root.Namespaces;
+
+    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
     using ProjectBrowserComponent = Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser;
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
-    using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
-    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
-
-    using SysML2.NET.Core.POCO.Root.Namespaces;
-
     using SysML2Element = SysML2.NET.Core.POCO.Root.Elements.IElement;
+    using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
 
-    /// <summary>
-    /// Tests the <see cref="Modelling" /> workspace composition.
-    /// </summary>
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ModellingTestFixture : BunitContext
@@ -89,7 +85,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                         composition.Context.SelectedElement = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "inspection-origin" };
                         panelViewModel.Inspect(node.SourceElement);
                     });
-                    Assert.That(panelViewModel.CanGoBack, Is.True);
                     await component.Find("[data-testid='properties-collapse']").ClickAsync();
                     Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
                     await browser.Find(rowSelector).ClickAsync();
@@ -100,7 +95,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                             Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
                             Assert.That(composition.Context.SelectedElement, Is.SameAs(node.SourceElement));
                             Assert.That(panelViewModel.Presentation.Element, Is.SameAs(node.SourceElement));
-                            Assert.That(panelViewModel.CanGoBack, Is.False);
                         }
                     });
                 }
@@ -110,60 +104,39 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             {
                 browser.Verify(viewModel => viewModel.SelectNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Exactly(2));
             }
-            await component.Find("[data-testid='properties-clear-selection']").ClickAsync();
+            var retainedSelection = composition.Context.SelectedElement;
+            await component.Find("[data-testid='properties-close']").ClickAsync();
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(composition.Context.SelectedElement, Is.Null);
-                Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.False);
+                Assert.That(composition.Context.SelectedElement, Is.SameAs(retainedSelection));
+                Assert.That(component.Find("[data-testid='properties-region']").HasAttribute("hidden"), Is.True);
             }
         }
 
-        /// <summary>
-        /// The Figma-derived relative weights expected for the default three-group composition.
-        /// </summary>
         private static readonly double[] ExpectedDefaultGroupWeights = [300d, 320d, 868d];
 
-        /// <summary>
-        /// The semantic element order expected inside the workspace body.
-        /// </summary>
         private static readonly string[] ExpectedWorkspaceBodyElementNames = ["aside", "div", "div", "aside"];
 
-        /// <summary>
-        /// The editor-type icon names expected for the default placeholder tabs.
-        /// </summary>
         private static readonly string[] ExpectedPlaceholderTabIconNames = ["file-text", "file-text"];
 
-        /// <summary>
-        /// The empty observable Type state used by strict Project Browser test doubles.
-        /// </summary>
+        private static readonly string[] ExpectedAddTabActions = ["Project Browser"];
+
         private static readonly ReadOnlyObservableCollection<Type> EmptyElementTypes =
             new(new ObservableCollection<Type>());
 
-        /// <summary>
-        /// The Blueprint portal host that owns portalled add-tab menu content.
-        /// </summary>
         private IRenderedComponent<BbPortalHost> portalHost;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ModellingTestFixture" /> class.
-        /// </summary>
         public ModellingTestFixture()
         {
             BlueprintTestSetup.Configure(this);
         }
 
-        /// <summary>
-        /// Disposes the bUnit context and async workspace resources after each test.
-        /// </summary>
         [TearDown]
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
         }
 
-        /// <summary>
-        /// Verifies routed Modelling content composes from the exact injected state instances.
-        /// </summary>
         [Test]
         public void VerifyRenderComposesEditorBodyFromInjectedState()
         {
@@ -235,7 +208,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(addTabMenus, Has.Count.EqualTo(3));
                 Assert.That(
                     addTabMenus.All(menu => menu.Instance.Items.Select(item => item.Symbol)
-                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Document, SymbolIconName.Tree })),
+                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Tree })),
                     Is.True);
                 Assert.That(renderedTabIcons[composition.Editor.Groups[0].ActiveTab.Id], Is.EqualTo("list-tree"));
                 Assert.That(
@@ -256,12 +229,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies placeholder initialization respects configured limits without assuming three groups.
-        /// </summary>
-        /// <param name="maximumGroupCount">The configured workspace limit.</param>
-        /// <param name="expectedGroupCount">The expected structural group count.</param>
-        /// <param name="expectsFigmaWeights">Whether the three-group Figma seed applies.</param>
         [TestCase(1, 1, false)]
         [TestCase(2, 2, false)]
         [TestCase(5, 3, true)]
@@ -293,9 +260,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies the composition preserves an existing durable workspace instead of reseeding it.
-        /// </summary>
         [Test]
         public void VerifyExistingWorkspaceStateIsNotReplacedByPlaceholders()
         {
@@ -321,11 +285,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies the add-tab menu opens generic content only in the exact selected group.
-        /// </summary>
         [Test]
-        public async Task VerifyEmptyEditorActionTargetsExactOwningGroup()
+        public async Task VerifyAddTabOffersOnlyProjectBrowserAndTargetsExactOwningGroup()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -345,11 +306,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(composition.Editor.Groups[2].Tabs, Has.Count.EqualTo(1));
             }
 
-            var emptyEditorAction = FindPortalledMenuItem("Empty editor");
+            var projectBrowserAction = this.FindPortalledMenuItem("Project Browser");
 
-            Assert.That(emptyEditorAction.QuerySelector("svg"), Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.portalHost.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(ExpectedAddTabActions));
+                Assert.That(projectBrowserAction.QuerySelector("svg"), Is.Not.Null);
+            }
 
-            await emptyEditorAction.ClickAsync();
+            await projectBrowserAction.ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
@@ -359,18 +324,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Assert.That(targetGroup.Tabs, Has.Count.EqualTo(2));
                     Assert.That(composition.Editor.Groups[2].Tabs, Has.Count.EqualTo(1));
                     Assert.That(composition.Editor.FocusedGroup, Is.SameAs(targetGroup));
-                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Editor 4"));
-                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Project Browser"));
+                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                     Assert.That(component.Find(
                             $"[data-testid='workspace-editor-tab-icon'][data-tab-id='{targetGroup.ActiveTab.Id}']")
-                        .GetAttribute("data-icon-name"), Is.EqualTo("file-text"));
+                        .GetAttribute("data-icon-name"), Is.EqualTo("list-tree"));
                 }
             });
         }
 
-        /// <summary>
-        /// Verifies the Project Browser action remains available while another browser exists.
-        /// </summary>
         [Test]
         public async Task VerifyProjectBrowserActionRemainsEnabledWhileBrowserExists()
         {
@@ -380,14 +342,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var targetGroup = composition.Editor.Groups[1];
 
             await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
-            var projectBrowserAction = FindPortalledMenuItem("Project Browser");
+            var projectBrowserAction = this.FindPortalledMenuItem("Project Browser");
 
             Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.Not.EqualTo("true"));
         }
 
-        /// <summary>
-        /// Verifies multiple Project Browser tabs in one group retain distinct identities and exact ViewModels.
-        /// </summary>
         [Test]
         public async Task VerifyMultipleProjectBrowsersOpenIndependentlyInSameGroup()
         {
@@ -446,9 +405,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies rapid tab replacement leaves every still-owned Project Browser initialization alive.
-        /// </summary>
         [Test]
         public async Task VerifyRapidProjectBrowserTabSwitchingLoadsEveryStillOpenInstance()
         {
@@ -559,9 +515,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies Project Browser tabs in different groups render their own exact ViewModels concurrently.
-        /// </summary>
         [Test]
         public async Task VerifyMultipleProjectBrowsersOpenIndependentlyInDifferentGroups()
         {
@@ -593,9 +546,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies durable Project Browser tabs present before Modelling initialization receive explicit ownership.
-        /// </summary>
         [Test]
         public void VerifyExistingProjectBrowserTabIsComposedAtInitializationBoundary()
         {
@@ -617,9 +567,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies Project Browser creation targets the requesting group and uses its fresh ViewModel.
-        /// </summary>
         [Test]
         public async Task VerifyProjectBrowserActionTargetsExactGroupAndFreshViewModel()
         {
@@ -642,7 +589,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using var component = this.Render<Modelling>();
 
             await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
-            var projectBrowserAction = FindPortalledMenuItem("Project Browser");
+            var projectBrowserAction = this.FindPortalledMenuItem("Project Browser");
 
             using (Assert.EnterMultipleScope())
             {
@@ -673,11 +620,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies closing Project Browser releases it and does not consume placeholder numbering.
-        /// </summary>
         [Test]
-        public async Task VerifyClosingProjectBrowserReleasesInstanceWithoutConsumingPlaceholderNumber()
+        public async Task VerifyClosingProjectBrowserReleasesInstanceAndAllowsReplacement()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -696,7 +640,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var targetGroup = composition.Editor.Groups[0];
             await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
-            var projectBrowserAction = FindPortalledMenuItem("Project Browser");
+            var projectBrowserAction = this.FindPortalledMenuItem("Project Browser");
 
             Assert.That(projectBrowserAction.GetAttribute("aria-disabled"), Is.Not.EqualTo("true"));
 
@@ -704,15 +648,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.WaitForAssertionAsync(() =>
                 Assert.That(targetGroup.Tabs.Any(tab => tab.ViewTypeKey == "project-browser"), Is.True));
 
-            await FindAddTabMenu(component, targetGroup.Id).QuerySelector("button").ClickAsync();
-            await FindPortalledMenuItem("Empty editor").ClickAsync();
-
             await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Editor 4"));
-                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(targetGroup.ActiveTab.Title, Is.EqualTo("Project Browser"));
+                    Assert.That(targetGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                     Assert.That(composition.Editor.Groups.SelectMany(group => group.Tabs)
                         .Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(1));
                     Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(2));
@@ -723,7 +664,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         [Test]
-        public async Task VerifyClosingAllWorkspaceTabsResetsPlaceholderNumbering()
+        public async Task VerifyClosingAllWorkspaceTabsAllowsProjectBrowserInRemainingGroup()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -743,20 +684,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var remainingGroup = composition.Editor.Groups.Single();
             await FindAddTabMenu(component, remainingGroup.Id).QuerySelector("button").ClickAsync();
-            await FindPortalledMenuItem("Empty editor").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
             {
                 using (Assert.EnterMultipleScope())
                 {
-                    Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Editor 1"));
-                    Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("placeholder"));
+                    Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Project Browser"));
+                    Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                 }
             });
         }
 
         [Test]
-        public async Task VerifyClosingPlaceholdersDoesNotResetNumberingWhileProjectBrowserRemains()
+        public async Task VerifyClosingPlaceholdersRetainsProjectBrowserAndAllowsAnotherInstance()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -781,17 +722,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var browserGroup = composition.Editor.Groups.Single();
             await FindAddTabMenu(component, browserGroup.Id).QuerySelector("button").ClickAsync();
-            await FindPortalledMenuItem("Empty editor").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(browserGroup.ActiveTab.Title, Is.EqualTo("Editor 4")));
+                Assert.That(browserGroup.Tabs.Count(tab => tab.ViewTypeKey == "project-browser"), Is.EqualTo(2)));
         }
 
-        /// <summary>
-        /// Verifies the composition resets numbering only after the final Project Browser closes too.
-        /// </summary>
         [Test]
-        public async Task VerifyClosingFinalProjectBrowserResetsPlaceholderNumberingWhenWorkspaceBecomesEmpty()
+        public async Task VerifyClosingFinalProjectBrowserAllowsReopeningWhenWorkspaceBecomesEmpty()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -823,15 +761,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             var remainingGroup = composition.Editor.Groups.Single();
             await FindAddTabMenu(component, remainingGroup.Id).QuerySelector("button").ClickAsync();
-            await FindPortalledMenuItem("Empty editor").ClickAsync();
+            await this.FindPortalledMenuItem("Project Browser").ClickAsync();
 
             await component.WaitForAssertionAsync(() =>
-                Assert.That(remainingGroup.ActiveTab.Title, Is.EqualTo("Editor 1")));
+                Assert.That(remainingGroup.ActiveTab.ViewTypeKey, Is.EqualTo("project-browser")));
         }
 
-        /// <summary>
-        /// Verifies moving Project Browser retains its exact tab and ViewModel without another DI resolution.
-        /// </summary>
         [Test]
         public async Task VerifyMovingProjectBrowserRetainsTabAndViewModelIdentity()
         {
@@ -867,15 +802,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(FindPortalledMenuItem("Project Browser").GetAttribute("aria-disabled"),
+                Assert.That(this.FindPortalledMenuItem("Project Browser").GetAttribute("aria-disabled"),
                     Is.Not.EqualTo("true"));
                 Assert.That(composition.ProjectBrowsers, Has.Count.EqualTo(1));
             }
         }
 
-        /// <summary>
-        /// Verifies splitting and moving a Project Browser preserves both tab and ViewModel identity.
-        /// </summary>
         [Test]
         public async Task VerifyMovingProjectBrowserToNewSplitRetainsTabAndViewModelIdentity()
         {
@@ -911,9 +843,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies closing one of several Project Browsers disposes only its exact ViewModel.
-        /// </summary>
         [Test]
         public async Task VerifyClosingOneOfManyProjectBrowsersDisposesOnlyOwnedInstance()
         {
@@ -958,9 +887,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Is.SameAs(composition.ProjectBrowsers[0].Object)));
         }
 
-        /// <summary>
-        /// Verifies closing an initializing Project Browser releases only that owner and remains circuit-safe.
-        /// </summary>
         [Test]
         public async Task VerifyClosingInitializingProjectBrowserDoesNotAffectAnotherInstance()
         {
@@ -1058,9 +984,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies closing every Project Browser releases each instance and a later open creates a fresh one.
-        /// </summary>
         [Test]
         public async Task VerifyClosingAllProjectBrowsersReleasesInstancesBeforeFreshOpen()
         {
@@ -1117,9 +1040,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies Modelling disposal releases all page- and tab-owned state exactly once.
-        /// </summary>
         [Test]
         public async Task VerifyModellingDisposalReleasesAllSurvivingProjectBrowsersExactlyOnce()
         {
@@ -1148,9 +1068,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies a failed durable tab open immediately disposes its caller-created candidate.
-        /// </summary>
         [Test]
         public void VerifyFailedProjectBrowserOpenDisposesCandidateWithoutOwnershipEntry()
         {
@@ -1172,9 +1089,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             composition.ProjectBrowsers[0].Verify(viewModel => viewModel.Dispose(), Times.Once);
         }
 
-        /// <summary>
-        /// Verifies Project Browser selection reaches Details Panel through the shared context instance.
-        /// </summary>
         [Test]
         public async Task VerifyProjectBrowserSelectionFlowsToDetailsPanelThroughSharedContext()
         {
@@ -1193,14 +1107,42 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Assert.That(composition.Context.SelectedElement,
                         Is.SameAs(composition.ProjectBrowserNodes[0].SourceElement));
                     Assert.That(component.FindAll(".mb-details-panel__empty"), Is.Empty);
-                    Assert.That(component.FindAll(".mb-details-panel__properties"), Has.Count.EqualTo(1));
+                    Assert.That(component.FindAll("section[aria-label='Identity']"), Has.Count.EqualTo(1));
                 }
             });
         }
 
-        /// <summary>
-        /// Verifies URL restoration targets the active Project Browser in the focused editor group only.
-        /// </summary>
+        [Test]
+        public async Task VerifyPropertiesFooterRevealsOnlyFocusedBrowserWithoutChangingSelectionOrFilters()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            var focusedGroup = composition.Editor.Groups[2];
+            await this.OpenProjectBrowserAsync(modelling, focusedGroup.Id);
+            composition.ProjectBrowsers[0].Object.FilterText = "first filter";
+            composition.ProjectBrowsers[1].Object.FilterText = "target filter";
+            var selected = new Namespace { ElementId = "canonical-details-selection" };
+            await component.InvokeAsync(() => composition.Context.SelectedElement = selected);
+            await component.InvokeAsync(component.FindComponent<WorkspaceShellComponent>().Instance.RevealRightPanel);
+
+            await component.FindAll("button").Single(button => button.TextContent.Trim() == "Show in Browser").ClickAsync();
+
+            composition.ProjectBrowsers[1].Verify(viewModel => viewModel.FocusElement(selected), Times.Once);
+            composition.ProjectBrowsers[0].Verify(viewModel => viewModel.FocusElement(It.IsAny<SysML2Element>()), Times.Never);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(composition.Context.SelectedElement, Is.SameAs(selected));
+                Assert.That(composition.Editor.FocusedGroup, Is.SameAs(focusedGroup));
+                Assert.That(composition.ProjectBrowsers[0].Object.FilterText, Is.EqualTo("first filter"));
+                Assert.That(composition.ProjectBrowsers[1].Object.FilterText, Is.EqualTo("target filter"));
+                Assert.That(component.FindAll(".mb-workspace-shell__pane-button").Single(button => button.TextContent.Trim() == "Content")
+                    .GetAttribute("aria-pressed"), Is.EqualTo("true"));
+            }
+            await component.InvokeAsync(modelling.Instance.Dispose);
+            Assert.That(component.FindAll("button").Any(button => button.TextContent.Trim() == "Show in Browser"), Is.False);
+        }
+
         [Test]
         public async Task VerifyUrlRestorationTargetsActiveProjectBrowserInFocusedGroup()
         {
@@ -1238,9 +1180,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies URL restoration activates the first Project Browser in a focused group whose active tab differs.
-        /// </summary>
         [Test]
         public async Task VerifyUrlRestorationTargetsFirstProjectBrowserInFocusedGroup()
         {
@@ -1253,8 +1192,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var focusedGroup = composition.Editor.Groups[2];
             await this.OpenProjectBrowserAsync(component, focusedGroup.Id);
             var projectBrowserTab = focusedGroup.ActiveTab;
-            await FindAddTabMenu(component, focusedGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await component.InvokeAsync(() => Assert.That(composition.Editor.ActivateTab(focusedGroup.Id,
+                focusedGroup.Tabs.Single(tab => tab.ViewTypeKey == "placeholder").Id), Is.True));
             var restoredElement = new Namespace { ElementId = "restored" };
 
             await component.InvokeAsync(() => restorations.OnNext(
@@ -1273,9 +1212,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Times.Never);
         }
 
-        /// <summary>
-        /// Verifies URL restoration falls back to the first active Project Browser in workspace order.
-        /// </summary>
         [Test]
         public async Task VerifyUrlRestorationTargetsFirstActiveProjectBrowserInWorkspaceOrder()
         {
@@ -1300,9 +1236,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies URL restoration falls back to the first inactive Project Browser in workspace order.
-        /// </summary>
         [Test]
         public async Task VerifyUrlRestorationTargetsFirstProjectBrowserInWorkspaceOrder()
         {
@@ -1314,8 +1247,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var component = host.FindComponent<Modelling>();
             var projectBrowserGroup = composition.Editor.Groups[0];
             var projectBrowserTab = projectBrowserGroup.ActiveTab;
-            await FindAddTabMenu(component, projectBrowserGroup.Id).QuerySelector("button").ClickAsync();
-            await this.FindPortalledMenuItem("Empty editor").ClickAsync();
+            await component.InvokeAsync(() => Assert.That(composition.Editor.TryOpenTab(projectBrowserGroup.Id,
+                "Existing editor", "placeholder", out _), Is.True));
             Assert.That(composition.Editor.FocusGroup(composition.Editor.Groups[2].Id), Is.True);
             var restoredElement = new Namespace { ElementId = "restored" };
 
@@ -1335,9 +1268,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies URL restoration does not create Project Browser content when none exists.
-        /// </summary>
         [Test]
         public async Task VerifyUrlRestorationDoesNotCreateProjectBrowser()
         {
@@ -1364,9 +1294,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Verifies application-originated URL reconciliation does not retarget any Project Browser.
-        /// </summary>
         [Test]
         public async Task VerifyApplicationUrlReconciliationDoesNotRetargetProjectBrowser()
         {
@@ -1388,9 +1315,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Times.Never);
         }
 
-        /// <summary>
-        /// Verifies page disposal detaches URL restoration before caller-owned browser disposal completes.
-        /// </summary>
         [Test]
         public void VerifyDisposalStopsUrlRestorationFocus()
         {
@@ -1411,9 +1335,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Times.Never);
         }
 
-        /// <summary>
-        /// Verifies the rail's persistent presentation controls the shell-owned navigation width state.
-        /// </summary>
         [Test]
         public async Task VerifyNavigationCollapsePresentationUpdatesWorkspaceShell()
         {
@@ -1466,9 +1387,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             });
         }
 
-        /// <summary>
-        /// Verifies component-scoped workspace styling owns viewport containment without literal theme colors.
-        /// </summary>
         [Test]
         public void VerifyWorkspaceStyleUsesViewportContainmentAndSemanticTokens()
         {
@@ -1494,10 +1412,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Renders the editor feature as a real body of the shared workspace layout.
-        /// </summary>
-        /// <returns>The rendered routed workspace composition.</returns>
         private IRenderedComponent<WorkspaceLayout> RenderWorkspaceLayoutWithModelling()
         {
             RenderFragment body = builder =>
@@ -1509,11 +1423,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             return this.Render<WorkspaceLayout>(parameters => parameters.Add(layout => layout.Body, body));
         }
 
-        /// <summary>
-        /// Renders Modelling with an explicit layout-owned URL context for focus-policy tests.
-        /// </summary>
-        /// <param name="urlContext">The URL context to cascade.</param>
-        /// <returns>The rendered cascading host.</returns>
         private IRenderedComponent<CascadingValue<IWorkspaceUrlContextService>> RenderModellingWithUrlContext(
             IWorkspaceUrlContextService urlContext)
         {
@@ -1529,11 +1438,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 .Add(host => host.ChildContent, childContent));
         }
 
-        /// <summary>
-        /// Creates strict URL context for page-level restoration tests.
-        /// </summary>
-        /// <param name="restorations">The controlled restoration stream.</param>
-        /// <returns>The strict URL context mock.</returns>
         private static Mock<IWorkspaceUrlContextService> CreateUrlContext(
             IObservable<WorkspaceUrlContextRestoration> restorations)
         {
@@ -1543,24 +1447,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             return urlContext;
         }
 
-        /// <summary>
-        /// Opens a Project Browser through the add-tab menu owned by one exact editor group.
-        /// </summary>
-        /// <param name="component">The rendered Modelling composition.</param>
-        /// <param name="groupId">The target editor group.</param>
-        /// <returns>A task representing the interaction.</returns>
         private async Task OpenProjectBrowserAsync(IRenderedComponent<Modelling> component, Guid groupId)
         {
             await FindAddTabMenu(component, groupId).QuerySelector("button").ClickAsync();
             await this.FindPortalledMenuItem("Project Browser").ClickAsync();
         }
 
-        /// <summary>
-        /// Gets the exact Project Browser ViewModel rendered for one tab identity.
-        /// </summary>
-        /// <param name="component">The rendered Modelling composition.</param>
-        /// <param name="tabId">The represented durable tab identity.</param>
-        /// <returns>The ViewModel supplied to the matching Project Browser component.</returns>
         private static IProjectBrowserViewModel GetRenderedProjectBrowserViewModel(
             IRenderedComponent<Modelling> component,
             Guid tabId)
@@ -1571,35 +1463,18 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 .Instance.ViewModel;
         }
 
-        /// <summary>
-        /// Finds the generic add-tab menu belonging to one exact editor group.
-        /// </summary>
-        /// <param name="component">The rendered Modelling composition.</param>
-        /// <param name="groupId">The represented editor group.</param>
-        /// <returns>The matching menu root.</returns>
         private static IElement FindAddTabMenu(IRenderedComponent<Modelling> component, Guid groupId)
         {
             return component.FindAll("[data-testid='editor-workspace-add-tab-menu']")
                 .Single(menu => menu.GetAttribute("data-group-id") == groupId.ToString());
         }
 
-        /// <summary>
-        /// Finds one action in the currently open portalled add-tab menu.
-        /// </summary>
-        /// <param name="label">The exact visible action label.</param>
-        /// <returns>The matching menu item.</returns>
         private IElement FindPortalledMenuItem(string label)
         {
-            return this.portalHost.WaitForElements("[role='menuitem']", 2)
+            return this.portalHost.WaitForElements("[role='menuitem']", 1)
                 .Single(item => string.Equals(item.TextContent.Trim(), label, StringComparison.Ordinal));
         }
 
-        /// <summary>
-        /// Registers one navigation and editor-state instance for the composition root to pass to its children.
-        /// </summary>
-        /// <param name="maximumGroupCount">The editor-group limit for the state instance.</param>
-        /// <param name="createProjectBrowserViewModel">The optional transient ViewModel creator.</param>
-        /// <returns>The exact registered state instances.</returns>
         private (
             WorkspaceEditorViewModel Editor,
             NavigationRailViewModel Navigation,

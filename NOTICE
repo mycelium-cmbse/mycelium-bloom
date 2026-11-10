@@ -11,3 +11,10 @@ Original project: https://github.com/blazorblueprintui/ui
 If you use this software or create derivative works, you must include this
 NOTICE file (or its contents) in your distribution, as required by the
 Apache License 2.0.
+
+Inter 4.1
+Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+
+The bundled Inter font files are licensed under the SIL Open Font License 1.1.
+The complete license and source information are distributed alongside the fonts
+in wwwroot/fonts/inter/LICENSE.txt and wwwroot/fonts/inter/SOURCE.md.
