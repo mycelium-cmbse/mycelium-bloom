@@ -13,8 +13,8 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using System.Linq;
 
     using Mycelium.Bloom.Core.Context;
-    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.SDK;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
@@ -31,7 +31,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(initial.Element, Is.SameAs(element));
             element.DeclaredName = "Updated";
             selection.SelectedElement = element;
-            selection.LifecycleState = ProjectLifecycleState.Open;
+            selection.LifecycleState = ProjectLifecycleKind.Open;
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(viewModel.Presentation, Is.SameAs(initial));
