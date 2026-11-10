@@ -7,10 +7,6 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using Mycelium.Bloom.ViewModel.DetailsPanel
-@using SysML2.NET.Core.POCO.Root.Elements
-@using BlazorBlueprint.Icons.Lucide.Components
-
 <div class="mb-properties-sections">
     @foreach (var section in this.Sections.Where(section => section.Tab == this.Tab))
     {
@@ -114,29 +110,3 @@
         </section>
     }
 </div>
-
-@code {
-    /// <summary>Gets or sets the ViewModel's semantic sections.</summary>
-    [Parameter, EditorRequired]
-    public IReadOnlyList<PropertySectionPresentation> Sections { get; set; } = [];
-
-    /// <summary>Gets or sets the tab to render.</summary>
-    [Parameter]
-    public string Tab { get; set; } = "Properties";
-
-    /// <summary>Gets or sets the canonical selection, to avoid self-navigation.</summary>
-    [Parameter]
-    public IElement SelectedElement { get; set; }
-
-    /// <summary>Gets or sets the parent component's navigation handler.</summary>
-    [Parameter]
-    public EventCallback<IElement> InspectRequested { get; set; }
-
-    /// <summary>Captures a reference activation at the component boundary.</summary>
-    /// <param name="element">The unchanged canonical target.</param>
-    /// <returns>The navigation callback completion.</returns>
-    private Task Inspect(IElement element)
-    {
-        return this.InspectRequested.InvokeAsync(element);
-    }
-}

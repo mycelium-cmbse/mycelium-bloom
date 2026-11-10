@@ -26,28 +26,32 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         public string Category { get; init; } = "neutral";
 
         /// <summary>Gets available target identity for compact relation rows without following references.</summary>
-        public string Detail
+        public string Detail => this.GetDetail();
+
+        /// <summary>
+        /// Formats the target kind and available qualified name without resolving additional references.
+        /// </summary>
+        /// <returns>The target detail, its kind when the model is incomplete, or null for an unresolved target.</returns>
+        private string GetDetail()
         {
-            get
+            if (this.Element is null)
             {
-                if (this.Element is null)
-                {
-                    return null;
-                }
+                return null;
+            }
 
-                var kind = ElementPresentation.GetKindName(this.Element.GetType());
+            var kind = ElementPresentation.GetKindName(this.Element.GetType());
 
-                try
-                {
-                    var qualifiedName = this.Element.qualifiedName;
+            try
+            {
+                var qualifiedName = this.Element.qualifiedName;
 
-                    return string.IsNullOrWhiteSpace(qualifiedName) || qualifiedName == this.Label
-                        ? kind : $"{kind} · {qualifiedName}";
-                }
-                catch (IncompleteModelException)
-                {
-                    return kind;
-                }
+                return string.IsNullOrWhiteSpace(qualifiedName) || qualifiedName == this.Label
+                    ? kind
+                    : $"{kind} · {qualifiedName}";
+            }
+            catch (IncompleteModelException)
+            {
+                return kind;
             }
         }
 
@@ -124,6 +128,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             try
             {
                 var targets = read()?.ToArray() ?? [];
+
                 for (var index = 0; index < targets.Length; index++)
                 {
                     var target = targets[index];

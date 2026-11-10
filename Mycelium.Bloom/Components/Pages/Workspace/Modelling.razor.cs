@@ -118,22 +118,31 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// <summary>Tracks whether this page currently exposes a Browser reveal callback to its layout.</summary>
         private bool browserRevealRegistered;
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Registers or releases the layout's Browser reveal callback when Browser availability changes.
+        /// </summary>
+        /// <param name="firstRender">Whether this is the first completed render of the page.</param>
+        /// <returns>The base component's post-render completion.</returns>
         protected override Task OnAfterRenderAsync(bool firstRender)
         {
             var canReveal = !this.isDisposed && this.projectBrowserViewModels.Count > 0;
+
             if (firstRender || canReveal != this.browserRevealRegistered)
             {
                 this.browserRevealRegistered = canReveal;
+
                 this.RegisterBrowserReveal?.Invoke(this, canReveal
                     ? EventCallback.Factory.Create<SysML2.NET.Core.POCO.Root.Elements.IElement>(this,
                         element => this.FocusRestoredElementAsync(element, CancellationToken.None))
                     : default);
             }
+
             return base.OnAfterRenderAsync(firstRender);
         }
 
         /// <summary>Forwards explicit browser selection, including a repeated click on the same object.</summary>
+        /// <param name="node">The Browser node that raised the selection intent; shared selection is already updated.</param>
+        /// <returns>The Properties reveal callback completion, or a completed task after disposal.</returns>
         private Task HandleBrowserSelectionAsync(ProjectBrowserNodeViewModel node) =>
             this.isDisposed ? Task.CompletedTask : this.PropertiesRequested.InvokeAsync();
 
@@ -142,7 +151,9 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private IWorkspaceEditorViewModel WorkspaceEditorViewModel { get; set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates page-owned editor state, attaches Browser ownership and observes URL restorations.
+        /// </summary>
         protected override void OnInitialized()
         {
             base.OnInitialized();
@@ -152,7 +163,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             ArgumentNullException.ThrowIfNull(this.Logger);
 
             this.WorkspaceEditorViewModel = this.WorkspaceEditorViewModelFactory()
-                ?? throw new InvalidOperationException("The Workspace Editor ViewModel factory returned null.");
+                                            ?? throw new InvalidOperationException("The Workspace Editor ViewModel factory returned null.");
 
             try
             {
@@ -448,8 +459,8 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             if (!this.WorkspaceEditorViewModel.RenderState.Groups
-                .SelectMany(group => group.Tabs)
-                .Any())
+                    .SelectMany(group => group.Tabs)
+                    .Any())
             {
                 this.nextPlaceholderTabNumber = 1;
             }
@@ -568,7 +579,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private IProjectBrowserViewModel CreateProjectBrowserViewModel()
         {
             return this.ProjectBrowserViewModelFactory()
-                ?? throw new InvalidOperationException("The Project Browser ViewModel factory returned null.");
+                   ?? throw new InvalidOperationException("The Project Browser ViewModel factory returned null.");
         }
 
         /// <summary>

@@ -7,8 +7,6 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using Mycelium.Bloom.ViewModel.DetailsPanel
-
 <div class="mb-properties-summary">
     <p class="mb-details-panel__element-name">@this.Presentation.DisplayName</p>
     <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-properties-summary__kind">@this.Presentation.Kind</BbBadge>
@@ -25,9 +23,3 @@
         <span class="@(this.Presentation.HasValueSummary ? "mb-properties-summary__value" : "mb-properties-summary__detail")">@(this.Presentation.HasValueSummary ? "= " : "")@this.Presentation.Summary</span>
     }
 </div>
-
-@code {
-    /// <summary>Gets or sets the cached semantic selection summary.</summary>
-    [Parameter, EditorRequired]
-    public DetailsPanelPresentation Presentation { get; set; }
-}

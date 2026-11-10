@@ -48,7 +48,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 .Subscribe(_ => this.Refresh()));
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Selects the supplied canonical element while this panel's selection subscription is active.
+        /// </summary>
+        /// <param name="element">The canonical SDK element to inspect.</param>
+        /// <exception cref="ArgumentNullException">The supplied element is null.</exception>
         public void Inspect(IElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
@@ -59,7 +63,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Clears the shared selection while this panel's selection subscription is active.
+        /// </summary>
         public void ClearSelection()
         {
             if (!this.subscriptions.IsDisposed)
@@ -68,7 +74,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Rebuilds the cached presentation from the shared selection, or clears it when nothing is selected.
+        /// </summary>
         public void Refresh()
         {
             if (!this.subscriptions.IsDisposed)
@@ -78,7 +86,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Releases selection observation without disposing the shared service or canonical model objects.
+        /// </summary>
         public void Dispose()
         {
             this.subscriptions.Dispose();

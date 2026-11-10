@@ -15,6 +15,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.POCO.Systems.States;
 
+    /// <summary>
+    /// Arranges semantic sections into the read-only Properties panel's visual hierarchy.
+    /// </summary>
     public sealed partial class DetailsPanelPresentation
     {
         /// <summary>Gets the visual grouping of the unchanged semantic section snapshot.</summary>

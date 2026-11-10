@@ -29,6 +29,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
     using SysML2.NET.Core.POCO.Systems.Requirements;
     using SysML2.NET.Core.POCO.Systems.States;
 
+    /// <summary>
+    /// Projects semantic sections and canonical references from the selected SDK element.
+    /// </summary>
     public sealed partial class DetailsPanelPresentation
     {
         /// <summary>Identifies the destination for relationship sections across semantic and visual projections.</summary>
@@ -61,10 +64,12 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             var sections = new List<PropertySectionPresentation>();
             var identity = this.Sections.Single(section => section.Title == "Identity");
+
             sections.Add(identity with
             {
                 Properties = this.BuildIdentityFields(identity)
             });
+
             var memberNotices = new List<KeyValuePair<string, string>>();
             var members = GetOwnedMembers(this.Element, memberNotices).ToArray();
             var attributes = members.OfType<IAttributeUsage>().ToArray();
@@ -86,10 +91,13 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
 
             sections.AddRange(
                 this.Sections.Where(section => section.Title is "Documentation" or "Annotation" or "Value"));
+
             var classification = this.Sections.FirstOrDefault(section => section.Title == "Classification");
             var fields = classification?.Properties.ToList() ?? [];
+
             fields.AddRange(this.AdvancedProperties.Where(property =>
                 property.Key is "Is abstract" or "Is variation" or "Is ordered" or "Is unique"));
+
             Add(fields, "Kind", this.Kind);
             var typeLinks = new List<ElementLinkPresentation>();
 
@@ -165,6 +173,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 .Where(expression => expression.Reference != null)
                 .Select(expression => Link(expression.ReferenceRole ?? "Reference", expression.Reference))
                 .DistinctBy(link => (link.Role, link.Element)).ToArray();
+
             var values = this.ExpressionNotations.Select(expression => new KeyValuePair<string, string>(expression.Role,
                 expression.TextualNotation.Text ?? "Expression is not supported for display")).ToArray();
 
@@ -178,6 +187,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                     .Where(expression => expression.Element is IExpression and not IUsage)
                     .Select(expression => Link("Value expression", expression.Element))
                     .Concat(links).DistinctBy(link => (link.Role, link.Element)).ToArray();
+
                 sections.Add(new("Value references", [], []) { Links = valuesAndReferences });
             }
 
@@ -236,8 +246,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 IStateUsage usage => usage.IsParallel,
                 _ => throw new InvalidOperationException("State structure requires a state definition or usage.")
             };
+
             var structure = new List<ElementLinkPresentation>();
             var states = members.OfType<IStateUsage>().Where(state => state is not ITransitionUsage).ToArray();
+
             var initial = states
                 .Where(state => ProjectBrowserRowPresentation.For(state).Indicators.Contains("Initial")).ToArray();
 
@@ -247,19 +259,25 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             structure.AddRange(states.Select(state => Link("Nested state", state)));
+
             sections.Add(new("State structure", [new("Execution", parallel ? "Parallel" : "Exclusive")],
                     initial.Length == 0 && !parallel ? ["No unconditional initial state resolved"] : [])
             { Links = structure });
+
             var actions = new List<ElementLinkPresentation>();
+
             AddLink(actions, "Entry", () => this.Element is IStateDefinition state
-                    ? state.entryAction
-                    : ((IStateUsage)this.Element).entryAction, false);
+                ? state.entryAction
+                : ((IStateUsage)this.Element).entryAction, false);
+
             AddLink(actions, "Do", () => this.Element is IStateDefinition state
-                    ? state.doAction
-                    : ((IStateUsage)this.Element).doAction, false);
+                ? state.doAction
+                : ((IStateUsage)this.Element).doAction, false);
+
             AddLink(actions, "Exit", () => this.Element is IStateDefinition state
-                    ? state.exitAction
-                    : ((IStateUsage)this.Element).exitAction, false);
+                ? state.exitAction
+                : ((IStateUsage)this.Element).exitAction, false);
+
             sections.Add(new("State behaviour", [], []) { Links = actions });
         }
 
@@ -304,6 +322,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 Read(
                     () => this.Element.ownedAnnotation?.Select(annotation => annotation.annotatingElement)
                         .OfType<IElement>().ToArray(), out _);
+
             var annotations = members.Concat(applied ?? []).Append(this.Element)
                 .Distinct(ReferenceEqualityComparer.Instance).OfType<IElement>();
 
@@ -325,10 +344,12 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 {
                     var links = new List<ElementLinkPresentation> { Link("Annotation", metadata) };
                     AddLink(links, "Definition", () => metadata.metadataDefinition);
+
                     var values = GetOwnedMembers(metadata, []).OfType<IFeature>()
                         .Select(attribute =>
                             new KeyValuePair<string, string>(GetDisplayName(attribute), this.GetValue(attribute)))
                         .ToArray();
+
                     sections.Add(new("Metadata", values, []) { Links = links });
                 }
             }
@@ -346,10 +367,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 var links = new List<ElementLinkPresentation>();
                 AddLink(links, TargetRole, () => import.importedElement);
+
                 sections.Add(new("Imports", [
-                    new("Kind", import is INamespaceImport ? "Namespace import" : "Membership import"), new("Recursive", import.IsRecursive.ToString().ToLowerInvariant()),
-                    new("Import all", import.IsImportAll.ToString().ToLowerInvariant()), new("Visibility", import.Visibility.ToString().ToLowerInvariant())
-                ], [])
+                        new("Kind", import is INamespaceImport ? "Namespace import" : "Membership import"), new("Recursive", import.IsRecursive.ToString().ToLowerInvariant()),
+                        new("Import all", import.IsImportAll.ToString().ToLowerInvariant()), new("Visibility", import.Visibility.ToString().ToLowerInvariant())
+                    ], [])
                 { Links = links, Tab = RelationsTab });
             }
 
@@ -376,7 +398,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 .Where(membership => membership is not IOwningMembership)
                 .Select(membership =>
                     Link($"{membership.MemberName ?? "Member"} ({membership.Visibility.ToString().ToLowerInvariant()})", membership.MemberElement)).ToArray();
+
             sections.Add(new("Memberships", [], []) { Links = memberships, Tab = RelationsTab });
+
             var other = relationships.Where(relationship => relationship is not IMembership and not ISpecialization
                     and not IImport and not IConjugation and not IAnnotation)
                 .Concat(members.OfType<IRelationship>().Where(relationship => relationship is not IType)).ToList();
@@ -390,6 +414,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             {
                 var sources = Read(() => relationship.Source, out _);
                 var targets = Read(() => relationship.Target, out _);
+
                 sections.Add(new("Relationships", [new("Kind", ElementPresentation.GetKindName(relationship.GetType()))], [])
                 {
                     Tab = RelationsTab,
@@ -409,9 +434,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 foreach (var value in members.OfType<IEnumerationUsage>())
                 {
                     var documentation = Read(() => value.documentation, out _);
+
                     var properties = value.OwnedRelationship?.OfType<IFeatureValue>().Any() == true
                         ? new KeyValuePair<string, string>[] { new("Value", this.GetValue(value)) }
                         : [];
+
                     sections.Add(new("Enumeration values", properties, (documentation ?? []).Select(document => document.Body)
                             .Where(body => !string.IsNullOrWhiteSpace(body)).ToArray())
                     { Links = [Link("Name", value)] });
@@ -450,6 +477,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             if (this.Element is IType conjugated && Read(() => conjugated.ownedConjugator, out _) is not null)
             {
                 var inherited = Read(() => conjugated.inheritedFeature, out var incomplete);
+
                 sections.Add(new("Inherited features", [], incomplete ? [IncompleteProperty] : [])
                 {
                     Tab = RelationsTab,
@@ -491,6 +519,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
                 {
                     notices.Add(
                         "Some specializations are not shown because the loaded model exceeds the inspection limit.");
+
                     break;
                 }
 

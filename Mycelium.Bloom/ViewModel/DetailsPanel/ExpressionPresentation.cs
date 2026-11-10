@@ -124,6 +124,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         }
 
         /// <summary>Requests SDK notation at expression roots while keeping operand inspection separate.</summary>
+        /// <param name="node">The projected expression or owned structural group to populate.</param>
         private static void PopulateText(ExpressionPresentation node)
         {
             if (node.Element is IExpression expression and not IUsage)
@@ -142,6 +143,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         }
 
         /// <summary>Protects serialization from cyclic, truncated, or unresolved projected structure.</summary>
+        /// <param name="node">The projected subtree to inspect.</param>
+        /// <returns>Whether the subtree contains an unavailable structure or unresolved reference.</returns>
         private static bool HasUnavailableStructure(ExpressionPresentation node)
         {
             return node.Notice is not null
@@ -153,6 +156,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         private sealed class Builder
         {
             /// <summary>Reads one optional SDK property without suppressing unrelated failures.</summary>
+            /// <typeparam name="T">The SDK property's result type.</typeparam>
+            /// <param name="read">The SDK property accessor.</param>
+            /// <param name="incomplete">Whether the accessor failed because the model is incomplete.</param>
+            /// <returns>The property value, or its default value when the model is incomplete.</returns>
             private static T Read<T>(Func<T> read, out bool incomplete)
             {
                 try
@@ -170,6 +177,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Retains inspection unless an anonymous structural feature is confirmed empty.</summary>
+            /// <param name="element">The canonical element whose available content is inspected.</param>
+            /// <returns>Whether the element has content or incomplete data that warrants inspection.</returns>
             private static bool HasInspectionContent(IElement element)
             {
                 if (element is not IFeature feature || element is IExpression or IUsage
@@ -198,6 +207,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Keeps memberships with additional information or unresolved structure inspectable.</summary>
+            /// <param name="membership">The owning membership, or null when none is available.</param>
+            /// <param name="elementHasContent">Whether the member element already provides inspectable content.</param>
+            /// <returns>Whether the membership has content or unresolved structure that warrants inspection.</returns>
             private static bool HasMembershipContent(IMembership membership, bool elementHasContent)
             {
                 if (membership is null)
@@ -219,6 +231,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Uses available names before a semantic kind, without requiring qualified-name resolution.</summary>
+            /// <param name="element">The canonical element to label.</param>
+            /// <returns>The available display name or semantic kind.</returns>
             private static string Name(IElement element)
             {
                 return ElementPresentation.GetDisplayName(element);
@@ -237,6 +251,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private int count;
 
             /// <summary>Projects an expression, parameter, or an element owning expression values.</summary>
+            /// <param name="element">The canonical selected element.</param>
+            /// <returns>The bounded expression groups for the selection.</returns>
             public ExpressionPresentation[] BuildSelection(IElement element)
             {
                 if (element is IMembership selectedMembership)
@@ -262,6 +278,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Projects selected membership contents while retaining their canonical ownership order.</summary>
+            /// <param name="selectedMembership">The canonical selected membership.</param>
+            /// <returns>The owned expression groups or an explicit unresolved group.</returns>
             private ExpressionPresentation[] BuildSelectedMembership(IMembership selectedMembership)
             {
                 var members = Read(() => selectedMembership.OwnedRelatedElement, out var incomplete);
@@ -303,6 +321,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Projects one canonical element and only its owned expression structure.</summary>
+            /// <param name="element">The canonical element being projected.</param>
+            /// <param name="membership">The element's owning membership, when available.</param>
+            /// <param name="role">The semantic role within its parent group.</param>
+            /// <param name="depth">The current ownership depth within the bounded projection.</param>
+            /// <returns>The element's expression presentation with canonical reference targets.</returns>
             private ExpressionPresentation Build(IElement element, IMembership membership, string role, int depth)
             {
                 this.count++;
@@ -358,6 +381,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Reads the SDK reference and distinguishes absence from incomplete resolution.</summary>
+            /// <param name="element">The canonical element that may contain an expression reference.</param>
+            /// <param name="reference">The canonical reference target, or null when unavailable.</param>
+            /// <param name="referenceLabel">The target name or explicit availability state.</param>
+            /// <returns>The supported reference role, or null when the element has no supported reference role.</returns>
             private static string GetReference(IElement element, out IElement reference, out string referenceLabel)
             {
                 var referenceRole = element switch
@@ -387,6 +414,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Bounds ownership traversal and releases the current path even when projection fails.</summary>
+            /// <param name="element">The canonical element whose owned children are projected.</param>
+            /// <param name="depth">The current ownership depth.</param>
+            /// <param name="children">Receives the child groups when traversal is permitted.</param>
+            /// <returns>A cycle or display-limit notice, or null when traversal is permitted.</returns>
             private string BuildChildren(IElement element, int depth, ref IReadOnlyList<ExpressionPresentation> children)
             {
                 string notice = null;
@@ -418,6 +449,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Preserves parameter direction, membership visibility and value provenance.</summary>
+            /// <param name="element">The canonical element supplying feature direction.</param>
+            /// <param name="membership">The owning membership supplying visibility and value flags.</param>
+            /// <returns>The available expression and membership properties in display order.</returns>
             private static List<KeyValuePair<string, string>> GetProperties(IElement element, IMembership membership)
             {
                 var properties = new List<KeyValuePair<string, string>>();
@@ -444,6 +478,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Preserves membership ordering and every resolved owned value instead of derived arguments.</summary>
+            /// <param name="element">The canonical owner of the expression structure.</param>
+            /// <param name="depth">The depth assigned to the projected children.</param>
+            /// <param name="valuesOnly">Whether to restrict projection to value and result-expression memberships.</param>
+            /// <returns>The bounded owned groups in membership order.</returns>
             private ExpressionPresentation[] Children(IElement element, int depth, bool valuesOnly)
             {
                 var result = new List<ExpressionPresentation>();
@@ -504,6 +542,11 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Projects resolved membership contents within the shared selection display budget.</summary>
+            /// <param name="depth">The depth assigned to the projected members.</param>
+            /// <param name="members">The resolved canonical members in ownership order.</param>
+            /// <param name="result">The collection receiving projected members and any limit notice.</param>
+            /// <param name="relationship">The relationship owning the members.</param>
+            /// <param name="role">The semantic role assigned to each member.</param>
             private void AddOwnedMembers(int depth, IReadOnlyList<IElement> members, List<ExpressionPresentation> result, IRelationship relationship, string role)
             {
                 foreach (var member in members)
@@ -519,6 +562,9 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             }
 
             /// <summary>Represents unavailable structure without inventing a source element.</summary>
+            /// <param name="role">The semantic role of the unavailable structure.</param>
+            /// <param name="notice">The explanation of why the structure is unavailable.</param>
+            /// <returns>A non-canonical placeholder carrying the availability notice.</returns>
             private static ExpressionPresentation Unavailable(string role, string notice)
             {
                 return new ExpressionPresentation { Role = role, Label = "Unavailable", Notice = notice };

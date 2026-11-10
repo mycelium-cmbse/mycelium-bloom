@@ -110,6 +110,7 @@ namespace Mycelium.Bloom.Components.Layout
             {
                 return;
             }
+
             this.browserRevealOwner = callback.HasDelegate ? owner : null;
             this.browserReveal = callback;
             _ = this.InvokeAsync(this.StateHasChanged);
@@ -121,6 +122,7 @@ namespace Mycelium.Bloom.Components.Layout
         private async Task ShowInBrowser(SysML2.NET.Core.POCO.Root.Elements.IElement element)
         {
             await this.browserReveal.InvokeAsync(element);
+
             if (!this.isDisposed)
             {
                 this.workspaceShell?.RevealMainContent();
@@ -141,7 +143,8 @@ namespace Mycelium.Bloom.Components.Layout
             ArgumentNullException.ThrowIfNull(this.UrlContextServiceFactory);
 
             var navigationViewModel = this.NavigationViewModelFactory()
-                ?? throw new InvalidOperationException("The navigation ViewModel factory returned null.");
+                                      ?? throw new InvalidOperationException("The navigation ViewModel factory returned null.");
+
             IWorkspaceUrlContextService urlContextService = null;
 
             try
@@ -149,6 +152,7 @@ namespace Mycelium.Bloom.Components.Layout
                 urlContextService = this.UrlContextServiceFactory()
                                     ?? throw new InvalidOperationException(
                                         "The URL context service factory returned null.");
+
                 this.isNavigationCollapsed = navigationViewModel.PresentationMode switch
                 {
                     NavigationRailPresentationMode.Expanded => false,
@@ -156,9 +160,11 @@ namespace Mycelium.Bloom.Components.Layout
                     NavigationRailPresentationMode.ExpandOnHover => true,
                     _ => throw CreateInvalidPresentationModeException(navigationViewModel.PresentationMode)
                 };
+
                 this.NavigationViewModel = navigationViewModel;
                 this.UrlContextService = urlContextService;
                 this.ObserveUrlContext();
+
                 this.urlContextSubscriptions.Add(this.LayoutState
                     .WhenAnyValue(state => state.PropertiesCollapsed, state => state.PropertiesWidth)
                     .Skip(1)
@@ -289,6 +295,7 @@ namespace Mycelium.Bloom.Components.Layout
         private void ToggleDetailsPanel()
         {
             this.LayoutState.PropertiesCollapsed = !this.LayoutState.PropertiesCollapsed;
+
             if (!this.LayoutState.PropertiesCollapsed)
             {
                 this.workspaceShell?.RevealRightPanel();
@@ -306,6 +313,7 @@ namespace Mycelium.Bloom.Components.Layout
         }
 
         /// <summary>Retains a user-selected width without storing responsive geometry.</summary>
+        /// <param name="width">The preferred Properties panel width in pixels.</param>
         private void HandlePropertiesWidthChanged(double width) => this.LayoutState.PropertiesWidth = width;
 
         /// <summary>
