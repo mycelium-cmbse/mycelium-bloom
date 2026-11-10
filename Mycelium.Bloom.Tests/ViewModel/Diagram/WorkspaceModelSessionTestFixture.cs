@@ -433,85 +433,87 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var session = services.GetRequiredService<WorkspaceModelSession>();
             var root = await session.OpenAsync(file.Uri);
             Assert.That(root, Is.Not.Null);
-            using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
-            diagram.BindWorkspace(session);
-            await diagram.Preparation;
-            Assert.That(diagram.PreparationStatus, Is.Empty);
-            var original = diagram.State;
-            using (Assert.EnterMultipleScope())
+            var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
+            using (diagram)
             {
-                Assert.That(original.Occurrences, Has.Length.EqualTo(10_000));
-                Assert.That(original.Routes, Has.Length.EqualTo(5000));
-                Assert.That(diagram.IndexedElementCount, Is.EqualTo(file.ElementCount));
-                Assert.That(diagram.Projection.Parts.Values.Sum(part => part.Ports.Length), Is.EqualTo(10_000));
-                Assert.That(
-                    diagram.Projection.Parts.Values.SelectMany(part => part.Ports).Count(port =>
-                        port.Direction == SysML2.NET.Core.Core.Types.FeatureDirectionKind.Out), Is.EqualTo(5000));
-                Assert.That(
-                    diagram.Projection.Parts.Values.SelectMany(part => part.Ports).Count(port =>
-                        port.Direction == SysML2.NET.Core.Core.Types.FeatureDirectionKind.In), Is.EqualTo(5000));
-                Assert.That(diagram.Region.Occurrences, Is.Empty);
-                Assert.That(diagram.WorkspaceDetailCache.CurrentEntryCount, Is.Zero);
-                Assert.That(diagram.Projection.Parts.Values.All(part => part.Attributes.IsEmpty), Is.True);
-            }
+                diagram.BindWorkspace(session);
+                await diagram.Preparation;
+                Assert.That(diagram.PreparationStatus, Is.Empty);
+                var original = diagram.State;
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(original.Occurrences, Has.Length.EqualTo(10_000));
+                    Assert.That(original.Routes, Has.Length.EqualTo(5000));
+                    Assert.That(diagram.IndexedElementCount, Is.EqualTo(file.ElementCount));
+                    Assert.That(diagram.Projection.Parts.Values.Sum(part => part.Ports.Length), Is.EqualTo(10_000));
+                    Assert.That(
+                        diagram.Projection.Parts.Values.SelectMany(part => part.Ports).Count(port =>
+                            port.Direction == SysML2.NET.Core.Core.Types.FeatureDirectionKind.Out), Is.EqualTo(5000));
+                    Assert.That(
+                        diagram.Projection.Parts.Values.SelectMany(part => part.Ports).Count(port =>
+                            port.Direction == SysML2.NET.Core.Core.Types.FeatureDirectionKind.In), Is.EqualTo(5000));
+                    Assert.That(diagram.Region.Occurrences, Is.Empty);
+                    Assert.That(diagram.WorkspaceDetailCache.CurrentEntryCount, Is.Zero);
+                    Assert.That(diagram.Projection.Parts.Values.All(part => part.Attributes.IsEmpty), Is.True);
+                }
 
-            diagram.RequestRegion(900, 700, 200);
-            Assert.That(diagram.Region.Occurrences, Has.Length.InRange(1, 100));
-            var firstRegion = diagram.Region;
-            Assert.That(diagram.Projection.Parts.Values.Count(part => !part.Attributes.IsEmpty),
-                Is.EqualTo(firstRegion.Occurrences.Length));
-            var distant = original.Occurrences[^1];
-            Assert.That(diagram.RevealOccurrence(distant.ElementId, 900, 700, 0.5), Is.EqualTo(distant.Id));
-            diagram.RequestRegion(900, 700, 200);
-            Assert.That(diagram.Region.Occurrences.Any(node => node.Id == distant.Id), Is.True);
-            await diagram.SelectAsync([distant.Id], distant.Id);
-            var canonical = services.GetRequiredService<IAssembler>().Cache.Values
-                .Single(value => value.Value.ElementId == distant.ElementId).Value;
-            Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(canonical));
-            var misses = diagram.WorkspaceDetailCache.TotalMisses;
-            Assert.That(diagram.ApplyPresentation(original), Is.True);
-            diagram.RequestRegion(900, 700, 200);
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(misses));
-                Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.GreaterThan(0));
-                Assert.That(diagram.WorkspaceDetailCache.CurrentEstimatedSize, Is.LessThanOrEqualTo(1_048_576));
-            }
-
-            var parent =
-                original.Occurrences.First(node => diagram.Projection.Parts[node.ElementId].Name == "part00000");
-            var child = original.Occurrences.First(node => node.ParentId == parent.Id);
-            var moved = original with
-            {
-                Occurrences = original.Occurrences.Replace(parent,
-                    parent with { Geometry = parent.Geometry with { X = parent.Geometry.X + 30 } })
-            };
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
-                            diagram.ApplyRenderedPresentation(original, moved,
-                                new System.Collections.Generic.HashSet<Guid> { parent.Id }), Is.True);
-                Assert.That(diagram.State.Occurrences.Single(node => node.Id == child.Id).Geometry.X,
-                    Is.EqualTo(child.Geometry.X + 30));
-                Assert.That(
-                    DiagramPresentationSerializer.Validate(diagram.State, diagram.Projection, out _, diagram.Limits),
-                    Is.True);
-            }
-            var json = DiagramPresentationSerializer.Export(diagram.State);
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(
-                            DiagramPresentationSerializer.TryImport(json, diagram.Projection, out var restored, out _,
-                                diagram.Limits), Is.True);
-                Assert.That(restored.Occurrences, Has.Length.EqualTo(10_000));
-            }
-            diagram.IsReadOnly = true;
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(diagram.ApplyPresentation(original), Is.False);
+                diagram.RequestRegion(900, 700, 200);
+                Assert.That(diagram.Region.Occurrences, Has.Length.InRange(1, 100));
+                var firstRegion = diagram.Region;
+                Assert.That(diagram.Projection.Parts.Values.Count(part => !part.Attributes.IsEmpty),
+                    Is.EqualTo(firstRegion.Occurrences.Length));
+                var distant = original.Occurrences[^1];
                 Assert.That(diagram.RevealOccurrence(distant.ElementId, 900, 700, 0.5), Is.EqualTo(distant.Id));
+                diagram.RequestRegion(900, 700, 200);
+                Assert.That(diagram.Region.Occurrences.Any(node => node.Id == distant.Id), Is.True);
+                await diagram.SelectAsync([distant.Id], distant.Id);
+                var canonical = services.GetRequiredService<IAssembler>().Cache.Values
+                    .Single(value => value.Value.ElementId == distant.ElementId).Value;
+                Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(canonical));
+                var misses = diagram.WorkspaceDetailCache.TotalMisses;
+                Assert.That(diagram.ApplyPresentation(original), Is.True);
+                diagram.RequestRegion(900, 700, 200);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(misses));
+                    Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.GreaterThan(0));
+                    Assert.That(diagram.WorkspaceDetailCache.CurrentEstimatedSize, Is.LessThanOrEqualTo(1_048_576));
+                }
+
+                var parent =
+                    original.Occurrences.First(node => diagram.Projection.Parts[node.ElementId].Name == "part00000");
+                var child = original.Occurrences.First(node => node.ParentId == parent.Id);
+                var moved = original with
+                {
+                    Occurrences = original.Occurrences.Replace(parent,
+                        parent with { Geometry = parent.Geometry with { X = parent.Geometry.X + 30 } })
+                };
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(
+                                diagram.ApplyRenderedPresentation(original, moved,
+                                    new System.Collections.Generic.HashSet<Guid> { parent.Id }), Is.True);
+                    Assert.That(diagram.State.Occurrences.Single(node => node.Id == child.Id).Geometry.X,
+                        Is.EqualTo(child.Geometry.X + 30));
+                    Assert.That(
+                        DiagramPresentationSerializer.Validate(diagram.State, diagram.Projection, out _, diagram.Limits),
+                        Is.True);
+                }
+                var json = DiagramPresentationSerializer.Export(diagram.State);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(
+                                DiagramPresentationSerializer.TryImport(json, diagram.Projection, out var restored, out _,
+                                    diagram.Limits), Is.True);
+                    Assert.That(restored.Occurrences, Has.Length.EqualTo(10_000));
+                }
+                diagram.IsReadOnly = true;
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(diagram.ApplyPresentation(original), Is.False);
+                    Assert.That(diagram.RevealOccurrence(distant.ElementId, 900, 700, 0.5), Is.EqualTo(distant.Id));
+                }
             }
-            diagram.Dispose();
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(diagram.IndexedElementCount, Is.Zero);

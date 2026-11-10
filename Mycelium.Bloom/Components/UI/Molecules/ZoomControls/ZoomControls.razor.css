@@ -98,5 +98,5 @@
     font-family: var(--font-sans), sans-serif;
     font-size: calc(var(--text-10) * var(--zoom-controls-diagram-scale));
     line-height: calc(var(--spacing-14) * var(--zoom-controls-diagram-scale));
-    font-weight: var(--typography-typography-label-sm-font-weight);
+    font-weight: var(--font-weight-label-sm);
 }

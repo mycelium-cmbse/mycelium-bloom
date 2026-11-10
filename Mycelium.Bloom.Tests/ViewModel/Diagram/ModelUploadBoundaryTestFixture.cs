@@ -46,51 +46,53 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public async Task VerifyOverlappingIdsStayIsolatedAcrossCircuits()
         {
-            await using var firstServices = Services();
             await using var secondServices = Services();
             using var file = new WorkspaceModelFile("Original", "pump");
             var original = await File.ReadAllBytesAsync(file.Uri.LocalPath);
             var changed = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(original).Replace("pump", "valve")
                 .Replace("Original", "Changed"));
-            var first = firstServices.GetRequiredService<WorkspaceModelSession>();
-            var second = secondServices.GetRequiredService<WorkspaceModelSession>();
-            using var firstOpener = firstServices.GetRequiredService<Func<ModelOpeningViewModel>>()();
-            using var secondOpener = secondServices.GetRequiredService<Func<ModelOpeningViewModel>>()();
-            Assert.That(await firstOpener.OpenAsync("first.json", original.Length, _ => new MemoryStream(original)),
-                Is.True);
-            using var firstTab = firstServices.GetRequiredService<Func<DiagramViewModel>>()();
-            firstTab.BindWorkspace(first);
-            await firstTab.Preparation;
-            var firstState = firstTab.State;
-            var occurrence = firstState.Occurrences.Single();
-            await firstTab.SelectAsync([occurrence.Id], occurrence.Id);
-            var selected = firstServices.GetRequiredService<IElementSelectionService>().SelectedElement;
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(await firstOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
-                            Is.False);
-                Assert.That(firstTab.State, Is.SameAs(firstState));
-                Assert.That(firstServices.GetRequiredService<IElementSelectionService>().SelectedElement,
-                    Is.SameAs(selected));
-                Assert.That(selected.DeclaredName, Is.EqualTo("pump"));
-                Assert.That(await secondOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
-                    Is.True);
-            }
+            var firstServices = Services();
+            var firstTab = firstServices.GetRequiredService<Func<DiagramViewModel>>()();
             using var secondTab = secondServices.GetRequiredService<Func<DiagramViewModel>>()();
-            secondTab.BindWorkspace(second);
-            await secondTab.Preparation;
-            var secondOccurrence = secondTab.State.Occurrences.Single();
-            await secondTab.SelectAsync([secondOccurrence.Id], secondOccurrence.Id);
+            var second = secondServices.GetRequiredService<WorkspaceModelSession>();
             var other = secondServices.GetRequiredService<IElementSelectionService>().SelectedElement;
-            using (Assert.EnterMultipleScope())
+            await using (firstServices)
+            using (firstTab)
             {
-                Assert.That(other.ElementId, Is.EqualTo(selected.ElementId));
-                Assert.That(other, Is.Not.SameAs(selected));
+                var first = firstServices.GetRequiredService<WorkspaceModelSession>();
+                using var firstOpener = firstServices.GetRequiredService<Func<ModelOpeningViewModel>>()();
+                using var secondOpener = secondServices.GetRequiredService<Func<ModelOpeningViewModel>>()();
+                Assert.That(await firstOpener.OpenAsync("first.json", original.Length, _ => new MemoryStream(original)),
+                    Is.True);
+                firstTab.BindWorkspace(first);
+                await firstTab.Preparation;
+                var firstState = firstTab.State;
+                var occurrence = firstState.Occurrences.Single();
+                await firstTab.SelectAsync([occurrence.Id], occurrence.Id);
+                var selected = firstServices.GetRequiredService<IElementSelectionService>().SelectedElement;
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(await firstOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
+                                Is.False);
+                    Assert.That(firstTab.State, Is.SameAs(firstState));
+                    Assert.That(firstServices.GetRequiredService<IElementSelectionService>().SelectedElement,
+                        Is.SameAs(selected));
+                    Assert.That(selected.DeclaredName, Is.EqualTo("pump"));
+                    Assert.That(await secondOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
+                        Is.True);
+                }
+                secondTab.BindWorkspace(second);
+                await secondTab.Preparation;
+                var secondOccurrence = secondTab.State.Occurrences.Single();
+                await secondTab.SelectAsync([secondOccurrence.Id], secondOccurrence.Id);
+                other = secondServices.GetRequiredService<IElementSelectionService>().SelectedElement;
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(other.ElementId, Is.EqualTo(selected.ElementId));
+                    Assert.That(other, Is.Not.SameAs(selected));
+                }
+                Assert.That(other.DeclaredName, Is.EqualTo("valve"));
             }
-            Assert.That(other.DeclaredName, Is.EqualTo("valve"));
-            firstTab.Dispose();
-            first.Dispose();
-            await firstServices.DisposeAsync();
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(firstTab.IndexedElementCount, Is.Zero);

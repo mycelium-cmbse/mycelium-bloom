@@ -911,6 +911,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await this.InitializeDiagramAsync(owner);
             var expectedViewport = new DiagramViewport(-20.125, 30.375, zoom);
             Assert.That(owner.ApplyPresentation(owner.State with { Viewport = expectedViewport }), Is.True);
+            Mycelium.Bloom.Model.Diagram.DiagramOccurrence occurrence = null;
+            Point expectedPosition = null;
+            string saved = null;
             var component = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             try
             {
@@ -964,10 +967,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 await component.WaitForAssertionAsync(() => Assert.That(owner.State.Viewport.Zoom, Is.EqualTo(0.5)));
                 Assert.That(component.Find("[aria-label='Current zoom']").TextContent.Trim(), Is.EqualTo("50%"));
                 diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-                var occurrence = owner.State.Occurrences.Single(item => owner.Projection.Parts[item.ElementId].Name == "aocs : AOCS");
+                occurrence = owner.State.Occurrences.Single(item => owner.Projection.Parts[item.ElementId].Name == "aocs : AOCS");
                 var node = diagram.Nodes.Single(item => item.Id == occurrence.Id.ToString());
                 const double delta = 1.0 / 1024;
-                var expectedPosition = new Point(node.Position.X + delta, node.Position.Y - delta);
+                expectedPosition = new Point(node.Position.X + delta, node.Position.Y - delta);
                 await component.InvokeAsync(() =>
                 {
                     diagram.SelectModel(node, true);
@@ -985,13 +988,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     }
                 });
                 Assert.That(diagram.Links, Is.Not.Empty);
-                var saved = DiagramPresentationSerializer.Export(owner.State);
+                saved = DiagramPresentationSerializer.Export(owner.State);
+            }
+            finally
+            {
                 await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
                 component.Dispose();
-                component = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
-                await component.WaitForAssertionAsync(() =>
+            }
+
+            var restoredComponent = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+            try
+            {
+                await restoredComponent.WaitForAssertionAsync(() =>
                 {
-                    var remounted = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
+                    var remounted = restoredComponent.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
                     using (Assert.EnterMultipleScope())
                     {
                         Assert.That(remounted.Nodes.Single(item => item.Id == occurrence.Id.ToString()).Position, Is.EqualTo(expectedPosition));
@@ -1001,8 +1011,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
             finally
             {
-                await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
-                component.Dispose();
+                await restoredComponent.InvokeAsync(async () => await restoredComponent.Instance.DisposeAsync());
+                restoredComponent.Dispose();
             }
         }
 

@@ -55,7 +55,8 @@ total SDK memory.
 SVG/PNG downloads, import/export controls, engine choices and stress tools are
 absent from the normal interface. Internal SVG rendering and presentation
 serialization remain intact. Ordinary .NET build, publish and Docker workflows
-consume checked-in assets without invoking Node/npm.
+stage the pinned design package and regenerate application CSS with the verified
+standalone Tailwind CLI, without invoking Node/npm.
 
 ## Remaining integration and release dependencies
 
