@@ -779,8 +779,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Single(item => item.TextContent.Contains("«part def»", StringComparison.Ordinal));
             Assert.That(option.TextContent, Does.Contain("Selected type filter"));
             await option.ClickAsync();
-            Assert.That(selectedTypes, Is.Empty);
-            Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion--type"), Is.Empty);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selectedTypes, Is.Empty);
+                Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion--type"), Is.Empty);
+            }
+
             await this.OpenUnifiedFiltersAsync(component);
             option = this.portalHost.FindAll("[role='option']")
                 .Single(item => item.TextContent.Contains("«part def»", StringComparison.Ordinal));
