@@ -1016,18 +1016,25 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
-        [Test]
-        public async Task VerifyBrowserScrollFailureAfterDisposalDoesNotPublish()
+        [TestCase(TaskStatus.RanToCompletion, false)]
+        [TestCase(TaskStatus.Faulted, false)]
+        [TestCase(TaskStatus.Canceled, false)]
+        [TestCase(TaskStatus.RanToCompletion, true)]
+        [TestCase(TaskStatus.Faulted, true)]
+        [TestCase(TaskStatus.Canceled, true)]
+        public async Task VerifyBrowserScrollCompletionAfterDisposalDoesNotPublish(TaskStatus completionStatus,
+            bool disposeSynchronously)
         {
             var read = new TaskCompletionSource<Mycelium.Bloom.Model.BrowserScrollPosition>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
-            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var started = new TaskCompletionSource<System.Threading.CancellationToken>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
             var module = new Mock<IJSObjectReference>();
             module.Setup(value => value.InvokeAsync<Mycelium.Bloom.Model.BrowserScrollPosition>(
-                    "readScroll", It.IsAny<object[]>()))
-                .Returns(() =>
+                    "readScroll", It.IsAny<System.Threading.CancellationToken>(), It.IsAny<object[]>()))
+                .Returns((string _, System.Threading.CancellationToken token, object[] _) =>
                 {
-                    started.TrySetResult();
+                    started.TrySetResult(token);
                     return new ValueTask<Mycelium.Bloom.Model.BrowserScrollPosition>(read.Task);
                 });
             var runtime = new Mock<IJSRuntime>();
@@ -1041,9 +1048,31 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 .Add(value => value.ViewModel, owner)
                 .Add(value => value.ScrollPositionChanged, _ => publications++));
             var pending = browser.Find(".mb-project-browser__tree-viewport").TriggerEventAsync("onscroll", EventArgs.Empty);
-            await started.Task;
+            var cancellationToken = await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.That(cancellationToken.IsCancellationRequested, Is.False);
+            if (disposeSynchronously)
+            {
+                await browser.InvokeAsync(browser.Instance.Dispose);
+                Assert.That(cancellationToken.IsCancellationRequested, Is.True);
+            }
+
             await browser.InvokeAsync(async () => await browser.Instance.DisposeAsync());
-            read.SetException(new JSException("The disposed scroll target is unavailable."));
+            Assert.That(cancellationToken.IsCancellationRequested, Is.True);
+            switch (completionStatus)
+            {
+                case TaskStatus.RanToCompletion:
+                    read.SetResult(new Mycelium.Bloom.Model.BrowserScrollPosition(10, 200));
+                    break;
+                case TaskStatus.Faulted:
+                    read.SetException(new JSException("The disposed scroll target is unavailable."));
+                    break;
+                case TaskStatus.Canceled:
+                    read.SetCanceled(cancellationToken);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(completionStatus));
+            }
+
             await pending;
             Assert.That(publications, Is.Zero);
             module.Verify(value => value.DisposeAsync(), Times.Once);

@@ -37,21 +37,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             var inject = false;
             var processed = 0;
-            var logger = new Mock<ILogger>();
-            logger.Setup(value => value.IsEnabled(LogLevel.Trace)).Returns(true);
-            logger.Setup(value => value.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception>(), It.IsAny<Func<It.IsAnyType, Exception, string>>()))
-                .Callback(new InvocationAction(invocation =>
+            var logger = new CallbackLogger<Assembler>(LogLevel.Trace, (_, _, message, _) =>
+            {
+                if (inject && message.Contains("added to Cache", StringComparison.Ordinal))
                 {
-                    if (inject && invocation.Arguments[2].ToString()
-                            .Contains("added to Cache", StringComparison.Ordinal))
-                    {
-                        processed++;
-                        throw new InvalidOperationException("Injected failure after SDK cache insertion.");
-                    }
-                }));
+                    processed++;
+                    throw new InvalidOperationException("Injected failure after SDK cache insertion.");
+                }
+            });
             var logging = new Mock<ILoggerFactory>();
-            logging.Setup(value => value.CreateLogger(It.IsAny<string>())).Returns(logger.Object);
+            logging.Setup(value => value.CreateLogger(It.IsAny<string>())).Returns(logger);
             var assembler = new Assembler(logging.Object);
             var environment = new Mock<IHostEnvironment>();
             environment.SetupGet(value => value.ContentRootPath)

@@ -23,6 +23,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Bunit;
     using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Options;
@@ -1511,13 +1512,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var started =
                 new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
             var failure = new InvalidOperationException("Browser initialization failed");
-            var logger = new Mock<Microsoft.Extensions.Logging.ILogger<Modelling>>();
-            var logged = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            logger.Setup(value => value.Log(It.IsAny<Microsoft.Extensions.Logging.LogLevel>(),
-                    It.IsAny<Microsoft.Extensions.Logging.EventId>(), It.IsAny<It.IsAnyType>(),
-                    failure, It.IsAny<Func<It.IsAnyType, Exception, string>>()))
-                .Callback(() => logged.TrySetResult());
-            this.Services.AddSingleton(logger.Object);
+            var logged = new TaskCompletionSource<(EventId EventId, string Message, Exception Exception)>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var logger = new CallbackLogger<Modelling>(LogLevel.Error, (_, eventId, message, exception) =>
+                logged.TrySetResult((eventId, message, exception)));
+            this.Services.AddSingleton<ILogger<Modelling>>(logger);
             var browser = new Mock<IProjectBrowserViewModel>();
             browser.SetupGet(value => value.IsLoading).Returns(true);
             browser.SetupGet(value => value.AvailableElementTypes).Returns(EmptyElementTypes);
@@ -1548,7 +1547,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             completion.SetException(failure);
             if (!disposeFirst)
             {
-                await logged.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                var entry = await logged.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(entry.EventId.Id, Is.Zero);
+                    Assert.That(entry.Message, Is.EqualTo("Project Browser initialization failed."));
+                    Assert.That(entry.Exception, Is.SameAs(failure));
+                }
                 await component.InvokeAsync(component.Instance.Dispose);
             }
 

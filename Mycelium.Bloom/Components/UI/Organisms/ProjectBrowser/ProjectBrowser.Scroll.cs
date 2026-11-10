@@ -15,6 +15,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     public sealed partial class ProjectBrowser : IAsyncDisposable
     {
+        /// <summary>Cancels pending scroll reads when this Browser mount is disposed.</summary>
+        private readonly CancellationTokenSource scrollReadCancellation = new();
+
         /// <summary>Identifies this Browser instance's scrollable DOM viewport.</summary>
         private ElementReference treeViewport;
         /// <summary>Owns scroll interop for this component mount.</summary>
@@ -80,16 +83,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 return;
             }
 
+            var cancellationToken = this.scrollReadCancellation.Token;
             try
             {
                 var position =
-                    await this.scrollModule.InvokeAsync<BrowserScrollPosition>("readScroll", this.treeViewport);
-                if (!this.isDisposed && position is not null)
+                    await this.scrollModule.InvokeAsync<BrowserScrollPosition>("readScroll", cancellationToken,
+                        this.treeViewport);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (position is not null)
                 {
                     await this.ScrollPositionChanged.InvokeAsync(position);
                 }
             }
-            catch (JSException) when (this.isDisposed)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Closed owners cannot receive this completion.
+            }
+            catch (JSException) when (cancellationToken.IsCancellationRequested)
             {
                 // Closed or superseded owners cannot receive this completion.
             }
