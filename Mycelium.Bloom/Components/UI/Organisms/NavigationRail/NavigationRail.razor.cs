@@ -301,7 +301,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.NavigationRail
             return CssClassBuilder.Build(
                 "mb-navigation-rail__control-option",
                 CssClassBuilder.When(
-                    "mb-navigation-rail__control-option--selected",
+                    "mb-navigation-rail__control-option--selected [font-weight:--theme(--font-weight-label-xs)]",
                     this.IsPresentationModeSelected(mode)));
         }
 

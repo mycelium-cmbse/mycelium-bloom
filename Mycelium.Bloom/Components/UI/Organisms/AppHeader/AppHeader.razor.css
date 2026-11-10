@@ -10,7 +10,7 @@
     min-width: 0;
     min-height: var(--app-header-min-height);
     padding: 0 var(--spacing-16);
-    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
     background: var(--card);
     color: var(--foreground);
 }

@@ -18,8 +18,8 @@
     min-width: 0;
     min-height: 0;
     overflow: hidden;
-    border: var(--border-width-default) solid var(--border-subtle);
-    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-8);
     background: var(--background);
     color: var(--foreground);
 }
@@ -82,14 +82,14 @@
 .mb-workspace-shell__left-panel {
     grid-column: 1;
     width: var(--workspace-shell-left-panel-width);
-    border-right: var(--border-width-default) solid var(--border);
-    transition: width var(--motion-duration-fast) var(--motion-easing-standard);
+    border-right: 1px solid var(--border);
+    transition: width 150ms ease;
 }
 
 .mb-workspace-shell__right-panel {
     grid-column: 3;
     width: var(--workspace-shell-right-panel-width);
-    border-left: var(--border-width-default) solid var(--border);
+    border-left: 1px solid var(--border);
 }
 
 .mb-workspace-shell__main {
@@ -145,23 +145,20 @@
         gap: var(--spacing-4);
         min-width: 0;
         padding: var(--spacing-4) var(--spacing-8);
-        border-bottom: var(--border-width-default) solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
         background: var(--card);
         overflow-x: auto;
     }
 
     .mb-workspace-shell__pane-button {
+        font: var(--typography-typography-label-sm), sans-serif;
         flex: 0 0 auto;
         min-height: var(--spacing-28);
         padding: var(--spacing-4) var(--spacing-8);
-        border: var(--border-width-default) solid transparent;
-        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        border-radius: var(--radius-6);
         background: transparent;
-        color: var(--foreground-muted);
-        font-family: inherit;
-        font-size: var(--typography-typography-label-sm-font-size);
-        line-height: var(--typography-typography-label-sm-line-height);
-        font-weight: var(--typography-typography-label-sm-font-weight);
+        color: var(--muted-foreground);
     }
 
     .mb-workspace-shell__pane-button:hover {

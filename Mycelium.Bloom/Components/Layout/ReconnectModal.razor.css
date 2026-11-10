@@ -41,7 +41,7 @@
 }
 
 #components-reconnect-modal::backdrop {
-    background-color: var(--scrim-modal);
+    background-color: var(--scrim);
     animation: components-reconnect-modal-fadeInOpacity 0.5s ease-in-out;
     opacity: 1;
 }
@@ -101,7 +101,7 @@
 }
 
 #components-reconnect-modal button:active {
-    background-color: var(--primary-deep);
+    background-color: var(--primary-strong);
 }
 
 .components-rejoining-animation {

@@ -13,21 +13,20 @@
     min-width: 0;
     min-height: var(--zoom-controls-min-height);
     padding: var(--zoom-controls-inset);
-    border: var(--border-width-default) solid var(--border-subtle);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-6);
     background: var(--card);
     color: var(--foreground);
     box-shadow: none;
 }
 
 .mb-zoom-controls ::deep .mb-zoom-controls__action {
+    font: var(--typography-typography-body-sm), sans-serif;
     width: var(--zoom-controls-action-size);
     height: var(--zoom-controls-action-size);
     padding: 0;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-4);
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
     font-weight: 600;
 }
 
@@ -37,6 +36,7 @@
 }
 
 .mb-zoom-controls__value {
+    font: var(--typography-typography-mono-xs), monospace;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -45,10 +45,6 @@
     height: var(--zoom-controls-action-size);
     padding-inline: var(--spacing-4);
     color: var(--foreground);
-    font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--typography-typography-mono-xs-font-size);
-    line-height: var(--typography-typography-mono-xs-line-height);
-    font-weight: var(--typography-typography-mono-xs-font-weight);
     white-space: nowrap;
 }
 

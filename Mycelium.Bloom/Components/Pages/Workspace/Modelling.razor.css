@@ -9,6 +9,7 @@
 }
 
 .mb-main-workspace__editor-placeholder {
+    font: var(--typography-typography-body-sm), sans-serif;
     box-sizing: border-box;
     display: grid;
     place-content: center;
@@ -21,8 +22,6 @@
     overflow: auto;
     background: var(--card);
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
     text-align: center;
 }
 

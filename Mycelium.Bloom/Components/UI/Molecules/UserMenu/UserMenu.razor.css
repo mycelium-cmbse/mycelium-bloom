@@ -33,7 +33,7 @@
 .mb-user-menu__avatar-frame ::deep .mb-user-menu__avatar {
     width: 24px;
     height: 24px;
-    border: var(--border-width-default) solid var(--user-menu-avatar-border, transparent);
+    border: 1px solid var(--user-menu-avatar-border, transparent);
     font-size: 10px;
 }
 
@@ -50,16 +50,14 @@
 }
 
 .mb-user-menu__name {
+    font: var(--typography-typography-body-sm), sans-serif;
     color: var(--foreground);
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
     font-weight: 600;
 }
 
 .mb-user-menu__subtitle {
+    font: var(--typography-typography-label-xs), sans-serif;
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-label-xs-font-size);
-    line-height: var(--typography-typography-label-xs-line-height);
 }
 
 .mb-user-menu--compact ::deep .mb-user-menu__trigger {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -10,7 +10,7 @@ import { test } from 'node:test';
 
 const projectDirectory = fileURLToPath(new URL('../../', import.meta.url));
 const runtimeName = 'wwwroot/css/tokens.css';
-const themeName = 'Styles/Generated/MyceliumTokens/theme.css';
+const themeName = 'Styles/AutoGen/MyceliumDesign/theme-mycelium.css';
 const runtimePath = join(projectDirectory, runtimeName);
 const themePath = join(projectDirectory, themeName);
 const appName = 'wwwroot/css/app.css';
@@ -36,11 +36,17 @@ function properties(directory, ...args) {
 }
 
 async function fixture(context, fullSource = false) {
-    const directory = await mkdtemp(join(tmpdir(), 'bloom-tailwind-test-'));
-    context.after(() => rm(directory, { recursive: true, force: true }));
+    const root = await mkdtemp(join(tmpdir(), 'bloom-tailwind-test-'));
+    const directory = join(root, 'Mycelium.Bloom');
+    await mkdir(directory);
+    context.after(() => rm(root, { recursive: true, force: true }));
+    await copyFile(join(projectDirectory, '../NOTICE'), join(root, 'NOTICE'));
+    await copyFile(join(projectDirectory, '../Nuget.Config'), join(root, 'Nuget.Config'));
     if (fullSource) {
         const excluded = new Set(['bin', 'obj', 'node_modules', 'TestResults', '.local']);
         await cp(projectDirectory, directory, { recursive: true, filter: source => !excluded.has(relative(projectDirectory, source).split(/[\\/]/)[0]) });
+        const restored = msbuild(directory, '-t:Restore');
+        assert.equal(restored.status, 0, output(restored));
         return directory;
     }
     for (const name of ['Mycelium.Bloom.csproj', 'Build/Tailwind.targets', runtimeName, themeName, appName]) {
@@ -48,14 +54,22 @@ async function fixture(context, fullSource = false) {
         await mkdir(dirname(destination), { recursive: true });
         await copyFile(join(projectDirectory, name), destination);
     }
+    const restored = msbuild(directory, '-t:Restore');
+    assert.equal(restored.status, 0, output(restored));
     return directory;
 }
 
-test('checked-in runtime and theme artifacts have generated headers, LF bytes and separate roles', async () => {
+test('restored runtime and theme artifacts have release headers and separate roles', async () => {
+    const result = msbuild(projectDirectory, '-getProperty:MyceliumDesignBloomTokensCssPath');
+    assert.equal(result.status, 0, output(result));
+    assert.deepEqual(await readFile(runtimePath), await readFile(result.stdout.trim()));
+    await assert.rejects(stat(join(projectDirectory, 'wwwroot/css/tokens-bloom.css')), { code: 'ENOENT' });
     const [runtime, theme] = await Promise.all(tokenPaths.map(path => readFile(path, 'utf8')));
     for (const content of [runtime, theme]) {
-        assert.match(content, /^\/\*\n \* AUTO-GENERATED FROM MYCELIUM DTCG DESIGN TOKENS\.\n \* DO NOT EDIT MANUALLY\.\n \*\/\n\n/);
-        assert.ok(!content.includes('\r'));
+        assert.match(content, /mycelium-packageId: Mycelium.Design.Bloom/);
+        const project = await readFile(join(projectDirectory, 'Mycelium.Bloom.csproj'), 'utf8');
+        const version = /Include="Mycelium.Design.Bloom" Version="([^"]+)"/.exec(project)[1];
+        assert.ok(content.includes(`mycelium-version: ${version}`));
     }
     assert.match(runtime, /\n:root \{/);
     assert.match(runtime, /\n\.dark \{/);
@@ -67,33 +81,13 @@ test('checked-in runtime and theme artifacts have generated headers, LF bytes an
 
 test('explicit stale-output verification preserves all committed CSS bytes', async () => {
     const before = await Promise.all(artifactPaths.map(path => readFile(path)));
-    const modified = await Promise.all(artifactPaths.map(async path => (await stat(path)).mtimeMs));
     const result = msbuild(projectDirectory, '-t:VerifyMyceliumStyles');
     assert.equal(result.status, 0, output(result));
     assert.deepEqual(await Promise.all(artifactPaths.map(path => readFile(path))), before);
-    assert.deepEqual(await Promise.all(artifactPaths.map(async path => (await stat(path)).mtimeMs)), modified);
     const compiled = await readFile(join(projectDirectory, 'wwwroot/css/app.css'), 'utf8');
     assert.ok(compiled.length > 0);
     assert.doesNotMatch(compiled, /@theme inline/);
 });
-
-for (const name of [runtimeName, themeName]) {
-    for (const state of ['missing', 'empty', 'whitespace']) {
-        test(`CSS compilation rejects ${state} ${name} before provisioning Tailwind`, async context => {
-            const directory = await fixture(context);
-            const artifact = join(directory, name);
-            if (state === 'missing') await rm(artifact);
-            else await writeFile(artifact, state === 'empty' ? '' : ' \r\n\t');
-            const result = msbuild(directory, '-t:RegenerateMyceliumStyles');
-            assert.notEqual(result.status, 0, output(result));
-            assert.ok(output(result).includes(state === 'missing'
-                ? `Cannot read ${name}. Restore the checked-in generated artifact before building Bloom.`
-                : `${name} is empty. Replace it with validated upstream output; do not edit token values manually.`));
-            await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
-            assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
-        });
-    }
-}
 
 for (const [watch, expected] of [['', '--minify'], ['false', '--minify'], ['true', '--watch=always']]) {
     test(`TailwindWatch=${JSON.stringify(watch)} selects ${expected}`, () => {
@@ -201,34 +195,36 @@ test('IDE design-time builds do not provision Tailwind or require runtime artifa
     await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
 });
 
-test('normal build preparation consumes committed CSS without consulting a CLI or watch configuration', async context => {
-    const directory = await fixture(context);
-    const before = await Promise.all([runtimeName, themeName, appName].map(name => readFile(join(directory, name))));
-    const result = msbuild(directory, '-t:PrepareForBuild', '-p:NETCoreSdkRuntimeIdentifier=unsupported', '-p:TailwindFeedUrl=unavailable', '-p:TailwindWatch=unsupported');
+test('normal preparation regenerates missing assets from the restored package', async context => {
+    const directory = await fixture(context, true);
+    for (const name of [runtimeName, themeName, appName]) await rm(join(directory, name));
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const result = msbuild(directory, '-t:PrepareForBuild', `-p:TailwindToolsDirectory=${dirname(executable)}`);
     assert.equal(result.status, 0, output(result));
-    assert.deepEqual(await Promise.all([runtimeName, themeName, appName].map(name => readFile(join(directory, name)))), before);
-    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+    assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
+    assert.deepEqual(await readFile(join(directory, runtimeName)), await readFile(runtimePath));
 });
 
-for (const name of [runtimeName, themeName, appName]) {
-    test(`normal build preparation rejects missing committed ${name} without provisioning a CLI`, async context => {
+for (const property of ['MyceliumDesignBloomTokensCssPath', 'MyceliumDesignBloomThemeCssPath']) {
+    test(`missing package asset ${property} fails even with stale staged CSS`, async context => {
         const directory = await fixture(context);
-        await rm(join(directory, name));
-        const result = msbuild(directory, '-t:PrepareForBuild');
+        const result = msbuild(directory, '-t:PrepareForBuild', `-p:${property}=missing-package-asset.css`);
         assert.notEqual(result.status, 0, output(result));
-        assert.ok(output(result).includes(name));
-        await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
+        assert.match(output(result), /Mycelium.Design.Bloom .* is missing: missing-package-asset.css/);
     });
 }
 
-test('normal build preparation rejects an empty committed application stylesheet', async context => {
-    const directory = await fixture(context);
-    await writeFile(join(directory, appName), ' \r\n\t');
-    const result = msbuild(directory, '-t:PrepareForBuild');
-    assert.notEqual(result.status, 0, output(result));
-    assert.match(output(result), /Committed wwwroot\/css\/app\.css is empty/);
-    await assert.rejects(stat(join(directory, 'obj/tailwind')), { code: 'ENOENT' });
-});
+for (const property of ['MyceliumDesignBloomTokensCssPath', 'MyceliumDesignBloomThemeCssPath']) {
+    test(`empty package asset ${property} fails before staging`, async context => {
+        const directory = await fixture(context);
+        const empty = join(directory, 'empty.css');
+        await writeFile(empty, ' \r\n\t');
+        const result = msbuild(directory, '-t:PrepareForBuild', `-p:${property}=${empty}`);
+        assert.notEqual(result.status, 0, output(result));
+        assert.match(output(result), /Mycelium.Design.Bloom package CSS is empty/);
+        assert.deepEqual(await readFile(join(directory, appName)), await readFile(appPath));
+    });
+}
 
 test('explicit regeneration from the full source reproduces the committed application stylesheet', async context => {
     const directory = await fixture(context, true);
@@ -245,7 +241,7 @@ test('stale verification detects a Razor utility change without overwriting CSS 
     const directory = await fixture(context);
     const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
     const tools = `-p:TailwindToolsDirectory=${dirname(executable)}`;
-    await writeFile(join(directory, 'Styles/tailwind.css'), '@import "tailwindcss";\n@import "./Generated/MyceliumTokens/theme.css";\n');
+    await writeFile(join(directory, 'Styles/tailwind.css'), '@import "tailwindcss";\n@import "./AutoGen/MyceliumDesign/theme-mycelium.css";\n');
     await rm(join(directory, appName));
     let result = msbuild(directory, '-t:RegenerateMyceliumStyles', tools);
     assert.equal(result.status, 0, output(result));
@@ -281,18 +277,13 @@ test('a verified cached CLI works without contacting the configured feed', () =>
     assert.equal(result.status, 0, output(result));
 });
 
-test('canonical spacing preserves the consumer layout dimensions without compatibility aliases', async () => {
+test('runtime spacing uses pixel dimensions while Tailwind maps quarter-scale steps', async () => {
     const runtime = await readFile(runtimePath, 'utf8');
-    const foundation = await readFile(join(projectDirectory, 'Styles/variables.css'), 'utf8');
-    const values = new Map([...runtime.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map(match => [match[1], match[2]]));
+    const theme = await readFile(themePath, 'utf8');
     for (const pixels of [4, 8, 12, 16, 24, 32, 40, 48]) {
-        const reference = values.get(`--spacing-${pixels}`);
-        const target = /^var\((--[\w-]+)\)$/.exec(reference);
-        assert.ok(target, `Expected a shared spacing reference for ${pixels}`);
-        assert.equal(values.get(target[1]), `${pixels}px`);
+        assert.ok(runtime.includes(`--spacing-${pixels}: ${pixels}px;`));
+        assert.ok(theme.includes(`--spacing-${pixels / 4}: var(--spacing-${pixels});`));
     }
-    assert.doesNotMatch(foundation, /var\(/);
-    assert.doesNotMatch(foundation, /#[0-9a-f]{3,8}\b|(?:rgb|color-mix)\(/i);
 });
 
 test('first-party source and tests forbid the retired custom-property namespace', async () => {
@@ -320,41 +311,111 @@ test('first-party source and tests forbid the retired custom-property namespace'
     assert.deepEqual(violations, [], 'Retired custom-property namespace is forbidden. Use canonical generated tokens for shared visual values, or a component-scoped property for component state/layout.');
 });
 
-test('shared border and motion values come from the generated canonical artifacts', async () => {
+test('runtime composite typography and semantic domain tokens are published in both modes', async () => {
     const runtime = await readFile(runtimePath, 'utf8');
     const theme = await readFile(themePath, 'utf8');
-    const foundation = await readFile(join(projectDirectory, 'Styles/variables.css'), 'utf8');
-    assert.match(runtime, /--border-width-default: 1px;/);
-    assert.match(runtime, /--motion-duration-fast: 150ms;/);
-    assert.match(runtime, /--motion-easing-standard: cubic-bezier\(0.25, 0.1, 0.25, 1\);/);
-    assert.match(theme, /--border-width-token-default: var\(--border-width-default\);/);
-    assert.match(theme, /--transition-duration-fast: var\(--motion-duration-fast\);/);
-    assert.match(theme, /--ease-standard: var\(--motion-easing-standard\);/);
-    assert.doesNotMatch(foundation, /--[\w-]+\s*:/);
+    const modes = runtime.split('.dark {');
+    assert.equal(modes.length, 2);
+    for (const mode of modes) {
+        for (const [scale, tracking] of [['display-lg', '-0.25px'], ['label-sm', '0.1px'], ['label-xs', '0.5px'], ['body-md', '0px']]) {
+            assert.ok(mode.includes(`--typography-typography-${scale}-letter-spacing: ${tracking};`));
+            assert.ok(theme.includes(`--tracking-${scale}: var(--typography-typography-${scale}-letter-spacing);`));
+        }
+        assert.match(mode, /--typography-typography-body-md: 400 14px\/20px Inter;/);
+        for (const name of ['ownership-aocs-base', 'collaborator-c06', 'lifecycle-open', 'sysml-structure-header']) {
+            assert.ok(mode.includes(`--${name}:`));
+            assert.ok(theme.includes(`--color-${name}: var(--${name})`));
+        }
+    }
 });
 
-test('runtime and Tailwind inputs keep curated typography and domain tokens without promoting inventory', async () => {
-    const runtime = await readFile(runtimePath, 'utf8');
+test('changed package inputs including older timestamps replace staged and compiled CSS', async context => {
+    const directory = await fixture(context, true);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const packageDirectory = join(directory, 'package-fixture');
+    await mkdir(packageDirectory);
+    await copyFile(runtimePath, join(packageDirectory, 'tokens-bloom.css'));
+    const original = await readFile(themePath, 'utf8');
+    const theme = join(packageDirectory, 'theme-mycelium.css');
+    const args = ['-t:PrepareForBuild', `-p:TailwindToolsDirectory=${dirname(executable)}`, `-p:MyceliumDesignBloomCssDir=${packageDirectory}/`];
+    await writeFile(join(directory, 'Components/PackageProbe.razor'), '<div class="bg-primary"></div>');
+    for (const mapping of ['var(--destructive)', 'var(--primary)']) {
+        await writeFile(theme, original.replace('--color-primary: var(--primary)', `--color-primary: ${mapping}`));
+        await utimes(theme, new Date(0), new Date(0));
+        const result = msbuild(directory, ...args);
+        assert.equal(result.status, 0, output(result));
+        assert.match(await readFile(join(directory, appName), 'utf8'), new RegExp('\\.bg-primary\\{background-color:' + mapping.replace(/[()]/g, '\\$&') + '\\}'));
+    }
+});
+
+test('official package downgrades and upgrades replace runtime CSS and compiled tracking utilities', async context => {
+    const directory = await fixture(context, true);
+    const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+    const projectPath = join(directory, 'Mycelium.Bloom.csproj');
+    const project = await readFile(projectPath, 'utf8');
+    await writeFile(join(directory, 'Components/TrackingProbe.razor'), '<span class="tracking-label-xs"></span>');
+    for (const version of ['1.0.0', '1.1.0']) {
+        await writeFile(projectPath, project.replace(/(Include="Mycelium.Design.Bloom" Version=")[^"]+/, `$1${version}`));
+        const restored = msbuild(directory, '-t:Restore');
+        assert.equal(restored.status, 0, output(restored));
+        const built = msbuild(directory, '-t:PrepareForBuild', `-p:TailwindToolsDirectory=${dirname(executable)}`);
+        assert.equal(built.status, 0, output(built));
+        const packagePath = msbuild(directory, '-getProperty:MyceliumDesignBloomTokensCssPath');
+        assert.equal(packagePath.status, 0, output(packagePath));
+        const runtime = await readFile(join(directory, runtimeName));
+        assert.deepEqual(runtime, await readFile(packagePath.stdout.trim()));
+        assert.ok(runtime.toString().includes(`mycelium-version: ${version}`));
+        const compiled = await readFile(join(directory, appName), 'utf8');
+        assert.equal(compiled.includes('.tracking-label-xs{'), version === '1.1.0');
+    }
+});
+
+for (const target of ['Build', 'Publish']) {
+    test(`first ${target} discovers generated static web assets`, async context => {
+        const directory = await fixture(context, true);
+        for (const name of [runtimeName, themeName, appName]) await rm(join(directory, name));
+        const evaluated = msbuild(directory, '-getItem:None');
+        assert.equal(evaluated.status, 0, output(evaluated));
+        const themeItems = JSON.parse(evaluated.stdout).Items.None.filter(item => item.Identity.replaceAll('\\', '/') === themeName);
+        assert.equal(themeItems.length, 1);
+        assert.equal(themeItems[0].AutoGen, 'true');
+        const executable = resolve(projectDirectory, properties(projectDirectory).TailwindExecutable);
+        const result = msbuild(directory, `-t:${target}`, `-p:TailwindToolsDirectory=${dirname(executable)}`);
+        assert.equal(result.status, 0, output(result));
+        const manifest = await readFile(join(directory, 'obj/Debug/net10.0/staticwebassets.build.json'), 'utf8');
+        for (const name of ['tokens.css', 'app.css']) assert.ok(manifest.includes(name));
+        assert.ok(!manifest.includes('tokens-bloom.css'));
+        const endpoints = JSON.parse(await readFile(join(directory, 'obj/Debug/net10.0/staticwebassets.build.endpoints.json'), 'utf8'));
+        assert.ok(endpoints.Endpoints.some(endpoint => /^css\/tokens\.[\w-]+\.css$/.test(endpoint.Route)));
+        if (target === 'Publish') {
+            for (const name of ['tokens.css.gz', 'app.css.gz']) {
+                assert.ok((await stat(join(directory, 'bin/Debug/net10.0/publish/wwwroot/css', name))).size > 0);
+            }
+        }
+    });
+}
+
+test('selected navigation weight compiles from the official mapping without a font shorthand', async () => {
     const theme = await readFile(themePath, 'utf8');
-    const curated = new Set([...runtime.matchAll(/--typography-typography-([\w-]+)-font-family:/g)].map(match => match[1]));
-    assert.equal(curated.size, 20);
-    assert.doesNotMatch(runtime + theme, /typography-raw|typography-typography-raw/);
-    for (const name of curated) {
-        assert.ok(theme.includes(`--text-typography-typography-${name}:`));
+    const weight = /--font-weight-label-xs:\s*([^;]+);/.exec(theme)[1];
+    const css = await readFile(appPath, 'utf8');
+    assert.ok(css.includes(`{font-weight:${weight}}`));
+    const rail = await readFile(join(projectDirectory, 'Components/UI/Organisms/NavigationRail/NavigationRail.razor.css'), 'utf8');
+    const selected = /control-option--selected:focus\s*\{([^}]+)\}/.exec(rail)[1];
+    assert.doesNotMatch(selected, /font(?:-size|-family|-weight)?\s*:|line-height\s*:/);
+});
+
+test('organization headers resolve runtime references and preserve separate typography metrics', async () => {
+    const runtime = await readFile(runtimePath, 'utf8');
+    for (const component of ['Molecules/PageHeader/PageHeader', 'Organisms/OrganizationHeader/OrganizationHeader']) {
+        const css = await readFile(join(projectDirectory, 'Components/UI', component + '.razor.css'), 'utf8');
+        for (const [, name] of css.matchAll(/var\((--[\w-]+)/g)) assert.ok(runtime.includes(name + ':'), name);
     }
-    for (const name of ['ownership-aocs-base', 'collaborator-c06', 'lifecycle-open', 'sysml-structure-header']) {
-        assert.ok(runtime.includes(`--${name}:`));
-        assert.ok(theme.includes(`--color-${name}: var(--${name})`));
-    }
-    const untriaged = [...runtime.matchAll(/--mycelium-primitive-color-untriaged-([\w-]+):/g)];
-    assert.equal(new Set(untriaged.map(match => match[1])).size, 6);
-    assert.doesNotMatch(theme, /untriaged/);
-    assert.doesNotMatch(runtime, /var\(--mycelium-primitive-color-untriaged-/);
-    assert.match(runtime, /--mycelium-primitive-radius-full: 999px;/);
-    assert.match(runtime, /--secondary: var\(--muted\);/);
-    assert.match(runtime, /--secondary-foreground: var\(--foreground\);/);
-    assert.match(theme, /\n@theme inline \{/);
-    for (const line of theme.split('\n').filter(line => line.trim().startsWith('--'))) {
-        assert.match(line, /^\s*--[\w-]+: var\(--[\w-]+\);\s*$/);
-    }
+    const page = await readFile(join(projectDirectory, 'Components/UI/Molecules/PageHeader/PageHeader.razor'), 'utf8');
+    assert.match(page, /leading-display-xl/);
+    assert.match(page, /--font-weight-heading-md/);
+    assert.match(page, /text-body-sm/);
+    assert.match(page, /--font-weight-body-sm/);
+    const organization = await readFile(join(projectDirectory, 'Components/UI/Organisms/OrganizationHeader/OrganizationHeader.razor'), 'utf8');
+    assert.match(organization, /--font-weight-body-md-medium/);
 });
