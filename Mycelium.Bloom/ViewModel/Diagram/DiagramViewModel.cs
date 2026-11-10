@@ -246,6 +246,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
+        /// <summary>Validates viewport-only updates or the complete changed presentation.</summary>
+        /// <param name="candidate">The proposed presentation state.</param>
+        /// <returns>Whether the proposal satisfies the current diagram limits.</returns>
         private bool ValidateCandidate(DiagramPresentationState candidate)
         {
             if (candidate.Occurrences == this.State.Occurrences && candidate.Routes == this.State.Routes

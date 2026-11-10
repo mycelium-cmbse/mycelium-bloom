@@ -23,7 +23,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <summary>Owns scroll interop for this component mount.</summary>
         private IJSObjectReference scrollModule;
 
-        [Inject] private IJSRuntime JsRuntime { get; set; }
+        /// <summary>Gets or sets browser interop for this mounted Browser.</summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
 
         /// <summary>Gets the caller-owned native scroll snapshot for this tab.</summary>
         [Parameter]
@@ -110,6 +112,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>Releases rendering resources without disposing the caller-owned Browser.</summary>
+        /// <returns>Completion of owned JavaScript module disposal.</returns>
         public async ValueTask DisposeAsync()
         {
             this.Dispose();

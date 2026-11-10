@@ -51,9 +51,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <summary>The last coherent snapshot applied at the renderer boundary.</summary>
         private DiagramPresentationState presented;
 
+        /// <summary>Retains the presentation used to reconcile mounted renderer models.</summary>
         private DiagramPresentationState rendered;
+        /// <summary>Retains the notation projection associated with mounted renderer models.</summary>
         private DiagramProjection renderedProjection;
+        /// <summary>Identifies the occurrence snapshot used by the complete-bounds cache.</summary>
         private ImmutableArray<DiagramOccurrence> boundedOccurrences;
+        /// <summary>Caches full-scope bounds independently of mounted graphical components.</summary>
         private Rectangle completeBounds;
 
         /// <summary>The caller-owned state currently observed.</summary>
@@ -93,7 +97,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         /// <summary>Identifies the occurrence to focus after its graphical component mounts.</summary>
         private Guid? pendingFocus;
 
+        /// <summary>Bounds focus retries while an occurrence is mounting.</summary>
         private int focusAttempts;
+        /// <summary>Defers the latest reveal until the active gesture completes.</summary>
         private (string ElementId, bool Explicit)? pendingReveal;
 
         /// <summary>Gets the detailed editor minimum independently of serialization capacity.</summary>
@@ -759,7 +765,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             var selected = this.nodes.Values.Where(node => node.Selected).Select(node => node.GetBounds()).ToArray();
             var bounds = selected.Length > 0
                 ? selected.Aggregate((left, right) => left.Union(right))
-                : this.CompleteBounds;
+                : this.GetCompleteBounds();
             var requested = Math.Min(container.Width / (bounds.Width + 80), container.Height / (bounds.Height + 80));
             var zoom = Math.Clamp(requested, this.MinimumZoom, 4);
             if (requested < this.MinimumZoom && selected.Length == 0)
@@ -785,26 +791,25 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             return Task.CompletedTask;
         }
 
-        private Rectangle CompleteBounds
+        /// <summary>Reconciles cached full-scope geometry independently of mounted graphics.</summary>
+        /// <returns>The complete model-space navigation bounds.</returns>
+        private Rectangle GetCompleteBounds()
         {
-            get
+            if (!this.ViewModel.UsesRegionalRendering)
             {
-                if (!this.ViewModel.UsesRegionalRendering)
-                {
-                    return this.visibility.Bounds;
-                }
-
-                if (this.completeBounds is null || this.boundedOccurrences != this.ViewModel.State.Occurrences)
-                {
-                    this.boundedOccurrences = this.ViewModel.State.Occurrences;
-                    this.completeBounds = this.boundedOccurrences.Select(node => new Rectangle(node.Geometry.X,
-                            node.Geometry.Y,
-                            node.Geometry.X + node.Geometry.Width, node.Geometry.Y + node.Geometry.Height))
-                        .DefaultIfEmpty(Rectangle.Zero).Aggregate((left, right) => left.Union(right));
-                }
-
-                return this.completeBounds;
+                return this.visibility.Bounds;
             }
+
+            if (this.completeBounds is null || this.boundedOccurrences != this.ViewModel.State.Occurrences)
+            {
+                this.boundedOccurrences = this.ViewModel.State.Occurrences;
+                this.completeBounds = this.boundedOccurrences.Select(node => new Rectangle(node.Geometry.X,
+                        node.Geometry.Y,
+                        node.Geometry.X + node.Geometry.Width, node.Geometry.Y + node.Geometry.Height))
+                    .DefaultIfEmpty(Rectangle.Zero).Aggregate((left, right) => left.Union(right));
+            }
+
+            return this.completeBounds;
         }
 
         /// <summary>Clamps navigation to complete model-space bounds and applies coalesced rendering visibility.</summary>
@@ -822,7 +827,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 return;
             }
 
-            var bounds = this.CompleteBounds;
+            var bounds = this.GetCompleteBounds();
             var zoom = Math.Clamp(this.diagram.Zoom, this.MinimumZoom, 4);
             var padding = this.ViewportOptions.Value.PanPadding;
             var x = Math.Clamp(this.diagram.Pan.X, -bounds.Right * zoom - padding,

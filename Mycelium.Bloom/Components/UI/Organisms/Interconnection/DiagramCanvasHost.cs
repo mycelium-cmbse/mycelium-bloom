@@ -24,6 +24,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         private bool disposed;
 
         /// <summary>Tracks the library's initial bounds query and observer registration.</summary>
+        /// <param name="firstRender">Whether this is the initial interactive render.</param>
+        /// <returns>Completion of library canvas initialization.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (this.disposed)
@@ -47,6 +49,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         public new ValueTask DisposeAsync() => new(this.disposal ??= this.DisposeCoreAsync());
 
         /// <summary>Awaits initial registration before disposing the library reference.</summary>
+        /// <returns>Completion of registration and owned library cleanup.</returns>
         private async Task DisposeCoreAsync()
         {
             this.disposed = true;

@@ -12,14 +12,6 @@ namespace Mycelium.Bloom.Model.Diagram
     /// <summary>Defines bounded presentation capacity for bounded diagram metadata.</summary>
     public sealed record DiagramPresentationLimits
     {
-        private DiagramPresentationLimits(int nodes, int routes, int jsonBytes, double minimumZoom)
-        {
-            this.Nodes = nodes;
-            this.Routes = routes;
-            this.JsonBytes = jsonBytes;
-            this.MinimumZoom = minimumZoom;
-        }
-
         /// <summary>Gets the unchanged product validation bounds.</summary>
         public static DiagramPresentationLimits Default { get; } = new(500, 1500, 1_048_576, 0.1);
 
@@ -35,7 +27,6 @@ namespace Mycelium.Bloom.Model.Diagram
         /// <summary>Gets the CSS-pixel pan bound, allowing the complete workspace at maximum zoom.</summary>
         public double Pan => this == Workspace ? 1_000_000 : 100_000;
 
-
         /// <summary>Gets the maximum graphical occurrence count.</summary>
         public int Nodes { get; }
 
@@ -47,5 +38,18 @@ namespace Mycelium.Bloom.Model.Diagram
 
         /// <summary>Gets the minimum accepted viewport scale.</summary>
         public double MinimumZoom { get; }
+
+        /// <summary>Creates the supported presentation validation bounds.</summary>
+        /// <param name="nodes">The maximum graphical occurrence count.</param>
+        /// <param name="routes">The maximum connection occurrence count.</param>
+        /// <param name="jsonBytes">The maximum serialized presentation size in bytes.</param>
+        /// <param name="minimumZoom">The minimum accepted viewport scale.</param>
+        private DiagramPresentationLimits(int nodes, int routes, int jsonBytes, double minimumZoom)
+        {
+            this.Nodes = nodes;
+            this.Routes = routes;
+            this.JsonBytes = jsonBytes;
+            this.MinimumZoom = minimumZoom;
+        }
     }
 }

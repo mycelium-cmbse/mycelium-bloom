@@ -14,8 +14,11 @@ namespace Mycelium.Bloom.Core.Context
     /// <summary>Cancels browser-dependent uploads when the owning circuit loses its connection.</summary>
     public sealed class WorkspaceConnectionHandler : CircuitHandler, IDisposable
     {
+        /// <summary>Serializes connection-token replacement and final disposal.</summary>
         private readonly object gate = new();
+        /// <summary>Owns cancellation for uploads using the current circuit connection.</summary>
         private CancellationTokenSource connection = new();
+        /// <summary>Prevents token creation and replacement after circuit disposal.</summary>
         private bool disposed;
 
         /// <summary>Creates an operation-owned cancellation source tied to the current connection.</summary>
@@ -29,7 +32,10 @@ namespace Mycelium.Bloom.Core.Context
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>Cancels uploads when the circuit connection is lost.</summary>
+        /// <param name="circuit">The disconnected circuit.</param>
+        /// <param name="cancellationToken">The circuit notification cancellation token.</param>
+        /// <returns>Completion of upload cancellation callbacks.</returns>
         public override Task OnConnectionDownAsync(Circuit circuit, CancellationToken cancellationToken)
         {
             lock (this.gate)
@@ -38,7 +44,10 @@ namespace Mycelium.Bloom.Core.Context
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>Creates a fresh upload lifetime when the circuit reconnects.</summary>
+        /// <param name="circuit">The reconnected circuit.</param>
+        /// <param name="cancellationToken">The circuit notification cancellation token.</param>
+        /// <returns>Completion of connection-token renewal.</returns>
         public override Task OnConnectionUpAsync(Circuit circuit, CancellationToken cancellationToken)
         {
             lock (this.gate)

@@ -21,6 +21,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
     /// <summary>Adapts a tab-owned occurrence to a mounted native SVG node.</summary>
     internal sealed class DiagramNodeModel : SvgNodeModel
     {
+        /// <summary>Gets the immutable semantic presentation.</summary>
+        public DiagramPart Part { get; }
+
         /// <summary>Creates one disposable rendering projection.</summary>
         /// <param name="occurrence">The tab-owned identity and geometry.</param>
         /// <param name="part">The canonical element's immutable presentation.</param>
@@ -31,14 +34,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             this.ControlledSize = true;
             this.Size = new Size(occurrence.Geometry.Width, occurrence.Geometry.Height);
         }
-
-        /// <summary>Gets the immutable semantic presentation.</summary>
-        public DiagramPart Part { get; }
     }
 
     /// <summary>Renders a fixed-size nested container while the library moves its children.</summary>
     internal sealed class DiagramGroupModel : SvgGroupModel
     {
+        /// <summary>Gets the tab-owned graphical identity.</summary>
+        public Guid OccurrenceId { get; }
+
+        /// <summary>Gets the semantic presentation.</summary>
+        public DiagramPart Part { get; }
+
         /// <summary>Creates a container with absolute model-space child geometry.</summary>
         /// <param name="occurrence">The container occurrence and retained bounds.</param>
         /// <param name="part">The canonical container's immutable presentation.</param>
@@ -53,12 +59,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             this.ControlledSize = true;
         }
 
-        /// <summary>Gets the tab-owned graphical identity.</summary>
-        public Guid OccurrenceId { get; }
-
-        /// <summary>Gets the semantic presentation.</summary>
-        public DiagramPart Part { get; }
-
         /// <summary>Retains the presentation owner's explicit container bounds.</summary>
         /// <returns>False because automatic child-based sizing is disabled.</returns>
         protected override bool UpdateDimensions() => false;
@@ -67,6 +67,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
     /// <summary>Adds immutable semantic notation to a mounted connection.</summary>
     internal sealed class DiagramLinkModel : LinkModel
     {
+        /// <summary>Gets the supported canonical relationship notation.</summary>
+        public DiagramConnection Connection { get; }
+
         /// <summary>Creates a connection occurrence between existing boundary ports.</summary>
         /// <param name="route">The occurrence identity and manual bends.</param>
         /// <param name="connection">The canonical relationship's notation.</param>
@@ -82,9 +85,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 this.AddVertex(new Point(point.X, point.Y));
             }
         }
-
-        /// <summary>Gets the supported canonical relationship notation.</summary>
-        public DiagramConnection Connection { get; }
     }
 
     /// <summary>Uses the released endpoint router unless manual waypoints explicitly override it.</summary>

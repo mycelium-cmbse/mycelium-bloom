@@ -19,15 +19,21 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
     public sealed partial class DiagramViewModel
     {
+        /// <summary>Identifies the canonical model context captured by this view.</summary>
         private Guid? workspaceContextId;
 
         /// <summary>Resolves identities only within the captured canonical scope.</summary>
         private Dictionary<string, IElement> workspaceElements;
 
+        /// <summary>Owns the workspace-context observation for this tab.</summary>
         private IDisposable workspaceSubscription;
+        /// <summary>Defines bounded regional projection and detail-cache settings.</summary>
         private readonly DiagramDataOptions workspaceDataOptions;
+        /// <summary>Supplies the clock used by the tab-owned detail cache.</summary>
         private readonly Microsoft.Extensions.Internal.ISystemClock workspaceCacheClock;
+        /// <summary>Retains lightweight navigation metadata for the captured scope.</summary>
         private WorkspaceDiagramIndex workspaceIndex;
+        /// <summary>Cancels preparation superseded by a newer model context.</summary>
         private CancellationTokenSource workspacePreparation;
 
         /// <summary>Gets completion of the current cancellable scope preparation.</summary>
@@ -140,6 +146,10 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
+        /// <summary>Prepares scope metadata and initial presentation without publishing obsolete work.</summary>
+        /// <param name="snapshot">The captured canonical model context.</param>
+        /// <param name="cancellationToken">Cancels superseded or disposed preparation.</param>
+        /// <returns>Completion of the current scope preparation.</returns>
         private async Task PrepareWorkspaceAsync(WorkspaceModelSnapshot snapshot, CancellationToken cancellationToken)
         {
             try

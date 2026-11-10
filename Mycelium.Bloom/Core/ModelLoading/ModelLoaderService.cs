@@ -33,6 +33,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// </summary>
         private readonly IAssembler assembler;
 
+        /// <summary>Creates a private canonical identity owner for each candidate upload.</summary>
         private readonly Func<IAssembler> createUploadAssembler;
 
         /// <summary>

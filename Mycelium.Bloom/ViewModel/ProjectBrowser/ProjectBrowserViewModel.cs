@@ -48,6 +48,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private readonly IModelLoaderService modelLoaderService;
 
+        /// <summary>Resolves model contexts through the circuit-owned canonical registry.</summary>
         private readonly Mycelium.Bloom.Core.Context.WorkspaceModelSession workspaceModel;
 
         /// <summary>
