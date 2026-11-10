@@ -11,8 +11,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
 {
     using ErrorOr;
 
-    using Mycelium.Bloom.Core.Organization;
+    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Model;
+    using Mycelium.SDK.POCO;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Describes the outcome of resolving a location, published as one unit to the properties of the
@@ -24,7 +27,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
     /// <param name="Organization">The designated organization, when it is known.</param>
     /// <param name="Capabilities">The capabilities of the account, when they are known.</param>
     /// <param name="Errors">The errors that prevented the resolution, or an empty list.</param>
-    internal sealed record OrganizationContextResolution(OrganizationLocation Location, bool IsLoading, Account Account, Organization Organization,
+    internal sealed record OrganizationContextResolution(OrganizationLocation Location, bool IsLoading, User Account, Organization Organization,
         OrganizationCapabilities Capabilities, IReadOnlyList<Error> Errors)
     {
         /// <summary>
@@ -45,7 +48,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <param name="organization">The designated organization, or <see langword="null" /> on the account page.</param>
         /// <param name="capabilities">The capabilities of the account, or <see langword="null" /> on the account page.</param>
         /// <returns>The ready resolution.</returns>
-        public static OrganizationContextResolution CreateReady(OrganizationLocation location, Account account, Organization organization,
+        public static OrganizationContextResolution CreateReady(OrganizationLocation location, User account, Organization organization,
             OrganizationCapabilities capabilities)
         {
             return new OrganizationContextResolution(location, false, account, organization, capabilities, []);
@@ -66,10 +69,10 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Creates the resolution of a location that designates nothing the account can reach.
         /// </summary>
         /// <param name="location">The resolved location.</param>
-        /// <returns>The resolution refused with an <see cref="OrganizationErrorCodes.NotFound" /> error.</returns>
+        /// <returns>The resolution refused with an <see cref="ErrorCodes.NotFound" /> error.</returns>
         public static OrganizationContextResolution CreateNotFound(OrganizationLocation location)
         {
-            return CreateRefused(location, [Error.NotFound(OrganizationErrorCodes.NotFound, "The page does not exist.")]);
+            return CreateRefused(location, [Error.NotFound(ErrorCodes.NotFound, "The page does not exist.")]);
         }
     }
 }

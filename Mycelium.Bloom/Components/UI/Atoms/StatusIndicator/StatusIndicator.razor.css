@@ -1,0 +1,31 @@
+.mb-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    color: var(--foreground);
+    font: var(--typography-typography-body-sm), sans-serif;
+}
+
+.mb-status-indicator__dot {
+    flex-shrink: 0;
+    width: var(--spacing-6);
+    height: var(--spacing-6);
+    border-radius: var(--radius-full);
+    background: var(--muted-foreground);
+}
+
+.mb-status-indicator--preparation .mb-status-indicator__dot {
+    background: var(--lifecycle-preparation);
+}
+
+.mb-status-indicator--open .mb-status-indicator__dot {
+    background: var(--lifecycle-open);
+}
+
+.mb-status-indicator--review .mb-status-indicator__dot {
+    background: var(--lifecycle-review);
+}
+
+.mb-status-indicator--archived .mb-status-indicator__dot {
+    background: var(--lifecycle-archived);
+}

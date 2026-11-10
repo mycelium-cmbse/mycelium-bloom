@@ -14,6 +14,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK.POCO;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     using ReactiveUI;
     using ReactiveUI.Primitives.Concurrency;
@@ -100,8 +103,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
             var accountPresentation = new OrganizationHeaderPresentation
             {
                 Kind = location.Kind,
-                AccountName = account.DisplayName,
-                AccountEmail = account.Email,
+                AccountName = account.Name,
+                AccountEmail = account.Mail,
                 AccountItems = AccountItems
             };
 
@@ -120,27 +123,27 @@ namespace Mycelium.Bloom.ViewModel.Organization
             return accountPresentation with
             {
                 OrganizationName = organization.Name,
-                OrganizationPath = OrganizationRoutes.GetOrganizationPath(organization.Slug, OrganizationSection.Overview),
+                OrganizationPath = OrganizationRoutes.GetOrganizationPath(location.Slug, OrganizationSection.Overview),
                 SectionLabel = current.Label,
                 SectionIcon = current.Icon,
-                SectionItems = GetSectionItems(organization, location.Section, capabilities)
+                SectionItems = GetSectionItems(location.Slug, location.Section, capabilities)
             };
         }
 
         /// <summary>
         /// Builds the pages of the organization that the current account may open.
         /// </summary>
-        /// <param name="organization">The designated organization.</param>
+        /// <param name="slug">The slug of the designated organization, which the address carries.</param>
         /// <param name="section">The current page of the organization.</param>
         /// <param name="capabilities">What the current account may do in the organization.</param>
         /// <returns>The menu entries, in the order of the pages.</returns>
-        private static ActionMenuItem[] GetSectionItems(Organization organization, OrganizationSection section, OrganizationCapabilities capabilities)
+        private static ActionMenuItem[] GetSectionItems(string slug, OrganizationSection section, OrganizationCapabilities capabilities)
         {
             return Sections
                 .Where(descriptor => descriptor.Section != OrganizationSection.Settings || capabilities.CanEditSettings)
                 .Select(descriptor => new ActionMenuItem
                 {
-                    Id = OrganizationRoutes.GetOrganizationPath(organization.Slug, descriptor.Section),
+                    Id = OrganizationRoutes.GetOrganizationPath(slug, descriptor.Section),
                     Label = descriptor.Label,
                     IsSelected = descriptor.Section == section
                 })
