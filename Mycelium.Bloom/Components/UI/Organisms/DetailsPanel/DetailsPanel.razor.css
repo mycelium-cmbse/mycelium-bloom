@@ -9,7 +9,7 @@
     container-type: inline-size;
     background: var(--card);
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 .mb-details-panel__header {
@@ -27,7 +27,7 @@
     flex: 1;
     margin: 0;
     font-size: var(--text-14);
-    font-weight: var(--font-weight-sans-semibold);
+    font-weight: 600;
     line-height: var(--spacing-17);
 }
 
@@ -78,14 +78,14 @@
     box-shadow: none;
     color: var(--muted-foreground);
     font-size: var(--text-12);
-    font-weight: var(--font-weight-sans-medium);
+    font-weight: 500;
     line-height: var(--spacing-16);
 }
 
 .mb-details-panel ::deep .mb-properties-tabs__trigger[data-state="active"] {
     color: var(--primary);
     border-bottom-color: var(--primary);
-    font-weight: var(--font-weight-sans-semibold);
+    font-weight: 600;
     background: transparent;
     box-shadow: none;
 }
@@ -116,7 +116,7 @@
     height: var(--spacing-32);
     padding: 0 var(--spacing-12);
     font-size: var(--text-12);
-    font-weight: var(--font-weight-sans-semibold);
+    font-weight: 600;
 }
 
 @container (max-width: 340px) {

@@ -20,7 +20,7 @@
 .mb-property-section h3 {
     margin: 0;
     font-size: inherit;
-    font-weight: var(--font-weight-sans-semibold);
+    font-weight: 600;
     text-transform: uppercase;
 }
 
@@ -40,7 +40,7 @@
     color: var(--muted-foreground);
     font-size: var(--text-11);
     line-height: var(--spacing-13);
-    font-weight: var(--font-weight-sans-regular);
+    font-weight: 400;
     overflow-wrap: anywhere;
 }
 
@@ -50,7 +50,7 @@
     overflow-wrap: anywhere;
     font-size: var(--text-12);
     line-height: var(--spacing-15);
-    font-weight: var(--font-weight-sans-medium);
+    font-weight: 500;
 }
 
 .mb-qualified-name-segment {
@@ -93,7 +93,7 @@
 }
 .mb-property-section--attributes .mb-property-field:last-child { border-bottom: 0; padding-bottom: 0; }
 .mb-property-section--attributes .mb-property-field:first-child { padding-top: 0; }
-.mb-property-section--attributes dt { color: var(--foreground); font-weight: var(--font-weight-sans-medium); }
+.mb-property-section--attributes dt { color: var(--foreground); font-weight: 500; }
 
 .mb-relation-row { border-bottom: 1px solid var(--border-subtle); }
 .mb-relation-row:last-child { border-bottom: 0; }
@@ -110,14 +110,14 @@
     white-space: normal;
     text-align: left;
     font-size: var(--text-12);
-    font-weight: var(--font-weight-sans-medium);
+    font-weight: 500;
     line-height: var(--spacing-15);
     text-decoration: none;
 }
 
 .mb-property-section ::deep .mb-relation-link:hover .mb-relation-identity > span { text-decoration: underline; }
 .mb-relation-identity { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; gap: var(--spacing-2); }
-.mb-relation-identity small { color: var(--muted-foreground); font-size: var(--text-10); line-height: var(--spacing-12); font-weight: var(--font-weight-sans-regular); }
+.mb-relation-identity small { color: var(--muted-foreground); font-size: var(--text-10); line-height: var(--spacing-12); font-weight: 400; }
 
 .mb-property-section ::deep .mb-relation-kind {
     justify-self: start;
@@ -129,7 +129,7 @@
     white-space: normal;
     overflow-wrap: anywhere;
     font-size: var(--text-9);
-    font-weight: var(--font-weight-sans-medium);
+    font-weight: 500;
     line-height: var(--text-11);
 }
 
@@ -150,7 +150,7 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-6);
 }
-.mb-property-card header { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--text-12); line-height: var(--spacing-15); font-weight: var(--font-weight-sans-semibold); }
+.mb-property-card header { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--text-12); line-height: var(--spacing-15); font-weight: 600; }
 .mb-property-card__role { display: flex; gap: var(--spacing-4); margin-top: var(--spacing-4); color: var(--muted-foreground); font-size: var(--text-10-5); line-height: var(--spacing-13); overflow-wrap: anywhere; }
 .mb-property-card__role > span { flex-shrink: 0; }
 .mb-property-card ::deep .mb-property-card__badge { padding: 0 var(--spacing-7); border: 0; border-radius: var(--radius-9); background: var(--accent); color: var(--primary); font-size: var(--text-10); line-height: var(--spacing-18); }
@@ -158,4 +158,4 @@
 .mb-property-section--comment { padding-bottom: var(--spacing-12); }
 .mb-annotation-meta { display: flex; align-items: center; gap: var(--spacing-8); color: var(--muted-foreground); font-size: var(--text-10); line-height: var(--spacing-12); }
 .mb-annotation-meta ::deep .mb-annotation-badge { padding: var(--spacing-2) var(--spacing-4); border: 0; border-radius: var(--radius-3); font-size: inherit; line-height: inherit; background: var(--muted); color: var(--muted-foreground); }
-.mb-property-section--text .mb-property-text { padding: var(--spacing-10); background: var(--background); border: 1px solid var(--border-subtle); border-radius: var(--radius-4); font-family: var(--font-mono), monospace; font-size: var(--text-10); line-height: var(--spacing-16); }
+.mb-property-section--text .mb-property-text { padding: var(--spacing-10); background: var(--background); border: 1px solid var(--border-subtle); border-radius: var(--radius-4); font-family: "JetBrains Mono", monospace; font-size: var(--text-10); line-height: var(--spacing-16); }

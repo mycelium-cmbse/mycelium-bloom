@@ -166,9 +166,9 @@
     padding-inline: var(--spacing-16) var(--spacing-8);
     border-bottom: 1px solid var(--border);
     color: var(--muted-foreground);
-    font-family: var(--font-sans), sans-serif;
+    font-family: Inter, sans-serif;
     font-size: var(--text-9);
-    font-weight: var(--typography-typography-label-xs-font-weight);
+    font-weight: 600;
     letter-spacing: 0.3px;
 }
 

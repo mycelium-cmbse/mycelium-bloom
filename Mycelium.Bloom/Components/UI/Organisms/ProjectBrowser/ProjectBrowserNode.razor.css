@@ -96,7 +96,7 @@
 
 .mb-project-browser-node__row--selected .mb-project-browser-node__title {
     color: light-dark(var(--primary-strong), var(--accent-foreground));
-    font-weight: var(--typography-typography-body-md-medium-font-weight);
+    font-weight: 500;
 }
 
 .mb-project-browser-node__indent {
@@ -156,10 +156,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
-    font-weight: var(--typography-typography-body-sm-font-weight);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: var(--text-12);
+    line-height: var(--spacing-18);
+    font-weight: 400;
     white-space: nowrap;
 }
 
@@ -178,7 +178,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     color: light-dark(var(--collaborator-c12), var(--muted-foreground));
-    font-family: var(--font-mono), monospace;
+    font-family: "JetBrains Mono", monospace;
     font-size: var(--text-10);
     white-space: nowrap;
 }
@@ -190,9 +190,9 @@
 .mb-project-browser-node__indicator {
     flex: 0 0 auto;
     color: light-dark(var(--collaborator-c12), var(--muted-foreground));
-    font-family: var(--font-mono), monospace;
-    font-size: var(--typography-typography-mono-xs-font-size);
-    line-height: var(--typography-typography-mono-xs-line-height);
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--text-11);
+    line-height: var(--spacing-16);
     white-space: nowrap;
 }
 
@@ -210,20 +210,20 @@
     border-color: var(--border);
     background: var(--card);
     color: var(--foreground);
-    font-family: var(--font-mono), monospace;
+    font-family: "JetBrains Mono", monospace;
     font-size: var(--text-10);
     line-height: var(--spacing-14);
 }
 
 .mb-project-browser-node__stereotype,
 .mb-project-browser-node__visibility {
-    font-family: var(--font-sans), sans-serif;
+    font-family: Inter, sans-serif;
     font-size: var(--text-10);
 }
 
 .mb-project-browser-node__type {
-    font-family: var(--font-sans), sans-serif;
-    font-size: var(--typography-typography-body-sm-font-size);
+    font-family: Inter, sans-serif;
+    font-size: var(--text-12);
 }
 
 /* Names and compact markers take priority; type/value text uses the remaining width. */

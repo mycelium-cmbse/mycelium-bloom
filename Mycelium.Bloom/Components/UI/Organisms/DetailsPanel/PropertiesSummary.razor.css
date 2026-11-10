@@ -11,8 +11,8 @@
     margin: 0;
     min-width: 0;
     overflow-wrap: anywhere;
-    font-size: var(--typography-typography-heading-sm-font-size);
-    font-weight: var(--typography-typography-heading-sm-font-weight);
+    font-size: var(--text-18);
+    font-weight: 600;
     line-height: var(--spacing-22);
 }
 
@@ -23,7 +23,7 @@
     border: 0;
     border-radius: var(--radius-4);
     font-size: var(--text-10);
-    font-weight: var(--font-weight-sans-semibold);
+    font-weight: 600;
     line-height: var(--spacing-12);
     white-space: normal;
     overflow-wrap: anywhere;
@@ -48,7 +48,7 @@
 
 .mb-properties-summary__value {
     font-size: var(--text-16);
-    font-weight: var(--font-weight-sans-semibold);
+    font-weight: 600;
     line-height: var(--spacing-20);
 }
 

@@ -1,8 +1,8 @@
 .value-group {
     position: relative;
     min-width: 0;
-    font-size: var(--typography-typography-body-sm-font-size);
-    line-height: var(--typography-typography-body-sm-line-height);
+    font-size: var(--text-12);
+    line-height: var(--spacing-18);
 }
 
 .value-group--branch::before {
@@ -11,7 +11,7 @@
     left: calc(-1 * var(--spacing-4));
     top: var(--spacing-20);
     width: var(--spacing-4);
-    border-top: var(--border-width-default) solid var(--border-subtle);
+    border-top: 1px solid var(--border-subtle);
     pointer-events: none;
 }
 
@@ -59,7 +59,7 @@
     align-items: baseline;
     gap: var(--spacing-8);
     min-width: 0;
-    font-weight: var(--typography-typography-body-sm-medium-font-weight);
+    font-weight: 500;
 }
 
 .value-group__name {
@@ -71,7 +71,7 @@
 .value-group__role,
 .value-group__state {
     color: var(--muted-foreground);
-    font-size: var(--typography-typography-body-xs-font-size);
+    font-size: var(--text-11);
 }
 
 .value-group__state {
@@ -95,9 +95,9 @@
 .value-group__operator {
     flex: 0 0 auto;
     color: var(--foreground);
-    font-family: var(--font-mono), monospace;
-    font-size: var(--typography-typography-body-md-medium-font-size);
-    font-weight: var(--typography-typography-body-md-medium-font-weight);
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--text-14);
+    font-weight: 500;
     white-space: nowrap;
     padding: 0 var(--spacing-4);
     border-radius: var(--radius-4);
@@ -133,7 +133,7 @@
 
 .value-group ::deep .value-group__details-trigger {
     color: var(--foreground);
-    font-size: var(--typography-typography-body-xs-font-size);
+    font-size: var(--text-11);
     margin: var(--spacing-12) 0 var(--spacing-8);
     max-width: 100%;
     white-space: normal;
@@ -153,20 +153,20 @@
 }
 
 .value-group__identity dd {
-    font-family: var(--font-mono), monospace;
-    font-size: var(--typography-typography-body-xs-font-size);
+    font-family: "JetBrains Mono", monospace;
+    font-size: var(--text-11);
 }
 
 .value-group__identity {
     margin-top: var(--spacing-12);
     padding-top: var(--spacing-8);
-    border-top: var(--border-width-default) solid var(--border-subtle);
+    border-top: 1px solid var(--border-subtle);
 }
 
 .value-group__children {
     margin-left: var(--spacing-12);
     padding-left: var(--spacing-4);
-    border-left: var(--border-width-default) solid var(--border-subtle);
+    border-left: 1px solid var(--border-subtle);
     min-width: 0;
 }
 

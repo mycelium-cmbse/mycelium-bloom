@@ -419,3 +419,20 @@ test('organization headers resolve runtime references and preserve separate typo
     const organization = await readFile(join(projectDirectory, 'Components/UI/Organisms/OrganizationHeader/OrganizationHeader.razor'), 'utf8');
     assert.match(organization, /--font-weight-body-md-medium/);
 });
+
+test('Browser and Properties scoped styles resolve packaged tokens and component state', async () => {
+    const runtime = await readFile(runtimePath, 'utf8');
+    const directories = ['DetailsPanel', 'ProjectBrowser', 'WorkspaceShell', 'EditorWorkspace'];
+    const inlineState = new Set(['--project-browser-node-icon', '--workspace-shell-effective-right-width', '--workspace-shell-preferred-right-width', '--editor-workspace-group-weight', '--editor-workspace-splitter-position']);
+    for (const directory of directories) {
+        const root = join(projectDirectory, 'Components/UI/Organisms', directory);
+        for (const name of await readdir(root)) {
+            if (!name.endsWith('.razor.css')) continue;
+            const css = await readFile(join(root, name), 'utf8');
+            const definitions = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map(match => match[1]));
+            for (const [, token] of css.matchAll(/var\((--[\w-]+)/g)) {
+                assert.ok(runtime.includes(token + ':') || definitions.has(token) || inlineState.has(token), `${directory}/${name}: ${token}`);
+            }
+        }
+    }
+});
