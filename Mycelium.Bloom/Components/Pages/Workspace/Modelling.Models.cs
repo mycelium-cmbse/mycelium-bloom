@@ -39,20 +39,17 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private readonly HashSet<Guid> compatibleContexts = [];
 
         /// <summary>Gets open models already known to contain supported structural content.</summary>
-        private IReadOnlyList<WorkspaceModelSnapshot> CompatibleModels
+        private WorkspaceModelSnapshot[] GetCompatibleModels()
         {
-            get
+            foreach (var diagram in this.diagramViewModels.Values.Where(value =>
+                         value.State?.Occurrences.Length > 0 && value.ModelContextId.HasValue))
             {
-                foreach (var diagram in this.diagramViewModels.Values.Where(value =>
-                             value.State?.Occurrences.Length > 0 && value.ModelContextId.HasValue))
-                {
-                    this.compatibleContexts.Add(diagram.ModelContextId.Value);
-                }
-
-                var models = this.WorkspaceModel.OpenModels;
-                this.compatibleContexts.IntersectWith(models.Select(model => model.Id));
-                return models.Where(model => this.compatibleContexts.Contains(model.Id)).ToArray();
+                this.compatibleContexts.Add(diagram.ModelContextId.Value);
             }
+
+            var models = this.WorkspaceModel.GetOpenModels();
+            this.compatibleContexts.IntersectWith(models.Select(model => model.Id));
+            return models.Where(model => this.compatibleContexts.Contains(model.Id)).ToArray();
         }
 
         /// <summary>Resolves the focused tab's model without retargeting other tabs.</summary>
@@ -87,7 +84,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             if (this.modelOpenings.Remove(invokingTabId, out var previous))
             {
-                previous.Cancel();
+                await previous.CancelAsync();
             }
 
             using var connection = this.Connection.CreateUploadCancellation();
@@ -102,12 +99,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                 var target = replaceEmpty || invoking.ModelContextId == snapshot.Id
                     ? invokingTabId
                     : this.relatedDiagrams.GetValueOrDefault((invokingTabId, snapshot.Id));
-                var browserTab = this.diagramBrowsers.GetValueOrDefault(target);
-                if (!this.tabModels.TryGetValue(browserTab, out var browserModel) ||
-                    browserModel.Snapshot.Id != snapshot.Id)
-                {
-                    browserTab = Guid.Empty;
-                }
+                var browserTab = this.FindAssociatedBrowser(target, snapshot.Id);
 
                 if (browserTab == Guid.Empty)
                 {
@@ -118,9 +110,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                     }
                 }
 
-                if (this.isDisposed || cancellation.IsCancellationRequested
-                                    || !this.diagramViewModels.TryGetValue(invokingTabId, out var current) ||
-                                    !ReferenceEquals(current, invoking))
+                if (!this.IsCurrentDiagramRequest(invokingTabId, invoking, cancellation.Token))
                 {
                     return;
                 }
@@ -132,68 +122,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                     return;
                 }
 
-                var newlyBound = false;
-                if (replaceEmpty && invoking.ModelContextId != snapshot.Id)
-                {
-                    var replacement = this.DiagramViewModelFactory();
-                    replacement.UpdateWorkspace(snapshot);
-                    if (this.diagramObservations.Remove(invokingTabId, out var observation))
-                    {
-                        observation.Dispose();
-                    }
+                var newlyBound = this.BindDiagram(invokingTabId, invoking, snapshot, replaceEmpty, group, ref target);
 
-                    this.diagramViewModels[invokingTabId] = replacement;
-                    invoking.Dispose();
-                    if (this.tabModels.Remove(invokingTabId, out var oldLease))
-                    {
-                        oldLease.Dispose();
-                    }
-
-                    this.tabModels.Add(invokingTabId, this.WorkspaceModel.Acquire(snapshot));
-                    this.diagramObservations.Add(invokingTabId, replacement
-                        .WhenAnyValue(value => value.State, value => value.PreparationStatus)
-                        .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
-                        {
-                            if (!this.isDisposed && this.diagramViewModels.ContainsKey(invokingTabId))
-                            {
-                                this.StateHasChanged();
-                            }
-                        }))).Concat().Subscribe(_ => { },
-                            error => this.Logger.LogError(error, "Diagram preparation display failed")));
-                    newlyBound = true;
-                }
-                else if (target == Guid.Empty)
+                if (!this.AttachBrowser(ref browser, browserTab, target, group, snapshot))
                 {
-                    this.OpenWorkspaceInterconnection(group.Id, snapshot);
-                    target = group.ActiveTab.Id;
-                    this.relatedDiagrams[(invokingTabId, snapshot.Id)] = target;
-                    newlyBound = true;
-                }
-
-                if (browser is not null)
-                {
-                    var browserGroup =
-                        this.WorkspaceEditorViewModel.Groups.FirstOrDefault(value =>
-                            value.Tabs.Any(IsProjectBrowserTab)) ?? group;
-                    if (!this.WorkspaceEditorViewModel.TryOpenTab(browserGroup.Id,
-                            snapshot.Root.DeclaredName ?? "Project Browser",
-                            ProjectBrowserViewTypeKey, out var openedBrowser))
-                    {
-                        return;
-                    }
-
-                    browserTab = openedBrowser.Id;
-                    this.projectBrowserViewModels.Add(browserTab, browser);
-                    this.tabModels.Add(browserTab, this.WorkspaceModel.Acquire(snapshot));
-                    this.diagramBrowsers[target] = browserTab;
-                    browser = null;
-                }
-                else
-                {
-                    var browserGroup =
-                        this.WorkspaceEditorViewModel.Groups.First(value =>
-                            value.Tabs.Any(tab => tab.Id == browserTab));
-                    this.WorkspaceEditorViewModel.ActivateTab(browserGroup.Id, browserTab);
+                    return;
                 }
 
                 var targetGroup =
@@ -208,6 +141,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             finally
             {
@@ -219,6 +153,129 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
         }
 
+        /// <summary>Finds the Browser owned by a diagram in the requested canonical context.</summary>
+        /// <param name="diagramId">The owning diagram tab.</param>
+        /// <param name="contextId">The canonical model context.</param>
+        /// <returns>The matching tab identity or an empty identity when it must be created.</returns>
+        private Guid FindAssociatedBrowser(Guid diagramId, Guid contextId)
+        {
+            var browserTab = this.diagramBrowsers.GetValueOrDefault(diagramId);
+            return this.tabModels.TryGetValue(browserTab, out var model) && model.Snapshot.Id == contextId
+                ? browserTab
+                : Guid.Empty;
+        }
+
+        /// <summary>Binds an empty view or creates a related view without replacing a populated diagram.</summary>
+        /// <param name="invokingTabId">The originating view.</param>
+        /// <param name="invoking">The still-current originating view model.</param>
+        /// <param name="snapshot">The accepted canonical context.</param>
+        /// <param name="replaceEmpty">Whether the originating view contains no occurrences.</param>
+        /// <param name="group">The originating workspace panel.</param>
+        /// <param name="target">Receives the intended diagram tab.</param>
+        /// <returns>Whether preparation must complete before focus.</returns>
+        private bool BindDiagram(Guid invokingTabId, ViewModel.Diagram.DiagramViewModel invoking,
+            WorkspaceModelSnapshot snapshot, bool replaceEmpty, ViewModel.WorkspaceEditor.EditorGroupViewModel group,
+            ref Guid target)
+        {
+            var newlyBound = false;
+            if (replaceEmpty && invoking.ModelContextId != snapshot.Id)
+            {
+                this.RebindEmptyDiagram(invokingTabId, invoking, snapshot);
+                newlyBound = true;
+            }
+            else if (target == Guid.Empty)
+            {
+                this.OpenWorkspaceInterconnection(group.Id, snapshot);
+                target = group.ActiveTab.Id;
+                this.relatedDiagrams[(invokingTabId, snapshot.Id)] = target;
+                newlyBound = true;
+            }
+
+            return newlyBound;
+        }
+
+        /// <summary>Publishes or activates the Browser owned by one diagram without retargeting other pairs.</summary>
+        /// <param name="browser">The prepared Browser, transferred on successful attachment.</param>
+        /// <param name="browserTab">An existing associated Browser tab.</param>
+        /// <param name="target">The associated diagram tab.</param>
+        /// <param name="group">The invoking workspace group.</param>
+        /// <param name="snapshot">The shared canonical model.</param>
+        /// <returns>Whether the associated Browser is available.</returns>
+        private bool AttachBrowser(ref IProjectBrowserViewModel browser, Guid browserTab, Guid target,
+            ViewModel.WorkspaceEditor.EditorGroupViewModel group, WorkspaceModelSnapshot snapshot)
+        {
+            if (browser is not null)
+            {
+                var browserGroup =
+                    this.WorkspaceEditorViewModel.Groups.FirstOrDefault(value =>
+                        value.Tabs.Any(IsProjectBrowserTab)) ?? group;
+                if (!this.WorkspaceEditorViewModel.TryOpenTab(browserGroup.Id,
+                        snapshot.Root.DeclaredName ?? "Project Browser",
+                        ProjectBrowserViewTypeKey, out var openedBrowser))
+                {
+                    return false;
+                }
+
+                browserTab = openedBrowser.Id;
+                this.projectBrowserViewModels.Add(browserTab, browser);
+                this.tabModels.Add(browserTab, this.WorkspaceModel.Acquire(snapshot));
+                this.diagramBrowsers[target] = browserTab;
+                browser = null;
+            }
+            else
+            {
+                var browserGroup =
+                    this.WorkspaceEditorViewModel.Groups.First(value =>
+                        value.Tabs.Any(tab => tab.Id == browserTab));
+                this.WorkspaceEditorViewModel.ActivateTab(browserGroup.Id, browserTab);
+            }
+
+            return true;
+        }
+
+        /// <summary>Replaces an empty view's binding while retaining its independent tab identity.</summary>
+        /// <param name="invokingTabId">The existing diagram tab.</param>
+        /// <param name="invoking">The previous tab-owned view model.</param>
+        /// <param name="snapshot">The successfully accepted canonical context.</param>
+        private void RebindEmptyDiagram(Guid invokingTabId, ViewModel.Diagram.DiagramViewModel invoking,
+            WorkspaceModelSnapshot snapshot)
+        {
+            var replacement = this.DiagramViewModelFactory();
+            replacement.UpdateWorkspace(snapshot);
+            if (this.diagramObservations.Remove(invokingTabId, out var observation))
+            {
+                observation.Dispose();
+            }
+
+            this.diagramViewModels[invokingTabId] = replacement;
+            invoking.Dispose();
+            if (this.tabModels.Remove(invokingTabId, out var oldLease))
+            {
+                oldLease.Dispose();
+            }
+
+            this.tabModels.Add(invokingTabId, this.WorkspaceModel.Acquire(snapshot));
+            this.diagramObservations.Add(invokingTabId, replacement
+                .WhenAnyValue(value => value.State, value => value.PreparationStatus)
+                .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                {
+                    if (!this.isDisposed && this.diagramViewModels.ContainsKey(invokingTabId))
+                    {
+                        this.StateHasChanged();
+                    }
+                }))).Concat().Subscribe(_ => { },
+                    error => this.Logger.LogError(error, "Diagram preparation display failed")));
+        }
+
+        /// <summary>Checks that an asynchronous completion still belongs to its original live diagram.</summary>
+        /// <param name="tabId">The originating tab identity.</param>
+        /// <param name="viewModel">The originating tab-owned view model.</param>
+        /// <param name="cancellationToken">The request lifetime.</param>
+        /// <returns>Whether publication to this diagram remains valid.</returns>
+        private bool IsCurrentDiagramRequest(Guid tabId, ViewModel.Diagram.DiagramViewModel viewModel,
+            CancellationToken cancellationToken) => !this.isDisposed && !cancellationToken.IsCancellationRequested
+            && ReferenceEquals(this.diagramViewModels.GetValueOrDefault(tabId), viewModel);
+
         /// <summary>Requests focus after preparation only if the original tab still owns the view.</summary>
         /// <param name="tabId">The intended diagram tab.</param>
         /// <param name="viewModel">The exact tab-owned preparation source.</param>
@@ -228,8 +285,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             CancellationToken token)
         {
             await viewModel.Preparation.WaitAsync(token);
-            if (this.isDisposed || token.IsCancellationRequested ||
-                this.diagramViewModels.GetValueOrDefault(tabId) != viewModel)
+            if (!this.IsCurrentDiagramRequest(tabId, viewModel, token))
             {
                 return;
             }

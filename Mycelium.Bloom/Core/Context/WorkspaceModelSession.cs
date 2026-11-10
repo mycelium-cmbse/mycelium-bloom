@@ -20,30 +20,39 @@ namespace Mycelium.Bloom.Core.Context
     /// <summary>Owns the active workspace root independently of individual editor tabs.</summary>
     public sealed class WorkspaceModelSession : ReactiveObject, IDisposable
     {
+        /// <summary>Serializes canonical-context publication, lease changes and disposal.</summary>
         private readonly object gate = new();
+        /// <summary>Serializes SDK loading operations without holding the publication lock across awaits.</summary>
         private readonly SemaphoreSlim loaderGate = new(1, 1);
+        /// <summary>Owns SDK deserialization and isolated candidate assembly.</summary>
         private readonly IModelLoaderService loader;
+        /// <summary>Publishes canonical selection for the current consumer.</summary>
         private readonly IElementSelectionService selection;
+        /// <summary>Cancels model operations when the circuit session closes.</summary>
         private readonly CancellationTokenSource lifetime = new();
+        /// <summary>Reuses the default model initialization while it is in flight.</summary>
         private Task<INamespace> pending;
+        /// <summary>Rejects late operations after the owning session closes.</summary>
         private bool disposed;
+        /// <summary>Retains canonical contexts only while a consumer or active operation owns a lease.</summary>
         private readonly DynamicData.SourceCache<RetainedContext, Guid> contexts = new(value => value.Snapshot.Id);
 
+        /// <summary>Counts live consumers of one canonical model context.</summary>
+        /// <param name="snapshot">The accepted context shared by those consumers.</param>
         private sealed class RetainedContext(WorkspaceModelSnapshot snapshot)
         {
+            /// <summary>Gets the immutable identity and canonical root.</summary>
             public WorkspaceModelSnapshot Snapshot { get; } = snapshot;
+            /// <summary>Gets or sets the lease count under the session lock.</summary>
             public int Consumers { get; set; }
         }
 
         /// <summary>Gets contexts retained by open tabs or active opening operations.</summary>
-        public IReadOnlyList<WorkspaceModelSnapshot> OpenModels
+        public IReadOnlyList<WorkspaceModelSnapshot> GetOpenModels()
         {
-            get
+            lock (this.gate)
             {
-                lock (this.gate)
-                {
-                    return this.contexts.Items.Select(value => value.Snapshot).ToArray();
-                }
+                return this.contexts.Items.Select(value => value.Snapshot).ToArray();
             }
         }
 
@@ -82,7 +91,7 @@ namespace Mycelium.Bloom.Core.Context
             WorkspaceModelLease lease = null;
             try
             {
-                await Task.Run(() => this.loader.OpenIndependentModelAsync(stream, cancellation.Token, publish =>
+                await Task.Run(() => this.loader.OpenIndependentModelAsync(stream, publish =>
                 {
                     lock (this.gate)
                     {
@@ -100,7 +109,7 @@ namespace Mycelium.Bloom.Core.Context
                         lease = this.Retain(context.Snapshot);
                         return Task.FromResult(root);
                     }
-                }), cancellation.Token);
+                }, cancellation.Token), cancellation.Token);
                 return lease;
             }
             catch
@@ -114,12 +123,17 @@ namespace Mycelium.Bloom.Core.Context
             }
         }
 
+        /// <summary>Creates a consumer lease while the session publication lock is held.</summary>
+        /// <param name="snapshot">The registered canonical context.</param>
+        /// <returns>The independently disposable consumer lease.</returns>
         private WorkspaceModelLease Retain(WorkspaceModelSnapshot snapshot)
         {
             this.contexts.Lookup(snapshot.Id).Value.Consumers++;
             return new(snapshot, () => this.Release(snapshot));
         }
 
+        /// <summary>Releases the final consumer without clearing another context or its selection.</summary>
+        /// <param name="snapshot">The canonical context whose lease ended.</param>
         private void Release(WorkspaceModelSnapshot snapshot)
         {
             lock (this.gate)
@@ -215,8 +229,8 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="cancellationToken">Cancels the requested model switch.</param>
         /// <param name="expectedContext">The model context in which the user requested opening.</param>
         /// <returns>Whether the requested model became current.</returns>
-        public async Task<bool> OpenUploadedAsync(Stream stream, CancellationToken cancellationToken,
-            Guid expectedContext)
+        public async Task<bool> OpenUploadedAsync(Stream stream,
+            Guid expectedContext, CancellationToken cancellationToken)
         {
             Guid previous;
             lock (this.gate)
@@ -257,7 +271,7 @@ namespace Mycelium.Bloom.Core.Context
 
                 await Task.Run(async () => stream is null
                     ? await Accept(this.loader.LoadQuantitiesModel)
-                    : await this.loader.OpenUploadedModelAsync(stream, cancellation.Token, Accept), cancellation.Token);
+                    : await this.loader.OpenUploadedModelAsync(stream, Accept, cancellation.Token), cancellation.Token);
                 return true;
             }
             finally
@@ -328,12 +342,12 @@ namespace Mycelium.Bloom.Core.Context
             this.pending = completion.Task;
             this.selection.SelectedElement = null;
             this.Current = new(id, null, WorkspaceModelStatus.Loading);
-            return this.CompleteLoadAsync(id, load, this.lifetime.Token, completion);
+            return this.CompleteLoadAsync(id, load, completion, this.lifetime.Token);
         }
 
         /// <summary>Publishes only the latest completed model, with serialized access to the SDK loader.</summary>
-        private async Task<INamespace> CompleteLoadAsync(Guid id, Func<INamespace> load, CancellationToken token,
-            TaskCompletionSource<INamespace> completion)
+        private async Task<INamespace> CompleteLoadAsync(Guid id, Func<INamespace> load,
+            TaskCompletionSource<INamespace> completion, CancellationToken token)
         {
             INamespace root = null;
             try

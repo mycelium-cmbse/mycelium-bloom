@@ -258,11 +258,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
                 if (this.tabModels.ContainsKey(tab.Id)
                     && !viewModel.RootNodes.Any(root =>
-                        ReferenceEquals(root.FindPathTo(element).LastOrDefault()?.SourceElement, element)))
+                        root.FindPathTo(element) is { Count: > 0 } path && ReferenceEquals(path[^1].SourceElement, element)))
                 {
                     var matching = this.projectBrowserViewModels.FirstOrDefault(candidate => candidate.Value.RootNodes
                         .Any(root =>
-                            ReferenceEquals(root.FindPathTo(element).LastOrDefault()?.SourceElement, element)));
+                            root.FindPathTo(element) is { Count: > 0 } path && ReferenceEquals(path[^1].SourceElement, element)));
                     if (matching.Value is null)
                     {
                         return;
@@ -457,7 +457,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// Creates the generic add-tab actions from the workspace's current coherent rendering state.
         /// </summary>
         /// <returns>The actions available to every editor group.</returns>
-        private ActionMenuItem[] CreateAddTabActions()
+        private static ActionMenuItem[] CreateAddTabActions()
         {
             return EditorTypes
                 .Select(editorType => new ActionMenuItem
@@ -671,20 +671,14 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             if (snapshot.Root is not null)
             {
-                foreach (var id in this.projectBrowserViewModels.Keys.ToArray())
+                foreach (var id in this.projectBrowserViewModels.Keys.Where(id => !this.tabModels.ContainsKey(id)).ToArray())
                 {
-                    if (!this.tabModels.ContainsKey(id))
-                    {
-                        this.tabModels.Add(id, this.WorkspaceModel.Acquire(snapshot));
-                    }
+                    this.tabModels.Add(id, this.WorkspaceModel.Acquire(snapshot));
                 }
 
-                foreach (var entry in this.diagramViewModels.Where(entry => entry.Value.IsWorkspaceBound))
+                foreach (var id in this.diagramViewModels.Where(entry => entry.Value.IsWorkspaceBound && !this.tabModels.ContainsKey(entry.Key)).Select(entry => entry.Key))
                 {
-                    if (!this.tabModels.ContainsKey(entry.Key))
-                    {
-                        this.tabModels.Add(entry.Key, this.WorkspaceModel.Acquire(snapshot));
-                    }
+                    this.tabModels.Add(id, this.WorkspaceModel.Acquire(snapshot));
                 }
             }
 

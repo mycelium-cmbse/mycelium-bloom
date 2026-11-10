@@ -14,15 +14,23 @@ namespace Mycelium.Bloom.ViewModel
     using ReactiveUI;
 
     /// <summary>Owns bounded browser uploads and session-only model replacement.</summary>
+    /// <param name="session">The circuit-owned canonical context registry.</param>
+    /// <param name="logger">Reports recoverable opening failures.</param>
+    /// <param name="connection">Cancels uploads when the circuit disconnects.</param>
+    /// <param name="environment">Locates the explicitly requested bundled example.</param>
     public sealed class ModelOpeningViewModel(
         WorkspaceModelSession session,
         ILogger<ModelOpeningViewModel> logger,
         WorkspaceConnectionHandler connection,
         IHostEnvironment environment) : ReactiveObject, IDisposable
     {
+        /// <summary>Serializes operation state, accepted-lease transfer and disposal.</summary>
         private readonly object gate = new();
+        /// <summary>Owns cancellation for the single active upload.</summary>
         private CancellationTokenSource operation;
+        /// <summary>Rejects state publication after the dialog owner closes.</summary>
         private bool disposed;
+        /// <summary>Retains the accepted model until its tab owner takes the lease.</summary>
         private WorkspaceModelLease openedContext;
 
         /// <summary>Transfers the accepted context to the invoking tab composition.</summary>
@@ -114,75 +122,11 @@ namespace Mycelium.Bloom.ViewModel
                 bool opened;
                 if (openStream is null)
                 {
-                    opened = await session.OpenUploadedAsync(null, cancellation.Token, context);
+                    opened = await session.OpenUploadedAsync(null, context, cancellation.Token);
                 }
                 else
                 {
-                    var path = Path.Combine(Path.GetTempPath(), "bloom-model-" + Path.GetRandomFileName());
-                    var temporaryOptions = new FileStreamOptions
-                    {
-                        Mode = FileMode.CreateNew,
-                        Access = FileAccess.ReadWrite,
-                        Share = FileShare.None,
-                        BufferSize = 65_536,
-                        Options = FileOptions.Asynchronous | FileOptions.DeleteOnClose
-                    };
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        temporaryOptions.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                    }
-
-                    await using var temporary = new FileStream(path, temporaryOptions);
-                    await using var source = await openStream(cancellation.Token);
-                    var buffer = new byte[65_536];
-                    long total = 0;
-                    var reported = -1;
-                    int read;
-                    while ((read = await source.ReadAsync(buffer, cancellation.Token)) != 0)
-                    {
-                        total += read;
-                        if (total > size || total > MaximumBytes)
-                        {
-                            throw new InvalidDataException("The uploaded file exceeds its declared size.");
-                        }
-
-                        await temporary.WriteAsync(buffer.AsMemory(0, read), cancellation.Token);
-                        var percent = (int)(total * 100 / size);
-                        if (percent != reported)
-                        {
-                            reported = percent;
-                            this.Publish(new(true, "Uploading model…", percent));
-                        }
-                    }
-
-                    if (total != size)
-                    {
-                        throw new InvalidDataException("The upload was incomplete. Please select the file again.");
-                    }
-
-                    await temporary.FlushAsync(cancellation.Token);
-                    this.Publish(new(true, "Validating and opening model…", 100));
-                    if (independent)
-                    {
-                        var accepted = await session.OpenContextAsync(temporary, cancellation.Token);
-                        lock (this.gate)
-                        {
-                            if (this.disposed || cancellation.IsCancellationRequested)
-                            {
-                                accepted.Dispose();
-                                throw new OperationCanceledException(cancellation.Token);
-                            }
-
-                            this.openedContext?.Dispose();
-                            this.openedContext = accepted;
-                        }
-
-                        opened = true;
-                    }
-                    else
-                    {
-                        opened = await session.OpenUploadedAsync(temporary, cancellation.Token, context);
-                    }
+                    opened = await this.UploadAndAcceptAsync(openStream, size, context, independent, cancellation.Token);
                 }
 
                 this.Publish(opened
@@ -214,6 +158,106 @@ namespace Mycelium.Bloom.ViewModel
             }
         }
 
+        /// <summary>Owns the temporary file and browser stream until acceptance or failure.</summary>
+        /// <param name="openStream">Acquires the browser upload.</param>
+        /// <param name="size">The declared upload length.</param>
+        /// <param name="context">The expected replacement context.</param>
+        /// <param name="independent">Whether the accepted model is independently retained.</param>
+        /// <param name="cancellationToken">Cancels streaming and acceptance.</param>
+        /// <returns>Whether the model was accepted.</returns>
+        private async Task<bool> UploadAndAcceptAsync(Func<CancellationToken, ValueTask<Stream>> openStream,
+            long size, Guid context, bool independent, CancellationToken cancellationToken)
+        {
+            var path = Path.Combine(Path.GetTempPath(), "bloom-model-" + Path.GetRandomFileName());
+            var temporaryOptions = new FileStreamOptions
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.ReadWrite,
+                Share = FileShare.None,
+                BufferSize = 65_536,
+                Options = FileOptions.Asynchronous | FileOptions.DeleteOnClose
+            };
+            if (!OperatingSystem.IsWindows())
+            {
+                temporaryOptions.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            }
+
+            await using var temporary = new FileStream(path, temporaryOptions);
+            await using var source = await openStream(cancellationToken);
+            await this.CopyUploadAsync(source, temporary, size, cancellationToken);
+            await temporary.FlushAsync(cancellationToken);
+            this.Publish(new(true, "Validating and opening model…", 100));
+            return await this.AcceptUploadAsync(temporary, context, independent, cancellationToken);
+        }
+
+        /// <summary>Transfers an accepted candidate lease only while this opening operation remains current.</summary>
+        /// <param name="temporary">The validated bounded upload.</param>
+        /// <param name="context">The expected active context for a replacement operation.</param>
+        /// <param name="independent">Whether to retain an independently owned model context.</param>
+        /// <param name="cancellationToken">Cancels acceptance.</param>
+        /// <returns>Whether the session accepted the model.</returns>
+        private async Task<bool> AcceptUploadAsync(Stream temporary, Guid context, bool independent,
+            CancellationToken cancellationToken)
+        {
+            if (independent)
+            {
+                var accepted = await session.OpenContextAsync(temporary, cancellationToken);
+                lock (this.gate)
+                {
+                    if (this.disposed || cancellationToken.IsCancellationRequested)
+                    {
+                        accepted.Dispose();
+                        throw new OperationCanceledException(cancellationToken);
+                    }
+
+                    this.openedContext?.Dispose();
+                    this.openedContext = accepted;
+                }
+
+                return true;
+            }
+            else
+            {
+                return await session.OpenUploadedAsync(temporary, context, cancellationToken);
+            }
+        }
+
+        /// <summary>Streams bounded content while reporting progress without trusting browser metadata.</summary>
+        /// <param name="source">The browser stream.</param>
+        /// <param name="temporary">The private upload destination.</param>
+        /// <param name="size">The declared length, checked against the received length.</param>
+        /// <param name="cancellationToken">Cancels streaming after closure or disconnection.</param>
+        /// <returns>Completion of a fully received upload.</returns>
+        private async Task CopyUploadAsync(Stream source, FileStream temporary, long size, CancellationToken cancellationToken)
+        {
+            var buffer = new byte[65_536];
+            long total = 0;
+            var reported = -1;
+            int read;
+            while ((read = await source.ReadAsync(buffer, cancellationToken)) != 0)
+            {
+                total += read;
+                if (total > size || total > MaximumBytes)
+                {
+                    throw new InvalidDataException("The uploaded file exceeds its declared size.");
+                }
+
+                await temporary.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                var percent = (int)(total * 100 / size);
+                if (percent != reported)
+                {
+                    reported = percent;
+                    this.Publish(new(true, "Uploading model…", percent));
+                }
+            }
+
+            if (total != size)
+            {
+                throw new InvalidDataException("The upload was incomplete. Please select the file again.");
+            }
+
+        }
+
         /// <summary>Cancels upload or prevents an obsolete result from becoming current.</summary>
         public void Cancel()
         {
@@ -235,6 +279,8 @@ namespace Mycelium.Bloom.ViewModel
             }
         }
 
+        /// <summary>Publishes operation state only while its owner remains alive.</summary>
+        /// <param name="state">The coherent upload status.</param>
         private void Publish(ModelOpeningState state)
         {
             lock (this.gate)

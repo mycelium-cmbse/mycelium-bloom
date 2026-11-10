@@ -36,38 +36,49 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using SysML2.NET.Core.Core.Types;
 
     [TestFixture]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class DiagramCompositionTestFixture : BunitContext
+    public sealed class DiagramCompositionTestFixture
     {
-        public DiagramCompositionTestFixture()
+        private BunitContext context;
+        private static readonly string[] InitialTabs = ["project-browser", "placeholder", "interconnection"];
+        private static readonly string[] AddActions = ["empty-editor", "open-project-browser", "open-interconnection"];
+
+        [SetUp]
+        public void SetUp()
         {
-            BlueprintTestSetup.Configure(this);
+            this.context = new BunitContext();
+            BlueprintTestSetup.Configure(this.context);
             var environment = new Mock<IHostEnvironment>(MockBehavior.Strict);
             environment.SetupGet(value => value.EnvironmentName).Returns(Environments.Production);
             environment.SetupGet(value => value.ContentRootPath)
                 .Returns(TestRepository.GetDirectoryPath("Mycelium.Bloom"));
-            this.Services.AddSingleton(environment.Object);
-            this.Services.AddLogging();
-            this.Services.AddApplicationServices();
-            this.JSInterop.Mode = JSRuntimeMode.Loose;
-            this.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
+            this.context.Services.AddSingleton(environment.Object);
+            this.context.Services.AddLogging();
+            this.context.Services.AddApplicationServices();
+            this.context.JSInterop.Mode = JSRuntimeMode.Loose;
+            this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
                 .SetResult(new Rectangle(0, 0, 1000, 700));
         }
+
+        [TearDown]
+        public async Task TearDown() => await this.context.DisposeAsync();
 
         [Test]
         public async Task VerifyFreshDefaultDiagramIsNotRecreatedAfterCloseOrRerender()
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            this.context.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
-            using var component = this.Render<Modelling>();
+            using var component = this.context.Render<Modelling>();
             var group = editor.Groups[2];
             var initial = group.ActiveTab;
-            Assert.That(editor.Groups.Select(value => value.ActiveTab.ViewTypeKey),
-                Is.EqualTo(new[] { "project-browser", "placeholder", "interconnection" }));
-            Assert.That(initial.Title, Is.EqualTo("Interconnection"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editor.Groups.Select(value => value.ActiveTab.ViewTypeKey),
+                            Is.EqualTo(InitialTabs));
+                Assert.That(initial.Title, Is.EqualTo("Interconnection"));
+            }
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.Markup, Does.Contain("No structural parts to display")));
             component.Render();
@@ -75,11 +86,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{initial.Id}']")
                 .ClickAsync();
             component.Render();
-            Assert.That(editor.Groups.SelectMany(value => value.Tabs).Any(tab => tab.ViewTypeKey == "interconnection"),
-                Is.False);
-            Assert.That(
-                editor.Groups.SelectMany(value => value.Tabs).Count(tab => tab.ViewTypeKey == "project-browser"),
-                Is.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editor.Groups.SelectMany(value => value.Tabs).Any(tab => tab.ViewTypeKey == "interconnection"),
+                            Is.False);
+                Assert.That(
+                    editor.Groups.SelectMany(value => value.Tabs).Count(tab => tab.ViewTypeKey == "project-browser"),
+                    Is.EqualTo(1));
+            }
         }
 
         [Test]
@@ -87,14 +101,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            this.context.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
             using var stream = System.IO.File.OpenRead(System.IO.Path.Combine(
                 TestRepository.GetDirectoryPath("Mycelium.Bloom"),
                 "Resources", "Prototypes", "Interconnection.json"));
             using var model = await session.OpenContextAsync(stream, System.Threading.CancellationToken.None);
-            using var component = this.Render<Modelling>();
+            using var component = this.context.Render<Modelling>();
             var diagramGroup = editor.Groups[2];
             var browserGroup = editor.Groups[0];
             var firstTab = diagramGroup.ActiveTab;
@@ -109,7 +123,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 .ViewModel;
             var firstRequests = new List<string>();
             using var firstSubscription = first.RevealRequested.Subscribe(firstRequests.Add);
-            var menu = component.FindComponents<ActionMenu>().Last().Instance;
+            var menu = component.FindComponents<ActionMenu>()[^1].Instance;
             await component.InvokeAsync(() =>
                 menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection")));
             var secondTab = diagramGroup.ActiveTab;
@@ -122,11 +136,14 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var secondBrowser = component
                 .FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser>().Instance
                 .ViewModel;
-            Assert.That(secondTab.Id, Is.Not.EqualTo(firstTab.Id));
-            Assert.That(second.State.DiagramId, Is.Not.EqualTo(first.State.DiagramId));
-            Assert.That(second.ModelContextId, Is.EqualTo(first.ModelContextId));
-            Assert.That(secondBrowserTab, Is.Not.SameAs(firstBrowserTab));
-            Assert.That(secondBrowser, Is.Not.SameAs(firstBrowser));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(secondTab.Id, Is.Not.EqualTo(firstTab.Id));
+                Assert.That(second.State.DiagramId, Is.Not.EqualTo(first.State.DiagramId));
+                Assert.That(second.ModelContextId, Is.EqualTo(first.ModelContextId));
+                Assert.That(secondBrowserTab, Is.Not.SameAs(firstBrowserTab));
+                Assert.That(secondBrowser, Is.Not.SameAs(firstBrowser));
+            }
             Assert.That(secondBrowser.RootNodes.Single().SourceElement,
                 Is.SameAs(firstBrowser.RootNodes.Single().SourceElement));
             var unchanged = second.State;
@@ -137,14 +154,20 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 first.ApplyPresentation(first.State with { Viewport = new DiagramViewport(-100, -150, 0.7) });
                 first.AddManualBend();
             });
-            Assert.That(secondBrowser.FilterText, Is.Empty);
-            Assert.That(secondBrowser.RootNodes[0].IsExpanded, Is.True);
-            Assert.That(second.State, Is.SameAs(unchanged));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(secondBrowser.FilterText, Is.Empty);
+                Assert.That(secondBrowser.RootNodes[0].IsExpanded, Is.True);
+                Assert.That(second.State, Is.SameAs(unchanged));
+            }
             var count = browserGroup.Tabs.Count;
             open = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>();
             await component.InvokeAsync(() => open.Instance.Opened.InvokeAsync(model));
-            Assert.That(browserGroup.Tabs.Count, Is.EqualTo(count));
-            Assert.That(second.State, Is.SameAs(unchanged));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browserGroup.Tabs, Has.Count.EqualTo(count));
+                Assert.That(second.State, Is.SameAs(unchanged));
+            }
 
             var secondRequests = new List<string>();
             using var secondSubscription = second.RevealRequested.Subscribe(secondRequests.Add);
@@ -154,13 +177,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var canonical =
                 model.Snapshot.Root.ownedElement.First(value => first.Projection.Parts.ContainsKey(value.ElementId));
             var part = first.Projection.Parts[canonical.ElementId];
-            var node = firstBrowser.RootNodes[0].FindPathTo(canonical).Last();
+            var node = firstBrowser.RootNodes[0].FindPathTo(canonical)[^1];
             await component.InvokeAsync(() => browser.SelectedNodeChanged.InvokeAsync(node));
             await component.InvokeAsync(() => browser.SelectedNodeChanged.InvokeAsync(node));
-            Assert.That(firstRequests, Is.EqualTo(new[] { part.ElementId, part.ElementId }));
-            Assert.That(secondRequests, Is.Empty);
-            Assert.That(second.State, Is.SameAs(unchanged));
-            Assert.That(diagramGroup.ActiveTab, Is.SameAs(secondTab));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstRequests, Is.EqualTo(new[] { part.ElementId, part.ElementId }));
+                Assert.That(secondRequests, Is.Empty);
+                Assert.That(second.State, Is.SameAs(unchanged));
+                Assert.That(diagramGroup.ActiveTab, Is.SameAs(secondTab));
+            }
             await component.InvokeAsync(() => editor.MoveTab(diagramGroup.Id, firstTab.Id, editor.Groups[1].Id));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindComponents<Interconnection>(), Has.Count.EqualTo(2)));
@@ -168,36 +194,45 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var firstSelection = first.SelectedOccurrences.ToArray();
             var selected = second.State.Occurrences.First();
             await component.InvokeAsync(() => second.SelectAsync([selected.Id], selected.Id));
-            Assert.That(first.State, Is.SameAs(restored));
-            Assert.That(first.SelectedOccurrences, Is.EqualTo(firstSelection));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.State, Is.SameAs(restored));
+                Assert.That(first.SelectedOccurrences, Is.EqualTo(firstSelection));
+            }
             await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{firstTab.Id}']")
                 .ClickAsync();
-            Assert.That(second.IsScopeAvailable, Is.True);
-            Assert.That(secondBrowser.RootNodes.Single().SourceElement, Is.SameAs(model.Snapshot.Root));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(second.IsScopeAvailable, Is.True);
+                Assert.That(secondBrowser.RootNodes.Single().SourceElement, Is.SameAs(model.Snapshot.Root));
+            }
         }
 
         [Test]
         public void VerifyModelOpeningIsAvailableWithoutAuthentication()
         {
-            using var component = this.Render<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>();
-            Assert.That(component.Find("button").HasAttribute("disabled"), Is.False);
-            Assert.That(component.Markup, Does.Not.Contain("requires authorization"));
-            Assert.That(component.FindAll("input[type='file']"), Is.Empty);
+            using var component = this.context.Render<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("button").HasAttribute("disabled"), Is.False);
+                Assert.That(component.Markup, Does.Not.Contain("requires authorization"));
+                Assert.That(component.FindAll("input[type='file']"), Is.Empty);
+            }
         }
 
         [Test]
         public async Task VerifyAlreadyOpenChoiceBindsItsValueAndPreservesWorkspace()
         {
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
             var original = session.Current;
             using var file = new Mycelium.Bloom.Tests.ViewModel.Diagram.WorkspaceModelFile("Existing model", "part");
             await using var stream = System.IO.File.OpenRead(file.Uri.LocalPath);
             using var lease = await session.OpenContextAsync(stream, System.Threading.CancellationToken.None);
             Mycelium.Bloom.Model.WorkspaceModelSnapshot chosen = null;
-            using var portal = this.Render<BlazorBlueprint.Primitives.Services.BbPortalHost>();
+            using var portal = this.context.Render<BlazorBlueprint.Primitives.Services.BbPortalHost>();
             using var component =
-                this.Render<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>(parameters => parameters
+                this.context.Render<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>(parameters => parameters
                     .Add(value => value.ExistingModels, new[] { lease.Snapshot })
                     .Add(value => value.Opened, value => chosen = value.Snapshot));
             await component.Find("button").ClickAsync();
@@ -207,20 +242,23 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(select.Instance.Value, Is.EqualTo(lease.Snapshot.Id.ToString()));
             await portal.FindAll("button").Single(button => button.TextContent.Trim() == "Open for this session")
                 .ClickAsync();
-            Assert.That(chosen, Is.SameAs(lease.Snapshot));
-            Assert.That(session.Current, Is.SameAs(original));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(chosen, Is.SameAs(lease.Snapshot));
+                Assert.That(session.Current, Is.SameAs(original));
+            }
         }
 
         [Test]
         public async Task VerifyExampleRequiresExplicitChoiceAndUsesCanonicalWorkspace()
         {
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
             var previous = session.Current;
-            using var portal = this.Render<BlazorBlueprint.Primitives.Services.BbPortalHost>();
+            using var portal = this.context.Render<BlazorBlueprint.Primitives.Services.BbPortalHost>();
             Mycelium.Bloom.Model.WorkspaceModelLease lease = null;
             using var component =
-                this.Render<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>(parameters => parameters
+                this.context.Render<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>(parameters => parameters
                     .Add(value => value.Opened, opened => lease = session.Acquire(opened.Snapshot)));
             Assert.That(component.Find("button").HasAttribute("disabled"), Is.False);
             await component.Find("button").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
@@ -235,18 +273,21 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await portal.WaitForAssertionAsync(() => Assert.That(portal.FindAll("input[type='file']"), Is.Empty));
             using var retained = lease;
             Assert.That(session.Current, Is.SameAs(previous));
-            using var diagram = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var diagram = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             diagram.UpdateWorkspace(lease.Snapshot);
             await diagram.Preparation;
             var projection = diagram.Projection;
             Assert.That(projection.Parts, Has.Count.EqualTo(7));
-            Assert.That(projection.Parts.Values.Sum(part => part.Ports.Length), Is.EqualTo(10));
-            Assert.That(projection.Connections, Has.Count.EqualTo(5));
-            Assert.That(projection.Parts.Values.SelectMany(part => part.Ports).All(port => port.Direction.HasValue),
-                Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(projection.Parts.Values.Sum(part => part.Ports.Length), Is.EqualTo(10));
+                Assert.That(projection.Connections, Has.Count.EqualTo(5));
+                Assert.That(projection.Parts.Values.SelectMany(part => part.Ports).All(port => port.Direction.HasValue),
+                    Is.True);
+            }
             foreach (var part in projection.Parts.Values)
             {
-                Assert.That(await this.Services
+                Assert.That(await this.context.Services
                     .GetRequiredService<Mycelium.Bloom.Core.ModelLoading.IElementIdResolver>()
                     .ResolveAsync(part.ElementId, System.Threading.CancellationToken.None), Is.Not.Null);
             }
@@ -257,15 +298,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
+            this.context.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
             var owned = new List<DiagramViewModel>();
-            this.Services.AddScoped<Func<DiagramViewModel>>(provider => () =>
+            this.context.Services.AddScoped<Func<DiagramViewModel>>(provider => () =>
             {
                 var viewModel = ActivatorUtilities.CreateInstance<DiagramViewModel>(provider);
                 owned.Add(viewModel);
                 return viewModel;
             });
-            using var component = this.Render<Modelling>();
+            using var component = this.context.Render<Modelling>();
             var source = editor.Groups[2];
             var destination = editor.Groups[1];
             var placeholder = source.ActiveTab;
@@ -312,10 +353,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         public async Task VerifyComponentDisposalLeavesTheCallerOwnedTabStateAlive()
         {
             var module =
-                this.JSInterop.SetupModule("./Components/UI/Organisms/Interconnection/Interconnection.razor.js");
+                this.context.JSInterop.SetupModule("./Components/UI/Organisms/Interconnection/Interconnection.razor.js");
             module.SetupVoid("mount", _ => true).SetVoidResult();
             module.SetupVoid("unmount", _ => true).SetVoidResult();
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var viewModel = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(viewModel);
             var occurrence = viewModel.State.Occurrences.First(node => node.ParentId is null && !viewModel.State.Occurrences.Any(child => child.ParentId == node.Id));
             Assert.That(viewModel.ApplyPresentation(viewModel.State with
@@ -324,7 +365,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     occurrence with { Geometry = occurrence.Geometry with { Width = 200.5 } })
             }), Is.True);
             var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, viewModel));
+                this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, viewModel));
             await component.WaitForAssertionAsync(() =>
             {
                 var numericValues = component.FindAll(".connection-svg__multiplicity")
@@ -353,11 +394,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             runtime.Setup(value =>
                     value.InvokeAsync<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", It.IsAny<object[]>()))
                 .Returns(new ValueTask<Rectangle>(new Rectangle(0, 0, 1000, 700)));
-            this.Services.AddSingleton(runtime.Object);
+            this.context.Services.AddSingleton(runtime.Object);
             var module = new Mock<IJSObjectReference>(MockBehavior.Loose);
-            using var viewModel = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var viewModel = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(viewModel);
-            var component = this.Render<Interconnection>(parameters =>
+            var component = this.context.Render<Interconnection>(parameters =>
                 parameters.Add(value => value.ViewModel, viewModel));
             try
             {
@@ -405,10 +446,10 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     .ThrowsAsync(new JSException("unmount failure"));
             }
 
-            this.Services.AddSingleton(runtime.Object);
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            this.context.Services.AddSingleton(runtime.Object);
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(owner);
-            var component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var component = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() => module.Verify(value =>
                 value.InvokeAsync<Microsoft.JSInterop.Infrastructure.IJSVoidResult>(
                     "mount", It.IsAny<object[]>()), Times.Once));
@@ -422,7 +463,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 mounted.SetResult(default);
             }
 
-            Assert.That(async () => await disposal,
+            await Assert.ThatAsync(async () => await disposal,
                 Throws.TypeOf<JSException>().With.Message.EqualTo($"{failingOperation} failure"));
             await component.Instance.DisposeAsync();
             module.Verify(
@@ -438,17 +479,17 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         [TestCase(null)]
         public async Task VerifyPortGlyphPreservesDirectionAndBoundaryCenter(FeatureDirectionKind? direction)
         {
-            var root = await this.LoadExampleAsync();
-            foreach (var canonical in this.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Values.Select(value => value.Value)
+            await this.LoadExampleAsync();
+            foreach (var canonical in this.context.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Values.Select(value => value.Value)
                          .OfType<SysML2.NET.Core.POCO.Systems.Ports.IPortUsage>())
             {
                 canonical.Direction = direction;
             }
 
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(owner);
             using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+                this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindAll(".part-svg__port"), Has.Count.EqualTo(10)));
 
@@ -474,23 +515,29 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
                 var bytes = Convert.FromBase64String(image.GetAttribute("href").Split(',')[1]);
                 var asset = System.Xml.Linq.XElement.Parse(System.Text.Encoding.UTF8.GetString(bytes));
-                Assert.That(asset.Attribute("viewBox")?.Value, Is.EqualTo("0 0 20 20"));
-                Assert.That(asset.Descendants().Count(element => element.Name.LocalName == "path"), Is.EqualTo(2));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(asset.Attribute("viewBox")?.Value, Is.EqualTo("0 0 20 20"));
+                    Assert.That(asset.Descendants().Count(element => element.Name.LocalName == "path"), Is.EqualTo(2));
+                }
             }
             else
             {
-                Assert.That(component.FindAll(".part-svg__port-direction"), Is.Empty);
-                Assert.That(component.FindAll(".part-svg__port rect"), Has.Count.EqualTo(10));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(component.FindAll(".part-svg__port-direction"), Is.Empty);
+                    Assert.That(component.FindAll(".part-svg__port rect"), Has.Count.EqualTo(10));
+                }
             }
         }
 
         [Test]
         public async Task VerifyPlainConnectionsAndMultipleSelectionDoNotInventFlowOrPresence()
         {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(owner);
             using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+                this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindAll(".connection-svg__icon"), Has.Count.EqualTo(5)));
             var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
@@ -512,24 +559,26 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(owner.SelectedOccurrences, Has.Count.EqualTo(2));
         }
 
-        private static PortModel FindPort(IRenderedComponent<Interconnection> component, Guid occurrenceId,
-            string portId) =>
-            component.FindComponents<PartSvg>().Single(part => part.Instance.Node.Id == occurrenceId.ToString())
-                .Instance.Node.Ports.Single(port => port.Id == portId);
-
         [Test]
         public void VerifyNormalCompositionOmitsAlternativeEngineAndStressControls()
         {
-            using var component = this.Render<Modelling>();
+            using var component = this.context.Render<Modelling>();
             foreach (var menu in component.FindComponents<ActionMenu>())
             {
-                Assert.That(menu.Instance.Items.Select(item => item.Id), Does.Not.Contain("open-interconnection-x6"));
-                Assert.That(menu.Instance.Items.Single(item => item.Id == "open-interconnection").Label,
-                    Is.EqualTo("Interconnection"));
-                Assert.That(menu.Instance.Items.Select(item => item.Id),
-                    Is.EqualTo(new[] { "empty-editor", "open-project-browser", "open-interconnection" }));
-                Assert.That(menu.Instance.Items.All(item => !item.Id.Contains("stress", StringComparison.Ordinal)),
-                    Is.True);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(menu.Instance.Items.Select(item => item.Id), Does.Not.Contain("open-interconnection-x6"));
+                    Assert.That(menu.Instance.Items.Single(item => item.Id == "open-interconnection").Label,
+                        Is.EqualTo("Interconnection"));
+                }
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(menu.Instance.Items.Select(item => item.Id),
+                                    Is.EqualTo(AddActions));
+                    Assert.That(menu.Instance.Items.All(item => !item.Id.Contains("stress", StringComparison.Ordinal)),
+                        Is.True);
+                }
             }
 
             Assert.That(component.FindAll("[data-testid='diagram-benchmark-probe']"), Is.Empty);
@@ -540,7 +589,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
+            this.context.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var pending = new Mock<Mycelium.Bloom.ViewModel.ProjectBrowser.IProjectBrowserViewModel>();
@@ -554,15 +603,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     return true;
                 });
             var delay = false;
-            this.Services.AddScoped<Func<Mycelium.Bloom.ViewModel.ProjectBrowser.IProjectBrowserViewModel>>(provider =>
+            this.context.Services.AddScoped<Func<Mycelium.Bloom.ViewModel.ProjectBrowser.IProjectBrowserViewModel>>(provider =>
                 () => delay
                     ? pending.Object
                     : ActivatorUtilities
                         .CreateInstance<Mycelium.Bloom.ViewModel.ProjectBrowser.ProjectBrowserViewModel>(provider));
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
-            using var component = this.Render<Modelling>();
-            var menu = component.FindComponents<ActionMenu>().Last().Instance;
+            using var component = this.context.Render<Modelling>();
+            var menu = component.FindComponents<ActionMenu>()[^1].Instance;
             await component.InvokeAsync(() =>
                 menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection")));
             var tab = editor.Groups[2].ActiveTab;
@@ -577,9 +626,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{tab.Id}']").ClickAsync();
             await operation;
             lease.Dispose();
-            Assert.That(editor.Groups.SelectMany(group => group.Tabs).Any(item => item.Title == "Late model"),
-                Is.False);
-            Assert.That(session.OpenModels.Any(model => model.Root.DeclaredName == "Late model"), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(editor.Groups.SelectMany(group => group.Tabs).Any(item => item.Title == "Late model"),
+                            Is.False);
+                Assert.That(session.GetOpenModels().Any(model => model.Root.DeclaredName == "Late model"), Is.False);
+            }
             pending.Verify(value => value.Dispose(), Times.Once);
         }
 
@@ -588,16 +640,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            this.context.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.EnsureLoadedAsync();
             var quantities = session.Current;
-            using var component = this.Render<Modelling>();
+            using var component = this.context.Render<Modelling>();
             var originalBrowser = component
                 .FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser>().Instance
                 .ViewModel;
             await component.WaitForAssertionAsync(() => Assert.That(originalBrowser.RootNodes, Is.Not.Empty));
-            var menu = component.FindComponents<ActionMenu>().Last().Instance;
+            var menu = component.FindComponents<ActionMenu>()[^1].Instance;
             await component.InvokeAsync(() =>
                 menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection")));
             await component.WaitForAssertionAsync(() =>
@@ -614,8 +666,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     Is.EqualTo("pump")));
             Assert.That(editor.Groups[2].ActiveTab, Is.SameAs(invoking));
             originalBrowser.SelectNode(originalBrowser.RootNodes.Single());
-            Assert.That(originalBrowser.RootNodes.Single().SourceElement, Is.SameAs(quantities.Root));
-            Assert.That(session.Current, Is.SameAs(quantities));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(originalBrowser.RootNodes.Single().SourceElement, Is.SameAs(quantities.Root));
+                Assert.That(session.Current, Is.SameAs(quantities));
+            }
             var tabCount = editor.Groups.Sum(group => group.Tabs.Count);
             opener = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>();
             Assert.That(opener.Instance.ExistingModels.Select(value => value.Id), Does.Contain(model.Snapshot.Id));
@@ -632,12 +687,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(
                     component.FindComponent<Interconnection>().Instance.ViewModel.Projection.Parts.Values.Single().Name,
                     Is.EqualTo("valve")));
-            Assert.That(pump.IsScopeAvailable, Is.True);
-            Assert.That(pump.State, Is.SameAs(saved));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(pump.IsScopeAvailable, Is.True);
+                Assert.That(pump.State, Is.SameAs(saved));
+            }
             await component.InvokeAsync(() => editor.ActivateTab(editor.Groups[2].Id, invoking.Id));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindComponent<Interconnection>().Instance.ViewModel, Is.SameAs(pump)));
-            var quantityTab = editor.Groups[0].Tabs.First();
+            var quantityTab = editor.Groups[0].Tabs[0];
             await component.InvokeAsync(() => editor.ActivateTab(editor.Groups[0].Id, quantityTab.Id));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(
@@ -649,7 +707,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         [TestCase(true)]
         public async Task VerifyNormalEmptyOrUnsupportedScopeNeverSubstitutesFixture(bool noModel)
         {
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             if (noModel)
             {
                 session.Clear();
@@ -659,16 +717,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 await session.EnsureLoadedAsync();
             }
 
-            var count = this.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Count;
-            using var component = this.Render<Modelling>();
-            var menu = component.FindComponents<ActionMenu>().Last().Instance;
+            var count = this.context.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Count;
+            using var component = this.context.Render<Modelling>();
+            var menu = component.FindComponents<ActionMenu>()[^1].Instance;
             await component.InvokeAsync(() =>
                 menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection")));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.Find("[data-testid='interconnection-scope-status']").TextContent,
                     Does.Contain(noModel ? "No model loaded" : "No structural parts to display")));
-            Assert.That(component.FindComponents<Interconnection>(), Is.Empty);
-            Assert.That(this.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache.Count, Is.EqualTo(count));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindComponents<Interconnection>(), Is.Empty);
+                Assert.That(this.context.Services.GetRequiredService<SysML2.NET.Dal.IAssembler>().Cache, Has.Count.EqualTo(count));
+            }
         }
 
         [Test]
@@ -676,8 +737,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         {
             using var editor =
                 new WorkspaceEditorViewModel(Options.Create(new WorkspaceEditorOptions { MaximumGroupCount = 4 }));
-            this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
-            using var component = this.Render<Modelling>();
+            this.context.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editor);
+            using var component = this.context.Render<Modelling>();
             var group = editor.Groups[2];
             var placeholder = group.ActiveTab;
             await this.OpenDiagramAsync(component);
@@ -693,49 +754,63 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             Assert.That(requests, Is.EqualTo(new[] { node.ElementId, node.ElementId }));
             await component.InvokeAsync(() => editor.ActivateTab(group.Id, placeholder.Id));
             await component.InvokeAsync(() => browser.SelectedNodeChanged.InvokeAsync(node));
-            Assert.That(requests, Is.EqualTo(new[] { node.ElementId, node.ElementId, node.ElementId }));
-            Assert.That(group.ActiveTab, Is.SameAs(placeholder));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(requests, Is.EqualTo(new[] { node.ElementId, node.ElementId, node.ElementId }));
+                Assert.That(group.ActiveTab, Is.SameAs(placeholder));
+            }
         }
 
         [Test]
         public async Task VerifyNormalLargeScopeCreatesOnlyRegionalModelsAndRetainsThemAfterMovement()
         {
             using var file = new Mycelium.Bloom.Tests.ViewModel.Diagram.LargeWorkspaceFile(600);
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.OpenAsync(file.Uri);
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             owner.BindWorkspace(session);
             await owner.Preparation;
-            this.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
+            this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
                 .SetResult(new Rectangle(0, 0, 900, 700));
             using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+                this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindAll(".part-svg"), Has.Count.InRange(1, 40)));
             var graph = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-            Assert.That(graph.Nodes.Count + graph.Groups.Count, Is.LessThan(40));
-            Assert.That(owner.State.Occurrences, Has.Length.EqualTo(600));
-            Assert.That(component.FindComponents<GroupSvg>().Count, Is.GreaterThan(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(graph.Nodes.Count + graph.Groups.Count, Is.LessThan(40));
+                Assert.That(owner.State.Occurrences, Has.Length.EqualTo(600));
+                Assert.That(component.FindComponents<GroupSvg>(), Has.Count.GreaterThan(1));
+            }
             var root = owner.State.Occurrences.First(node =>
                 owner.Projection.Parts[node.ElementId].Name == "part00000");
-            var mounted = graph.Groups.Single(group => component.FindComponents<PartSvg>().Any(part =>
-                part.Instance.Node == group && part.Instance.Node.Position.X == root.Geometry.X));
+            var mounted = component.FindComponents<PartSvg>().Single(part =>
+                part.Find(".part-svg").GetAttribute("data-element-id") == root.ElementId).Instance.Node;
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(graph.Groups, Does.Contain(mounted));
+                Assert.That(mounted.Position.X, Is.EqualTo(root.Geometry.X));
+            }
             await component.InvokeAsync(() => mounted.SetPosition(root.Geometry.X + 10, root.Geometry.Y));
             await component.Find(".diagram-canvas")
                 .PointerUpAsync(new Microsoft.AspNetCore.Components.Web.PointerEventArgs { Button = 0 });
             await component.WaitForAssertionAsync(() =>
                 Assert.That(owner.State.Occurrences.Single(node => node.Id == root.Id).Geometry.X,
                     Is.EqualTo(root.Geometry.X + 10)));
-            Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram, Is.SameAs(graph));
-            Assert.That(DiagramPresentationSerializer.Validate(owner.State, owner.Projection, out _, owner.Limits),
-                Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram, Is.SameAs(graph));
+                Assert.That(DiagramPresentationSerializer.Validate(owner.State, owner.Projection, out _, owner.Limits),
+                    Is.True);
+            }
             var distant = owner.State.Occurrences[^1];
             await component.InvokeAsync(() => owner.RevealRequested.Execute(distant.ElementId).Subscribe());
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindAll($".part-svg[data-element-id='{distant.ElementId}']"),
                     Has.Count.EqualTo(1)));
-            Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Nodes.Count,
-                Is.LessThan(40));
+            Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Nodes,
+                Has.Count.LessThan(40));
         }
 
         [TestCase(false)]
@@ -743,12 +818,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         public async Task VerifyRevealWaitsForRegionalCanvasBounds(bool beforeMount)
         {
             using var file = new Mycelium.Bloom.Tests.ViewModel.Diagram.LargeWorkspaceFile(600);
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             await session.OpenAsync(file.Uri);
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             owner.BindWorkspace(session);
             await owner.Preparation;
-            var bounds = this.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
+            var bounds = this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
             var target = owner.State.Occurrences[^1];
             if (beforeMount)
             {
@@ -756,7 +831,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
 
             using var component =
-                this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+                this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             if (!beforeMount)
             {
                 await component.InvokeAsync(() => owner.RevealRequested.Execute(target.ElementId).Subscribe());
@@ -767,16 +842,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.WaitForAssertionAsync(() =>
                 Assert.That(component.FindAll($".part-svg[data-element-id='{target.ElementId}']"),
                     Has.Count.EqualTo(1)));
-            Assert.That(owner.State.Viewport.X, Is.LessThan(-1000));
-            Assert.That(owner.PendingRevealElementId, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.State.Viewport.X, Is.LessThan(-1000));
+                Assert.That(owner.PendingRevealElementId, Is.Null);
+            }
         }
 
         [Test]
         public async Task VerifyReconciliationPreservesExactGeometryWithoutRedundantMoves()
         {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(owner);
-            using var component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+            using var component = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             await component.WaitForAssertionAsync(() => Assert.That(component.FindAll(".part-svg__port"), Has.Count.EqualTo(10)));
             var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
             var occurrence = owner.State.Occurrences.Single(item => owner.Projection.Parts[item.ElementId].Name == "aocs : AOCS");
@@ -803,36 +881,48 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }), Is.True));
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(node.Position, Is.EqualTo(new Point(geometry.X, geometry.Y)));
-                Assert.That(node.Size, Is.EqualTo(new Size(geometry.Width, geometry.Height)));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(node.Position, Is.EqualTo(new Point(geometry.X, geometry.Y)));
+                    Assert.That(node.Size, Is.EqualTo(new Size(geometry.Width, geometry.Height)));
+                }
             });
-            Assert.That(moves, Is.EqualTo(1));
-            Assert.That(node.Ports.All(port => double.IsFinite(port.Position.X) && double.IsFinite(port.Position.Y)), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(moves, Is.EqualTo(1));
+                Assert.That(node.Ports.All(port => double.IsFinite(port.Position.X) && double.IsFinite(port.Position.Y)), Is.True);
+            }
             await component.InvokeAsync(() => owner.IsReadOnly = true);
             await component.WaitForAssertionAsync(() => Assert.That(node.Locked, Is.True));
             await component.InvokeAsync(() => owner.IsReadOnly = false);
             await component.WaitForAssertionAsync(() => Assert.That(node.Locked, Is.False));
-            Assert.That(moves, Is.EqualTo(1));
-            Assert.That(diagram.Nodes.Single(item => item.Id == node.Id), Is.SameAs(node));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(moves, Is.EqualTo(1));
+                Assert.That(diagram.Nodes.Single(item => item.Id == node.Id), Is.SameAs(node));
+            }
         }
 
         [TestCase(0.5)]
         [TestCase(4)]
         public async Task VerifyViewportBoundariesAndConnectedMovementSurviveRemountWithoutDrift(double zoom)
         {
-            using var owner = this.Services.GetRequiredService<Func<DiagramViewModel>>()();
+            using var owner = this.context.Services.GetRequiredService<Func<DiagramViewModel>>()();
             await this.InitializeDiagramAsync(owner);
             var expectedViewport = new DiagramViewport(-20.125, 30.375, zoom);
             Assert.That(owner.ApplyPresentation(owner.State with { Viewport = expectedViewport }), Is.True);
-            var component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var component = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
             try
             {
                 await component.WaitForAssertionAsync(() => Assert.That(component.FindComponents<DiagramCanvasHost>(), Has.Count.EqualTo(1)));
                 var diagram = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
                 await component.WaitForAssertionAsync(() =>
                 {
-                    Assert.That(diagram.Zoom, Is.EqualTo(zoom));
-                    Assert.That(diagram.Pan, Is.EqualTo(new Point(expectedViewport.X, expectedViewport.Y)));
+                    using (Assert.EnterMultipleScope())
+                    {
+                        Assert.That(diagram.Zoom, Is.EqualTo(zoom));
+                        Assert.That(diagram.Pan, Is.EqualTo(new Point(expectedViewport.X, expectedViewport.Y)));
+                    }
                 });
                 var panEvents = 0;
                 var zoomEvents = 0;
@@ -842,8 +932,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 await component.WaitForAssertionAsync(() => Assert.That(diagram.Nodes.All(node => node.Locked), Is.True));
                 await component.InvokeAsync(() => owner.IsReadOnly = false);
                 await component.WaitForAssertionAsync(() => Assert.That(diagram.Nodes.Any(node => !node.Locked), Is.True));
-                Assert.That(panEvents, Is.Zero);
-                Assert.That(zoomEvents, Is.Zero);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panEvents, Is.Zero);
+                    Assert.That(zoomEvents, Is.Zero);
+                }
 
                 var maximumPan = diagram.Container.Width - owner.State.Occurrences.Min(node => node.Geometry.X) * zoom + 400;
                 await component.InvokeAsync(() =>
@@ -854,8 +947,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 });
                 await component.WaitForAssertionAsync(() =>
                 {
-                    Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Pan.X, Is.EqualTo(maximumPan));
-                    Assert.That(owner.State.Viewport.X, Is.EqualTo(maximumPan));
+                    using (Assert.EnterMultipleScope())
+                    {
+                        Assert.That(component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram.Pan.X, Is.EqualTo(maximumPan));
+                        Assert.That(owner.State.Viewport.X, Is.EqualTo(maximumPan));
+                    }
                 });
                 Assert.That(panEvents, Is.EqualTo(2));
                 await component.InvokeAsync(() => Assert.That(owner.ApplyPresentation(owner.State with { Viewport = expectedViewport }), Is.True));
@@ -882,19 +978,25 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 await component.WaitForAssertionAsync(() =>
                 {
                     var accepted = owner.State.Occurrences.Single(item => item.Id == occurrence.Id);
-                    Assert.That(accepted.Geometry.X, Is.EqualTo(expectedPosition.X));
-                    Assert.That(accepted.Geometry.Y, Is.EqualTo(expectedPosition.Y));
+                    using (Assert.EnterMultipleScope())
+                    {
+                        Assert.That(accepted.Geometry.X, Is.EqualTo(expectedPosition.X));
+                        Assert.That(accepted.Geometry.Y, Is.EqualTo(expectedPosition.Y));
+                    }
                 });
                 Assert.That(diagram.Links, Is.Not.Empty);
                 var saved = DiagramPresentationSerializer.Export(owner.State);
                 await component.InvokeAsync(async () => await component.Instance.DisposeAsync());
                 component.Dispose();
-                component = this.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
+                component = this.context.Render<Interconnection>(parameters => parameters.Add(value => value.ViewModel, owner));
                 await component.WaitForAssertionAsync(() =>
                 {
                     var remounted = component.FindComponent<DiagramCanvasHost>().Instance.BlazorDiagram;
-                    Assert.That(remounted.Nodes.Single(item => item.Id == occurrence.Id.ToString()).Position, Is.EqualTo(expectedPosition));
-                    Assert.That(DiagramPresentationSerializer.Export(owner.State), Is.EqualTo(saved));
+                    using (Assert.EnterMultipleScope())
+                    {
+                        Assert.That(remounted.Nodes.Single(item => item.Id == occurrence.Id.ToString()).Position, Is.EqualTo(expectedPosition));
+                        Assert.That(DiagramPresentationSerializer.Export(owner.State), Is.EqualTo(saved));
+                    }
                 });
             }
             finally
@@ -904,9 +1006,42 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             }
         }
 
+        [Test]
+        public async Task VerifyBrowserScrollFailureAfterDisposalDoesNotPublish()
+        {
+            var read = new TaskCompletionSource<Mycelium.Bloom.Model.BrowserScrollPosition>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var module = new Mock<IJSObjectReference>();
+            module.Setup(value => value.InvokeAsync<Mycelium.Bloom.Model.BrowserScrollPosition>(
+                    "readScroll", It.IsAny<object[]>()))
+                .Returns(() =>
+                {
+                    started.TrySetResult();
+                    return new ValueTask<Mycelium.Bloom.Model.BrowserScrollPosition>(read.Task);
+                });
+            var runtime = new Mock<IJSRuntime>();
+            runtime.Setup(value => value.InvokeAsync<IJSObjectReference>("import", It.IsAny<object[]>()))
+                .ReturnsAsync(module.Object);
+            this.context.Services.AddSingleton(runtime.Object);
+            using var owner = this.context.Services.GetRequiredService<Func<Mycelium.Bloom.ViewModel.ProjectBrowser.IProjectBrowserViewModel>>()();
+            await owner.InitializeAsync(System.Threading.CancellationToken.None);
+            var publications = 0;
+            var browser = this.context.Render<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowser>(parameters => parameters
+                .Add(value => value.ViewModel, owner)
+                .Add(value => value.ScrollPositionChanged, _ => publications++));
+            var pending = browser.Find(".mb-project-browser__tree-viewport").TriggerEventAsync("onscroll", EventArgs.Empty);
+            await started.Task;
+            await browser.InvokeAsync(async () => await browser.Instance.DisposeAsync());
+            read.SetException(new JSException("The disposed scroll target is unavailable."));
+            await pending;
+            Assert.That(publications, Is.Zero);
+            module.Verify(value => value.DisposeAsync(), Times.Once);
+        }
+
         private async Task<SysML2.NET.Core.POCO.Root.Namespaces.INamespace> LoadExampleAsync()
         {
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             if (session.Current.Root?.DeclaredName != "Interconnection demonstration")
             {
                 await session.OpenAsync(new Uri(System.IO.Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom"),
@@ -919,17 +1054,17 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         private async Task InitializeDiagramAsync(DiagramViewModel viewModel)
         {
             await this.LoadExampleAsync();
-            viewModel.UpdateWorkspace(this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>().Current);
+            viewModel.UpdateWorkspace(this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>().Current);
             await viewModel.Preparation;
             Assert.That(viewModel.ApplyPresentation(viewModel.State with { Viewport = new DiagramViewport(0, 0, 0.5) }), Is.True);
         }
 
         private async Task OpenDiagramAsync(IRenderedComponent<Modelling> component)
         {
-            var session = this.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
+            var session = this.context.Services.GetRequiredService<Mycelium.Bloom.Core.Context.WorkspaceModelSession>();
             using var stream = System.IO.File.OpenRead(System.IO.Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom"), "Resources", "Prototypes", "Interconnection.json"));
             using var model = await session.OpenContextAsync(stream, System.Threading.CancellationToken.None);
-            var menu = component.FindComponents<ActionMenu>().Last().Instance;
+            var menu = component.FindComponents<ActionMenu>()[^1].Instance;
             await component.InvokeAsync(() => menu.ItemSelected.InvokeAsync(menu.Items.Single(item => item.Id == "open-interconnection")));
             var opener = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening>();
             await component.InvokeAsync(() => opener.Instance.Opened.InvokeAsync(model));

@@ -15,7 +15,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     public sealed partial class ProjectBrowser : IAsyncDisposable
     {
+        /// <summary>Identifies this Browser instance's scrollable DOM viewport.</summary>
         private ElementReference treeViewport;
+        /// <summary>Owns scroll interop for this component mount.</summary>
         private IJSObjectReference scrollModule;
 
         [Inject] private IJSRuntime JsRuntime { get; set; }
@@ -28,7 +30,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public EventCallback<BrowserScrollPosition> ScrollPositionChanged { get; set; }
 
-        /// <inheritdoc />
+        /// <summary>Restores only this tab's scroll snapshot after the Browser mounts.</summary>
+        /// <param name="firstRender">Whether this is the first interactive render.</param>
+        /// <returns>Completion of module initialization and scroll restoration.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
@@ -59,12 +63,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
             catch (JSDisconnectedException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             catch (OperationCanceledException) when (this.isDisposed)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
         }
 
+        /// <summary>Publishes a native scroll snapshot only while its owning Browser remains mounted.</summary>
+        /// <returns>Completion of the current scroll read.</returns>
         private async Task CaptureScrollAsync()
         {
             if (this.isDisposed || this.scrollModule is null || !this.ScrollPositionChanged.HasDelegate)
@@ -83,9 +91,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
             catch (JSException) when (this.isDisposed)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             catch (JSDisconnectedException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
         }
 
@@ -106,9 +116,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
             catch (JSDisconnectedException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             catch (OperationCanceledException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
         }
     }

@@ -148,6 +148,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 })))
                 .Concat()
                 .Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram rendering observation failed.")));
+            this.ObserveReveals(owner, owned);
+        }
+
+        /// <summary>Routes explicit and shared selection reveals to the current component binding.</summary>
+        /// <param name="owner">The caller-owned diagram.</param>
+        /// <param name="owned">Disposes the binding when parameters or component lifetime change.</param>
+        private void ObserveReveals(DiagramViewModel owner, CompositeDisposable owned)
+        {
             var sharedReveals = owner.IsWorkspaceBound
                 ? Observable.Empty<string>()
                 : this.Context.WhenAnyValue(value => value.SelectedElement)
@@ -179,23 +187,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
 
             if (!firstRender)
             {
-                if (this.pendingFocus is { } focus && this.module is not null &&
-                    this.nodes.TryGetValue(focus, out var node) && node.Visible)
-                {
-                    var mounted = this.diagram;
-                    var focused = await this.module.InvokeAsync<bool>("focusOccurrence", this.root, node.Id);
-                    if (!this.disposed && this.pendingFocus == focus && ReferenceEquals(mounted, this.diagram))
-                    {
-                        if (focused)
-                        {
-                            this.pendingFocus = null;
-                        }
-                        else if (++this.focusAttempts <= 3)
-                        {
-                            this.StateHasChanged();
-                        }
-                    }
-                }
+                await this.FocusPendingOccurrenceAsync();
 
                 return;
             }
@@ -209,6 +201,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             {
                 this.StateHasChanged();
             }
+        }
+
+        /// <summary>Focuses a revealed occurrence only after its current graphical component mounts.</summary>
+        /// <returns>Completion of the bounded browser focus attempt.</returns>
+        private async Task FocusPendingOccurrenceAsync()
+        {
+            if (this.pendingFocus is { } focus && this.module is not null &&
+                this.nodes.TryGetValue(focus, out var node) && node.Visible)
+            {
+                var mounted = this.diagram;
+                var focused = await this.module.InvokeAsync<bool>("focusOccurrence", this.root, node.Id);
+                if (!this.disposed && this.pendingFocus == focus && ReferenceEquals(mounted, this.diagram))
+                {
+                    if (focused)
+                    {
+                        this.pendingFocus = null;
+                    }
+                    else if (++this.focusAttempts <= 3)
+                    {
+                        this.StateHasChanged();
+                    }
+                }
+            }
+
         }
 
         /// <summary>Imports and mounts component-scoped browser resources without outliving disposal.</summary>
@@ -286,71 +302,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
 
                 foreach (var occurrence in state.Occurrences.OrderBy(node => node.ParentId.HasValue))
                 {
-                    var node = this.nodes[occurrence.Id];
-                    var geometry = occurrence.Geometry;
-                    var locked = !this.ViewModel.CanEditPresentation || occurrence.ParentId.HasValue;
-                    var changed = node.Locked != locked
-                                  || node.Selected != this.ViewModel.SelectedOccurrences.Contains(occurrence.Id);
-                    node.Locked = locked;
-                    var geometryChanged = node.Position.X != geometry.X || node.Position.Y != geometry.Y
-                                                                        || node.Size.Width != geometry.Width ||
-                                                                        node.Size.Height != geometry.Height;
-                    if (node.Position.X != geometry.X || node.Position.Y != geometry.Y)
-                    {
-                        node.SetPosition(geometry.X, geometry.Y);
-                    }
-
-                    if (geometryChanged)
-                    {
-                        node.Size = new Size(geometry.Width, geometry.Height);
-                        UpdatePorts(node);
-                    }
-
-                    this.RestoreSelection(node, this.ViewModel.SelectedOccurrences.Contains(occurrence.Id));
-                    if (changed || geometryChanged)
-                    {
-                        node.Refresh();
-                    }
+                    this.ReconcileOccurrence(occurrence);
                 }
 
                 foreach (var route in state.Routes)
                 {
-                    var link = this.links[route.Id];
-                    var changed = link.Locked != !this.ViewModel.CanEditPresentation
-                                  || link.Selected != this.ViewModel.SelectedOccurrences.Contains(route.Id);
-                    link.Locked = !this.ViewModel.CanEditPresentation;
-                    if (!link.Vertices.Select(vertex => new DiagramPoint(vertex.Position.X, vertex.Position.Y))
-                            .SequenceEqual(route.Bends))
-                    {
-                        changed = true;
-                        link.Vertices.Clear();
-                        foreach (var point in route.Bends)
-                        {
-                            link.AddVertex(new Point(point.X, point.Y));
-                        }
-                    }
-
-                    foreach (var vertex in link.Vertices)
-                    {
-                        vertex.Locked = link.Locked;
-                    }
-
-                    this.RestoreSelection(link, this.ViewModel.SelectedOccurrences.Contains(route.Id));
-                    if (changed)
-                    {
-                        link.Refresh();
-                    }
+                    this.ReconcileRoute(route);
                 }
 
-                if (this.diagram.Zoom != state.Viewport.Zoom)
-                {
-                    this.diagram.SetZoom(state.Viewport.Zoom);
-                }
-
-                if (this.diagram.Pan.X != state.Viewport.X || this.diagram.Pan.Y != state.Viewport.Y)
-                {
-                    this.diagram.SetPan(state.Viewport.X, state.Viewport.Y);
-                }
+                this.RestoreViewport(state.Viewport);
 
                 this.presented = this.ViewModel.State;
                 this.rendered = state;
@@ -360,6 +320,82 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             finally
             {
                 this.applying = false;
+            }
+        }
+
+        /// <summary>Applies an exact finite viewport value only when the accepted view has changed.</summary>
+        /// <param name="viewport">The validated or clamped viewport.</param>
+        private void RestoreViewport(DiagramViewport viewport)
+        {
+            var current = new DiagramViewport(this.diagram.Pan.X, this.diagram.Pan.Y, this.diagram.Zoom);
+            if (current == viewport)
+            {
+                return;
+            }
+
+            this.diagram.SetZoom(viewport.Zoom);
+            this.diagram.SetPan(viewport.X, viewport.Y);
+        }
+
+        /// <summary>Restores one occurrence from accepted finite geometry without losing fractional changes.</summary>
+        /// <param name="occurrence">The accepted occurrence and selection identity.</param>
+        private void ReconcileOccurrence(DiagramOccurrence occurrence)
+        {
+            var node = this.nodes[occurrence.Id];
+            var geometry = occurrence.Geometry;
+            var locked = !this.ViewModel.CanEditPresentation || occurrence.ParentId.HasValue;
+            var changed = node.Locked != locked
+                          || node.Selected != this.ViewModel.SelectedOccurrences.Contains(occurrence.Id);
+            node.Locked = locked;
+            var currentGeometry = new DiagramGeometry(node.Position.X, node.Position.Y, node.Size.Width,
+                node.Size.Height);
+            var geometryChanged = currentGeometry != geometry;
+            if (!(node.Position.X, node.Position.Y).Equals((geometry.X, geometry.Y)))
+            {
+                node.SetPosition(geometry.X, geometry.Y);
+            }
+
+            if (geometryChanged)
+            {
+                node.Size = new Size(geometry.Width, geometry.Height);
+                UpdatePorts(node);
+            }
+
+            this.RestoreSelection(node, this.ViewModel.SelectedOccurrences.Contains(occurrence.Id));
+            if (changed || geometryChanged)
+            {
+                node.Refresh();
+            }
+        }
+
+        /// <summary>Restores one connection's accepted manual bends and interaction state.</summary>
+        /// <param name="route">The accepted connection occurrence.</param>
+        private void ReconcileRoute(DiagramRoute route)
+        {
+            var link = this.links[route.Id];
+            var changed = link.Locked != !this.ViewModel.CanEditPresentation
+                          || link.Selected != this.ViewModel.SelectedOccurrences.Contains(route.Id);
+            link.Locked = !this.ViewModel.CanEditPresentation;
+            if (!link.Vertices.Select(vertex => new DiagramPoint(vertex.Position.X, vertex.Position.Y))
+                    .SequenceEqual(route.Bends))
+            {
+                changed = true;
+                link.Vertices.Clear();
+                foreach (var point in route.Bends)
+                {
+                    link.AddVertex(new Point(point.X, point.Y));
+                }
+            }
+
+            foreach (var vertex in link.Vertices)
+            {
+                vertex.Locked = link.Locked;
+            }
+
+            this.RestoreSelection(link, this.ViewModel.SelectedOccurrences.Contains(route.Id));
+            if (changed)
+            {
+                link.Refresh();
             }
         }
 
@@ -398,6 +434,107 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             this.diagram.RegisterBehavior(new ZoomBehavior(this.diagram));
             this.diagram.RegisterBehavior(new EventsBehavior(this.diagram));
 
+            this.CreateGraphElements(state, alignments);
+
+            this.diagram.SuspendSorting = false;
+            this.diagram.RefreshOrders();
+            this.diagram.SuspendRefresh = false;
+            this.visibility = new DiagramVisibility(this.diagram, this.ViewportOptions.Value.Margin);
+            this.rendering.Add(this.visibility);
+            this.ObserveRenderer(mounted);
+        }
+
+        /// <summary>Owns selection and coalesced viewport subscriptions for one mounted canvas.</summary>
+        /// <param name="mounted">The canvas whose callbacks must become obsolete on remount.</param>
+        private void ObserveRenderer(BlazorDiagram mounted)
+        {
+            this.rendering.Add(Observable.FromEvent<SelectableModel>(
+                    handler => mounted.SelectionChanged += handler, handler => mounted.SelectionChanged -= handler)
+                .Where(_ => !this.applying)
+                .Select(model => Observable.FromAsync(() => this.InvokeAsync(async () =>
+                {
+                    if (!this.disposed && ReferenceEquals(mounted, this.diagram))
+                    {
+                        await this.SelectRenderedModelAsync(model);
+                    }
+                })))
+                .Concat().Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram selection failed.")));
+
+            var changes = new Subject<Unit>();
+            this.rendering.Add(changes);
+            this.rendering.Add(changes.Sample(TimeSpan.FromMilliseconds(50))
+                .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                {
+                    if (!this.disposed && ReferenceEquals(mounted, this.diagram))
+                    {
+                        this.UpdateViewport();
+                        this.StateHasChanged();
+                    }
+                }))).Concat()
+                .Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram viewport update failed.")));
+            Action changed = () => changes.OnNext(Unit.Default);
+            Action resized = () =>
+            {
+                this.UpdateViewport();
+                this.StateHasChanged();
+            };
+            Action<Model, Blazor.Diagrams.Core.Events.PointerEventArgs> completed = (_, _) =>
+                this.CompleteInteraction(mounted);
+            mounted.PointerUp += completed;
+            mounted.PanChanged += changed;
+            mounted.ZoomChanged += changed;
+            mounted.ContainerChanged += resized;
+            this.rendering.Add(Disposable.Create(() =>
+            {
+                mounted.PointerUp -= completed;
+                mounted.PanChanged -= changed;
+                mounted.ZoomChanged -= changed;
+                mounted.ContainerChanged -= resized;
+            }));
+        }
+
+        /// <summary>Commits a completed gesture before allowing regional topology to change.</summary>
+        /// <param name="mounted">The canvas that received pointer release.</param>
+        private void CompleteInteraction(BlazorDiagram mounted)
+        {
+            if (!ReferenceEquals(mounted, this.diagram))
+            {
+                return;
+            }
+
+            this.interactionActive = false;
+            this.CapturePresentation();
+            this.UpdateViewport();
+            if (this.ViewModel.UsesRegionalRendering)
+            {
+                this.Reconcile();
+            }
+        }
+
+        /// <summary>Publishes canonical selection from the current rendered occurrence set.</summary>
+        /// <param name="model">The library model that initiated selection.</param>
+        /// <returns>Completion of selection validation and canonical resolution.</returns>
+        private async Task SelectRenderedModelAsync(SelectableModel model)
+        {
+            var selected = this.nodes.Where(pair => pair.Value.Selected).Select(pair => pair.Key)
+                .Concat(this.links.Where(pair => pair.Value.Selected).Select(pair => pair.Key))
+                .ToImmutableHashSet();
+            var primary = this.nodes.FirstOrDefault(pair => ReferenceEquals(pair.Value, model)).Key;
+            if (primary == Guid.Empty)
+            {
+                primary = this.links.FirstOrDefault(pair => ReferenceEquals(pair.Value, model)).Key;
+            }
+
+            await this.ViewModel.SelectAsync(selected,
+                model.Selected && primary != Guid.Empty ? primary : null, this.mountLifetime.Token);
+        }
+
+        /// <summary>Creates regional nodes, ports and connections from the accepted projection.</summary>
+        /// <param name="state">The validated regional presentation.</param>
+        /// <param name="alignments">The boundary side for each occurrence port.</param>
+        private void CreateGraphElements(DiagramPresentationState state,
+            Dictionary<(Guid OccurrenceId, string PortId), PortAlignment> alignments)
+        {
             var childrenByParent = state.Occurrences.Where(node => node.ParentId.HasValue)
                 .ToLookup(node => node.ParentId.Value);
             foreach (var occurrence in state.Occurrences.Where(node => !childrenByParent.Contains(node.Id)))
@@ -434,10 +571,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             foreach (var (occurrenceId, node) in this.nodes)
             {
                 var part = GetPart(node);
-                foreach (var port in part.Ports)
+                foreach (var portId in part.Ports.Select(port => port.ElementId))
                 {
-                    var model = node.AddPort(new PortModel(port.ElementId, node,
-                            alignments.GetValueOrDefault((occurrenceId, port.ElementId), PortAlignment.Right),
+                    var model = node.AddPort(new PortModel(portId, node,
+                            alignments.GetValueOrDefault((occurrenceId, portId), PortAlignment.Right),
                             size: new Size(8, 8))
                     { Initialized = true });
                     Action<Model> initializePort = _ =>
@@ -462,77 +599,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 this.diagram.Links.Add(link);
             }
 
-            this.diagram.SuspendSorting = false;
-            this.diagram.RefreshOrders();
-            this.diagram.SuspendRefresh = false;
-            this.visibility = new DiagramVisibility(this.diagram, this.ViewportOptions.Value.Margin);
-            this.rendering.Add(this.visibility);
-            this.rendering.Add(Observable.FromEvent<SelectableModel>(
-                    handler => mounted.SelectionChanged += handler, handler => mounted.SelectionChanged -= handler)
-                .Where(_ => !this.applying)
-                .Select(model => Observable.FromAsync(() => this.InvokeAsync(async () =>
-                {
-                    if (!this.disposed && ReferenceEquals(mounted, this.diagram))
-                    {
-                        var selected = this.nodes.Where(pair => pair.Value.Selected).Select(pair => pair.Key)
-                            .Concat(this.links.Where(pair => pair.Value.Selected).Select(pair => pair.Key))
-                            .ToImmutableHashSet();
-                        var primary = this.nodes.FirstOrDefault(pair => ReferenceEquals(pair.Value, model)).Key;
-                        if (primary == Guid.Empty)
-                        {
-                            primary = this.links.FirstOrDefault(pair => ReferenceEquals(pair.Value, model)).Key;
-                        }
-
-                        await this.ViewModel.SelectAsync(selected,
-                            model.Selected && primary != Guid.Empty ? primary : null, this.mountLifetime.Token);
-                    }
-                })))
-                .Concat().Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram selection failed.")));
-
-            var changes = new Subject<Unit>();
-            this.rendering.Add(changes);
-            this.rendering.Add(changes.Sample(TimeSpan.FromMilliseconds(50))
-                .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
-                {
-                    if (!this.disposed && ReferenceEquals(mounted, this.diagram))
-                    {
-                        this.UpdateViewport();
-                        this.StateHasChanged();
-                    }
-                }))).Concat()
-                .Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram viewport update failed.")));
-            Action changed = () => changes.OnNext(Unit.Default);
-            Action resized = () =>
-            {
-                this.UpdateViewport();
-                this.StateHasChanged();
-            };
-            Action<Model, Blazor.Diagrams.Core.Events.PointerEventArgs> completed = (_, _) =>
-            {
-                if (!ReferenceEquals(mounted, this.diagram))
-                {
-                    return;
-                }
-
-                this.interactionActive = false;
-                this.CapturePresentation();
-                this.UpdateViewport();
-                if (this.ViewModel.UsesRegionalRendering)
-                {
-                    this.Reconcile();
-                }
-            };
-            mounted.PointerUp += completed;
-            mounted.PanChanged += changed;
-            mounted.ZoomChanged += changed;
-            mounted.ContainerChanged += resized;
-            this.rendering.Add(Disposable.Create(() =>
-            {
-                mounted.PointerUp -= completed;
-                mounted.PanChanged -= changed;
-                mounted.ZoomChanged -= changed;
-                mounted.ContainerChanged -= resized;
-            }));
         }
 
         /// <summary>Gets the immutable presentation associated with one library node.</summary>
@@ -605,11 +671,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
         {
             var dx = other.X + other.Width / 2 - geometry.X - geometry.Width / 2;
             var dy = other.Y + other.Height / 2 - geometry.Y - geometry.Height / 2;
-            return Math.Abs(dx) >= Math.Abs(dy)
-                ? dx >= 0 ? PortAlignment.Right : PortAlignment.Left
-                : dy >= 0
-                    ? PortAlignment.Bottom
-                    : PortAlignment.Top;
+            if (Math.Abs(dx) >= Math.Abs(dy))
+            {
+                return dx >= 0 ? PortAlignment.Right : PortAlignment.Left;
+            }
+
+            return dy >= 0 ? PortAlignment.Bottom : PortAlignment.Top;
         }
 
         /// <summary>Captures completed presentation changes without semantic mutation.</summary>
@@ -630,28 +697,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             var candidate = owner with { Viewport = viewport };
             if (this.ViewModel.CanEditPresentation)
             {
-                var occurrences = owner.Occurrences.Select(occurrence =>
-                {
-                    if (!this.nodes.TryGetValue(occurrence.Id, out var node))
-                    {
-                        return occurrence;
-                    }
-
-                    var geometry = new DiagramGeometry(node.Position.X, node.Position.Y, node.Size.Width,
-                        node.Size.Height);
-                    return geometry == occurrence.Geometry ? occurrence : occurrence with { Geometry = geometry };
-                }).ToImmutableArray();
-                var routes = owner.Routes.Select(route =>
-                {
-                    if (!this.links.TryGetValue(route.Id, out var displayedLink))
-                    {
-                        return route;
-                    }
-
-                    var bends = displayedLink.Vertices
-                        .Select(vertex => new DiagramPoint(vertex.Position.X, vertex.Position.Y)).ToImmutableArray();
-                    return bends.SequenceEqual(route.Bends) ? route : route with { Bends = bends };
-                }).ToImmutableArray();
+                var occurrences = owner.Occurrences.Select(this.CaptureOccurrence).ToImmutableArray();
+                var routes = owner.Routes.Select(this.CaptureRoute).ToImmutableArray();
                 candidate = candidate with
                 {
                     Occurrences = occurrences.SequenceEqual(owner.Occurrences) ? owner.Occurrences : occurrences,
@@ -663,6 +710,36 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             {
                 this.Reconcile();
             }
+        }
+
+        /// <summary>Captures mounted geometry while preserving unmounted occurrence state.</summary>
+        /// <param name="occurrence">The previous accepted occurrence.</param>
+        /// <returns>The unchanged occurrence or its exact current geometry.</returns>
+        private DiagramOccurrence CaptureOccurrence(DiagramOccurrence occurrence)
+        {
+            if (!this.nodes.TryGetValue(occurrence.Id, out var node))
+            {
+                return occurrence;
+            }
+
+            var geometry = new DiagramGeometry(node.Position.X, node.Position.Y, node.Size.Width,
+                node.Size.Height);
+            return geometry == occurrence.Geometry ? occurrence : occurrence with { Geometry = geometry };
+        }
+
+        /// <summary>Captures mounted bends while preserving unmounted connection state.</summary>
+        /// <param name="route">The previous accepted connection.</param>
+        /// <returns>The unchanged connection or its current bends.</returns>
+        private DiagramRoute CaptureRoute(DiagramRoute route)
+        {
+            if (!this.links.TryGetValue(route.Id, out var displayedLink))
+            {
+                return route;
+            }
+
+            var bends = displayedLink.Vertices
+                .Select(vertex => new DiagramPoint(vertex.Position.X, vertex.Position.Y)).ToImmutableArray();
+            return bends.SequenceEqual(route.Bends) ? route : route with { Bends = bends };
         }
 
         /// <summary>Requests a controlled zoom without resetting the current pan.</summary>
@@ -752,16 +829,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 container.Width - bounds.Left * zoom + padding);
             var y = Math.Clamp(this.diagram.Pan.Y, -bounds.Bottom * zoom - padding,
                 container.Height - bounds.Top * zoom + padding);
-            if (this.diagram.Zoom != zoom)
-            {
-                this.diagram.SetZoom(zoom);
-            }
-
-            if (this.diagram.Pan.X != x || this.diagram.Pan.Y != y)
-            {
-                this.diagram.SetPan(x, y);
-            }
-
+            this.RestoreViewport(new DiagramViewport(x, y, zoom));
             if (!this.interactionActive)
             {
                 this.ViewModel.RequestRegion(container.Width, container.Height, this.ViewportOptions.Value.Margin * 2);
@@ -847,7 +915,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
 
             this.CapturePresentation();
             this.disposed = true;
-            this.mountLifetime.Cancel();
+            await this.mountLifetime.CancelAsync();
             this.mountLifetime.Dispose();
             this.observation.Dispose();
             this.ClearRenderer();
@@ -877,9 +945,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             }
             catch (JSDisconnectedException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             catch (ObjectDisposedException)
             {
+                // The circuit may release the JS reference before component teardown completes.
             }
         }
     }

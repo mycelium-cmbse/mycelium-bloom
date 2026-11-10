@@ -25,7 +25,7 @@
         <div class="model-opening">
             @if (this.ExistingModels.Count > 0)
             {
-                <SelectInput Label="Already-open model" Placeholder="Choose an open model" Options="this.ExistingOptions"
+                <SelectInput Label="Already-open model" Placeholder="Choose an open model" Options="this.GetExistingOptions()"
                              Value="@this.existingId" ValueChanged="this.SelectExisting" Disabled="this.viewModel.State.Busy" />
             }
             <label class="model-opening__file">

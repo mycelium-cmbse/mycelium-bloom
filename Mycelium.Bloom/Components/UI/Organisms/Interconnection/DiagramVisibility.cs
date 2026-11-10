@@ -67,9 +67,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
                 var pinned = interactionActive && model is SelectableModel { Selected: true };
                 model.Visible = pinned || Intersects(box, model.Visible ? retained : near);
             }
-            foreach (var node in this.diagram.Nodes.Where(node => node.Visible))
+            foreach (var group in this.diagram.Nodes.Where(node => node.Visible).Select(node => node.Group))
             {
-                for (var parent = node.Group; parent is not null; parent = parent.Group)
+                for (var parent = group; parent is not null; parent = parent.Group)
                 {
                     parent.Visible = true;
                 }

@@ -17,10 +17,15 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
     public sealed partial class DiagramViewModel
     {
+        /// <summary>Publishes regional presentation requests owned by this tab.</summary>
         private readonly Subject<DiagramPresentationState> regionRequests = new();
+        /// <summary>Owns the current context's cancellable regional projection pipeline.</summary>
         private IDisposable loadingSubscription;
+        /// <summary>Retains the exact accepted state associated with the last region request.</summary>
         private DiagramPresentationState requestedState;
+        /// <summary>Retains the last requested pane width in CSS pixels.</summary>
         private double requestedWidth;
+        /// <summary>Retains the last requested pane height in CSS pixels.</summary>
         private double requestedHeight;
         /// <summary>Gets whether renderer models are restricted to the requested region.</summary>
         public bool UsesRegionalRendering => this.IsWorkspaceBound;
@@ -33,6 +38,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         }
 
 
+        /// <summary>Replaces the context-owned regional projection subscription.</summary>
         private void StartRegionLoading()
         {
             this.loadingSubscription?.Dispose();
@@ -58,8 +64,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
                 if (this.requestedState is { } previous && previous.Occurrences == this.State.Occurrences
                                                         && previous.Routes == this.State.Routes &&
-                                                        this.requestedWidth == width && this.requestedHeight == height
-                                                        && previous.Viewport.Zoom == this.State.Viewport.Zoom
+                                                        (this.requestedWidth, this.requestedHeight, previous.Viewport.Zoom)
+                                                            .Equals((width, height, this.State.Viewport.Zoom))
                                                         && Math.Abs(previous.Viewport.X - this.State.Viewport.X) <
                                                         margin / 2
                                                         && Math.Abs(previous.Viewport.Y - this.State.Viewport.Y) <
@@ -136,6 +142,10 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
+        /// <summary>Publishes regional details under the tab's coherent state lock.</summary>
+        /// <param name="region">The requested occurrence and connection subset.</param>
+        /// <param name="cancellationToken">Cancels a superseded request.</param>
+        /// <returns>Completion of the regional projection.</returns>
         private Task LoadRegionAsync(DiagramPresentationState region, CancellationToken cancellationToken)
         {
             lock (this.mutationGate)

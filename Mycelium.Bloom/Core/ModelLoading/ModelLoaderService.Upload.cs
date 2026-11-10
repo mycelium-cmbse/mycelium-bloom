@@ -18,12 +18,18 @@ namespace Mycelium.Bloom.Core.ModelLoading
 
     public sealed partial class ModelLoaderService
     {
+        /// <summary>Bounds uploaded JSON nesting independently of SDK ownership depth.</summary>
+        private static readonly JsonSerializerOptions UploadJsonOptions = new() { MaxDepth = 64 };
+
         /// <summary>Retains canonical upload contexts by content fingerprint until their final lease is released.</summary>
         private readonly
             System.Collections.Concurrent.ConcurrentDictionary<string, (INamespace Root, SysML2.NET.Dal.IAssembler Owner
                 )> uploadedModels = new(StringComparer.Ordinal);
 
-        /// <inheritdoc />
+        /// <summary>Resolves a model-local identity through its accepted SDK owner.</summary>
+        /// <param name="root">The exact accepted canonical root.</param>
+        /// <param name="elementId">The validated model-local identity.</param>
+        /// <returns>The canonical object, or null when absent.</returns>
         public SysML2.NET.Core.POCO.Root.Elements.IElement FindUploadedElement(INamespace root, string elementId)
         {
             if (!Guid.TryParse(elementId, out var id))
@@ -35,7 +41,9 @@ namespace Mycelium.Bloom.Core.ModelLoading
             return owner is not null && owner.Cache.TryGetValue(id, out var element) ? element.Value : null;
         }
 
-        /// <inheritdoc />
+        /// <summary>Resolves an unscoped upload identity only when one canonical owner matches.</summary>
+        /// <param name="elementId">The validated model-local identity.</param>
+        /// <returns>The unambiguous canonical object, or null.</returns>
         public SysML2.NET.Core.POCO.Root.Elements.IElement FindUploadedElement(string elementId)
         {
             if (!Guid.TryParse(elementId, out var id))
@@ -48,22 +56,33 @@ namespace Mycelium.Bloom.Core.ModelLoading
             return matches.Length == 1 ? matches[0].Owner.Cache[id].Value : null;
         }
 
-        /// <inheritdoc />
+        /// <summary>Checks whether any accepted SDK owner contains this identity.</summary>
+        /// <param name="elementId">The model-local identity.</param>
+        /// <returns>Whether unscoped resolution must consider uploaded models.</returns>
         public bool HasUploadedIdentity(string elementId) => Guid.TryParse(elementId, out var id)
                                                              && this.uploadedModels.Values.Any(model =>
                                                                  model.Owner.Cache.ContainsKey(id));
 
-        /// <inheritdoc />
-        public Task<INamespace> OpenUploadedModelAsync(Stream stream, CancellationToken cancellationToken,
-            Func<Func<INamespace>, Task<INamespace>> accept) =>
-            this.OpenCandidateAsync(stream, cancellationToken, accept, false);
+        /// <summary>Validates and assembles a candidate before synchronized session acceptance.</summary>
+        /// <param name="stream">The bounded seekable upload.</param>
+        /// <param name="accept">The owning session's atomic publication boundary.</param>
+        /// <param name="cancellationToken">Cancels validation and acceptance.</param>
+        /// <returns>The accepted canonical root.</returns>
+        public Task<INamespace> OpenUploadedModelAsync(Stream stream,
+            Func<Func<INamespace>, Task<INamespace>> accept, CancellationToken cancellationToken) =>
+            this.OpenCandidateAsync(stream, accept, false, cancellationToken);
 
-        /// <inheritdoc />
-        public Task<INamespace> OpenIndependentModelAsync(Stream stream, CancellationToken cancellationToken,
-            Func<Func<INamespace>, Task<INamespace>> accept) =>
-            this.OpenCandidateAsync(stream, cancellationToken, accept, true);
+        /// <summary>Validates and assembles a candidate before synchronized session acceptance.</summary>
+        /// <param name="stream">The bounded seekable upload.</param>
+        /// <param name="accept">The owning session's atomic publication boundary.</param>
+        /// <param name="cancellationToken">Cancels validation and acceptance.</param>
+        /// <returns>The accepted canonical root.</returns>
+        public Task<INamespace> OpenIndependentModelAsync(Stream stream,
+            Func<Func<INamespace>, Task<INamespace>> accept, CancellationToken cancellationToken) =>
+            this.OpenCandidateAsync(stream, accept, true, cancellationToken);
 
-        /// <inheritdoc />
+        /// <summary>Releases the accepted SDK owner after its final model consumer closes.</summary>
+        /// <param name="root">The released canonical root.</param>
         public void ReleaseUploadedModel(INamespace root)
         {
             foreach (var entry in this.uploadedModels.Where(entry => ReferenceEquals(entry.Value.Root, root)))
@@ -78,8 +97,8 @@ namespace Mycelium.Bloom.Core.ModelLoading
         /// <param name="accept">The owning session’s synchronized acceptance boundary.</param>
         /// <param name="independent">Whether canonical IDs may overlap other isolated model contexts.</param>
         /// <returns>The accepted canonical root.</returns>
-        private async Task<INamespace> OpenCandidateAsync(Stream stream, CancellationToken cancellationToken,
-            Func<Func<INamespace>, Task<INamespace>> accept, bool independent)
+        private async Task<INamespace> OpenCandidateAsync(Stream stream,
+            Func<Func<INamespace>, Task<INamespace>> accept, bool independent, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(accept);
             if (!stream.CanSeek || stream.Length is <= 0 or > 67_108_864)
@@ -98,41 +117,7 @@ namespace Mycelium.Bloom.Core.ModelLoading
                 });
             }
 
-            stream.Position = 0;
-            var ids = new HashSet<Guid>();
-            var references = new HashSet<Guid>();
-            var owners = new Dictionary<Guid, Guid>();
-            await foreach (var element in JsonSerializer.DeserializeAsyncEnumerable<JsonElement>(stream,
-                               new JsonSerializerOptions { MaxDepth = 64 }, cancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (element.ValueKind != JsonValueKind.Object
-                    || !element.TryGetProperty("@id", out var identity) || !identity.TryGetGuid(out var id) ||
-                    id == Guid.Empty
-                    || !element.TryGetProperty("elementId", out var semantic) ||
-                    !semantic.TryGetGuid(out var semanticId) || semanticId != id
-                    || !element.TryGetProperty("@type", out var type) || type.ValueKind != JsonValueKind.String
-                    || !ids.Add(id) || ids.Count > 1_000_000)
-                {
-                    throw new InvalidDataException("The file must contain uniquely identified SysML v2 JSON elements.");
-                }
-
-                CollectReferences(element, references);
-                if ((element.TryGetProperty("owningRelationship", out var owner) ||
-                     element.TryGetProperty("owningRelatedElement", out owner))
-                    && owner.ValueKind == JsonValueKind.Object && owner.TryGetProperty("@id", out var ownerId))
-                {
-                    owners.Add(id, ownerId.GetGuid());
-                }
-            }
-
-            if (!references.IsSubsetOf(ids))
-            {
-                throw new InvalidDataException(
-                    "This session opener requires a self-contained model; an element reference is missing from the file.");
-            }
-
-            ValidateOwnership(owners, cancellationToken);
+            var ids = await ValidateUploadAsync(stream, cancellationToken);
             if (!independent && ids.Any(id =>
                     this.assembler.Cache.ContainsKey(id) ||
                     this.uploadedModels.Values.Any(accepted => accepted.Owner.Cache.ContainsKey(id))))
@@ -142,8 +127,8 @@ namespace Mycelium.Bloom.Core.ModelLoading
             }
 
             stream.Position = 0;
-            var data = this.deSerializer
-                .DeSerialize(stream, SerializationModeKind.JSON, SerializationTargetKind.PSM, false).ToList();
+            var data = (await this.deSerializer.DeSerializeAsync(stream, SerializationModeKind.JSON,
+                SerializationTargetKind.PSM, false, cancellationToken)).ToList();
             var elements = data.OfType<DtoElement>().ToList();
             var roots = elements.OfType<DtoNamespace>().Where(element => !element.OwningRelationship.HasValue).ToList();
             if (elements.Count != data.Count || roots.Count != 1)
@@ -174,6 +159,50 @@ namespace Mycelium.Bloom.Core.ModelLoading
 
                 return model;
             });
+        }
+
+        /// <summary>Checks bounded, self-contained input before the SDK creates canonical objects.</summary>
+        /// <param name="stream">The bounded seekable upload.</param>
+        /// <param name="cancellationToken">Cancels input validation.</param>
+        /// <returns>The validated SDK identities.</returns>
+        private static async Task<HashSet<Guid>> ValidateUploadAsync(Stream stream, CancellationToken cancellationToken)
+        {
+            stream.Position = 0;
+            var ids = new HashSet<Guid>();
+            var references = new HashSet<Guid>();
+            var owners = new Dictionary<Guid, Guid>();
+            await foreach (var element in JsonSerializer.DeserializeAsyncEnumerable<JsonElement>(stream,
+                               UploadJsonOptions, cancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (element.ValueKind != JsonValueKind.Object
+                    || !element.TryGetProperty("@id", out var identity) || !identity.TryGetGuid(out var id) ||
+                    id == Guid.Empty
+                    || !element.TryGetProperty("elementId", out var semantic) ||
+                    !semantic.TryGetGuid(out var semanticId) || semanticId != id
+                    || !element.TryGetProperty("@type", out var type) || type.ValueKind != JsonValueKind.String
+                    || !ids.Add(id) || ids.Count > 1_000_000)
+                {
+                    throw new InvalidDataException("The file must contain uniquely identified SysML v2 JSON elements.");
+                }
+
+                CollectReferences(element, references);
+                if ((element.TryGetProperty("owningRelationship", out var owner) ||
+                     element.TryGetProperty("owningRelatedElement", out owner))
+                    && owner.ValueKind == JsonValueKind.Object && owner.TryGetProperty("@id", out var ownerId))
+                {
+                    owners.Add(id, ownerId.GetGuid());
+                }
+            }
+
+            if (!references.IsSubsetOf(ids))
+            {
+                throw new InvalidDataException(
+                    "This session opener requires a self-contained model; an element reference is missing from the file.");
+            }
+
+            ValidateOwnership(owners, cancellationToken);
+            return ids;
         }
 
         /// <summary>Collects SDK identities without resolving external resources.</summary>

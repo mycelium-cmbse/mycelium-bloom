@@ -11,7 +11,7 @@
 @using Blazor.Diagrams.Components.Renderers
 
 <PartSvg Node="this.Group" />
-<g transform="@FormattableString.Invariant($"translate({-this.Group.Position.X} {-this.Group.Position.Y})")">
+<g transform="@string.Create(System.Globalization.CultureInfo.InvariantCulture, $"translate({-this.Group.Position.X} {-this.Group.Position.Y})")">
     @foreach (var child in this.Group.Children)
     {
         @if (child is GroupModel group)

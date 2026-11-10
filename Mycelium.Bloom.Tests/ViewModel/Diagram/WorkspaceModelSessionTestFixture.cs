@@ -61,8 +61,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(3));
             }
 
-            Assert.That(first.AddExisting(canonical.ElementId), Is.True);
-            Assert.That(independent.State.Occurrences, Has.Length.EqualTo(1));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.AddExisting(canonical.ElementId), Is.True);
+                Assert.That(independent.State.Occurrences, Has.Length.EqualTo(1));
+            }
             var saved = first.State;
             var secondRoot = await session.OpenAsync(secondFile.Uri);
             using var second = services.GetRequiredService<Func<DiagramViewModel>>()();
@@ -95,15 +98,21 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                          .Concat(diagram.State.Routes.Select(route => (route.Id, route.ElementId))))
             {
                 await diagram.SelectAsync([item.Id], item.Id);
-                Assert.That(context.SelectedElement, Is.SameAs(canonical[item.ElementId]));
-                Assert.That(diagram.State.ModelScope, Is.EqualTo(root.ElementId));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(context.SelectedElement, Is.SameAs(canonical[item.ElementId]));
+                    Assert.That(diagram.State.ModelScope, Is.EqualTo(root.ElementId));
+                }
             }
 
             context.LifecycleState = ProjectLifecycleKind.Archived;
             Assert.That(diagram.AddExisting(diagram.State.Occurrences[0].ElementId), Is.False);
             session.Clear(true);
-            Assert.That(diagram.IsScopeAvailable, Is.False);
-            Assert.That(context.SelectedElement, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.IsScopeAvailable, Is.False);
+                Assert.That(context.SelectedElement, Is.Null);
+            }
         }
 
         [Test]
@@ -121,7 +130,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(diagram.Projection.Parts, Is.Empty);
                 Assert.That(diagram.State.ModelScope, Is.EqualTo(root.ElementId));
                 Assert.That(await session.EnsureLoadedAsync(), Is.SameAs(root));
-                Assert.That(services.GetRequiredService<IAssembler>().Cache.Count, Is.EqualTo(count));
+                Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(count));
             }
 
             session.Clear();
@@ -130,8 +139,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             Assert.That(diagram.IsScopeAvailable, Is.False);
             using var empty = services.GetRequiredService<Func<DiagramViewModel>>()();
             empty.UpdateWorkspace(session.Current);
-            Assert.That(empty.State, Is.Null);
-            Assert.That(empty.WorkspaceStatus, Is.EqualTo(WorkspaceModelStatus.Empty));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(empty.State, Is.Null);
+                Assert.That(empty.WorkspaceStatus, Is.EqualTo(WorkspaceModelStatus.Empty));
+            }
         }
 
         [TestCase(false)]
@@ -174,10 +186,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 release.Set();
             }
 
-            Assert.That(await loading, Is.Null);
-            Assert.That(session.Current.Root, Is.Null);
-            Assert.That(session.Current.Status,
-                Is.EqualTo(dispose ? WorkspaceModelStatus.Empty : WorkspaceModelStatus.Unavailable));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await loading, Is.Null);
+                Assert.That(session.Current.Root, Is.Null);
+                Assert.That(session.Current.Status,
+                    Is.EqualTo(dispose ? WorkspaceModelStatus.Empty : WorkspaceModelStatus.Unavailable));
+            }
         }
 
         [Test]
@@ -199,10 +214,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 }
             };
             session.Dispose();
-            Assert.That(disposedAtPublication, Is.True);
-            Assert.That(diagram.IsScopeAvailable, Is.False);
-            Assert.That(diagram.ApplyPresentation(state), Is.False);
-            Assert.That(session.Current.Root, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(disposedAtPublication, Is.True);
+                Assert.That(diagram.IsScopeAvailable, Is.False);
+                Assert.That(diagram.ApplyPresentation(state), Is.False);
+                Assert.That(session.Current.Root, Is.Null);
+            }
         }
 
         [Test]
@@ -210,10 +228,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             using var services = CreateServices();
             var session = services.GetRequiredService<WorkspaceModelSession>();
-            Assert.That(await session.OpenAsync(new Uri(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json"))),
-                Is.Null);
-            Assert.That(session.Current.Status, Is.EqualTo(WorkspaceModelStatus.Failed));
-            Assert.That(services.GetRequiredService<IAssembler>().Cache, Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await session.OpenAsync(new Uri(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json"))),
+                            Is.Null);
+                Assert.That(session.Current.Status, Is.EqualTo(WorkspaceModelStatus.Failed));
+                Assert.That(services.GetRequiredService<IAssembler>().Cache, Is.Empty);
+            }
         }
 
         private static ServiceProvider CreateServices()
@@ -246,24 +267,30 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             diagram.BindWorkspace(session);
             await diagram.Preparation;
             var state = diagram.State;
-            Assert.That(await opening.OpenAsync("valve.json", valveBytes.Length, _ => new MemoryStream(valveBytes)),
-                Is.True);
-            Assert.That(session.Current.Root.ownedElement.Single().DeclaredName, Is.EqualTo("valve"));
-            Assert.That(diagram.IsScopeAvailable, Is.False);
-            Assert.That(diagram.State, Is.SameAs(state));
-            Assert.That(pumpRoot.ownedElement.Single().DeclaredName, Is.EqualTo("pump"));
-            Assert.That(await opening.OpenAsync("pump.json", pumpBytes.Length, _ => new MemoryStream(pumpBytes)),
-                Is.True);
-            Assert.That(session.Current.Root, Is.SameAs(pumpRoot));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await opening.OpenAsync("valve.json", valveBytes.Length, _ => new MemoryStream(valveBytes)),
+                            Is.True);
+                Assert.That(session.Current.Root.ownedElement.Single().DeclaredName, Is.EqualTo("valve"));
+                Assert.That(diagram.IsScopeAvailable, Is.False);
+                Assert.That(diagram.State, Is.SameAs(state));
+                Assert.That(pumpRoot.ownedElement.Single().DeclaredName, Is.EqualTo("pump"));
+                Assert.That(await opening.OpenAsync("pump.json", pumpBytes.Length, _ => new MemoryStream(pumpBytes)),
+                    Is.True);
+                Assert.That(session.Current.Root, Is.SameAs(pumpRoot));
+            }
             var changed =
                 System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.UTF8.GetString(pumpBytes)
                     .Replace("pump\"", "changed\""));
-            Assert.That(await opening.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
-                Is.False);
-            Assert.That(pumpRoot.ownedElement.Single().DeclaredName, Is.EqualTo("pump"));
-            Assert.That(opening.State.Error, Does.Contain("conflicts"));
-            Assert.That(await opening.OpenAsync(null, 0, null), Is.True);
-            Assert.That(session.Current.Root, Is.SameAs(quantities));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await opening.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
+                            Is.False);
+                Assert.That(pumpRoot.ownedElement.Single().DeclaredName, Is.EqualTo("pump"));
+                Assert.That(opening.State.Error, Does.Contain("conflicts"));
+                Assert.That(await opening.OpenAsync(null, 0, null), Is.True);
+                Assert.That(session.Current.Root, Is.SameAs(quantities));
+            }
         }
 
         [TestCase("model.xmi", 20, "[]")]
@@ -280,13 +307,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var previous = session.Current;
             var count = services.GetRequiredService<IAssembler>().Cache.Count;
             using var opening = services.GetRequiredService<Func<Mycelium.Bloom.ViewModel.ModelOpeningViewModel>>()();
-            Assert.That(
-                await opening.OpenAsync(name, size, _ => new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content))),
-                Is.False);
-            Assert.That(opening.State.Error, Is.Not.Empty);
-            Assert.That(opening.State.Busy, Is.False);
-            Assert.That(session.Current, Is.SameAs(previous));
-            Assert.That(services.GetRequiredService<IAssembler>().Cache.Count, Is.EqualTo(count));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                            await opening.OpenAsync(name, size, _ => new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content))),
+                            Is.False);
+                Assert.That(opening.State.Error, Is.Not.Empty);
+                Assert.That(opening.State.Busy, Is.False);
+                Assert.That(session.Current, Is.SameAs(previous));
+                Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(count));
+            }
             using var recovery = new WorkspaceModelFile("Recovery", "part");
             var valid = await File.ReadAllBytesAsync(recovery.Uri.LocalPath);
             Assert.That(await opening.OpenAsync("recovery.json", valid.Length, _ => new MemoryStream(valid)), Is.True);
@@ -333,9 +363,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             }
 
             release.TrySetResult();
-            Assert.That(await operation, Is.False);
-            Assert.That(session.Current.Root, Is.SameAs(switchModel ? null : previous.Root));
-            Assert.That(opening.State.Busy, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await operation, Is.False);
+                Assert.That(session.Current.Root, Is.SameAs(switchModel ? null : previous.Root));
+                Assert.That(opening.State.Busy, Is.False);
+            }
             source.Verify(stream => stream.DisposeAsync(), Times.Once);
             Assert.That(await opening.OpenAsync("pump.json", bytes.Length, _ => new MemoryStream(bytes)), Is.True);
         }
@@ -382,9 +415,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(json.ToJsonString());
             using var opening = services.GetRequiredService<Func<Mycelium.Bloom.ViewModel.ModelOpeningViewModel>>()();
-            Assert.That(await opening.OpenAsync("invalid.json", bytes.Length, _ => new MemoryStream(bytes)), Is.False);
-            Assert.That(session.Current, Is.SameAs(before));
-            Assert.That(services.GetRequiredService<IAssembler>().Cache.Count, Is.EqualTo(count));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await opening.OpenAsync("invalid.json", bytes.Length, _ => new MemoryStream(bytes)), Is.False);
+                Assert.That(session.Current, Is.SameAs(before));
+                Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(count));
+            }
             var valid = await File.ReadAllBytesAsync(file.Uri.LocalPath);
             Assert.That(await opening.OpenAsync("valid.json", valid.Length, _ => new MemoryStream(valid)), Is.True);
         }
@@ -420,7 +456,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             }
 
             diagram.RequestRegion(900, 700, 200);
-            Assert.That(diagram.Region.Occurrences.Length, Is.InRange(1, 100));
+            Assert.That(diagram.Region.Occurrences, Has.Length.InRange(1, 100));
             var firstRegion = diagram.Region;
             Assert.That(diagram.Projection.Parts.Values.Count(part => !part.Attributes.IsEmpty),
                 Is.EqualTo(firstRegion.Occurrences.Length));
@@ -435,9 +471,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var misses = diagram.WorkspaceDetailCache.TotalMisses;
             Assert.That(diagram.ApplyPresentation(original), Is.True);
             diagram.RequestRegion(900, 700, 200);
-            Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(misses));
-            Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.GreaterThan(0));
-            Assert.That(diagram.WorkspaceDetailCache.CurrentEstimatedSize, Is.LessThanOrEqualTo(1_048_576));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(misses));
+                Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.GreaterThan(0));
+                Assert.That(diagram.WorkspaceDetailCache.CurrentEstimatedSize, Is.LessThanOrEqualTo(1_048_576));
+            }
 
             var parent =
                 original.Occurrences.First(node => diagram.Projection.Parts[node.ElementId].Name == "part00000");
@@ -447,26 +486,38 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Occurrences = original.Occurrences.Replace(parent,
                     parent with { Geometry = parent.Geometry with { X = parent.Geometry.X + 30 } })
             };
-            Assert.That(
-                diagram.ApplyRenderedPresentation(original, moved,
-                    new System.Collections.Generic.HashSet<Guid> { parent.Id }), Is.True);
-            Assert.That(diagram.State.Occurrences.Single(node => node.Id == child.Id).Geometry.X,
-                Is.EqualTo(child.Geometry.X + 30));
-            Assert.That(
-                DiagramPresentationSerializer.Validate(diagram.State, diagram.Projection, out _, diagram.Limits),
-                Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                            diagram.ApplyRenderedPresentation(original, moved,
+                                new System.Collections.Generic.HashSet<Guid> { parent.Id }), Is.True);
+                Assert.That(diagram.State.Occurrences.Single(node => node.Id == child.Id).Geometry.X,
+                    Is.EqualTo(child.Geometry.X + 30));
+                Assert.That(
+                    DiagramPresentationSerializer.Validate(diagram.State, diagram.Projection, out _, diagram.Limits),
+                    Is.True);
+            }
             var json = DiagramPresentationSerializer.Export(diagram.State);
-            Assert.That(
-                DiagramPresentationSerializer.TryImport(json, diagram.Projection, out var restored, out _,
-                    diagram.Limits), Is.True);
-            Assert.That(restored.Occurrences, Has.Length.EqualTo(10_000));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                            DiagramPresentationSerializer.TryImport(json, diagram.Projection, out var restored, out _,
+                                diagram.Limits), Is.True);
+                Assert.That(restored.Occurrences, Has.Length.EqualTo(10_000));
+            }
             diagram.IsReadOnly = true;
-            Assert.That(diagram.ApplyPresentation(original), Is.False);
-            Assert.That(diagram.RevealOccurrence(distant.ElementId, 900, 700, 0.5), Is.EqualTo(distant.Id));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.ApplyPresentation(original), Is.False);
+                Assert.That(diagram.RevealOccurrence(distant.ElementId, 900, 700, 0.5), Is.EqualTo(distant.Id));
+            }
             diagram.Dispose();
-            Assert.That(diagram.IndexedElementCount, Is.Zero);
-            Assert.That(diagram.WorkspaceDetailCache, Is.Null);
-            Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(file.ElementCount));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.IndexedElementCount, Is.Zero);
+                Assert.That(diagram.WorkspaceDetailCache, Is.Null);
+                Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(file.ElementCount));
+            }
         }
 
         [TestCase(false)]
@@ -490,9 +541,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             }
 
             await diagram.Preparation;
-            Assert.That(diagram.State, Is.Null);
-            Assert.That(diagram.IndexedElementCount, Is.Zero);
-            Assert.That(diagram.WorkspaceDetailCache, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.State, Is.Null);
+                Assert.That(diagram.IndexedElementCount, Is.Zero);
+                Assert.That(diagram.WorkspaceDetailCache, Is.Null);
+            }
         }
 
         [Test]
@@ -505,9 +559,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
             diagram.BindWorkspace(session);
             await diagram.Preparation;
-            Assert.That(diagram.State, Is.Null);
-            Assert.That(diagram.PreparationStatus, Does.Contain("128 levels"));
-            Assert.That(diagram.IndexedElementCount, Is.Zero);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.State, Is.Null);
+                Assert.That(diagram.PreparationStatus, Does.Contain("128 levels"));
+                Assert.That(diagram.IndexedElementCount, Is.Zero);
+            }
         }
 
         [Test]
@@ -546,8 +603,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var misses = diagram.WorkspaceDetailCache.TotalMisses;
             diagram.RevealOccurrence(target.ElementId, 400, 300, 0.5);
             diagram.RequestRegion(400, 300, 20);
-            Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.GreaterThan(misses));
-            Assert.That(diagram.Projection.Parts[target.ElementId], Is.Not.SameAs(previous));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.GreaterThan(misses));
+                Assert.That(diagram.Projection.Parts[target.ElementId], Is.Not.SameAs(previous));
+            }
             Assert.That(diagram.Projection.Parts[target.ElementId].Attributes, Is.EqualTo(previous.Attributes));
             await diagram.SelectAsync([target.Id], target.Id);
             Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(canonical));
@@ -588,8 +648,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var outside = -accepted.Occurrences.Max(node => node.Geometry.X + node.Geometry.Width) - 1000;
             Assert.That(diagram.ApplyPresentation(accepted with { Viewport = new DiagramViewport(outside, 0, 1) }), Is.True);
             diagram.RequestRegion(900, 700, 200);
-            Assert.That(diagram.Region.Occurrences, Is.Empty);
-            Assert.That(diagram.ApplyPresentation(accepted), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.Region.Occurrences, Is.Empty);
+                Assert.That(diagram.ApplyPresentation(accepted), Is.True);
+            }
             diagram.RequestRegion(900, 700, 200);
             Assert.That(diagram.Region.Occurrences, Is.EqualTo(region.Occurrences));
         }
@@ -630,6 +693,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(cache.TotalMisses));
             }
 
+            Assert.That(diagram.ApplyPresentation(diagram.State with { Viewport = new DiagramViewport(-0.0, -0.0, 1) }), Is.True);
+            diagram.RequestRegion(100, 100, 100);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.Region, Is.SameAs(region));
+                Assert.That(diagram.WorkspaceDetailCache.TotalHits, Is.EqualTo(cache.TotalHits));
+                Assert.That(diagram.WorkspaceDetailCache.TotalMisses, Is.EqualTo(cache.TotalMisses));
+            }
+
             const double delta = 1.0 / 1024;
             if (dimension == "zoom")
             {
@@ -638,8 +710,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
 
             diagram.RequestRegion(dimension == "width" ? 100 - delta : 100,
                 dimension == "height" ? 100 - delta : 100, 100);
-            Assert.That(diagram.Region.Occurrences, Is.Empty);
-            Assert.That(diagram.ApplyPresentation(diagram.State with { Viewport = new DiagramViewport(0, 0, 1) }), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.Region.Occurrences, Is.Empty);
+                Assert.That(diagram.ApplyPresentation(diagram.State with { Viewport = new DiagramViewport(0, 0, 1) }), Is.True);
+            }
             diagram.RequestRegion(100, 100, 100);
             Assert.That(diagram.Region.Occurrences, Is.EqualTo(region.Occurrences));
         }
@@ -665,14 +740,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             };
             foreach (var geometry in invalidGeometries)
             {
-                Assert.That(diagram.ApplyPresentation(original with { Occurrences = [node with { Geometry = geometry }] }), Is.False);
-                Assert.That(diagram.State, Is.SameAs(original));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(diagram.ApplyPresentation(original with { Occurrences = [node with { Geometry = geometry }] }), Is.False);
+                    Assert.That(diagram.State, Is.SameAs(original));
+                }
             }
 
             foreach (var viewport in new[] { new DiagramViewport(invalid, 0, 1), new DiagramViewport(0, invalid, 1), new DiagramViewport(0, 0, invalid) })
             {
-                Assert.That(diagram.ApplyPresentation(original with { Viewport = viewport }), Is.False);
-                Assert.That(diagram.State, Is.SameAs(original));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(diagram.ApplyPresentation(original with { Viewport = viewport }), Is.False);
+                    Assert.That(diagram.State, Is.SameAs(original));
+                }
             }
 
             var exact = original with
@@ -680,14 +761,20 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Occurrences = [node with { Geometry = node.Geometry with { X = Math.BitIncrement(node.Geometry.X) } }],
                 Viewport = new DiagramViewport(Math.BitIncrement(1), -0.0, Math.BitDecrement(4))
             };
-            Assert.That(diagram.ApplyPresentation(exact), Is.True);
-            Assert.That(diagram.State, Is.SameAs(exact));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagram.ApplyPresentation(exact), Is.True);
+                Assert.That(diagram.State, Is.SameAs(exact));
+            }
             var encoded = DiagramPresentationSerializer.Export(exact);
-            Assert.That(DiagramPresentationSerializer.TryImport(encoded, diagram.Projection, out var restored, out _, diagram.Limits), Is.True);
-            Assert.That(restored.Occurrences, Is.EqualTo(exact.Occurrences));
-            Assert.That(restored.Viewport, Is.EqualTo(exact.Viewport));
-            Assert.That(diagram.ApplyPresentation(exact with { Viewport = exact.Viewport with { Zoom = Math.BitIncrement(4) } }), Is.False);
-            Assert.That(diagram.State, Is.SameAs(exact));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(DiagramPresentationSerializer.TryImport(encoded, diagram.Projection, out var restored, out _, diagram.Limits), Is.True);
+                Assert.That(restored.Occurrences, Is.EqualTo(exact.Occurrences));
+                Assert.That(restored.Viewport, Is.EqualTo(exact.Viewport));
+                Assert.That(diagram.ApplyPresentation(exact with { Viewport = exact.Viewport with { Zoom = Math.BitIncrement(4) } }), Is.False);
+                Assert.That(diagram.State, Is.SameAs(exact));
+            }
         }
     }
 

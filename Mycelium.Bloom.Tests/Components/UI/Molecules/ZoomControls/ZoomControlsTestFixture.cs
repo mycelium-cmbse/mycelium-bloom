@@ -45,9 +45,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
         {
             var component =
                 this.Render<ZoomControlsComponent>(parameters => parameters.Add(value => value.ShowReset, false));
-            Assert.That(component.FindAll("button[aria-label='Reset zoom']"), Is.Empty);
-            Assert.That(component.FindAll("button"), Has.Count.EqualTo(3));
-            Assert.That(component.Find("output").TextContent.Trim(), Is.EqualTo("100%"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("button[aria-label='Reset zoom']"), Is.Empty);
+                Assert.That(component.FindAll("button"), Has.Count.EqualTo(3));
+                Assert.That(component.Find("output").TextContent.Trim(), Is.EqualTo("100%"));
+            }
         }
 
         /// <summary>

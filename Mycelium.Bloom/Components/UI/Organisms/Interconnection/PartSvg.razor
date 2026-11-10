@@ -64,7 +64,7 @@
     };
 
     /// <summary>Gets the header shape using model-space geometry.</summary>
-    private string HeaderPath => FormattableString.Invariant(
+    private string HeaderPath => string.Create(System.Globalization.CultureInfo.InvariantCulture,
         $"M6 0 H{this.Node.Size.Width - 6} Q{this.Node.Size.Width} 0 {this.Node.Size.Width} 6 V40 H0 V6 Q0 0 6 0");
 
     /// <summary>Formats native SVG scalar values independently of the circuit culture.</summary>

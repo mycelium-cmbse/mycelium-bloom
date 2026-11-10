@@ -116,24 +116,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             error = "Invalid containment, cyclic parents, or excessive nesting depth.";
 
-            foreach (var node in nodes.Values.Where(node => node.ParentId.HasValue))
+            if (!ValidateContainment(nodes, projection, limits))
             {
-                if (!nodes.TryGetValue(node.ParentId.Value, out var parent)
-                    || parent.Id == node.Id || projection.Parts[node.ElementId].ParentElementId != parent.ElementId
-                    || !Contains(parent.Geometry, node.Geometry))
-                {
-                    return false;
-                }
-
-                var ancestor = parent;
-                var depth = 1;
-                while (ancestor.ParentId is { } parentId)
-                {
-                    if (++depth > limits.NestingDepth || !nodes.TryGetValue(parentId, out ancestor))
-                    {
-                        return false;
-                    }
-                }
+                return false;
             }
 
             error = "Invalid connection identity, canonical endpoints, or manual route.";
@@ -155,6 +140,37 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
 
             error = string.Empty;
+            return true;
+        }
+
+        /// <summary>Checks containment against canonical parents and bounded ancestor chains.</summary>
+        /// <param name="nodes">The validated occurrence identity index.</param>
+        /// <param name="projection">The canonical projection.</param>
+        /// <param name="limits">The owning tab's limits.</param>
+        /// <returns>Whether all parent relationships and bounds are valid.</returns>
+        private static bool ValidateContainment(Dictionary<Guid, DiagramOccurrence> nodes,
+            DiagramProjection projection, DiagramPresentationLimits limits)
+        {
+            foreach (var node in nodes.Values.Where(node => node.ParentId.HasValue))
+            {
+                if (!nodes.TryGetValue(node.ParentId.Value, out var parent)
+                    || parent.Id == node.Id || projection.Parts[node.ElementId].ParentElementId != parent.ElementId
+                    || !Contains(parent.Geometry, node.Geometry))
+                {
+                    return false;
+                }
+
+                var ancestor = parent;
+                var depth = 1;
+                while (ancestor.ParentId is { } parentId)
+                {
+                    if (++depth > limits.NestingDepth || !nodes.TryGetValue(parentId, out ancestor))
+                    {
+                        return false;
+                    }
+                }
+            }
+
             return true;
         }
 

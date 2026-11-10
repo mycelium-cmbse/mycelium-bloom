@@ -74,10 +74,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 new MemoryStream(Encoding.UTF8.GetBytes(original.Replace("Pump model", "Valve model")
                     .Replace("pump", "valve")));
             using var second = await session.OpenContextAsync(secondStream, CancellationToken.None);
-            Assert.That(first.Snapshot.Id, Is.Not.EqualTo(second.Snapshot.Id));
-            Assert.That(first.Snapshot.Root.ElementId, Is.EqualTo(second.Snapshot.Root.ElementId));
-            Assert.That(first.Snapshot.Root, Is.Not.SameAs(second.Snapshot.Root));
-            Assert.That(session.Current, Is.SameAs(quantities));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.Snapshot.Id, Is.Not.EqualTo(second.Snapshot.Id));
+                Assert.That(first.Snapshot.Root.ElementId, Is.EqualTo(second.Snapshot.Root.ElementId));
+                Assert.That(first.Snapshot.Root, Is.Not.SameAs(second.Snapshot.Root));
+                Assert.That(session.Current, Is.SameAs(quantities));
+            }
             using var pump = services.GetRequiredService<Func<DiagramViewModel>>()();
             using var valve = services.GetRequiredService<Func<DiagramViewModel>>()();
             pump.UpdateWorkspace(first.Snapshot);
@@ -87,23 +90,32 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var valvePart = second.Snapshot.Root.ownedElement.Single();
             var occurrence = pump.State.Occurrences.Single();
             var other = valve.State.Occurrences.Single();
-            Assert.That(pump.ContainsCanonicalElement(valvePart), Is.False);
-            Assert.That(valve.ContainsCanonicalElement(pumpPart), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(pump.ContainsCanonicalElement(valvePart), Is.False);
+                Assert.That(valve.ContainsCanonicalElement(pumpPart), Is.False);
+            }
             await pump.SelectAsync([occurrence.Id], occurrence.Id);
             Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(pumpPart));
             await valve.SelectAsync([other.Id], other.Id);
-            Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(valvePart));
-            Assert.That(pump.SelectedOccurrences, Does.Contain(occurrence.Id));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.SameAs(valvePart));
+                Assert.That(pump.SelectedOccurrences, Does.Contain(occurrence.Id));
+            }
             using var browser = services.GetRequiredService<Func<IProjectBrowserViewModel>>()();
             await browser.InitializeAsync(first.Snapshot.Root, CancellationToken.None);
             browser.SelectNode(browser.RootNodes.Single());
-            Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement,
-                Is.SameAs(first.Snapshot.Root));
-            Assert.That(services.GetRequiredService<IModelLoaderService>().FindUploadedElement(pumpPart.ElementId),
-                Is.Null);
-            Assert.That(
-                services.GetRequiredService<IModelLoaderService>()
-                    .FindUploadedElement(first.Snapshot.Root, pumpPart.ElementId), Is.SameAs(pumpPart));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement,
+                            Is.SameAs(first.Snapshot.Root));
+                Assert.That(services.GetRequiredService<IModelLoaderService>().FindUploadedElement(pumpPart.ElementId),
+                    Is.Null);
+                Assert.That(
+                    services.GetRequiredService<IModelLoaderService>()
+                        .FindUploadedElement(first.Snapshot.Root, pumpPart.ElementId), Is.SameAs(pumpPart));
+            }
         }
 
         [Test]
@@ -121,18 +133,27 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var child = first.Snapshot.Root.ownedElement.Single();
             services.GetRequiredService<IContextAwareService>().SelectedElement = child;
             first.Dispose();
-            Assert.That(session.OpenModels, Has.Count.EqualTo(1));
-            Assert.That(services.GetRequiredService<IModelLoaderService>().FindUploadedElement(child.ElementId),
-                Is.SameAs(child));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(session.GetOpenModels(), Has.Count.EqualTo(1));
+                Assert.That(services.GetRequiredService<IModelLoaderService>().FindUploadedElement(child.ElementId),
+                    Is.SameAs(child));
+            }
             second.Dispose();
-            Assert.That(session.OpenModels, Is.Empty);
-            Assert.That(services.GetRequiredService<IModelLoaderService>().FindUploadedElement(child.ElementId),
-                Is.Null);
-            Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(session.GetOpenModels(), Is.Empty);
+                Assert.That(services.GetRequiredService<IModelLoaderService>().FindUploadedElement(child.ElementId),
+                    Is.Null);
+                Assert.That(services.GetRequiredService<IContextAwareService>().SelectedElement, Is.Null);
+            }
             using var retryStream = new MemoryStream(bytes);
             using var retry = await session.OpenContextAsync(retryStream, CancellationToken.None);
-            Assert.That(retry.Snapshot.Id, Is.Not.EqualTo(first.Snapshot.Id));
-            Assert.That(retry.Snapshot.Root.ownedElement.Single().DeclaredName, Is.EqualTo("part"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(retry.Snapshot.Id, Is.Not.EqualTo(first.Snapshot.Id));
+                Assert.That(retry.Snapshot.Root.ownedElement.Single().DeclaredName, Is.EqualTo("part"));
+            }
         }
 
         [Test]
@@ -142,16 +163,19 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var loader = services.GetRequiredService<IModelLoaderService>();
             using var file = new WorkspaceModelFile("Example", "part");
             using var firstStream = File.OpenRead(file.Uri.LocalPath);
-            var original = await loader.OpenIndependentModelAsync(firstStream, CancellationToken.None,
-                publish => Task.FromResult(publish()));
+            var original = await loader.OpenIndependentModelAsync(firstStream,
+                publish => Task.FromResult(publish()), CancellationToken.None);
             using var secondStream = File.OpenRead(file.Uri.LocalPath);
-            var reopened = await loader.OpenIndependentModelAsync(secondStream, CancellationToken.None, publish =>
+            var reopened = await loader.OpenIndependentModelAsync(secondStream, publish =>
             {
                 loader.ReleaseUploadedModel(original);
                 return Task.FromResult(publish());
-            });
-            Assert.That(reopened, Is.SameAs(original));
-            Assert.That(loader.FindUploadedElement(reopened, reopened.ElementId), Is.SameAs(reopened));
+            }, CancellationToken.None);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(reopened, Is.SameAs(original));
+                Assert.That(loader.FindUploadedElement(reopened, reopened.ElementId), Is.SameAs(reopened));
+            }
             loader.ReleaseUploadedModel(reopened);
             Assert.That(loader.FindUploadedElement(reopened.ElementId), Is.Null);
         }
@@ -166,18 +190,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using var opening = services.GetRequiredService<Func<ModelOpeningViewModel>>()();
             using var file = new WorkspaceModelFile("Example", "part");
             var bytes = await File.ReadAllBytesAsync(file.Uri.LocalPath);
-            Assert.That(await opening.OpenAsync("part.json", bytes.Length, _ =>
+            using (Assert.EnterMultipleScope())
             {
-                opening.Cancel();
-                return new MemoryStream(bytes);
-            }, true), Is.False);
-            Assert.That(session.OpenModels, Is.Empty);
-            Assert.That(session.Current, Is.SameAs(original));
-            Assert.That(await opening.OpenAsync("part.json", bytes.Length, _ => new MemoryStream(bytes), true),
-                Is.True);
+                Assert.That(await opening.OpenAsync("part.json", bytes.Length, _ =>
+                        {
+                            opening.Cancel();
+                            return new MemoryStream(bytes);
+                        }, true), Is.False);
+                Assert.That(session.GetOpenModels(), Is.Empty);
+                Assert.That(session.Current, Is.SameAs(original));
+                Assert.That(await opening.OpenAsync("part.json", bytes.Length, _ => new MemoryStream(bytes), true),
+                    Is.True);
+            }
             using var lease = opening.TakeOpenedContext();
-            Assert.That(lease.Snapshot.Root.DeclaredName, Is.EqualTo("Example"));
-            Assert.That(session.Current, Is.SameAs(original));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(lease.Snapshot.Root.DeclaredName, Is.EqualTo("Example"));
+                Assert.That(session.Current, Is.SameAs(original));
+            }
         }
     }
 }

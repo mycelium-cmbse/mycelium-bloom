@@ -19,17 +19,27 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
     using ReactiveUI;
 
     /// <summary>Provides the workspace's explicit session-only browser file picker.</summary>
-    public partial class ModelOpening
+    public sealed partial class ModelOpening
     {
+        /// <summary>Owns the current dialog operation and its unpublished accepted lease.</summary>
         private ModelOpeningViewModel viewModel;
+        /// <summary>Observes upload status through the renderer dispatcher.</summary>
         private IDisposable subscription;
+        /// <summary>Retains only the explicitly selected browser file metadata.</summary>
         private IBrowserFile file;
+        /// <summary>Tracks explicit example selection within this dialog.</summary>
         private bool exampleSelected;
+        /// <summary>Tracks this dialog instance visibility.</summary>
         private bool open;
+        /// <summary>Rejects late dialog completions.</summary>
         private bool disposed;
+        /// <summary>Tracks the selected existing canonical context.</summary>
         private string existingId;
+        /// <summary>Identifies the invoking DOM action for focus restoration.</summary>
         private ElementReference trigger;
+        /// <summary>Requests focus restoration after cancellation.</summary>
         private bool returnFocus;
+        /// <summary>Identifies the browser-owned file chooser.</summary>
         private InputFile fileInput;
 
         /// <summary>Gets the diagram-local action label.</summary>
@@ -44,17 +54,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
         [Parameter]
         public EventCallback<WorkspaceModelLease> Opened { get; set; }
 
+        /// <summary>Gets the circuit-owned canonical model registry.</summary>
         [Inject] private WorkspaceModelSession Session { get; set; }
+        /// <summary>Gets browser streaming interop.</summary>
         [Inject] private IJSRuntime JsRuntime { get; set; }
+        /// <summary>Gets the existing Blueprint focus authority.</summary>
         [Inject] private BlazorBlueprint.Primitives.Services.IFocusManager FocusManager { get; set; }
 
-        private SelectInputOption[] ExistingOptions => this.ExistingModels.Select(model => new SelectInputOption
+        /// <summary>Creates display options from caller-supplied open model contexts.</summary>
+        /// <returns>The compatible context choices.</returns>
+        private SelectInputOption[] GetExistingOptions() => this.ExistingModels.Select(model => new SelectInputOption
         {
             Value = model.Id.ToString(),
             Label = model.Root.DeclaredName ?? "Unnamed model"
         }).ToArray();
 
-        /// <inheritdoc />
+        /// <summary>Restores focus to the invoking action after dialog cancellation.</summary>
+        /// <param name="firstRender">Whether this is the initial render.</param>
+        /// <returns>Completion of DOM focus restoration.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (this.returnFocus && !this.disposed)
@@ -72,7 +89,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
         [Inject]
         private ILogger<ModelOpening> Logger { get; set; }
 
-        /// <inheritdoc />
+        /// <summary>Owns the upload view model and renderer-dispatched status observation.</summary>
         protected override void OnInitialized()
         {
             this.viewModel = this.Factory();
@@ -88,8 +105,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
                     error => this.Logger.LogWarning(error, "Model opening display update failed"));
         }
 
+        /// <summary>Opens this diagram-local dialog.</summary>
         private void Show() => this.open = true;
 
+        /// <summary>Selects a browser file without beginning an upload.</summary>
+        /// <param name="args">The browser file selection.</param>
         private void SelectFile(InputFileChangeEventArgs args)
         {
             this.file = args.File;
@@ -97,6 +117,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             this.existingId = null;
         }
 
+        /// <summary>Selects the bundled example only after explicit user input.</summary>
         private void SelectExample()
         {
             this.file = null;
@@ -104,6 +125,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             this.existingId = null;
         }
 
+        /// <summary>Selects an existing canonical context without duplicating its SDK graph.</summary>
+        /// <param name="value">The selected session context identity.</param>
         private void SelectExisting(string value)
         {
             this.existingId = value;
@@ -111,6 +134,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             this.exampleSelected = false;
         }
 
+        /// <summary>Changes dialog visibility and cancels work when it closes.</summary>
+        /// <param name="value">Whether the dialog remains open.</param>
         private void SetOpen(bool value)
         {
             this.open = value;
@@ -124,8 +149,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             }
         }
 
+        /// <summary>Cancels this opening attempt and restores its invoking action.</summary>
         private void Cancel() => this.SetOpen(false);
 
+        /// <summary>Transfers a successfully accepted lease to the invoking diagram.</summary>
+        /// <returns>Completion of attachment or recoverable cancellation.</returns>
         private async Task OpenFileAsync()
         {
             WorkspaceModelLease lease = null;
@@ -169,6 +197,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             }
         }
 
+        /// <summary>Owns browser stream references until bounded session opening completes.</summary>
+        /// <param name="selected">The explicitly selected browser file.</param>
+        /// <returns>Whether the file was accepted.</returns>
         private async Task<bool> UploadAsync(IBrowserFile selected)
         {
             IJSObjectReference module = null;
@@ -190,6 +221,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             }
         }
 
+        /// <summary>Releases a browser reference when its circuit remains reachable.</summary>
+        /// <param name="reference">The operation-owned reference, when acquired.</param>
+        /// <returns>Completion of reference cleanup.</returns>
         private static async ValueTask DisposeReferenceAsync(IAsyncDisposable reference)
         {
             if (reference is null)
@@ -203,9 +237,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ModelOpening
             }
             catch (JSDisconnectedException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             catch (OperationCanceledException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
         }
 

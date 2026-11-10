@@ -427,6 +427,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             catch (OperationCanceledException) when (token.IsCancellationRequested ||
                                                      cancellationToken.IsCancellationRequested)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
         }
 

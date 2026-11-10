@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // <copyright file="ModelLoaderServiceTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
@@ -97,14 +97,14 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
                 new MemoryStream(Encoding.UTF8.GetBytes(new JsonArray(elements.ToArray()).ToJsonString()));
             if (links > 1024)
             {
-                Assert.That(async () => await service.OpenIndependentModelAsync(stream, CancellationToken.None,
-                    accept => Task.FromResult(accept())), Throws.TypeOf<InvalidDataException>()
+                await Assert.ThatAsync(async () => await service.OpenIndependentModelAsync(stream,
+                    accept => Task.FromResult(accept()), CancellationToken.None), Throws.TypeOf<InvalidDataException>()
                     .With.Message.Contains("excessively deep ownership"));
             }
             else
             {
-                var model = await service.OpenIndependentModelAsync(stream, CancellationToken.None,
-                    accept => Task.FromResult(accept()));
+                var model = await service.OpenIndependentModelAsync(stream,
+                    accept => Task.FromResult(accept()), CancellationToken.None);
                 Assert.That(model.DeclaredName, Is.EqualTo("Root"));
                 service.ReleaseUploadedModel(model);
             }
@@ -150,14 +150,14 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
                 new MemoryStream(Encoding.UTF8.GetBytes(new JsonArray(elements.ToArray()).ToJsonString()));
             if (depth == 1024)
             {
-                Assert.That(async () => await service.OpenIndependentModelAsync(stream, CancellationToken.None,
-                    accept => Task.FromResult(accept())), Throws.TypeOf<InvalidDataException>()
+                await Assert.ThatAsync(async () => await service.OpenIndependentModelAsync(stream,
+                    accept => Task.FromResult(accept()), CancellationToken.None), Throws.TypeOf<InvalidDataException>()
                     .With.Message.Contains("excessively deep ownership"));
             }
             else
             {
-                var model = await service.OpenIndependentModelAsync(stream, CancellationToken.None,
-                    accept => Task.FromResult(accept()));
+                var model = await service.OpenIndependentModelAsync(stream,
+                    accept => Task.FromResult(accept()), CancellationToken.None);
                 Assert.That(model.DeclaredName, Is.EqualTo("Root"));
                 service.ReleaseUploadedModel(model);
             }
@@ -176,20 +176,22 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
                     ["@type"] = index % 2 == 0 ? "Package" : "OwningMembership",
                     ["declaredName"] = index == 0 ? "Root" : null
                 };
-                if (index > 0)
+                elements.Add(element);
+                if (index == 0)
                 {
-                    var owner = elements[^1];
-                    element[index % 2 == 0 ? "owningRelationship" : "owningRelatedElement"] =
-                        new JsonObject { ["@id"] = owner["@id"].GetValue<string>() };
-                    owner[index % 2 == 0 ? "ownedRelatedElement" : "ownedRelationship"] =
-                        new JsonArray(new JsonObject { ["@id"] = id });
-                    if (index % 2 == 0)
-                    {
-                        owner["memberElement"] = new JsonObject { ["@id"] = id };
-                    }
+                    continue;
                 }
 
-                elements.Add(element);
+                var owner = elements[^2];
+                element[index % 2 == 0 ? "owningRelationship" : "owningRelatedElement"] =
+                    new JsonObject { ["@id"] = owner["@id"].GetValue<string>() };
+                owner[index % 2 == 0 ? "ownedRelatedElement" : "ownedRelationship"] =
+                    new JsonArray(new JsonObject { ["@id"] = id });
+                if (index % 2 == 0)
+                {
+                    owner["memberElement"] = new JsonObject { ["@id"] = id };
+                }
+
             }
 
             return elements;

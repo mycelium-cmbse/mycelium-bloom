@@ -59,6 +59,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ModellingTestFixture : BunitContext
     {
+        private static readonly string[] ExpectedSecondaryViewTypes = ["placeholder", "interconnection"];
+
         /// <summary>
         /// The Figma-derived relative weights expected for the default three-group composition.
         /// </summary>
@@ -171,7 +173,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(composition.Editor.Groups[0].ActiveTab.ViewTypeKey, Is.EqualTo("project-browser"));
                 Assert.That(composition.Editor.Groups.Skip(1)
                         .Select(group => group.ActiveTab.ViewTypeKey),
-                    Is.EqualTo(new[] { "placeholder", "interconnection" }));
+                    Is.EqualTo(ExpectedSecondaryViewTypes));
                 Assert.That(renderedWeights, Is.EqualTo(ExpectedDefaultGroupWeights));
                 Assert.That(component.FindAll("[data-testid='workspace-editor-placeholder']"),
                     Has.Count.EqualTo(1));

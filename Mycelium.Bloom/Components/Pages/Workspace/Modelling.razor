@@ -73,7 +73,7 @@
                         }
                         <span>@DiagramStatus(diagramViewModel)</span>
                         <Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening
-                            ExistingModels="this.CompatibleModels" Opened="lease => this.AttachModelAsync(tab.Id, lease)" />
+                            ExistingModels="this.GetCompatibleModels()" Opened="lease => this.AttachModelAsync(tab.Id, lease)" />
                     </div>
                 }
                 else
@@ -83,7 +83,7 @@
                             @if (diagramViewModel.IsWorkspaceBound)
                             {
                                 <Mycelium.Bloom.Components.UI.Organisms.ModelOpening.ModelOpening Label="Open another model"
-                                    ExistingModels="this.CompatibleModels" Opened="lease => this.AttachModelAsync(tab.Id, lease)" />
+                                    ExistingModels="this.GetCompatibleModels()" Opened="lease => this.AttachModelAsync(tab.Id, lease)" />
                             }
                         </ModelActions>
                     </Interconnection>

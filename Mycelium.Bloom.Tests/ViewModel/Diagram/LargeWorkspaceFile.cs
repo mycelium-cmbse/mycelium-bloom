@@ -12,103 +12,110 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Text.Json;
-    using System.Text.Json.Nodes;
+    using System.Linq;
+    using SysML2.NET.Common;
+    using SysML2.NET.Core.Core.Types;
+    using SysML2.NET.Core.POCO.Core.Features;
+    using SysML2.NET.Core.POCO.Core.Types;
+    using SysML2.NET.Core.POCO.Kernel.Packages;
+    using SysML2.NET.Core.POCO.Root.Elements;
+    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using SysML2.NET.Core.POCO.Systems.Attributes;
+    using SysML2.NET.Core.POCO.Systems.Connections;
+    using SysML2.NET.Core.POCO.Systems.Parts;
+    using SysML2.NET.Core.POCO.Systems.Ports;
+    using SysML2.NET.Dal;
+    using SysML2.NET.Extensions;
+    using SysML2.NET.Serializer.Json;
 
     internal sealed class LargeWorkspaceFile : IDisposable
     {
-        private readonly List<JsonObject> elements = [];
+        private readonly List<IElement> elements = [];
         private int sequence;
 
         public LargeWorkspaceFile(int count, int depth = 8)
         {
-            var root = this.Element("Package", "Controlled large workspace");
-            var parts = new JsonObject[count];
-            var ports = new JsonObject[count];
-            var packages = new List<JsonObject>();
-            JsonObject package = null;
+            var root = this.Element<Package>("Controlled large workspace");
+            var parts = new PartUsage[count];
+            var ports = new PortUsage[count];
+            var packages = new List<Package>();
+            Package package = null;
             for (var index = 0; index < count; index++)
             {
                 if (index % 100 == 0)
                 {
-                    package = this.Element("Package", $"Region {index / 100:D3}");
+                    package = this.Element<Package>($"Region {index / 100:D3}");
                     packages.Add(package);
-                    this.Own(root, package);
+                    root.AssignOwnership(this.Element<OwningMembership>(), package);
                 }
 
-                parts[index] = this.Element("PartUsage", $"part{index:D5}");
-                parts[index]["isComposite"] = true;
-                var parent = index > 0 && index < depth ? parts[index - 1] : package;
-                this.Own(parent, parts[index], parent == package ? "OwningMembership" : "FeatureMembership");
-                ports[index] = this.Element("PortUsage", $"port{index:D5}");
-                ports[index]["direction"] = index % 2 == 0 ? "out" : "in";
-                this.Own(parts[index], ports[index], "FeatureMembership");
-                var attribute = this.Element("AttributeUsage", $"attribute{index:D5}");
-                this.Own(parts[index], attribute, "FeatureMembership");
+                var part = parts[index] = this.Element<PartUsage>($"part{index:D5}");
+                part.IsComposite = true;
+                if (index > 0 && index < depth)
+                {
+                    parts[index - 1].AssignOwnership(this.Element<FeatureMembership>(), part);
+                }
+                else
+                {
+                    package.AssignOwnership(this.Element<OwningMembership>(), part);
+                }
+
+                var port = ports[index] = this.Element<PortUsage>($"port{index:D5}");
+                port.Direction = index % 2 == 0 ? FeatureDirectionKind.Out : FeatureDirectionKind.In;
+                part.AssignOwnership(this.Element<FeatureMembership>(), port);
+                part.AssignOwnership(this.Element<FeatureMembership>(),
+                    this.Element<AttributeUsage>($"attribute{index:D5}"));
             }
 
             for (var index = 0; index + 1 < count; index += 2)
             {
-                var connection = this.Element("ConnectionUsage", $"connection{index:D5}");
-                this.Own(packages[index / 100], connection);
-                foreach (var port in new[] { ports[index], ports[index + 1] })
-                {
-                    var end = this.Element("Feature", null);
-                    end["isEnd"] = true;
-                    this.Own(connection, end, "EndFeatureMembership");
-                    var reference = this.Element("ReferenceSubsetting", null);
-                    reference["owningRelatedElement"] = Ref(end);
-                    reference["ownedRelatedElement"] = new JsonArray();
-                    foreach (var key in new[] { "referencedFeature", "subsettedFeature", "general" })
-                    {
-                        reference[key] = Ref(port);
-                    }
-
-                    foreach (var key in new[] { "referencingFeature", "subsettingFeature", "specific" })
-                    {
-                        reference[key] = Ref(end);
-                    }
-
-                    ((JsonArray)end["ownedRelationship"]).Add(Ref(reference));
-                }
+                var connection = this.Element<ConnectionUsage>($"connection{index:D5}");
+                packages[index / 100].AssignOwnership(this.Element<OwningMembership>(), connection);
+                this.AddEnd(connection, ports[index]);
+                this.AddEnd(connection, ports[index + 1]);
             }
 
             this.Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".json");
-            File.WriteAllText(this.Path, JsonSerializer.Serialize(this.elements));
+            using var stream = File.Create(this.Path);
+            new Serializer().Serialize(this.elements.Select(ToDto), SerializationModeKind.JSON, false, stream, default);
         }
 
         public string Path { get; }
         public int ElementCount => this.elements.Count;
         public Uri Uri => new(this.Path);
 
-        private JsonObject Element(string type, string name)
+        private T Element<T>(string name = null) where T : IElement, new()
         {
-            var id = $"70000000-0000-4000-8000-{++this.sequence:D12}";
-            var element = new JsonObject
-            {
-                ["@type"] = type,
-                ["@id"] = id,
-                ["elementId"] = id,
-                ["declaredName"] = name,
-                ["ownedRelationship"] = new JsonArray()
-            };
+            var id = Guid.Parse($"70000000-0000-4000-8000-{++this.sequence:D12}");
+            var element = new T { Id = id, ElementId = id.ToString(), DeclaredName = name };
             this.elements.Add(element);
             return element;
         }
 
-        private void Own(JsonObject owner, JsonObject child, string type = "OwningMembership")
+        private void AddEnd(ConnectionUsage connection, PortUsage port)
         {
-            var membership = this.Element(type, null);
-            membership["owningRelatedElement"] = Ref(owner);
-            membership["ownedRelatedElement"] = new JsonArray(Ref(child));
-            membership["memberElement"] = Ref(child);
-            membership["source"] = new JsonArray(Ref(owner));
-            membership["target"] = new JsonArray(Ref(child));
-            child["owningRelationship"] = Ref(membership);
-            ((JsonArray)owner["ownedRelationship"]).Add(Ref(membership));
+            var end = this.Element<Feature>();
+            end.IsEnd = true;
+            connection.AssignOwnership(this.Element<EndFeatureMembership>(), end);
+            var reference = this.Element<ReferenceSubsetting>();
+            reference.ReferencedFeature = port;
+            end.AssignOwnership(reference);
         }
 
-        private static JsonObject Ref(JsonObject element) => new() { ["@id"] = element["@id"].GetValue<string>() };
+        private static IData ToDto(IElement element) => element switch
+        {
+            Package value => value.ToDto(false),
+            PartUsage value => value.ToDto(false),
+            PortUsage value => value.ToDto(false),
+            AttributeUsage value => value.ToDto(false),
+            ConnectionUsage value => value.ToDto(false),
+            Feature value => value.ToDto(false),
+            ReferenceSubsetting value => value.ToDto(false),
+            EndFeatureMembership value => value.ToDto(false),
+            FeatureMembership value => value.ToDto(false),
+            OwningMembership value => value.ToDto(false),
+            _ => throw new InvalidOperationException("Unsupported test element.")
+        };
 
         public void Dispose() => File.Delete(this.Path);
     }

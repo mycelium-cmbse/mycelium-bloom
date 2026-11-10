@@ -174,6 +174,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
             catch (OperationCanceledException)
             {
+                // Closed or superseded owners cannot receive this completion.
             }
             catch (Exception error) when (error is InvalidDataException or InvalidOperationException
                                               or ArgumentException)

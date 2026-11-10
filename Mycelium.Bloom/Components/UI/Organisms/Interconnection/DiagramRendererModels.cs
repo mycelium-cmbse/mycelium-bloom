@@ -109,11 +109,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
             var points = new List<Point>();
             var previous = source;
 
-            foreach (var vertex in link.Vertices)
+            foreach (var position in link.Vertices.Select(vertex => vertex.Position))
             {
-                points.Add(new Point(vertex.Position.X, previous.Y));
-                points.Add(vertex.Position);
-                previous = vertex.Position;
+                points.Add(new Point(position.X, previous.Y));
+                points.Add(position);
+                previous = position;
             }
 
             points.Add(new Point(previous.X, target.Y));

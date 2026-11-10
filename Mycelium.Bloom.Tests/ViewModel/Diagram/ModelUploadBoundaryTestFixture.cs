@@ -46,8 +46,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public async Task VerifyOverlappingIdsStayIsolatedAcrossCircuits()
         {
-            using var firstServices = Services();
-            using var secondServices = Services();
+            await using var firstServices = Services();
+            await using var secondServices = Services();
             using var file = new WorkspaceModelFile("Original", "pump");
             var original = await File.ReadAllBytesAsync(file.Uri.LocalPath);
             var changed = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(original).Replace("pump", "valve")
@@ -65,30 +65,39 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var occurrence = firstState.Occurrences.Single();
             await firstTab.SelectAsync([occurrence.Id], occurrence.Id);
             var selected = firstServices.GetRequiredService<IElementSelectionService>().SelectedElement;
-            Assert.That(await firstOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
-                Is.False);
-            Assert.That(firstTab.State, Is.SameAs(firstState));
-            Assert.That(firstServices.GetRequiredService<IElementSelectionService>().SelectedElement,
-                Is.SameAs(selected));
-            Assert.That(selected.DeclaredName, Is.EqualTo("pump"));
-            Assert.That(await secondOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
-                Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await firstOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
+                            Is.False);
+                Assert.That(firstTab.State, Is.SameAs(firstState));
+                Assert.That(firstServices.GetRequiredService<IElementSelectionService>().SelectedElement,
+                    Is.SameAs(selected));
+                Assert.That(selected.DeclaredName, Is.EqualTo("pump"));
+                Assert.That(await secondOpener.OpenAsync("changed.json", changed.Length, _ => new MemoryStream(changed)),
+                    Is.True);
+            }
             using var secondTab = secondServices.GetRequiredService<Func<DiagramViewModel>>()();
             secondTab.BindWorkspace(second);
             await secondTab.Preparation;
             var secondOccurrence = secondTab.State.Occurrences.Single();
             await secondTab.SelectAsync([secondOccurrence.Id], secondOccurrence.Id);
             var other = secondServices.GetRequiredService<IElementSelectionService>().SelectedElement;
-            Assert.That(other.ElementId, Is.EqualTo(selected.ElementId));
-            Assert.That(other, Is.Not.SameAs(selected));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(other.ElementId, Is.EqualTo(selected.ElementId));
+                Assert.That(other, Is.Not.SameAs(selected));
+            }
             Assert.That(other.DeclaredName, Is.EqualTo("valve"));
             firstTab.Dispose();
             first.Dispose();
-            firstServices.Dispose();
-            Assert.That(firstTab.IndexedElementCount, Is.Zero);
-            Assert.That(firstTab.WorkspaceDetailCache, Is.Null);
-            Assert.That(secondTab.IsScopeAvailable, Is.True);
-            Assert.That(other, Is.SameAs(second.Current.Root.ownedElement.Single()));
+            await firstServices.DisposeAsync();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(firstTab.IndexedElementCount, Is.Zero);
+                Assert.That(firstTab.WorkspaceDetailCache, Is.Null);
+                Assert.That(secondTab.IsScopeAvailable, Is.True);
+                Assert.That(other, Is.SameAs(second.Current.Root.ownedElement.Single()));
+            }
         }
 
         [TestCase("cancel")]
@@ -102,15 +111,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             proxy.Setup(loader => loader.LoadQuantitiesModel()).Returns(real.LoadQuantitiesModel);
             var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             using var release = new ManualResetEventSlim();
-            proxy.Setup(loader => loader.OpenUploadedModelAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>(),
-                    It.IsAny<Func<Func<INamespace>, Task<INamespace>>>()))
-                .Returns((Stream stream, CancellationToken token, Func<Func<INamespace>, Task<INamespace>> accept) =>
-                    real.OpenUploadedModelAsync(stream, token, assemble =>
+            proxy.Setup(loader => loader.OpenUploadedModelAsync(It.IsAny<Stream>(),
+                    It.IsAny<Func<Func<INamespace>, Task<INamespace>>>(), It.IsAny<CancellationToken>()))
+                .Returns((Stream stream, Func<Func<INamespace>, Task<INamespace>> accept, CancellationToken token) =>
+                    real.OpenUploadedModelAsync(stream, assemble =>
                     {
                         ready.TrySetResult();
                         Assert.That(release.Wait(TimeSpan.FromSeconds(10)), Is.True);
                         return accept(assemble);
-                    }));
+                    }, token));
             using var session =
                 new WorkspaceModelSession(proxy.Object, services.GetRequiredService<IElementSelectionService>());
             await session.EnsureLoadedAsync();
@@ -119,11 +128,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using var file = new WorkspaceModelFile("Late model", "part");
             await using var input = File.OpenRead(file.Uri.LocalPath);
             using var cancellation = new CancellationTokenSource();
-            var opening = session.OpenUploadedAsync(input, cancellation.Token, original.Id);
+            var opening = session.OpenUploadedAsync(input, original.Id, cancellation.Token);
             await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
             if (action == "cancel")
             {
-                cancellation.Cancel();
+                await cancellation.CancelAsync();
             }
             else if (action == "switch")
             {
@@ -135,12 +144,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             }
 
             release.Set();
-            Assert.That(async () => await opening, Throws.InstanceOf<OperationCanceledException>());
-            Assert.That(services.GetRequiredService<IAssembler>().Cache.Count, Is.EqualTo(count));
-            Assert.That(session.Current.Root, Is.SameAs(action == "cancel" ? original.Root : null));
+            await Assert.ThatAsync(async () => await opening, Throws.InstanceOf<OperationCanceledException>());
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(count));
+                Assert.That(session.Current.Root, Is.SameAs(action == "cancel" ? original.Root : null));
+            }
             if (action != "dispose")
             {
-                Assert.That(await session.OpenUploadedAsync(input, CancellationToken.None, session.Current.Id),
+                Assert.That(await session.OpenUploadedAsync(input, session.Current.Id, CancellationToken.None),
                     Is.True);
             }
         }
@@ -177,8 +189,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 temporary = Directory.GetFiles(Path.GetTempPath(), "bloom-model-*").Except(before).Single();
                 return source.Object;
             });
-            Assert.That(opened, Is.EqualTo(extraByte <= 0));
-            Assert.That(File.Exists(temporary), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(opened, Is.EqualTo(extraByte <= 0));
+                Assert.That(File.Exists(temporary), Is.False);
+            }
             source.Verify(stream => stream.DisposeAsync(), Times.Once);
             using var recovery = new WorkspaceModelFile("Recovery", "recovered");
             var bytes = await File.ReadAllBytesAsync(recovery.Uri.LocalPath);
@@ -198,29 +213,32 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using var opener = services.GetRequiredService<Func<ModelOpeningViewModel>>()();
             var before = Directory.GetFiles(Path.GetTempPath(), "bloom-model-*");
             string temporary = null;
-            Assert.That(await opener.OpenAsync("model.json", 1, token =>
+            using (Assert.EnterMultipleScope())
             {
-                temporary = Directory.GetFiles(Path.GetTempPath(), "bloom-model-*").Except(before).Single();
-                if (failure == "disconnect")
-                {
-                    throw new IOException("Upload connection ended");
-                }
+                Assert.That(await opener.OpenAsync("model.json", 1, token =>
+                        {
+                            temporary = Directory.GetFiles(Path.GetTempPath(), "bloom-model-*").Except(before).Single();
+                            if (failure == "disconnect")
+                            {
+                                throw new IOException("Upload connection ended");
+                            }
 
-                if (failure == "cancel")
-                {
-                    opener.Cancel();
-                }
+                            if (failure == "cancel")
+                            {
+                                opener.Cancel();
+                            }
 
-                if (failure == "dispose")
-                {
-                    opener.Dispose();
-                }
+                            if (failure == "dispose")
+                            {
+                                opener.Dispose();
+                            }
 
-                token.ThrowIfCancellationRequested();
-                return new MemoryStream([(byte)'{']);
-            }), Is.False);
-            Assert.That(File.Exists(temporary), Is.False);
-            Assert.That(session.Current, Is.SameAs(original));
+                            token.ThrowIfCancellationRequested();
+                            return new MemoryStream([(byte)'{']);
+                        }), Is.False);
+                Assert.That(File.Exists(temporary), Is.False);
+                Assert.That(session.Current, Is.SameAs(original));
+            }
             using var recovery = services.GetRequiredService<Func<ModelOpeningViewModel>>()();
             using var file = new WorkspaceModelFile("Recovery", "part");
             var bytes = await File.ReadAllBytesAsync(file.Uri.LocalPath);
@@ -259,8 +277,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             await connection.OnConnectionDownAsync(null, CancellationToken.None);
             Assert.That(await upload, Is.False);
             source.Verify(stream => stream.DisposeAsync(), Times.Once);
-            Assert.That(File.Exists(temporary), Is.False);
-            Assert.That(session.Current, Is.SameAs(original));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(File.Exists(temporary), Is.False);
+                Assert.That(session.Current, Is.SameAs(original));
+            }
             await connection.OnConnectionUpAsync(null, CancellationToken.None);
             using var file = new WorkspaceModelFile("Recovery", "part");
             var bytes = await File.ReadAllBytesAsync(file.Uri.LocalPath);
@@ -287,9 +308,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             }, true);
             await ready.Task;
             opener.Cancel();
-            Assert.That(await upload, Is.False);
-            Assert.That(File.Exists(temporary), Is.False);
-            Assert.That(session.Current, Is.SameAs(original));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(await upload, Is.False);
+                Assert.That(File.Exists(temporary), Is.False);
+                Assert.That(session.Current, Is.SameAs(original));
+            }
             using var file = new WorkspaceModelFile("Recovery", "part");
             var bytes = await File.ReadAllBytesAsync(file.Uri.LocalPath);
             Assert.That(await opener.OpenStreamAsync("recovery.json", bytes.Length,
