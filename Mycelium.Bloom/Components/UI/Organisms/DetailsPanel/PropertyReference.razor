@@ -11,12 +11,26 @@
 {
     <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Link" Class="@this.Class"
               AriaLabel="@($"Inspect {this.Link.Role}: {this.Link.Label}")" OnClick="this.Inspect">
-        @if (this.ChildContent is not null) { @this.ChildContent } else { @this.Link.Label }
+        @if (this.ChildContent is not null)
+        {
+            @this.ChildContent
+        }
+        else
+        {
+            @this.Link.Label
+        }
     </BbButton>
 }
 else
 {
     <span class="@this.Class">
-        @if (this.ChildContent is not null) { @this.ChildContent } else { @this.Link.Label }
+        @if (this.ChildContent is not null)
+        {
+            @this.ChildContent
+        }
+        else
+        {
+            @this.Link.Label
+        }
     </span>
 }

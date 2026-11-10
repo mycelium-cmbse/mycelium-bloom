@@ -13,18 +13,23 @@
         <section class="mb-property-section mb-property-section--@(section.Layout)" aria-label="@(section.Title)">
             <header class="mb-property-section__heading">
                 <h3>@(section.Title)</h3>
-                @if (section.Count.HasValue) { <span>@(section.Count)</span> }
+                @if (section.Count.HasValue)
+                {
+                    <span>@(section.Count)</span>
+                }
             </header>
             @if (section.Layout is "comment" or "text")
             {
                 <div class="mb-annotation-meta">
                     @foreach (var property in section.Properties)
                     {
-                        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-annotation-badge" aria-label="@property.Key">@property.Value</BbBadge>
+                        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-annotation-badge"
+                                 aria-label="@property.Key">@property.Value</BbBadge>
                     }
                     @foreach (var link in section.Links)
                     {
-                        <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                        <PropertyReference Link="link" SelectedElement="this.SelectedElement"
+                                           InspectRequested="this.Inspect"/>
                     }
                 </div>
             }
@@ -56,7 +61,8 @@
                         <div class="mb-property-field" data-element-id="@link.Element?.ElementId">
                             <dt>@link.Role</dt>
                             <dd>
-                                <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                                <PropertyReference Link="link" SelectedElement="this.SelectedElement"
+                                                   InspectRequested="this.Inspect"/>
                             </dd>
                         </div>
                     }
@@ -67,12 +73,15 @@
                 @foreach (var link in section.Links)
                 {
                     <div class="mb-relation-row" data-element-id="@link.Element?.ElementId">
-                        <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" Class="mb-relation-link">
-                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="@($"mb-relation-kind mb-relation-kind--{link.Category}")">@link.Role</BbBadge>
-                            <span class="mb-relation-identity"><span>@link.Label</span><small>@link.Detail</small></span>
+                        <PropertyReference Link="link" SelectedElement="this.SelectedElement"
+                                           InspectRequested="this.Inspect" Class="mb-relation-link">
+                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary"
+                                     Class="@($"mb-relation-kind mb-relation-kind--{link.Category}")">@link.Role</BbBadge>
+                            <span
+                                class="mb-relation-identity"><span>@link.Label</span><small>@link.Detail</small></span>
                             @if (link.Element is not null && !ReferenceEquals(link.Element, this.SelectedElement))
                             {
-                                <LucideIcon Name="arrow-up-right" Size="12" aria-hidden="true" />
+                                <LucideIcon Name="arrow-up-right" Size="12" aria-hidden="true"/>
                             }
                         </PropertyReference>
                     </div>
@@ -82,16 +91,19 @@
             {
                 <article class="mb-property-card" aria-label="@card.Heading.Label">
                     <header>
-                        <PropertyReference Link="card.Heading" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                        <PropertyReference Link="card.Heading" SelectedElement="this.SelectedElement"
+                                           InspectRequested="this.Inspect"/>
                         @if (card.Badge is not null)
                         {
-                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-property-card__badge">@card.Badge</BbBadge>
+                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary"
+                                     Class="mb-property-card__badge">@card.Badge</BbBadge>
                         }
                     </header>
                     @foreach (var link in card.Links)
                     {
                         <div class="mb-property-card__role"><span>@link.Role /</span>
-                            <PropertyReference Link="link" SelectedElement="this.SelectedElement" InspectRequested="this.Inspect" />
+                            <PropertyReference Link="link" SelectedElement="this.SelectedElement"
+                                               InspectRequested="this.Inspect"/>
                         </div>
                     }
                 </article>

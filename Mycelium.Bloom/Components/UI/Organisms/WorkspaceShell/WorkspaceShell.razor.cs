@@ -158,6 +158,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         }
 
         /// <summary>Initializes optional browser interaction and applies controlled parameters after rendering.</summary>
+        /// <param name="firstRender">Whether this is the component's first completed render.</param>
+        /// <returns>A task that completes after browser initialization and controlled parameter updates.</returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);
@@ -175,6 +177,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         }
 
         /// <summary>Creates one browser registration while retaining ownership through asynchronous teardown.</summary>
+        /// <returns>A task that completes after the browser module and interaction registration are created.</returns>
         private async Task InitializeInteractionAsync()
         {
             this.module = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import",
@@ -187,6 +190,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         }
 
         /// <summary>Releases geometry observation, pointer capture and browser callback references.</summary>
+        /// <returns>A task that completes after the owned browser resources have been released.</returns>
         public async ValueTask DisposeAsync()
         {
             if (this.isDisposed)
@@ -339,7 +343,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
         [Parameter]
         public RenderFragment OverlayContent { get; set; }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Validates controlled panel sizing and selects the main pane when the active side pane is unavailable.
+        /// </summary>
         protected override void OnParametersSet()
         {
             base.OnParametersSet();
