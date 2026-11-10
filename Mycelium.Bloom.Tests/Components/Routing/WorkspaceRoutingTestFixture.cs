@@ -32,9 +32,9 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;

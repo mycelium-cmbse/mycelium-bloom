@@ -174,6 +174,8 @@ namespace Mycelium.Bloom.ViewModel
         /// <summary>
         /// Formats a nonnegative integer, an unbounded endpoint or supported expression text.
         /// </summary>
+        /// <param name="expression">The canonical multiplicity-bound expression.</param>
+        /// <returns>The available bound notation, or null for an unsupported literal or expression.</returns>
         private static string GetBound(IExpression expression)
         {
             return expression switch

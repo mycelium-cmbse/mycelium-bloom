@@ -20,8 +20,8 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
-    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 

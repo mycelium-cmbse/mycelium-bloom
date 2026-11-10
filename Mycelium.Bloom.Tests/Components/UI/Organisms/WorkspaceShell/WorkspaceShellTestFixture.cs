@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.WorkspaceShell
     using System.Threading.Tasks;
 
     using Bunit;
+
     using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Tests.Common;

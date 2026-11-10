@@ -10,7 +10,9 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
     using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Renders one bounded expression group using Blueprint-owned disclosure state.</summary>
@@ -37,6 +39,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         public IReadOnlyList<KeyValuePair<string, string>> SelectedProperties { get; set; } = [];
 
         /// <summary>Forwards resolvable targets without changing browser focus.</summary>
+        /// <param name="element">The canonical element to inspect, or null when no target is available.</param>
+        /// <returns>The inspection callback task, or a completed task when no target is available.</returns>
         private Task InspectAsync(IElement element)
         {
             return element is null ? Task.CompletedTask : this.InspectRequested.InvokeAsync(element);

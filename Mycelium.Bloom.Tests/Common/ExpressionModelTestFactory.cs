@@ -10,10 +10,14 @@
 namespace Mycelium.Bloom.Tests.Common
 {
     using System.Collections.Generic;
+
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging.Abstractions;
+
     using Moq;
+
     using Mycelium.Bloom.Core.ModelLoading;
+
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Dal;

@@ -15,20 +15,20 @@ namespace Mycelium.Bloom.Tests.Extensions
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
 
+    using Moq;
+
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Tests.Common;
-    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
+    using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
-    using Moq;
-
+    using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
 

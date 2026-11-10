@@ -521,7 +521,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="rootNodes">The canonical root nodes.</param>
         /// <param name="selectedElementTypes">The selected concrete element types.</param>
         /// <returns>The immutable visibility presentation.</returns>
-        private static ProjectBrowserFilterPresentation CreateFilterPresentation(string filterText, IReadOnlyCollection<ProjectBrowserNodeViewModel> rootNodes, IReadOnlyCollection<Type> selectedElementTypes)
+        private static ProjectBrowserFilterPresentation CreateFilterPresentation(
+            string filterText,
+            IReadOnlyCollection<ProjectBrowserNodeViewModel> rootNodes,
+            IReadOnlyCollection<Type> selectedElementTypes)
         {
             var matchingText = (filterText ?? string.Empty).Trim();
 
@@ -551,7 +554,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Whether an ancestor's display name already matches the text criterion.
         /// </param>
         /// <returns>Whether the node directly matches or owns a visible descendant.</returns>
-        private static bool IncludeVisibleNode(ProjectBrowserNodeViewModel node, string matchingText, IReadOnlyCollection<Type> selectedElementTypes, ImmutableHashSet<ProjectBrowserNodeViewModel>.Builder visibleNodes, bool ancestorDisplayNameMatches)
+        private static bool IncludeVisibleNode(
+            ProjectBrowserNodeViewModel node,
+            string matchingText,
+            IReadOnlyCollection<Type> selectedElementTypes,
+            ImmutableHashSet<ProjectBrowserNodeViewModel>.Builder visibleNodes,
+            bool ancestorDisplayNameMatches)
         {
             var displayNameMatches = !node.IsGroup && ContainsText(node.DisplayName, matchingText);
             var hasVisibleDescendant = false;
@@ -583,7 +591,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Whether an ancestor's display name already matches the text criterion.
         /// </param>
         /// <returns>Whether every active criterion matches the node.</returns>
-        private static bool DirectlyMatches(ProjectBrowserNodeViewModel node, string matchingText, IReadOnlyCollection<Type> selectedElementTypes, bool displayNameMatches, bool ancestorDisplayNameMatches)
+        private static bool DirectlyMatches(
+            ProjectBrowserNodeViewModel node,
+            string matchingText,
+            IReadOnlyCollection<Type> selectedElementTypes,
+            bool displayNameMatches,
+            bool ancestorDisplayNameMatches)
         {
             var textMatches = matchingText.Length == 0
                               || displayNameMatches
@@ -650,7 +663,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             /// <param name="isImported">Whether the SDK identifies this occurrence as an imported membership.</param>
             /// <param name="importingNamespace">The namespace defining effective import visibility.</param>
             /// <returns>The project browser node for the provided SysML element.</returns>
-            public ProjectBrowserNodeViewModel BuildNode(IElement element, string fallbackId, bool isModelRoot = false, IMembership membership = null, HashSet<IElement> ancestors = null, bool isImported = false, INamespace importingNamespace = null)
+            public ProjectBrowserNodeViewModel BuildNode(
+                IElement element,
+                string fallbackId,
+                bool isModelRoot = false,
+                IMembership membership = null,
+                HashSet<IElement> ancestors = null,
+                bool isImported = false,
+                INamespace importingNamespace = null)
             {
                 this.cancellationToken.ThrowIfCancellationRequested();
 
@@ -761,7 +781,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             /// <param name="ancestors">Canonical identities on this occurrence's path.</param>
             /// <param name="membership">The transparent membership for this occurrence.</param>
             /// <returns>The ordered children, grouped only for a visible owner.</returns>
-            private List<ProjectBrowserNodeViewModel> BuildChildren(IElement element, string parentNodeId, List<IElement> hiddenElements, HashSet<IElement> ancestors, IMembership membership = null)
+            private List<ProjectBrowserNodeViewModel> BuildChildren(
+                IElement element,
+                string parentNodeId,
+                List<IElement> hiddenElements,
+                HashSet<IElement> ancestors,
+                IMembership membership = null)
             {
                 var children = new List<ProjectBrowserNodeViewModel>();
                 hiddenElements.AddRange(element.OwnedRelationship?
@@ -811,7 +836,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             /// <param name="membership">The transparent membership for this occurrence.</param>
             /// <param name="children">The ordered children being assembled.</param>
             /// <returns>The next fallback index, including null and excluded owned occurrences.</returns>
-            private int AddOwnedChildren(IElement element, string parentNodeId, List<IElement> hiddenElements, HashSet<IElement> ancestors, IMembership membership, List<ProjectBrowserNodeViewModel> children)
+            private int AddOwnedChildren(
+                IElement element,
+                string parentNodeId,
+                List<IElement> hiddenElements,
+                HashSet<IElement> ancestors,
+                IMembership membership,
+                List<ProjectBrowserNodeViewModel> children)
             {
                 var index = 0;
 
@@ -856,7 +887,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             /// <param name="ancestors">Canonical identities on this occurrence's path.</param>
             /// <param name="children">The ordered children being assembled.</param>
             /// <param name="index">The next fallback index after owned traversal.</param>
-            private void AddImportedChildren(INamespace modelNamespace, string parentNodeId, List<IElement> hiddenElements, HashSet<IElement> ancestors, List<ProjectBrowserNodeViewModel> children, int index)
+            private void AddImportedChildren(
+                INamespace modelNamespace,
+                string parentNodeId,
+                List<IElement> hiddenElements,
+                HashSet<IElement> ancestors,
+                List<ProjectBrowserNodeViewModel> children,
+                int index)
             {
                 foreach (var imported in GetImportedMemberships(modelNamespace))
                 {

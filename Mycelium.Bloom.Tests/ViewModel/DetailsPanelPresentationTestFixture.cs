@@ -15,8 +15,8 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
     using Mycelium.Bloom.ViewModel.DetailsPanel;
 
-    using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.Associations;
+    using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
     using SysML2.NET.Core.POCO.Kernel.Multiplicities;
     using SysML2.NET.Core.POCO.Root.Annotations;

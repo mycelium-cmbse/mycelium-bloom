@@ -9,13 +9,13 @@
 
 namespace Mycelium.Bloom.ViewModel.DetailsPanel
 {
-    using SysML2.NET.Core.POCO.Kernel.Functions;
+    using SysML2.NET.Core.POCO.Core.Types;
+    using SysML2.NET.Core.POCO.Kernel.Behaviors;
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
-    using SysML2.NET.Core.POCO.Kernel.Behaviors;
+    using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
-    using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Exceptions;
     using SysML2.NET.Serializer.TextualNotation.Writers;
@@ -35,27 +35,38 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             try
             {
                 var declaration = IsDeclaration(expression);
+
                 if (!HasSupportedStructure(expression, declaration, new HashSet<IElement>(ReferenceEqualityComparer.Instance), 0))
                 {
                     return new(null, "Notation unavailable for this expression structure; inspect its canonical elements.");
                 }
+
                 var scope = expression.owner?.owningNamespace ?? expression.owningNamespace ?? expression;
                 using var context = new TextualNotationWriterContext(scope);
                 var builder = new IndentedStringBuilder();
+
                 if (declaration)
                 {
                     if (expression is IInvariant invariant)
+                    {
                         InvariantTextualNotationBuilder.BuildInvariant(invariant, context, builder);
+                    }
                     else if (expression is IBooleanExpression boolean)
+                    {
                         BooleanExpressionTextualNotationBuilder.BuildBooleanExpression(boolean, context, builder);
+                    }
                     else
+                    {
                         ExpressionTextualNotationBuilder.BuildExpression(expression, context, builder);
+                    }
                 }
                 else
                 {
                     ExpressionTextualNotationBuilder.BuildOwnedExpression(expression, context, builder);
                 }
+
                 var text = builder.ToString().Trim();
+
                 return string.IsNullOrWhiteSpace(text)
                     ? new(null, "The SDK produced no textual notation for this expression.")
                     : new(text, null);
@@ -71,6 +82,8 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         }
 
         /// <summary>Recognizes declarations by their canonical membership rather than their Boolean result type alone.</summary>
+        /// <param name="expression">The canonical expression whose owning role is inspected.</param>
+        /// <returns>Whether the expression is owned as a declaration rather than a nested value.</returns>
         private static bool IsDeclaration(IExpression expression) =>
             !IsValueExpression(expression) && expression is not IUsage
             && expression.owningMembership is IOwningMembership and not IFeatureValue
@@ -78,18 +91,37 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             && expression.owner is INamespace and not IExpression and not IMultiplicity;
 
         /// <summary>Identifies public SDK expression forms that do not enter the generic sequence fallback.</summary>
+        /// <param name="expression">The canonical expression to classify.</param>
+        /// <returns>Whether the expression has an explicitly supported value form.</returns>
         private static bool IsValueExpression(IExpression expression) =>
             expression is INullExpression or ILiteralExpression or IFeatureReferenceExpression
                 or IMetadataAccessExpression or IInvocationExpression or IConstructorExpression;
 
         /// <summary>Rejects unsupported writer shapes and cycles before invoking recursive SDK code.</summary>
+        /// <param name="element">The canonical element being checked.</param>
+        /// <param name="declaration">Whether the current expression is owned as a declaration.</param>
+        /// <param name="path">The reference-identity set tracking the active ownership path.</param>
+        /// <param name="depth">The current depth used to bound recursive traversal.</param>
+        /// <returns>Whether the owned structure is bounded, acyclic and supported by the writer.</returns>
         private static bool HasSupportedStructure(IElement element, bool declaration, HashSet<IElement> path, int depth)
         {
-            if (depth >= 64 || !path.Add(element)) return false;
+            if (depth >= 64 || !path.Add(element))
+            {
+                return false;
+            }
+
             try
             {
-                if (element is ILiteralString) return false;
-                if (element is IExpression expression && !(declaration || IsValueExpression(expression))) return false;
+                if (element is ILiteralString)
+                {
+                    return false;
+                }
+
+                if (element is IExpression expression && !(declaration || IsValueExpression(expression)))
+                {
+                    return false;
+                }
+
                 return (element.ownedElement ?? []).All(child => child is not null
                     && HasSupportedStructure(child, child is IExpression nested && IsDeclaration(nested), path, depth + 1));
             }

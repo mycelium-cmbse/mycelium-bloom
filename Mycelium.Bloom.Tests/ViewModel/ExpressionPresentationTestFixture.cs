@@ -12,8 +12,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using System;
     using System.Collections.Generic;
     using System.Linq;
+
     using Moq;
+
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+
     using SysML2.NET.Core.Core.Types;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
@@ -29,6 +32,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using SysML2.NET.Exceptions;
     using SysML2.NET.Extensions;
     using SysML2.NET.Serializer.TextualNotation.Writers;
+
     using static Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory;
 
     [TestFixture]

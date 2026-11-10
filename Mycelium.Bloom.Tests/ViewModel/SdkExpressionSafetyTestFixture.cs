@@ -17,16 +17,20 @@ namespace Mycelium.Bloom.Tests.ViewModel
     using System.Threading;
     using System.Threading.Tasks;
     using System.Xml.Linq;
+
     using Microsoft.Extensions.Logging.Abstractions;
+
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
-    using SysML2.NET.Core.POCO.Kernel.Functions;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
+
     using SysML2.NET.Core.POCO.Kernel.Expressions;
     using SysML2.NET.Core.POCO.Kernel.FeatureValues;
+    using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Root.Elements;
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
+
     using static Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory;
 
     [TestFixture]
@@ -77,7 +81,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
         public void VerifyCanonicalLibraryInChildProcess()
         {
             if (Environment.GetEnvironmentVariable("BLOOM_SERIALIZER_CHILD") != "1")
+            {
                 Assert.Ignore("Run the parent isolation test.");
+            }
 
             using var file = File.OpenRead(Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom.Tests"), "Resources", "SysML", "KernelLibrary.json.gz"));
             using var compressed = new GZipStream(file, CompressionMode.Decompress);
@@ -121,19 +127,31 @@ namespace Mycelium.Bloom.Tests.ViewModel
                     Assert.That(snapshot.Element, Is.SameAs(sample));
                     Assert.That(snapshot.DisplayName, Is.Not.Empty, sample.GetType().Name);
                 }
+
                 foreach (var owned in sample.ownedElement.Concat(sample.OwnedRelationship))
+                {
                     Assert.That(snapshot.ModelLinks.Any(link => ReferenceEquals(link.Element, owned)), Is.True, sample.GetType().Name);
+                }
+
                 if (sample is IRelationship relationship)
+                {
                     foreach (var related in relationship.Source.Concat(relationship.Target))
+                    {
                         Assert.That(snapshot.ModelLinks.Any(link => ReferenceEquals(link.Element, related)), Is.True, sample.GetType().Name);
+                    }
+                }
             }
 
             var sdkTypes = typeof(IElement).Assembly.GetExportedTypes().Where(type => typeof(IElement).IsAssignableFrom(type)).ToArray();
             Assert.That(sdkTypes.Count(type => type.IsInterface), Is.EqualTo(175));
             foreach (var type in sdkTypes.Where(type => type.IsInterface))
+            {
                 Assert.That(ProjectBrowserElementPresentation.For(type).Kind, Is.Not.Empty, type.Name);
+            }
+
             var concrete = sdkTypes.Where(type => type.IsClass && !type.IsAbstract).ToArray();
             Assert.That(concrete, Has.Length.EqualTo(167));
+
             foreach (var type in concrete)
             {
                 var element = (IElement)Activator.CreateInstance(type);
@@ -144,8 +162,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
                     Assert.That(snapshot.DisplayName, Is.Not.Empty, type.Name);
                     Assert.That(snapshot.DisplayName, Does.Not.StartWith("Unnamed"), type.Name);
                 }
+
                 if (type.Name != "Element")
+                {
                     Assert.That(ProjectBrowserElementPresentation.For(type).Kind, Is.Not.EqualTo("Element"), type.Name);
+                }
             }
 
             var root = LoadQuantities();

@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Core.Selection
 {
     using ReactiveUI;
+
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
