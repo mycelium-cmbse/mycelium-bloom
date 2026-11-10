@@ -122,40 +122,52 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                         Assert.That(release.Wait(TimeSpan.FromSeconds(10)), Is.True);
                         return accept(assemble);
                     }, token));
-            using var session =
+            var session =
                 new WorkspaceModelSession(proxy.Object, services.GetRequiredService<IElementSelectionService>());
-            await session.EnsureLoadedAsync();
-            var original = session.Current;
-            var count = services.GetRequiredService<IAssembler>().Cache.Count;
-            using var file = new WorkspaceModelFile("Late model", "part");
-            await using var input = File.OpenRead(file.Uri.LocalPath);
-            using var cancellation = new CancellationTokenSource();
-            var opening = session.OpenUploadedAsync(input, original.Id, cancellation.Token);
-            await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            if (action == "cancel")
+            var disposed = false;
+            try
             {
-                await cancellation.CancelAsync();
-            }
-            else if (action == "switch")
-            {
-                session.Clear();
-            }
-            else
-            {
-                session.Dispose();
-            }
+                await session.EnsureLoadedAsync();
+                var original = session.Current;
+                var count = services.GetRequiredService<IAssembler>().Cache.Count;
+                using var file = new WorkspaceModelFile("Late model", "part");
+                await using var input = File.OpenRead(file.Uri.LocalPath);
+                using var cancellation = new CancellationTokenSource();
+                var opening = session.OpenUploadedAsync(input, original.Id, cancellation.Token);
+                await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                if (action == "cancel")
+                {
+                    await cancellation.CancelAsync();
+                }
+                else if (action == "switch")
+                {
+                    session.Clear();
+                }
+                else
+                {
+                    disposed = true;
+                    session.Dispose();
+                }
 
-            release.Set();
-            await Assert.ThatAsync(async () => await opening, Throws.InstanceOf<OperationCanceledException>());
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(count));
-                Assert.That(session.Current.Root, Is.SameAs(action == "cancel" ? original.Root : null));
+                release.Set();
+                await Assert.ThatAsync(async () => await opening, Throws.InstanceOf<OperationCanceledException>());
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(services.GetRequiredService<IAssembler>().Cache, Has.Count.EqualTo(count));
+                    Assert.That(session.Current.Root, Is.SameAs(action == "cancel" ? original.Root : null));
+                }
+                if (action != "dispose")
+                {
+                    Assert.That(await session.OpenUploadedAsync(input, session.Current.Id, CancellationToken.None),
+                        Is.True);
+                }
             }
-            if (action != "dispose")
+            finally
             {
-                Assert.That(await session.OpenUploadedAsync(input, session.Current.Id, CancellationToken.None),
-                    Is.True);
+                if (!disposed)
+                {
+                    session.Dispose();
+                }
             }
         }
 

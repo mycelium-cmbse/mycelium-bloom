@@ -166,32 +166,44 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
 
                 return root;
             });
-            using var session =
+            var session =
                 new WorkspaceModelSession(loader.Object, services.GetRequiredService<IContextAwareService>());
-            var loading = session.EnsureLoadedAsync();
+            var disposed = false;
             try
             {
-                await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
-                if (dispose)
+                var loading = session.EnsureLoadedAsync();
+                try
                 {
-                    session.Dispose();
+                    await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                    if (dispose)
+                    {
+                        disposed = true;
+                        session.Dispose();
+                    }
+                    else
+                    {
+                        session.Clear(true);
+                    }
                 }
-                else
+                finally
                 {
-                    session.Clear(true);
+                    release.Set();
+                }
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(await loading, Is.Null);
+                    Assert.That(session.Current.Root, Is.Null);
+                    Assert.That(session.Current.Status,
+                        Is.EqualTo(dispose ? WorkspaceModelStatus.Empty : WorkspaceModelStatus.Unavailable));
                 }
             }
             finally
             {
-                release.Set();
-            }
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(await loading, Is.Null);
-                Assert.That(session.Current.Root, Is.Null);
-                Assert.That(session.Current.Status,
-                    Is.EqualTo(dispose ? WorkspaceModelStatus.Empty : WorkspaceModelStatus.Unavailable));
+                if (!disposed)
+                {
+                    session.Dispose();
+                }
             }
         }
 
@@ -530,24 +542,36 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using var file = new LargeWorkspaceFile(600);
             var session = services.GetRequiredService<WorkspaceModelSession>();
             await session.OpenAsync(file.Uri);
-            using var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
-            diagram.BindWorkspace(session);
-            Assert.That(diagram.State, Is.Null);
-            if (dispose)
+            var diagram = services.GetRequiredService<Func<DiagramViewModel>>()();
+            var disposed = false;
+            try
             {
-                diagram.Dispose();
-            }
-            else
-            {
-                session.Clear(true);
-            }
-
-            await diagram.Preparation;
-            using (Assert.EnterMultipleScope())
-            {
+                diagram.BindWorkspace(session);
                 Assert.That(diagram.State, Is.Null);
-                Assert.That(diagram.IndexedElementCount, Is.Zero);
-                Assert.That(diagram.WorkspaceDetailCache, Is.Null);
+                if (dispose)
+                {
+                    disposed = true;
+                    diagram.Dispose();
+                }
+                else
+                {
+                    session.Clear(true);
+                }
+
+                await diagram.Preparation;
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(diagram.State, Is.Null);
+                    Assert.That(diagram.IndexedElementCount, Is.Zero);
+                    Assert.That(diagram.WorkspaceDetailCache, Is.Null);
+                }
+            }
+            finally
+            {
+                if (!disposed)
+                {
+                    diagram.Dispose();
+                }
             }
         }
 
