@@ -17,7 +17,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
     /// <summary>
     /// Loads the people of the organization of the page once and holds them, with the failure of the load. The people live
-    /// in a source list that others can subscribe to or add to, and the rows mirror it.
+    /// in a source list that others can subscribe to or add to, and the rows mirror it. An account that may invite members
+    /// also gets the pending invitations of the organization.
     /// </summary>
     public sealed class MembersViewModel : ListLoadingViewModel<MemberRowViewModel>, IMembersViewModel
     {
@@ -36,22 +37,33 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// </summary>
         /// <param name="context">The context of the organization whose people are listed, which is ready.</param>
         /// <param name="memberService">The service that provides the people.</param>
+        /// <param name="invitationsFactory">
+        /// The factory of the pending invitations block, called for an account that may invite.
+        /// </param>
         /// <param name="timeProvider">The provider of the current time.</param>
         /// <param name="logger">The logger that receives a failure to load the people.</param>
         /// <exception cref="ArgumentNullException">
-        /// Thrown when <paramref name="memberService" />, <paramref name="timeProvider" /> or <paramref name="logger" /> is
-        /// <see langword="null" />.
+        /// Thrown when <paramref name="memberService" />, <paramref name="invitationsFactory" />,
+        /// <paramref name="timeProvider" /> or <paramref name="logger" /> is <see langword="null" />.
         /// </exception>
-        public MembersViewModel(IOrganizationContextViewModel context, IOrganizationMemberService memberService, TimeProvider timeProvider, ILogger<MembersViewModel> logger)
+        public MembersViewModel(IOrganizationContextViewModel context, IOrganizationMemberService memberService, Func<IPendingInvitationsViewModel> invitationsFactory, TimeProvider timeProvider, ILogger<MembersViewModel> logger)
             : base(context.Organization.Id, "members", logger)
         {
             ArgumentNullException.ThrowIfNull(memberService);
+            ArgumentNullException.ThrowIfNull(invitationsFactory);
             ArgumentNullException.ThrowIfNull(timeProvider);
 
             this.memberService = memberService;
             this.timeProvider = timeProvider;
             this.CanInviteMembers = context.Capabilities is { CanInviteMembers: true };
             this.CanViewOutsideCollaborators = context.Capabilities is { CanViewOutsideCollaborators: true };
+            this.Invitations = this.CanInviteMembers ? invitationsFactory() : null;
+
+            if (this.Invitations is not null)
+            {
+                this.Disposables.Add(this.Invitations);
+            }
+
             this.BeginLoad();
         }
 
@@ -59,6 +71,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Gets every person that the account may see, which a later ViewModel can subscribe to or add to.
         /// </summary>
         public ISourceList<MemberRowViewModel> Members => this.Source;
+
+        /// <summary>
+        /// Gets the pending invitations of the organization, or <see langword="null" /> for an account that may not invite
+        /// members and so neither loads nor sees them. They load on their own, so that a failure there never hides the members.
+        /// </summary>
+        public IPendingInvitationsViewModel Invitations { get; }
 
         /// <summary>
         /// Gets a value indicating whether the current account may invite people.

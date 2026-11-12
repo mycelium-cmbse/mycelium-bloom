@@ -1,0 +1,58 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PendingInvitationsList.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<IPendingInvitationsViewModel>
+
+@if (this.ViewModel.IsBusy || this.ViewModel.Errors.Count > 0 || this.ViewModel.Rows.Count > 0)
+{
+    <section class="@(this.BuildRootCssClass("mb-pending-invitations"))"
+             aria-labelledby="pending-invitations-title"
+             @attributes="this.AdditionalAttributes">
+        <h2 id="pending-invitations-title" class="mb-pending-invitations__title">
+            Pending invitations
+            @if (!this.ViewModel.IsBusy && this.ViewModel.Errors.Count == 0)
+            {
+                <span class="mb-pending-invitations__count">@(this.ViewModel.Rows.Count)</span>
+            }
+        </h2>
+
+        @if (this.ViewModel.Errors.Count > 0)
+        {
+            <p class="mb-pending-invitations__error" role="alert">The pending invitations could not be loaded. Try again later.</p>
+        }
+        else if (this.ViewModel.IsBusy)
+        {
+            <div class="mb-pending-invitations__loading" role="status" aria-live="polite" aria-busy="true">
+                <BbSkeleton Width="100%" Height="100%" />
+                <span class="sr-only">Loading</span>
+            </div>
+        }
+        else
+        {
+            <ul class="mb-pending-invitations__list">
+                @foreach (var row in this.ViewModel.Rows)
+                {
+                    <li class="mb-pending-invitations__row">
+                        <LucideIcon Name="mail"
+                                    Size="16"
+                                    StrokeWidth="1.75"
+                                    Class="mb-pending-invitations__icon"
+                                    role="presentation"
+                                    aria-hidden="true"
+                                    focusable="false" />
+                        <div class="mb-pending-invitations__text">
+                            <span class="mb-pending-invitations__identity">@(row.InvitedIdentity)</span>
+                            <span class="mb-pending-invitations__details">@(row.Details)</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}

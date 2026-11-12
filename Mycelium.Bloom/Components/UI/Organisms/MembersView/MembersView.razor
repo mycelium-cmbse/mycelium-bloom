@@ -143,4 +143,9 @@
 
         <p class="mb-members-view__showing" aria-live="polite">@(this.ShowingText)</p>
     }
+
+    @if (this.ViewModel.Invitations is not null && !this.ViewModel.IsBusy && !this.HasFailed)
+    {
+        <PendingInvitationsList ViewModel="this.ViewModel.Invitations" />
+    }
 </div>
