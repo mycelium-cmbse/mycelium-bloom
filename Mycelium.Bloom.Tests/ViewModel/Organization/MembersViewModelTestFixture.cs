@@ -50,6 +50,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
         private Mock<IOrganizationMemberService> memberService;
 
+        private Mock<IPendingInvitationsViewModel> invitations;
+
         private FakeTimeProvider timeProvider;
 
         private Mock<ILogger<MembersViewModel>> logger;
@@ -71,6 +73,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             this.context.SetupGet(model => model.Organization).Returns(this.organization);
             this.context.SetupGet(model => model.Capabilities).Returns(new OrganizationCapabilities(true, true, true, true, true));
             this.memberService = new Mock<IOrganizationMemberService>();
+            this.invitations = new Mock<IPendingInvitationsViewModel>();
             this.timeProvider = new FakeTimeProvider(this.now);
             this.logger = new Mock<ILogger<MembersViewModel>>();
         }
@@ -121,6 +124,24 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void VerifyOnlyAnAccountThatMayInviteGetsThePendingInvitationsAndTheyAreDisposedWithTheViewModel(bool canInvite)
+        {
+            this.context.SetupGet(model => model.Capabilities).Returns(new OrganizationCapabilities(true, true, true, canInvite, true));
+            this.SetUpMembers([this.administrator]);
+
+            var viewModel = this.CreateViewModel();
+            var invitations = viewModel.Invitations;
+            viewModel.Dispose();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(invitations, canInvite ? Is.SameAs(this.invitations.Object) : Is.Null);
+                this.invitations.Verify(model => model.Dispose(), canInvite ? Times.Once() : Times.Never());
+            }
+        }
+
         private void SetUpMembers(User[] members)
         {
             this.memberService.Setup(service => service.GetMembersAsync(this.organization.Id, It.IsAny<CancellationToken>())).ReturnsAsync(ErrorOrFactory.From<IReadOnlyList<User>>(members));
@@ -128,7 +149,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
         private MembersViewModel CreateViewModel()
         {
-            return new MembersViewModel(this.context.Object, this.memberService.Object, this.timeProvider, this.logger.Object);
+            return new MembersViewModel(this.context.Object, this.memberService.Object, () => this.invitations.Object, this.timeProvider, this.logger.Object);
         }
     }
 }

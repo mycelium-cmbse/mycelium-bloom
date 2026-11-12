@@ -62,11 +62,12 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The mocked account.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<User>> GetAccountAsync(CancellationToken cancellationToken)
+        public async Task<ErrorOr<User>> GetAccountAsync(CancellationToken cancellationToken)
         {
+            await Task.CompletedTask;
             cancellationToken.ThrowIfCancellationRequested();
 
-            return Task.FromResult<ErrorOr<User>>(this.mockedDataService.CurrentUser);
+            return this.mockedDataService.CurrentUser;
         }
 
         /// <summary>
@@ -76,19 +77,20 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The context, or an <see cref="ErrorCodes.NotFound" /> error when no mocked organization has the slug.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken)
+        public async Task<ErrorOr<OrganizationContext>> GetOrganizationContextAsync(string slug, CancellationToken cancellationToken)
         {
+            await Task.CompletedTask;
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!this.mockedDataService.Organizations.TryGetValue(slug, out var organization))
             {
-                return Task.FromResult<ErrorOr<OrganizationContext>>(Error.NotFound(ErrorCodes.NotFound, "The organization does not exist."));
+                return Error.NotFound(ErrorCodes.NotFound, "The organization does not exist.");
             }
 
             var isAdministrator = this.options.Value.PlaceholderRole == OrganizationMembershipRole.Administrator;
             var capabilities = new OrganizationCapabilities(isAdministrator, isAdministrator, CanViewMembers: true, CanInviteMembers: isAdministrator, CanViewOutsideCollaborators: isAdministrator);
 
-            return Task.FromResult<ErrorOr<OrganizationContext>>(new OrganizationContext(this.mockedDataService.CurrentUser, organization, capabilities));
+            return new OrganizationContext(this.mockedDataService.CurrentUser, organization, capabilities);
         }
     }
 }

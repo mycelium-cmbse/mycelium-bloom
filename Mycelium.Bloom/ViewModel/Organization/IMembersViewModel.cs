@@ -43,6 +43,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         ReadOnlyObservableCollection<MemberRowViewModel> Rows { get; }
 
         /// <summary>
+        /// Gets the pending invitations of the organization, or <see langword="null" /> when the current account may not invite
+        /// members.
+        /// </summary>
+        IPendingInvitationsViewModel Invitations { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the current account may invite members.
         /// </summary>
         bool CanInviteMembers { get; }
