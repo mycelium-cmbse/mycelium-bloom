@@ -16,12 +16,12 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.MockedData;
     using Mycelium.Bloom.Model;
-    using Mycelium.SDK;
     using Mycelium.SDK.POCO;
 
     /// <summary>
     /// Answers with the mocked account and organizations until the Fabric client provides the real ones. The mocked
-    /// account may edit the settings and create projects only when its configured placeholder role is the administrator.
+    /// account may edit the settings, create a project and invite members only when its configured placeholder role is the
+    /// administrator.
     /// </summary>
     /// <remarks>
     /// Placeholder of the organization screens, to be replaced by the Fabric client when it is bound; only the service
@@ -86,7 +86,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
             }
 
             var isAdministrator = this.options.Value.PlaceholderRole == OrganizationMembershipRole.Administrator;
-            var capabilities = new OrganizationCapabilities(isAdministrator, isAdministrator);
+            var capabilities = new OrganizationCapabilities(isAdministrator, isAdministrator, CanViewMembers: true, CanInviteMembers: isAdministrator, CanViewOutsideCollaborators: isAdministrator);
 
             return Task.FromResult<ErrorOr<OrganizationContext>>(new OrganizationContext(this.mockedDataService.CurrentUser, organization, capabilities));
         }

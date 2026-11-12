@@ -116,8 +116,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
         /// <summary>
         /// Combines what was loaded for an account or an organization with the latest location. Data loaded for
-        /// another organization is never shown, a reset stays loading, and the settings page is not found without the
-        /// capability to edit them.
+        /// another organization is never shown, a reset stays loading, and a page that the account may not open is not
+        /// found.
         /// </summary>
         /// <param name="loaded">The latest resolution of an account or an organization.</param>
         /// <param name="location">The latest location.</param>
@@ -130,7 +130,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
             }
 
             // A missing capability and a missing organization look the same to the account, so the page cannot be probed.
-            return location.Section == OrganizationSection.Settings && loaded.Capabilities is { CanEditSettings: false }
+            return loaded.Capabilities is { } capabilities && !capabilities.CanOpen(location.Section)
                 ? OrganizationContextResolution.CreateNotFound(location)
                 : loaded;
         }

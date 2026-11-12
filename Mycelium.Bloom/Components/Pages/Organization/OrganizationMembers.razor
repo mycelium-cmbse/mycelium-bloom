@@ -9,8 +9,8 @@
 
 @page "/organizations/{Slug}/members"
 @layout OrganizationLayout
-@inherits OrganizationPageBase
+@inherits OrganizationViewModelPageBase<IMembersViewModel>
 
 <PageTitle>Members | Mycelium Bloom</PageTitle>
 
-<PageHeader Title="Members" />
+<MembersView ViewModel="this.ViewModel" />

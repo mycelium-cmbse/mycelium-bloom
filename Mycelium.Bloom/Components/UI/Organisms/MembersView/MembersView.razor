@@ -1,0 +1,146 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="MembersView.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<IMembersViewModel>
+
+<div class="@(this.BuildRootCssClass("mb-members-view"))" @attributes="this.AdditionalAttributes">
+    <header class="mb-members-view__header">
+        <h1 class="mb-members-view__title">Members</h1>
+
+        @if (this.ViewModel.CanInviteMembers)
+        {
+            <BbButton Class="mb-members-view__new">
+                <Icon>
+                    <LucideIcon Name="plus" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                </Icon>
+                <ChildContent>Invite member</ChildContent>
+            </BbButton>
+        }
+    </header>
+
+    @if (this.ShowsToolbar)
+    {
+        <div class="mb-members-view__toolbar">
+            <BbInputGroup Class="mb-members-view__search">
+                <BbInputGroupAddon Align="InputGroupAlign.InlineStart" aria-hidden="true">
+                    <LucideIcon Name="search" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                </BbInputGroupAddon>
+                <BbInputGroupInput Id="members-search"
+                                   Value="@(this.SearchText)"
+                                   ValueChanged="@(text => this.SearchText = text ?? string.Empty)"
+                                   Placeholder="Search by name or email…"
+                                   AriaLabel="Search members"
+                                   UpdateTiming="UpdateTiming.Immediate" />
+            </BbInputGroup>
+
+            <BbToggleGroup TValue="string"
+                           Type="ToggleGroupType.Single"
+                           Value="@(this.FilterLabel)"
+                           ValueChanged="@(label => this.FilterLabel = label ?? AllLabel)"
+                           Variant="ToggleVariant.Outline"
+                           Size="ToggleSize.Small"
+                           Class="mb-members-view__kinds"
+                           aria-label="Filter members">
+                @foreach (var chip in this.Chips)
+                {
+                    <BbToggleGroupItem TValue="string" Value="@(chip.Label)" Class="mb-members-view__kind">
+                        @(chip.Label)
+                        <span class="mb-members-view__count">@(this.ViewModel.Rows.Count(chip.Matches))</span>
+                    </BbToggleGroupItem>
+                }
+            </BbToggleGroup>
+        </div>
+    }
+
+    @if (this.HasFailed)
+    {
+        <p class="mb-members-view__error" role="alert">The members could not be loaded. Try again later.</p>
+    }
+    else if (this.ShowsSkeleton)
+    {
+        <div class="mb-members-view__loading" role="status" aria-live="polite" aria-busy="true">
+            <BbSkeleton Width="100%" Height="100%" />
+            <span class="sr-only">Loading</span>
+        </div>
+    }
+    else if (this.ShowsEmptyOrganization)
+    {
+        <BbEmpty Title="No members yet" Description="The people of this organization will appear here.">
+            <Icon>
+                <LucideIcon Name="users" Size="24" StrokeWidth="1.5" role="presentation" aria-hidden="true" focusable="false" />
+            </Icon>
+        </BbEmpty>
+    }
+    else
+    {
+        <BbDataTable TData="MemberRowViewModel"
+                     @key="@($"{this.SearchText}|{this.FilterLabel}")"
+                     Class="mb-members-view__table"
+                     Data="@(this.FilteredRows)"
+                     ShowToolbar="false"
+                     ShowPagination="@(this.FilteredRows.Count > PageSize)"
+                     InitialPageSize="PageSize"
+                     AriaLabel="Members">
+            <EmptyTemplate>
+                <BbEmpty Title="@(this.NoResultsTitle)" Description="Clear the search to see everyone again.">
+                    <Icon>
+                        <LucideIcon Name="search" Size="24" StrokeWidth="1.5" role="presentation" aria-hidden="true" focusable="false" />
+                    </Icon>
+                    <ChildContent>
+                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Outline" OnClick="this.HandleClearClicked">
+                            Clear search and filters
+                        </BbButton>
+                    </ChildContent>
+                </BbEmpty>
+            </EmptyTemplate>
+            <Columns>
+                <BbDataTableColumn TData="MemberRowViewModel" TValue="string" Header="Member">
+                    <CellTemplate>
+                        <div class="mb-members-view__person">
+                            <BbAvatar Size="AvatarSize.Small" aria-hidden="true">
+                                <BbAvatarFallback Class="mb-members-view__avatar" style="@(GetAvatarStyle(context))">
+                                    @(context.User.GetInitials())
+                                </BbAvatarFallback>
+                            </BbAvatar>
+                            <div class="mb-members-view__name">
+                                <span class="mb-members-view__name-text">@(context.User.Name)</span>
+                                <span class="mb-members-view__email" title="@(context.User.Email)">@(context.User.Email)</span>
+                            </div>
+                        </div>
+                    </CellTemplate>
+                </BbDataTableColumn>
+                <BbDataTableColumn TData="MemberRowViewModel" TValue="string" Header="Role">
+                    <CellTemplate>
+                        <BbBadge Variant="BadgeVariant.Secondary"
+                                 Class="@(GetRoleCssClass(context))">
+                            @(context.Role?.Humanize() ?? OutsideCollaboratorLabel)
+                        </BbBadge>
+                    </CellTemplate>
+                </BbDataTableColumn>
+                <BbDataTableColumn TData="MemberRowViewModel"
+                                   TValue="string"
+                                   Header="Joined"
+                                   Property="@(row => row.JoinedText)"
+                                   CellClass="mb-members-view__muted" />
+                <BbDataTableColumn TData="MemberRowViewModel"
+                                   TValue="string"
+                                   Header="Last active"
+                                   Property="@(row => row.LastActiveText)"
+                                   CellClass="mb-members-view__muted" />
+                <BbDataTableColumn TData="MemberRowViewModel" TValue="string" Header="Status">
+                    <CellTemplate>
+                        <StatusIndicator Label="@(context.User.Status.GetLabel())" State="@(context.User.Status)" />
+                    </CellTemplate>
+                </BbDataTableColumn>
+            </Columns>
+        </BbDataTable>
+
+        <p class="mb-members-view__showing" aria-live="polite">@(this.ShowingText)</p>
+    }
+</div>
