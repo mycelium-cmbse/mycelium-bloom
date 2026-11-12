@@ -43,7 +43,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [SetUp]
         public void SetUp()
         {
-            this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Mail = "sample@example.org" };
+            this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Email = "sample@example.org" };
             this.organization = new Organization { Id = Guid.NewGuid(), Name = "Orbital Systems" };
             this.membersPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
             this.context = new Mock<IOrganizationContextViewModel>();

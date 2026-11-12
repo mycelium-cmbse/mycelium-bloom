@@ -43,7 +43,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [SetUp]
         public void SetUp()
         {
-            this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Mail = "sample@example.org" };
+            this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Email = "sample@example.org" };
             this.capabilities = new OrganizationCapabilities(false);
             this.contextService = new Mock<IOrganizationContextService>();
             this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(this.account);

@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -18,6 +19,7 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
 
     using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Configuration;
+    using Mycelium.Bloom.Core.MockedData;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Core.Organization.Placeholder;
     using Mycelium.SDK;
@@ -25,6 +27,8 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
     [TestFixture]
     public sealed class PlaceholderOrganizationContextServiceTestFixture
     {
+        private MockedDataService mockedData;
+
         private OrganizationOptions options;
 
         private PlaceholderOrganizationContextService service;
@@ -32,30 +36,31 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
         [SetUp]
         public void SetUp()
         {
+            this.mockedData = new MockedDataService(TimeProvider.System);
             this.options = new OrganizationOptions();
-            this.service = new PlaceholderOrganizationContextService(Options.Create(this.options));
+            this.service = new PlaceholderOrganizationContextService(Options.Create(this.options), this.mockedData);
         }
 
         [Test]
-        public async Task VerifyAccountIsTheSampleAccount()
+        public async Task VerifyAccountIsTheMockedCurrentUser()
         {
             var result = await this.service.GetAccountAsync(CancellationToken.None);
 
-            Assert.That(result.Value, Is.EqualTo(OrganizationPlaceholderData.Account));
+            Assert.That(result.Value, Is.EqualTo(this.mockedData.CurrentUser));
         }
 
         [TestCase(OrganizationMembershipRole.Administrator, true)]
         [TestCase(OrganizationMembershipRole.Member, false)]
         public async Task VerifyOrganizationContextFollowsThePlaceholderRole(OrganizationMembershipRole role, bool canEditSettings)
         {
-            var expected = OrganizationPlaceholderData.Organizations["orbital-systems"];
+            var expected = this.mockedData.Organizations["orbital-systems"];
             this.options.PlaceholderRole = role;
 
             var result = await this.service.GetOrganizationContextAsync("orbital-systems", CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(result.Value.Account, Is.EqualTo(OrganizationPlaceholderData.Account));
+                Assert.That(result.Value.Account, Is.EqualTo(this.mockedData.CurrentUser));
                 Assert.That(result.Value.Organization, Is.EqualTo(expected));
                 Assert.That(result.Value.Capabilities.CanEditSettings, Is.EqualTo(canEditSettings));
                 Assert.That(result.Value.Capabilities.CanCreateProject, Is.EqualTo(canEditSettings));
