@@ -59,6 +59,14 @@ namespace Mycelium.Bloom.Core.ModelLoading
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            var uploaded = this.modelLoaderService.FindUploadedElement(elementId);
+            if (this.modelLoaderService.HasUploadedIdentity(elementId))
+            {
+                return ValueTask.FromResult(Guid.TryParse(elementId, out var id) && this.assembler.Cache.ContainsKey(id)
+                    ? null
+                    : uploaded);
+            }
+
             this.modelLoaderService.LoadQuantitiesModel();
 
             IElement resolvedElement = null;

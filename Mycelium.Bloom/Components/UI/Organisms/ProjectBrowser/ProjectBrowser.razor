@@ -18,7 +18,7 @@
             <div class="mb-project-browser__tree">
                 <div class="mb-project-browser__state" role="status" aria-live="polite">
                     <strong class="mb-project-browser__state-title">
-                        Loading Quantities model
+                        Loading model
                     </strong>
                     <p class="mb-project-browser__state-description">
                         Preparing the SysML project browser...
@@ -212,7 +212,8 @@
             </div>
         </div>
 
-        <div class="mb-project-browser__tree-viewport">
+        <div class="mb-project-browser__tree-viewport" @ref="this.treeViewport"
+             @onscroll="@(this.ScrollPositionChanged.HasDelegate ? EventCallback.Factory.Create(this, this.CaptureScrollAsync) : default)">
             <div class="mb-project-browser__tree" role="tree" aria-label="Project browser">
                 @if (this.RequiredViewModel.RootNodes.Count == 0)
                 {

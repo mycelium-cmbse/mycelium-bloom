@@ -11,13 +11,13 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 {
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
-
+    using ReactiveUI;
     using Microsoft.AspNetCore.Components;
-
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     /// <summary>
@@ -50,6 +50,15 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private const string PlaceholderViewTypeKey = "placeholder";
 
+        /// <summary>The composition key for the Interconnection editor.</summary>
+        private const string DiagramViewTypeKey = "interconnection";
+
+        /// <summary>The exact tab-owned presentation state retained across renderer remounts.</summary>
+        private readonly Dictionary<Guid, DiagramViewModel> diagramViewModels = [];
+
+        /// <summary>Owns renderer-dispatched preparation observations for diagram tabs.</summary>
+        private readonly Dictionary<Guid, IDisposable> diagramObservations = [];
+
         /// <summary>
         /// The Figma-derived relative weights for the default three-group composition.
         /// </summary>
@@ -61,13 +70,17 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private static readonly EditorTypePresentation[] EditorTypes =
         [
             new(EmptyEditorActionId, "Empty editor", PlaceholderViewTypeKey, SymbolIconName.Document),
-            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree)
+            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree),
+            new("open-interconnection", "Interconnection", DiagramViewTypeKey, SymbolIconName.Document)
         ];
 
         /// <summary>
         /// Owns URL-restoration observation for this routed page instance.
         /// </summary>
         private readonly CompositeDisposable subscriptions = new();
+
+        /// <summary>Cancels model-browser initialization when the routed page ends.</summary>
+        private readonly CancellationTokenSource lifetimeCancellation = new();
 
         /// <summary>
         /// The Project Browser ViewModels owned by their exact durable editor-tab identities.
@@ -101,6 +114,14 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [Inject]
         private Func<IProjectBrowserViewModel> ProjectBrowserViewModelFactory { get; set; }
 
+        /// <summary>Gets or sets the caller-owned diagram state factory.</summary>
+        [Inject]
+        private Func<DiagramViewModel> DiagramViewModelFactory { get; set; }
+
+        /// <summary>Gets or sets the circuit owner of canonical model contexts.</summary>
+        [Inject]
+        private WorkspaceModelSession WorkspaceModel { get; set; }
+
         /// <summary>
         /// Gets or sets the logger used for renderer-bound focus failures.
         /// </summary>
@@ -128,13 +149,19 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             ArgumentNullException.ThrowIfNull(this.Logger);
 
             this.WorkspaceEditorViewModel = this.WorkspaceEditorViewModelFactory()
-                ?? throw new InvalidOperationException("The Workspace Editor ViewModel factory returned null.");
+                                            ?? throw new InvalidOperationException(
+                                                "The Workspace Editor ViewModel factory returned null.");
 
             try
             {
                 this.InitializeExistingProjectBrowserOwnership();
                 this.InitializePlaceholderWorkspace();
                 this.ObserveUrlRestorations();
+                this.subscriptions.Add(this.WorkspaceModel.WhenAnyValue(session => session.Current)
+                    .Select(snapshot =>
+                        Observable.FromAsync(() => this.InvokeAsync(() => this.UpdateWorkspace(snapshot))))
+                    .Concat().Subscribe(_ => { },
+                        exception => this.Logger.LogError(exception, "Workspace model observation failed.")));
             }
             catch
             {
@@ -155,8 +182,33 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             this.isDisposed = true;
+            this.lifetimeCancellation.Cancel();
+            this.lifetimeCancellation.Dispose();
             this.subscriptions.Dispose();
             this.DisposeProjectBrowserViewModels();
+            foreach (var diagram in this.diagramViewModels.Values)
+            {
+                diagram.Dispose();
+            }
+
+            this.diagramViewModels.Clear();
+            foreach (var observation in this.diagramObservations.Values)
+            {
+                observation.Dispose();
+            }
+
+            this.diagramObservations.Clear();
+            foreach (var operation in this.modelOpenings.Values)
+            {
+                operation.Cancel();
+            }
+
+            foreach (var lease in this.tabModels.Values)
+            {
+                lease.Dispose();
+            }
+
+            this.tabModels.Clear();
             this.WorkspaceEditorViewModel?.Dispose();
         }
 
@@ -202,6 +254,24 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                     || !this.TryGetRestorationTarget(out var group, out var tab, out var viewModel))
                 {
                     return;
+                }
+
+                if (this.tabModels.ContainsKey(tab.Id)
+                    && !viewModel.RootNodes.Any(root =>
+                        root.FindPathTo(element) is { Count: > 0 } path && ReferenceEquals(path[^1].SourceElement, element)))
+                {
+                    var matching = this.projectBrowserViewModels.FirstOrDefault(candidate => candidate.Value.RootNodes
+                        .Any(root =>
+                            root.FindPathTo(element) is { Count: > 0 } path && ReferenceEquals(path[^1].SourceElement, element)));
+                    if (matching.Value is null)
+                    {
+                        return;
+                    }
+
+                    group = this.WorkspaceEditorViewModel.Groups.First(candidate =>
+                        candidate.Tabs.Any(item => item.Id == matching.Key));
+                    tab = group.Tabs.First(item => item.Id == matching.Key);
+                    viewModel = matching.Value;
                 }
 
                 _ = this.WorkspaceEditorViewModel.ActivateTab(group.Id, tab.Id);
@@ -362,7 +432,15 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             while (groups.Count < requestedGroupCount
                    && this.WorkspaceEditorViewModel.TryAddGroup(out var group))
             {
-                this.OpenPlaceholderTab(group.Id);
+                if (groups.Count == DefaultEditorGroupCount)
+                {
+                    this.OpenWorkspaceInterconnection(group.Id);
+                    this.nextPlaceholderTabNumber++;
+                }
+                else
+                {
+                    this.OpenPlaceholderTab(group.Id);
+                }
             }
 
             if (groups.Count == DefaultEditorGroupCount)
@@ -408,6 +486,9 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                 case ProjectBrowserActionId:
                     _ = this.OpenProjectBrowserTab(groupId);
                     break;
+                case "open-interconnection":
+                    this.OpenWorkspaceInterconnection(groupId);
+                    break;
             }
         }
 
@@ -418,6 +499,33 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private void HandleTabClosed(EditorTabItem tab)
         {
             ArgumentNullException.ThrowIfNull(tab);
+            this.browserScroll.Remove(tab.Id);
+            if (this.modelOpenings.Remove(tab.Id, out var opening))
+            {
+                opening.Cancel();
+            }
+
+            this.diagramBrowsers.Remove(tab.Id);
+            foreach (var pair in this.diagramBrowsers.Where(pair => pair.Value == tab.Id).ToArray())
+            {
+                this.diagramBrowsers.Remove(pair.Key);
+            }
+
+            foreach (var entry in this.relatedDiagrams
+                         .Where(entry => entry.Key.Origin == tab.Id || entry.Value == tab.Id).ToArray())
+            {
+                this.relatedDiagrams.Remove(entry.Key);
+            }
+
+            if (this.diagramObservations.Remove(tab.Id, out var observation))
+            {
+                observation.Dispose();
+            }
+
+            if (this.diagramViewModels.Remove(tab.Id, out var diagram))
+            {
+                diagram.Dispose();
+            }
 
             if (IsProjectBrowserTab(tab)
                 && this.projectBrowserViewModels.Remove(tab.Id, out var viewModel))
@@ -426,10 +534,15 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
 
             if (!this.WorkspaceEditorViewModel.RenderState.Groups
-                .SelectMany(group => group.Tabs)
-                .Any())
+                    .SelectMany(group => group.Tabs)
+                    .Any())
             {
                 this.nextPlaceholderTabNumber = 1;
+            }
+
+            if (this.tabModels.Remove(tab.Id, out var lease))
+            {
+                lease.Dispose();
             }
         }
 
@@ -441,6 +554,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private bool OpenProjectBrowserTab(Guid groupId)
         {
             var viewModel = this.CreateProjectBrowserViewModel();
+            var model = this.FocusedModel();
             var ownershipTransferred = false;
 
             try
@@ -462,6 +576,13 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                 }
 
                 ownershipTransferred = true;
+                if (model?.Root is not null)
+                {
+                    this.tabModels.Add(tab.Id, this.WorkspaceModel.Acquire(model));
+                    this.subscriptions.Add(Observable.FromAsync(token => viewModel.InitializeAsync(model.Root, token))
+                        .Subscribe(_ => { },
+                            error => this.Logger.LogError(error, "Project Browser initialization failed.")));
+                }
 
                 return true;
             }
@@ -473,6 +594,111 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                 }
             }
         }
+
+        /// <summary>Forwards browser navigation only to its associated diagram.</summary>
+        /// <param name="browserId">The originating Browser tab.</param>
+        /// <param name="node">The canonical browser selection.</param>
+        /// <returns>The completion of navigation dispatch.</returns>
+        private async Task RevealBrowserSelectionAsync(Guid browserId, ProjectBrowserNodeViewModel node)
+        {
+            var diagramId = this.diagramBrowsers.FirstOrDefault(pair => pair.Value == browserId).Key;
+            if (diagramId == Guid.Empty && this.WorkspaceEditorViewModel.FocusedGroup?.ActiveTab is { } focused
+                                        && !this.diagramBrowsers.ContainsKey(focused.Id))
+            {
+                diagramId = focused.Id;
+            }
+
+            if (this.diagramViewModels.TryGetValue(diagramId, out var viewModel) && viewModel.IsScopeAvailable
+                && viewModel.ContainsCanonicalElement(node.SourceElement))
+            {
+                await viewModel.RevealRequested.Execute(node.ElementId);
+            }
+        }
+
+        /// <summary>Opens a structural view bound to the active canonical model root.</summary>
+        private void OpenWorkspaceInterconnection(Guid groupId, WorkspaceModelSnapshot model = null)
+        {
+            var viewModel = this.DiagramViewModelFactory();
+            model ??= this.FocusedModel();
+            if (model?.Root is not null)
+            {
+                viewModel.UpdateWorkspace(model);
+            }
+            else
+            {
+                viewModel.BindWorkspace(this.WorkspaceModel);
+            }
+
+            if (this.WorkspaceEditorViewModel.TryOpenTab(groupId, "Interconnection", DiagramViewTypeKey, out var tab))
+            {
+                this.diagramViewModels.Add(tab.Id, viewModel);
+                if (model?.Root is not null)
+                {
+                    this.tabModels.Add(tab.Id, this.WorkspaceModel.Acquire(model));
+                }
+
+                this.diagramObservations.Add(tab.Id,
+                    viewModel.WhenAnyValue(value => value.State, value => value.PreparationStatus,
+                            value => value.IsScopeAvailable)
+                        .Select(value => (Ready: value.Item1 is not null, value.Item2, value.Item3))
+                        .DistinctUntilChanged()
+                        .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                        {
+                            if (!this.isDisposed && this.diagramViewModels.ContainsKey(tab.Id))
+                            {
+                                this.StateHasChanged();
+                            }
+                        }))).Concat().Subscribe(_ => { },
+                            error => this.Logger.LogError(error, "Diagram preparation display failed.")));
+                this.subscriptions.Add(Observable.FromAsync(() => this.WorkspaceModel.EnsureLoadedAsync())
+                    .Subscribe(_ => { },
+                        error => this.Logger.LogError(error, "Workspace model initialization failed.")));
+            }
+            else
+            {
+                viewModel.Dispose();
+            }
+        }
+
+        /// <summary>Applies context changes on the renderer and releases obsolete browser state.</summary>
+        private void UpdateWorkspace(WorkspaceModelSnapshot snapshot)
+        {
+            if (this.isDisposed || this.WorkspaceModel.IsDisposed ||
+                !ReferenceEquals(snapshot, this.WorkspaceModel.Current))
+            {
+                return;
+            }
+
+            if (snapshot.Root is not null)
+            {
+                foreach (var id in this.projectBrowserViewModels.Keys.Where(id => !this.tabModels.ContainsKey(id)).ToArray())
+                {
+                    this.tabModels.Add(id, this.WorkspaceModel.Acquire(snapshot));
+                }
+
+                foreach (var id in this.diagramViewModels.Where(entry => entry.Value.IsWorkspaceBound && !this.tabModels.ContainsKey(entry.Key)).Select(entry => entry.Key))
+                {
+                    this.tabModels.Add(id, this.WorkspaceModel.Acquire(snapshot));
+                }
+            }
+
+            this.StateHasChanged();
+        }
+
+        /// <summary>Describes unavailable or unsupported scopes without substituting another model.</summary>
+        private static string DiagramStatus(DiagramViewModel viewModel) =>
+            viewModel.IsScopeAvailable && viewModel.State is null
+                ? viewModel.PreparationStatus
+                : viewModel.WorkspaceStatus switch
+                {
+                    WorkspaceModelStatus.Loading => "Loading model…",
+                    WorkspaceModelStatus.Empty => "No model loaded",
+                    WorkspaceModelStatus.Failed => "The workspace model could not be loaded.",
+                    WorkspaceModelStatus.Unavailable =>
+                        "This diagram’s model is no longer active. Its layout and scope are retained; open a new tab for the active model.",
+                    _ =>
+                        "This model has no supported parts for an Interconnection view. Open a compatible model or choose the example to get started."
+                };
 
         /// <summary>
         /// Attempts to open one rendering-neutral placeholder tab in a workspace-owned group.
@@ -541,7 +767,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private IProjectBrowserViewModel CreateProjectBrowserViewModel()
         {
             return this.ProjectBrowserViewModelFactory()
-                ?? throw new InvalidOperationException("The Project Browser ViewModel factory returned null.");
+                   ?? throw new InvalidOperationException("The Project Browser ViewModel factory returned null.");
         }
 
         /// <summary>

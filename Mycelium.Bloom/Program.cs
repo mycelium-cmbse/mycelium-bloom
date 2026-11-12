@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 // <copyright file="Program.cs" company="Starion Group S.A.">
 // 
 //   Copyright 2026 Starion Group S.A.
@@ -42,6 +42,7 @@ namespace Mycelium.Bloom
             builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
             builder.Services.AddReverseProxyOptions(builder.Configuration);
             builder.Services.AddOrganizationServices(builder.Configuration);
+            builder.Services.AddDiagramOptions(builder.Configuration);
 
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))

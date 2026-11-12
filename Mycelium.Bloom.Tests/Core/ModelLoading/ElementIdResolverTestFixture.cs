@@ -46,6 +46,8 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
             var child = assembler.Cache[childId].Value;
             var modelLoader = new Mock<IModelLoaderService>(MockBehavior.Strict);
             modelLoader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
+            modelLoader.Setup(service => service.FindUploadedElement(It.IsAny<string>())).Returns((SysML2.NET.Core.POCO.Root.Elements.IElement)null);
+            modelLoader.Setup(service => service.HasUploadedIdentity(It.IsAny<string>())).Returns(false);
             var resolver = new ElementIdResolver(modelLoader.Object, assembler);
 
             var resolved = await resolver.ResolveAsync("part/alpha value", CancellationToken.None);
@@ -84,6 +86,8 @@ namespace Mycelium.Bloom.Tests.Core.ModelLoading
             var root = (Namespace)assembler.Cache[rootId].Value;
             var modelLoader = new Mock<IModelLoaderService>(MockBehavior.Strict);
             modelLoader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
+            modelLoader.Setup(service => service.FindUploadedElement(It.IsAny<string>())).Returns((SysML2.NET.Core.POCO.Root.Elements.IElement)null);
+            modelLoader.Setup(service => service.HasUploadedIdentity(It.IsAny<string>())).Returns(false);
             var resolver = new ElementIdResolver(modelLoader.Object, assembler);
 
             var duplicate = await resolver.ResolveAsync("duplicate", CancellationToken.None);

@@ -1,0 +1,4 @@
+.interconnection { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; color: var(--foreground); background: var(--card); font-size: var(--text-12); }
+.interconnection__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6); min-height: var(--spacing-40); padding: var(--spacing-6) var(--spacing-12); border-bottom: 1px solid var(--border); }
+.interconnection__spacer { flex: 1; }
+.interconnection__canvas { flex: 1; min-height: 160px; position: relative; overflow: hidden; background-color: var(--muted); background-image: radial-gradient(var(--border-strong) 1px, transparent 1px); background-size: var(--spacing-20) var(--spacing-20); }

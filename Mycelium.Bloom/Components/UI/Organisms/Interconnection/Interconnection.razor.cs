@@ -1,0 +1,961 @@
+// ------------------------------------------------------------------------------------------------
+// <copyright file="Interconnection.razor.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Components.UI.Organisms.Interconnection
+{
+    using System.Collections.Immutable;
+    using System.Reactive;
+    using System.Reactive.Subjects;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
+    using Blazor.Diagrams;
+    using Blazor.Diagrams.Core.Behaviors;
+    using Blazor.Diagrams.Core.Geometry;
+    using Blazor.Diagrams.Core.Models;
+    using Blazor.Diagrams.Core.Models.Base;
+    using Blazor.Diagrams.Core.PathGenerators;
+    using Blazor.Diagrams.Options;
+    using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
+    using Microsoft.Extensions.Options;
+    using Mycelium.Bloom.Core.Configuration;
+    using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram;
+    using ReactiveUI;
+
+    /// <summary>Owns mounted rendering resources and dispatches arbitrary ViewModel publications to Blazor.</summary>
+    public sealed partial class Interconnection : ComponentBase, IAsyncDisposable
+    {
+        /// <summary>Owns the current ViewModel observation and external library event adapters.</summary>
+        private readonly SerialDisposable observation = new();
+
+        /// <summary>Owns resources attached to the current rendering graph.</summary>
+        private CompositeDisposable rendering = new();
+
+        /// <summary>Maps durable occurrence identities to ephemeral library models.</summary>
+        private readonly Dictionary<Guid, NodeModel> nodes = [];
+
+        /// <summary>Maps durable connection identities to ephemeral library links.</summary>
+        private readonly Dictionary<Guid, DiagramLinkModel> links = [];
+
+        /// <summary>The currently mounted library instance.</summary>
+        private BlazorDiagram diagram;
+
+        /// <summary>The last coherent snapshot applied at the renderer boundary.</summary>
+        private DiagramPresentationState presented;
+
+        /// <summary>Retains the presentation used to reconcile mounted renderer models.</summary>
+        private DiagramPresentationState rendered;
+        /// <summary>Retains the notation projection associated with mounted renderer models.</summary>
+        private DiagramProjection renderedProjection;
+        /// <summary>Identifies the occurrence snapshot used by the complete-bounds cache.</summary>
+        private ImmutableArray<DiagramOccurrence> boundedOccurrences;
+        /// <summary>Caches full-scope bounds independently of mounted graphical components.</summary>
+        private Rectangle completeBounds;
+
+        /// <summary>The caller-owned state currently observed.</summary>
+        private DiagramViewModel observed;
+
+        /// <summary>The root used for canvas-scoped pointer capture.</summary>
+        private ElementReference root;
+
+        /// <summary>The mounted component's collocated module.</summary>
+        private IJSObjectReference module;
+
+        /// <summary>The initialization task awaited by final disposal.</summary>
+        private Task initialization;
+
+        /// <summary>Cancels selection operations owned by this mounted component.</summary>
+        private readonly CancellationTokenSource mountLifetime = new();
+
+        /// <summary>Prevents JS-dependent library mounting during static rendering.</summary>
+        private bool isInteractive;
+
+        /// <summary>Prevents renderer-to-owner feedback while applying a snapshot.</summary>
+        private bool applying;
+
+        /// <summary>Marks the end of this rendering lifetime.</summary>
+        private bool disposed;
+
+        /// <summary>Gets model-opening actions owned by the workspace composition.</summary>
+        [Parameter]
+        public RenderFragment ModelActions { get; set; }
+
+        /// <summary>Owns model-bound visibility for this rendering graph.</summary>
+        private DiagramVisibility visibility;
+
+        /// <summary>Pins selected renderers until the active pointer gesture completes.</summary>
+        private bool interactionActive;
+
+        /// <summary>Identifies the occurrence to focus after its graphical component mounts.</summary>
+        private Guid? pendingFocus;
+
+        /// <summary>Bounds focus retries while an occurrence is mounting.</summary>
+        private int focusAttempts;
+        /// <summary>Defers the latest reveal until the active gesture completes.</summary>
+        private (string ElementId, bool Explicit)? pendingReveal;
+
+        /// <summary>Gets the detailed editor minimum independently of serialization capacity.</summary>
+        private double MinimumZoom =>
+            Math.Max(this.ViewModel.Limits.MinimumZoom, this.ViewportOptions.Value.MinimumZoom);
+
+        /// <summary>Gets or sets the validated viewport configuration.</summary>
+        [Inject]
+        private IOptions<DiagramViewportOptions> ViewportOptions { get; set; }
+
+        /// <summary>Gets or sets the existing circuit selection authority.</summary>
+        [Inject]
+        private IContextAwareService Context { get; set; }
+
+        /// <summary>Gets or sets the exact caller-owned state for this editor tab.</summary>
+        [Parameter, EditorRequired]
+        public DiagramViewModel ViewModel { get; set; }
+
+        /// <summary>Gets or sets the browser interop boundary.</summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>Gets or sets logging for failed owned asynchronous work.</summary>
+        [Inject]
+        private ILogger<Interconnection> Logger { get; set; }
+
+        /// <summary>Rebinds caller-owned state without retaining an earlier tab's subscriptions.</summary>
+        protected override void OnParametersSet()
+        {
+            if (ReferenceEquals(this.observed, this.ViewModel))
+            {
+                return;
+            }
+
+            this.observed = this.ViewModel;
+            this.pendingReveal = null;
+            this.ClearRenderer();
+            var owner = this.ViewModel;
+            var owned = new CompositeDisposable();
+            this.observation.Disposable = owned;
+            owned.Add(owner.WhenAnyValue(
+                    value => value.State, value => value.CanEditPresentation, value => value.IsReadOnly,
+                    value => value.SelectedOccurrences, value => value.Notice, value => value.Region,
+                    value => value.Projection)
+                .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                {
+                    if (!this.disposed && ReferenceEquals(owner, this.observed))
+                    {
+                        this.Reconcile();
+                        this.StateHasChanged();
+                    }
+                })))
+                .Concat()
+                .Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram rendering observation failed.")));
+            this.ObserveReveals(owner, owned);
+        }
+
+        /// <summary>Routes explicit and shared selection reveals to the current component binding.</summary>
+        /// <param name="owner">The caller-owned diagram.</param>
+        /// <param name="owned">Disposes the binding when parameters or component lifetime change.</param>
+        private void ObserveReveals(DiagramViewModel owner, CompositeDisposable owned)
+        {
+            var sharedReveals = owner.IsWorkspaceBound
+                ? Observable.Empty<string>()
+                : this.Context.WhenAnyValue(value => value.SelectedElement)
+                    .Select(element => owner.ContainsCanonicalElement(element) ? element.ElementId : null)
+                    .DistinctUntilChanged().Skip(1);
+            owned.Add(sharedReveals
+                .Select(id => (Id: id, Explicit: false))
+                .Merge(owner.RevealRequested.Select(id => (Id: id, Explicit: true)))
+                .Select(request => Observable.FromAsync(() => this.InvokeAsync(() =>
+                {
+                    if (!this.disposed && ReferenceEquals(owner, this.observed))
+                    {
+                        this.Reveal(request.Id, request.Explicit);
+                    }
+                }))).Concat().Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram reveal failed.")));
+            if (owner.PendingRevealElementId is { } pending)
+            {
+                this.Reveal(pending, true);
+            }
+        }
+
+        /// <summary>Starts browser resources only after interactive rendering begins.</summary>
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (this.disposed)
+            {
+                return;
+            }
+
+            if (!firstRender)
+            {
+                await this.FocusPendingOccurrenceAsync();
+
+                return;
+            }
+
+            this.isInteractive = true;
+            this.Reconcile();
+            this.initialization = this.InitializeBrowserAsync();
+            await this.initialization;
+
+            if (!this.disposed)
+            {
+                this.StateHasChanged();
+            }
+        }
+
+        /// <summary>Focuses a revealed occurrence only after its current graphical component mounts.</summary>
+        /// <returns>Completion of the bounded browser focus attempt.</returns>
+        private async Task FocusPendingOccurrenceAsync()
+        {
+            if (this.pendingFocus is { } focus && this.module is not null &&
+                this.nodes.TryGetValue(focus, out var node) && node.Visible)
+            {
+                var mounted = this.diagram;
+                var focused = await this.module.InvokeAsync<bool>("focusOccurrence", this.root, node.Id);
+                if (!this.disposed && this.pendingFocus == focus && ReferenceEquals(mounted, this.diagram))
+                {
+                    if (focused)
+                    {
+                        this.pendingFocus = null;
+                    }
+                    else if (++this.focusAttempts <= 3)
+                    {
+                        this.StateHasChanged();
+                    }
+                }
+            }
+
+        }
+
+        /// <summary>Imports and mounts component-scoped browser resources without outliving disposal.</summary>
+        private async Task InitializeBrowserAsync()
+        {
+            var imported = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import",
+                "./Components/UI/Organisms/Interconnection/Interconnection.razor.js");
+            if (this.disposed)
+            {
+                await imported.DisposeAsync();
+                return;
+            }
+
+            this.module = imported;
+            await imported.InvokeVoidAsync("mount", this.root);
+        }
+
+        /// <summary>Applies only changed topology and presentation, preserving existing model instances.</summary>
+        private void Reconcile()
+        {
+            if (this.disposed || !this.isInteractive || this.ViewModel.State is not { } state)
+            {
+                return;
+            }
+
+            if (this.ViewModel.UsesRegionalRendering)
+            {
+                if (this.interactionActive)
+                {
+                    return;
+                }
+
+                var region = this.ViewModel.Region;
+                var nodeIds = region?.Occurrences.Select(node => node.Id).ToHashSet() ?? [];
+                var routeIds = region?.Routes.Select(route => route.Id).ToHashSet() ?? [];
+                state = state with
+                {
+                    Occurrences = [.. state.Occurrences.Where(node => nodeIds.Contains(node.Id))],
+                    Routes = [.. state.Routes.Where(route => routeIds.Contains(route.Id))]
+                };
+            }
+
+            var previous = this.rendered;
+            var topologyChanged = this.diagram is null || previous is null
+                                                       || (this.ViewModel.UsesRegionalRendering &&
+                                                           !ReferenceEquals(this.renderedProjection,
+                                                               this.ViewModel.Projection))
+                                                       || !previous.Occurrences.Select(node =>
+                                                               (node.Id, node.ElementId, node.ParentId))
+                                                           .SequenceEqual(state.Occurrences.Select(node =>
+                                                               (node.Id, node.ElementId, node.ParentId)))
+                                                       || !previous.Routes.Select(route =>
+                                                               (route.Id, route.ElementId, route.SourceId,
+                                                                   route.TargetId))
+                                                           .SequenceEqual(state.Routes.Select(route =>
+                                                               (route.Id, route.ElementId, route.SourceId,
+                                                                   route.TargetId)));
+
+            var alignments = topologyChanged || this.presented.Occurrences != this.ViewModel.State.Occurrences
+                ? GetPortAlignments(this.ViewModel.State)
+                : null;
+            if (!topologyChanged && alignments is not null)
+            {
+                topologyChanged = this.nodes.Any(pair => pair.Value.Ports.Any(port =>
+                    port.Alignment != alignments.GetValueOrDefault((pair.Key, port.Id), PortAlignment.Right)));
+            }
+
+            this.applying = true;
+            try
+            {
+                if (topologyChanged)
+                {
+                    this.CreateRenderer(state, alignments);
+                }
+
+                foreach (var occurrence in state.Occurrences.OrderBy(node => node.ParentId.HasValue))
+                {
+                    this.ReconcileOccurrence(occurrence);
+                }
+
+                foreach (var route in state.Routes)
+                {
+                    this.ReconcileRoute(route);
+                }
+
+                this.RestoreViewport(state.Viewport);
+
+                this.presented = this.ViewModel.State;
+                this.rendered = state;
+                this.renderedProjection = this.ViewModel.Projection;
+                this.UpdateViewport();
+            }
+            finally
+            {
+                this.applying = false;
+            }
+        }
+
+        /// <summary>Applies an exact finite viewport value only when the accepted view has changed.</summary>
+        /// <param name="viewport">The validated or clamped viewport.</param>
+        private void RestoreViewport(DiagramViewport viewport)
+        {
+            var current = new DiagramViewport(this.diagram.Pan.X, this.diagram.Pan.Y, this.diagram.Zoom);
+            if (current == viewport)
+            {
+                return;
+            }
+
+            this.diagram.SetZoom(viewport.Zoom);
+            this.diagram.SetPan(viewport.X, viewport.Y);
+        }
+
+        /// <summary>Restores one occurrence from accepted finite geometry without losing fractional changes.</summary>
+        /// <param name="occurrence">The accepted occurrence and selection identity.</param>
+        private void ReconcileOccurrence(DiagramOccurrence occurrence)
+        {
+            var node = this.nodes[occurrence.Id];
+            var geometry = occurrence.Geometry;
+            var locked = !this.ViewModel.CanEditPresentation || occurrence.ParentId.HasValue;
+            var changed = node.Locked != locked
+                          || node.Selected != this.ViewModel.SelectedOccurrences.Contains(occurrence.Id);
+            node.Locked = locked;
+            var currentGeometry = new DiagramGeometry(node.Position.X, node.Position.Y, node.Size.Width,
+                node.Size.Height);
+            var geometryChanged = currentGeometry != geometry;
+            if (!(node.Position.X, node.Position.Y).Equals((geometry.X, geometry.Y)))
+            {
+                node.SetPosition(geometry.X, geometry.Y);
+            }
+
+            if (geometryChanged)
+            {
+                node.Size = new Size(geometry.Width, geometry.Height);
+                UpdatePorts(node);
+            }
+
+            this.RestoreSelection(node, this.ViewModel.SelectedOccurrences.Contains(occurrence.Id));
+            if (changed || geometryChanged)
+            {
+                node.Refresh();
+            }
+        }
+
+        /// <summary>Restores one connection's accepted manual bends and interaction state.</summary>
+        /// <param name="route">The accepted connection occurrence.</param>
+        private void ReconcileRoute(DiagramRoute route)
+        {
+            var link = this.links[route.Id];
+            var changed = link.Locked != !this.ViewModel.CanEditPresentation
+                          || link.Selected != this.ViewModel.SelectedOccurrences.Contains(route.Id);
+            link.Locked = !this.ViewModel.CanEditPresentation;
+            if (!link.Vertices.Select(vertex => new DiagramPoint(vertex.Position.X, vertex.Position.Y))
+                    .SequenceEqual(route.Bends))
+            {
+                changed = true;
+                link.Vertices.Clear();
+                foreach (var point in route.Bends)
+                {
+                    link.AddVertex(new Point(point.X, point.Y));
+                }
+            }
+
+            foreach (var vertex in link.Vertices)
+            {
+                vertex.Locked = link.Locked;
+            }
+
+            this.RestoreSelection(link, this.ViewModel.SelectedOccurrences.Contains(route.Id));
+            if (changed)
+            {
+                link.Refresh();
+            }
+        }
+
+        /// <summary>Builds a rendering graph from validated tab state.</summary>
+        /// <param name="state">The accepted presentation.</param>
+        /// <param name="alignments">The occurrence-specific boundary sides.</param>
+        private void CreateRenderer(DiagramPresentationState state,
+            Dictionary<(Guid OccurrenceId, string PortId), PortAlignment> alignments)
+        {
+            var focus = this.pendingFocus;
+            this.ClearRenderer();
+            this.pendingFocus = focus;
+            this.diagram = new BlazorDiagram(new BlazorDiagramOptions(), registerDefaultBehaviors: false);
+            var mounted = this.diagram;
+            Action<Model, Blazor.Diagrams.Core.Events.PointerEventArgs> started = (_, _) =>
+            {
+                if (ReferenceEquals(mounted, this.diagram))
+                {
+                    this.interactionActive = true;
+                }
+            };
+            mounted.PointerDown += started;
+            this.rendering.Add(Disposable.Create(() => mounted.PointerDown -= started));
+            this.diagram.SuspendRefresh = true;
+            this.diagram.SuspendSorting = true;
+            this.diagram.Options.Virtualization.Enabled = true;
+            this.diagram.Options.Zoom.Minimum = this.MinimumZoom;
+            this.diagram.Options.Zoom.Maximum = 4;
+            this.diagram.Options.Links.DefaultPathGenerator = new StraightPathGenerator();
+            this.diagram.RegisterComponent<DiagramNodeModel, PartSvg>();
+            this.diagram.RegisterComponent<DiagramGroupModel, GroupSvg>();
+            this.diagram.RegisterComponent<DiagramLinkModel, ConnectionSvg>();
+            this.diagram.RegisterBehavior(new SelectionBehavior(this.diagram));
+            this.diagram.RegisterBehavior(new DragMovablesBehavior(this.diagram));
+            this.diagram.RegisterBehavior(new PanBehavior(this.diagram));
+            this.diagram.RegisterBehavior(new ZoomBehavior(this.diagram));
+            this.diagram.RegisterBehavior(new EventsBehavior(this.diagram));
+
+            this.CreateGraphElements(state, alignments);
+
+            this.diagram.SuspendSorting = false;
+            this.diagram.RefreshOrders();
+            this.diagram.SuspendRefresh = false;
+            this.visibility = new DiagramVisibility(this.diagram, this.ViewportOptions.Value.Margin);
+            this.rendering.Add(this.visibility);
+            this.ObserveRenderer(mounted);
+        }
+
+        /// <summary>Owns selection and coalesced viewport subscriptions for one mounted canvas.</summary>
+        /// <param name="mounted">The canvas whose callbacks must become obsolete on remount.</param>
+        private void ObserveRenderer(BlazorDiagram mounted)
+        {
+            this.rendering.Add(Observable.FromEvent<SelectableModel>(
+                    handler => mounted.SelectionChanged += handler, handler => mounted.SelectionChanged -= handler)
+                .Where(_ => !this.applying)
+                .Select(model => Observable.FromAsync(() => this.InvokeAsync(async () =>
+                {
+                    if (!this.disposed && ReferenceEquals(mounted, this.diagram))
+                    {
+                        await this.SelectRenderedModelAsync(model);
+                    }
+                })))
+                .Concat().Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram selection failed.")));
+
+            var changes = new Subject<Unit>();
+            this.rendering.Add(changes);
+            this.rendering.Add(changes.Sample(TimeSpan.FromMilliseconds(50))
+                .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                {
+                    if (!this.disposed && ReferenceEquals(mounted, this.diagram))
+                    {
+                        this.UpdateViewport();
+                        this.StateHasChanged();
+                    }
+                }))).Concat()
+                .Subscribe(_ => { }, error => this.Logger.LogError(error, "Diagram viewport update failed.")));
+            Action changed = () => changes.OnNext(Unit.Default);
+            Action resized = () =>
+            {
+                this.UpdateViewport();
+                this.StateHasChanged();
+            };
+            Action<Model, Blazor.Diagrams.Core.Events.PointerEventArgs> completed = (_, _) =>
+                this.CompleteInteraction(mounted);
+            mounted.PointerUp += completed;
+            mounted.PanChanged += changed;
+            mounted.ZoomChanged += changed;
+            mounted.ContainerChanged += resized;
+            this.rendering.Add(Disposable.Create(() =>
+            {
+                mounted.PointerUp -= completed;
+                mounted.PanChanged -= changed;
+                mounted.ZoomChanged -= changed;
+                mounted.ContainerChanged -= resized;
+            }));
+        }
+
+        /// <summary>Commits a completed gesture before allowing regional topology to change.</summary>
+        /// <param name="mounted">The canvas that received pointer release.</param>
+        private void CompleteInteraction(BlazorDiagram mounted)
+        {
+            if (!ReferenceEquals(mounted, this.diagram))
+            {
+                return;
+            }
+
+            this.interactionActive = false;
+            this.CapturePresentation();
+            this.UpdateViewport();
+            if (this.ViewModel.UsesRegionalRendering)
+            {
+                this.Reconcile();
+            }
+        }
+
+        /// <summary>Publishes canonical selection from the current rendered occurrence set.</summary>
+        /// <param name="model">The library model that initiated selection.</param>
+        /// <returns>Completion of selection validation and canonical resolution.</returns>
+        private async Task SelectRenderedModelAsync(SelectableModel model)
+        {
+            var selected = this.nodes.Where(pair => pair.Value.Selected).Select(pair => pair.Key)
+                .Concat(this.links.Where(pair => pair.Value.Selected).Select(pair => pair.Key))
+                .ToImmutableHashSet();
+            var primary = this.nodes.FirstOrDefault(pair => ReferenceEquals(pair.Value, model)).Key;
+            if (primary == Guid.Empty)
+            {
+                primary = this.links.FirstOrDefault(pair => ReferenceEquals(pair.Value, model)).Key;
+            }
+
+            await this.ViewModel.SelectAsync(selected,
+                model.Selected && primary != Guid.Empty ? primary : null, this.mountLifetime.Token);
+        }
+
+        /// <summary>Creates regional nodes, ports and connections from the accepted projection.</summary>
+        /// <param name="state">The validated regional presentation.</param>
+        /// <param name="alignments">The boundary side for each occurrence port.</param>
+        private void CreateGraphElements(DiagramPresentationState state,
+            Dictionary<(Guid OccurrenceId, string PortId), PortAlignment> alignments)
+        {
+            var childrenByParent = state.Occurrences.Where(node => node.ParentId.HasValue)
+                .ToLookup(node => node.ParentId.Value);
+            foreach (var occurrence in state.Occurrences.Where(node => !childrenByParent.Contains(node.Id)))
+            {
+                var node = new DiagramNodeModel(occurrence, this.ViewModel.Projection.Parts[occurrence.ElementId])
+                { Visible = false };
+                this.nodes.Add(occurrence.Id, node);
+                this.diagram.Nodes.Add(node);
+            }
+
+            var pendingGroups = state.Occurrences.Where(node => childrenByParent.Contains(node.Id))
+                .ToDictionary(node => node.Id);
+            while (pendingGroups.Count > 0)
+            {
+                var ready = pendingGroups.Values
+                    .Where(node => childrenByParent[node.Id].All(child => this.nodes.ContainsKey(child.Id))).ToArray();
+                if (ready.Length == 0)
+                {
+                    throw new InvalidOperationException("Cyclic renderer containment.");
+                }
+
+                foreach (var occurrence in ready)
+                {
+                    var children = childrenByParent[occurrence.Id].Select(child => this.nodes[child.Id]);
+                    var group = new DiagramGroupModel(occurrence, this.ViewModel.Projection.Parts[occurrence.ElementId],
+                        children)
+                    { Visible = false };
+                    this.nodes.Add(occurrence.Id, group);
+                    this.diagram.Groups.Add(group);
+                    pendingGroups.Remove(occurrence.Id);
+                }
+            }
+
+            foreach (var (occurrenceId, node) in this.nodes)
+            {
+                var part = GetPart(node);
+                foreach (var portId in part.Ports.Select(port => port.ElementId))
+                {
+                    var model = node.AddPort(new PortModel(portId, node,
+                            alignments.GetValueOrDefault((occurrenceId, portId), PortAlignment.Right),
+                            size: new Size(8, 8))
+                    { Initialized = true });
+                    Action<Model> initializePort = _ =>
+                    {
+                        model.Initialized = true;
+                        model.RefreshLinks();
+                    };
+                    model.Changed += initializePort;
+                    this.rendering.Add(Disposable.Create(() => model.Changed -= initializePort));
+                }
+
+                UpdatePorts(node);
+            }
+
+            foreach (var route in state.Routes)
+            {
+                var link = new DiagramLinkModel(route, this.ViewModel.Projection.Connections[route.ElementId],
+                    this.nodes[route.SourceId].Ports.Single(port => port.Id == route.SourcePortId),
+                    this.nodes[route.TargetId].Ports.Single(port => port.Id == route.TargetPortId));
+                link.Visible = false;
+                this.links.Add(route.Id, link);
+                this.diagram.Links.Add(link);
+            }
+
+        }
+
+        /// <summary>Gets the immutable presentation associated with one library node.</summary>
+        private static DiagramPart GetPart(NodeModel node) => node switch
+        {
+            DiagramNodeModel part => part.Part,
+            DiagramGroupModel group => group.Part,
+            _ => throw new InvalidOperationException("Unsupported diagram node.")
+        };
+
+        /// <summary>Restores local selection through the library's own selection authority.</summary>
+        private void RestoreSelection(SelectableModel model, bool selected)
+        {
+            if (selected && !model.Selected)
+            {
+                this.diagram.SelectModel(model, false);
+            }
+            else if (!selected && model.Selected)
+            {
+                this.diagram.UnselectModel(model);
+            }
+        }
+
+        /// <summary>Positions boundary ports from explicit model-space geometry.</summary>
+        internal static void UpdatePorts(NodeModel node)
+        {
+            var sideCounts = new Dictionary<PortAlignment, int>();
+            for (var index = 0; index < node.Ports.Count; index++)
+            {
+                var port = node.Ports[index];
+                var sideIndex = sideCounts.GetValueOrDefault(port.Alignment);
+                sideCounts[port.Alignment] = sideIndex + 1;
+                var local = port.Alignment switch
+                {
+                    PortAlignment.Left => new Point(-4, 56 + sideIndex * 20),
+                    PortAlignment.Right => new Point(node.Size.Width - 4, 56 + sideIndex * 20),
+                    PortAlignment.Top => new Point(node.Size.Width / 2 - 4 + sideIndex * 20, -4),
+                    _ => new Point(node.Size.Width / 2 - 4 + sideIndex * 20, node.Size.Height - 4)
+                };
+                port.Position = new Point(node.Position.X + local.X, node.Position.Y + local.Y);
+                port.Initialized = true;
+                port.RefreshLinks();
+            }
+        }
+
+        /// <summary>Indexes boundary sides using each occurrence port's first displayed connection.</summary>
+        /// <param name="state">The accepted presentation.</param>
+        /// <returns>Boundary sides keyed by occurrence and semantic port identity.</returns>
+        internal static Dictionary<(Guid OccurrenceId, string PortId), PortAlignment> GetPortAlignments(
+            DiagramPresentationState state)
+        {
+            var geometries = state.Occurrences.ToDictionary(node => node.Id, node => node.Geometry);
+            var alignments = new Dictionary<(Guid OccurrenceId, string PortId), PortAlignment>();
+            foreach (var route in state.Routes)
+            {
+                var source = geometries[route.SourceId];
+                var target = geometries[route.TargetId];
+                alignments.TryAdd((route.SourceId, route.SourcePortId), GetAlignment(source, target));
+                alignments.TryAdd((route.TargetId, route.TargetPortId), GetAlignment(target, source));
+            }
+
+            return alignments;
+        }
+
+        /// <summary>Chooses the dominant direction between two displayed bounds.</summary>
+        /// <param name="geometry">The port owner's bounds.</param>
+        /// <param name="other">The connected occurrence's bounds.</param>
+        /// <returns>The corresponding boundary side.</returns>
+        private static PortAlignment GetAlignment(DiagramGeometry geometry, DiagramGeometry other)
+        {
+            var dx = other.X + other.Width / 2 - geometry.X - geometry.Width / 2;
+            var dy = other.Y + other.Height / 2 - geometry.Y - geometry.Height / 2;
+            if (Math.Abs(dx) >= Math.Abs(dy))
+            {
+                return dx >= 0 ? PortAlignment.Right : PortAlignment.Left;
+            }
+
+            return dy >= 0 ? PortAlignment.Bottom : PortAlignment.Top;
+        }
+
+        /// <summary>Captures completed presentation changes without semantic mutation.</summary>
+        private void CapturePresentation()
+        {
+            if (this.applying || this.disposed || this.diagram is null || this.presented is null)
+            {
+                return;
+            }
+
+            var owner = this.ViewModel.State;
+            if (!ReferenceEquals(owner, this.presented))
+            {
+                return;
+            }
+
+            var viewport = new DiagramViewport(this.diagram.Pan.X, this.diagram.Pan.Y, this.diagram.Zoom);
+            var candidate = owner with { Viewport = viewport };
+            if (this.ViewModel.CanEditPresentation)
+            {
+                var occurrences = owner.Occurrences.Select(this.CaptureOccurrence).ToImmutableArray();
+                var routes = owner.Routes.Select(this.CaptureRoute).ToImmutableArray();
+                candidate = candidate with
+                {
+                    Occurrences = occurrences.SequenceEqual(owner.Occurrences) ? owner.Occurrences : occurrences,
+                    Routes = routes.SequenceEqual(owner.Routes) ? owner.Routes : routes
+                };
+            }
+
+            if (!this.ViewModel.ApplyRenderedPresentation(owner, candidate, this.nodes.Keys.ToHashSet()))
+            {
+                this.Reconcile();
+            }
+        }
+
+        /// <summary>Captures mounted geometry while preserving unmounted occurrence state.</summary>
+        /// <param name="occurrence">The previous accepted occurrence.</param>
+        /// <returns>The unchanged occurrence or its exact current geometry.</returns>
+        private DiagramOccurrence CaptureOccurrence(DiagramOccurrence occurrence)
+        {
+            if (!this.nodes.TryGetValue(occurrence.Id, out var node))
+            {
+                return occurrence;
+            }
+
+            var geometry = new DiagramGeometry(node.Position.X, node.Position.Y, node.Size.Width,
+                node.Size.Height);
+            return geometry == occurrence.Geometry ? occurrence : occurrence with { Geometry = geometry };
+        }
+
+        /// <summary>Captures mounted bends while preserving unmounted connection state.</summary>
+        /// <param name="route">The previous accepted connection.</param>
+        /// <returns>The unchanged connection or its current bends.</returns>
+        private DiagramRoute CaptureRoute(DiagramRoute route)
+        {
+            if (!this.links.TryGetValue(route.Id, out var displayedLink))
+            {
+                return route;
+            }
+
+            var bends = displayedLink.Vertices
+                .Select(vertex => new DiagramPoint(vertex.Position.X, vertex.Position.Y)).ToImmutableArray();
+            return bends.SequenceEqual(route.Bends) ? route : route with { Bends = bends };
+        }
+
+        /// <summary>Requests a controlled zoom without resetting the current pan.</summary>
+        private void ChangeZoom(double zoom) => this.diagram?.SetZoom(zoom / 100);
+
+        /// <summary>Restores the actual-size zoom.</summary>
+        private void ResetZoom() => this.ChangeZoom(100);
+
+        /// <summary>Fits complete or selected bounds without bypassing the detailed editor's scale limit.</summary>
+        private Task FitToViewAsync()
+        {
+            if (this.diagram?.Container is not { } container || this.visibility is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            var selected = this.nodes.Values.Where(node => node.Selected).Select(node => node.GetBounds()).ToArray();
+            var bounds = selected.Length > 0
+                ? selected.Aggregate((left, right) => left.Union(right))
+                : this.GetCompleteBounds();
+            var requested = Math.Min(container.Width / (bounds.Width + 80), container.Height / (bounds.Height + 80));
+            var zoom = Math.Clamp(requested, this.MinimumZoom, 4);
+            if (requested < this.MinimumZoom && selected.Length == 0)
+            {
+                this.ViewModel.ApplyPresentation(this.ViewModel.State with
+                {
+                    Viewport = this.ViewModel.State.Viewport with { Zoom = zoom }
+                });
+                this.ViewModel.ReportNotice(
+                    "Minimum detailed zoom reached; the complete diagram does not fit. Select a part to fit its region.");
+            }
+            else
+            {
+                this.ViewModel.ApplyPresentation(this.ViewModel.State with
+                {
+                    Viewport = new DiagramViewport(
+                        (container.Width - bounds.Width * zoom) / 2 - bounds.Left * zoom,
+                        (container.Height - bounds.Height * zoom) / 2 - bounds.Top * zoom, zoom)
+                });
+            }
+
+            this.UpdateViewport();
+            return Task.CompletedTask;
+        }
+
+        /// <summary>Reconciles cached full-scope geometry independently of mounted graphics.</summary>
+        /// <returns>The complete model-space navigation bounds.</returns>
+        private Rectangle GetCompleteBounds()
+        {
+            if (!this.ViewModel.UsesRegionalRendering)
+            {
+                return this.visibility.Bounds;
+            }
+
+            if (this.completeBounds is null || this.boundedOccurrences != this.ViewModel.State.Occurrences)
+            {
+                this.boundedOccurrences = this.ViewModel.State.Occurrences;
+                this.completeBounds = this.boundedOccurrences.Select(node => new Rectangle(node.Geometry.X,
+                        node.Geometry.Y,
+                        node.Geometry.X + node.Geometry.Width, node.Geometry.Y + node.Geometry.Height))
+                    .DefaultIfEmpty(Rectangle.Zero).Aggregate((left, right) => left.Union(right));
+            }
+
+            return this.completeBounds;
+        }
+
+        /// <summary>Clamps navigation to complete model-space bounds and applies coalesced rendering visibility.</summary>
+        private void UpdateViewport()
+        {
+            if (this.disposed || this.diagram?.Container is not { } container || this.visibility is null)
+            {
+                return;
+            }
+
+            if (!this.interactionActive && this.pendingReveal is { } request)
+            {
+                this.pendingReveal = null;
+                this.Reveal(request.ElementId, request.Explicit);
+                return;
+            }
+
+            var bounds = this.GetCompleteBounds();
+            var zoom = Math.Clamp(this.diagram.Zoom, this.MinimumZoom, 4);
+            var padding = this.ViewportOptions.Value.PanPadding;
+            var x = Math.Clamp(this.diagram.Pan.X, -bounds.Right * zoom - padding,
+                container.Width - bounds.Left * zoom + padding);
+            var y = Math.Clamp(this.diagram.Pan.Y, -bounds.Bottom * zoom - padding,
+                container.Height - bounds.Top * zoom + padding);
+            this.RestoreViewport(new DiagramViewport(x, y, zoom));
+            if (!this.interactionActive)
+            {
+                this.ViewModel.RequestRegion(container.Width, container.Height, this.ViewportOptions.Value.Margin * 2);
+            }
+
+            this.visibility.Apply(this.interactionActive);
+            var viewport = new DiagramViewport(x, y, zoom);
+            if (viewport != this.ViewModel.State.Viewport)
+            {
+                this.ViewModel.ApplyPresentation(this.ViewModel.State with { Viewport = viewport });
+            }
+        }
+
+        /// <summary>Reveals a canonical browser selection without replacing diagram-local multi-selection.</summary>
+        private void Reveal(string elementId, bool explicitRequest = false)
+        {
+            if (this.disposed || elementId is null)
+            {
+                return;
+            }
+
+            if (this.interactionActive || this.diagram?.Container is not { } container)
+            {
+                this.pendingReveal = (elementId, explicitRequest);
+                return;
+            }
+
+            if (!explicitRequest && this.nodes.Any(pair =>
+                    pair.Value.Visible && pair.Value.Selected && GetPart(pair.Value).ElementId == elementId))
+            {
+                return;
+            }
+
+            this.pendingFocus =
+                this.ViewModel.RevealOccurrence(elementId, container.Width, container.Height, this.MinimumZoom);
+            if (explicitRequest)
+            {
+                this.ViewModel.CompleteReveal(elementId);
+            }
+
+            this.focusAttempts = 0;
+            this.ViewModel.RequestRegion(container.Width, container.Height, this.ViewportOptions.Value.Margin * 2);
+            this.StateHasChanged();
+        }
+
+        /// <summary>Detaches every library event, behavior and grouped child owned by this mount.</summary>
+        private void ClearRenderer()
+        {
+            this.rendering.Dispose();
+            this.rendering = new CompositeDisposable();
+            if (this.diagram is not null)
+            {
+                foreach (var group in this.diagram.Groups.ToArray())
+                {
+                    group.Ungroup();
+                }
+
+                this.diagram.UnregisterBehavior<SelectionBehavior>();
+                this.diagram.UnregisterBehavior<DragMovablesBehavior>();
+                this.diagram.UnregisterBehavior<PanBehavior>();
+                this.diagram.UnregisterBehavior<ZoomBehavior>();
+                this.diagram.UnregisterBehavior<EventsBehavior>();
+            }
+
+            this.diagram = null;
+            this.visibility = null;
+            this.pendingFocus = null;
+            this.interactionActive = false;
+            this.presented = null;
+            this.rendered = null;
+            this.renderedProjection = null;
+            this.nodes.Clear();
+            this.links.Clear();
+        }
+
+        /// <summary>Releases mounted resources while leaving the caller-owned ViewModel alive.</summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (this.disposed)
+            {
+                return;
+            }
+
+            this.CapturePresentation();
+            this.disposed = true;
+            await this.mountLifetime.CancelAsync();
+            this.mountLifetime.Dispose();
+            this.observation.Dispose();
+            this.ClearRenderer();
+            try
+            {
+                try
+                {
+                    if (this.initialization is not null)
+                    {
+                        await this.initialization;
+                    }
+                }
+                finally
+                {
+                    if (this.module is not null)
+                    {
+                        try
+                        {
+                            await this.module.InvokeVoidAsync("unmount", this.root);
+                        }
+                        finally
+                        {
+                            await this.module.DisposeAsync();
+                        }
+                    }
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // Closed or superseded owners cannot receive this completion.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The circuit may release the JS reference before component teardown completes.
+            }
+        }
+    }
+}

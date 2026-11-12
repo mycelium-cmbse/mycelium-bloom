@@ -1,0 +1,7 @@
+.connection-svg__line { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; }
+.connection-svg--selected .connection-svg__line { stroke: var(--primary); stroke-width: 2; }
+.connection-svg__hit { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; }
+.connection-svg__icon { color: var(--sysml-connections-header); }
+.connection-svg__label { fill: var(--card); stroke: var(--sysml-connections-border); stroke-width: 1px; }
+.connection-svg__name { fill: var(--foreground); font: var(--typography-typography-label-sm), sans-serif; font-size: var(--text-10); font-weight: 400; }
+.connection-svg__multiplicity { fill: var(--foreground-muted); font: var(--typography-typography-label-sm), sans-serif; font-size: var(--text-10); font-weight: 400; }

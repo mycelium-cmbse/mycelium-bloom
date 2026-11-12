@@ -1,0 +1,25 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="Interconnection.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+<section class="interconnection" @ref="this.root" aria-label="@(this.ViewModel.IsWorkspaceBound ? $"Interconnection: {this.ViewModel.ScopeName}" : "Interconnection diagram")" data-testid="interconnection">
+    <div class="interconnection__toolbar" role="toolbar" aria-label="Diagram actions">
+        @this.ModelActions
+        <span class="interconnection__spacer"></span>
+        <ZoomControls Class="mb-zoom-controls--diagram" Zoom="@(this.ViewModel.State.Viewport.Zoom * 100)" ZoomChanged="this.ChangeZoom"
+                      OnResetZoom="this.ResetZoom" OnFitToView="this.FitToViewAsync" Compact="true" ShowReset="false" MinimumZoom="@(this.MinimumZoom * 100)" />
+    </div>
+    <div class="interconnection__canvas" @ondblclick="this.CapturePresentation">
+        @if (this.isInteractive && this.diagram is not null)
+        {
+            <CascadingValue Value="this.diagram" IsFixed="true" @key="this.diagram">
+                <DiagramCanvasHost />
+            </CascadingValue>
+        }
+    </div>
+</section>

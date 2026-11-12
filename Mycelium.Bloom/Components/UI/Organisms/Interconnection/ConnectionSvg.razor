@@ -1,0 +1,48 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ConnectionSvg.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Blazor.Diagrams.Core.Models.Base
+@using Blazor.Diagrams.Components.Renderers
+@using BlazorBlueprint.Icons.Lucide.Components
+
+
+@if (this.Link.PathGeneratorResult is { } result)
+{
+    var connection = ((DiagramLinkModel)this.Link).Connection;
+    var middle = result.FullPath.GetPointAtLength(result.FullPath.Length / 2);
+    var source = result.FullPath.GetPointAtLength(Math.Min(18, result.FullPath.Length / 6));
+    var target = result.FullPath.GetPointAtLength(Math.Max(0, result.FullPath.Length - 18));
+    var labelWidth = connection.Name.Length * 6 + 29;
+    var beforeMiddle = result.FullPath.GetPointAtLength(Math.Max(0, result.FullPath.Length / 2 - 1));
+    var afterMiddle = result.FullPath.GetPointAtLength(Math.Min(result.FullPath.Length, result.FullPath.Length / 2 + 1));
+    var verticalLabel = Math.Abs(afterMiddle.Y - beforeMiddle.Y) > Math.Abs(afterMiddle.X - beforeMiddle.X);
+    <g class="connection-svg @(this.Link.Selected ? "connection-svg--selected" : "")" data-element-id="@connection.ElementId">
+        <path class="connection-svg__line" d="@result.FullPath.ToString()" />
+        <path class="connection-svg__hit" d="@result.FullPath.ToString()" />
+        <g transform="@string.Create(System.Globalization.CultureInfo.InvariantCulture, $"translate({middle.X + (verticalLabel ? labelWidth / 2d + 6 : 0)} {middle.Y - (verticalLabel ? 0 : 12)})")">
+            <rect class="connection-svg__label" x="@SvgNumber(-labelWidth / 2d)" y="-10"
+                  width="@labelWidth" height="18" rx="4" />
+            <svg class="connection-svg__icon" x="@SvgNumber(-labelWidth / 2d + 7)" y="-6.5" width="11" height="11">
+                <LucideIcon Name="plug" Size="11" aria-hidden="true" />
+            </svg>
+            <text class="connection-svg__name" x="@SvgNumber(-labelWidth / 2d + 22)" y="2">@connection.Name</text>
+        </g>
+        <text class="connection-svg__multiplicity" text-anchor="@(verticalLabel ? "end" : "start")"
+              x="@SvgNumber(source.X + (verticalLabel ? -8 : 8))" y="@SvgNumber(source.Y + 16)">@connection.SourceMultiplicity</text>
+        <text class="connection-svg__multiplicity" text-anchor="@(verticalLabel ? "end" : "start")"
+              x="@SvgNumber(target.X + (verticalLabel ? -8 : 8))" y="@SvgNumber(target.Y + 16)">@connection.TargetMultiplicity</text>
+    </g>
+    @if (!this.Export && this.Link.Selected && !this.Link.Locked)
+    {
+        @foreach (var vertex in this.Link.Vertices)
+        {
+            <LinkVertexRenderer @key="vertex.Id" Vertex="vertex" Color="var(--primary)" SelectedColor="var(--primary)" />
+        }
+    }
+}

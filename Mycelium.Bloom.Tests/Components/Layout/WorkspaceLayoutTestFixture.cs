@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Tests.Components.Layout
 {
+
     using System;
     using System.ComponentModel;
     using System.IO;
@@ -33,6 +34,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.NavigationRail;
@@ -65,10 +67,13 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         public WorkspaceLayoutTestFixture()
         {
             BlueprintTestSetup.Configure(this);
+            this.Services.AddSingleton(Mock.Of<Microsoft.Extensions.Hosting.IHostEnvironment>());
 
             this.context = new ContextAwareService();
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.Services.AddSingleton(new Mock<IModelLoaderService>(MockBehavior.Strict).Object);
+            this.Services.AddInterconnection();
             this.elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
             this.Services.AddSingleton(this.elementIdResolver.Object);
             this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(serviceProvider =>

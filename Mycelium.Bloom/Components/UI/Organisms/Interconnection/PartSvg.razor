@@ -1,0 +1,44 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="PartSvg.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Blazor.Diagrams.Core.Models
+@using BlazorBlueprint.Icons.Lucide.Components
+@using SysML2.NET.Core.Core.Types
+
+
+<g class="part-svg @(this.Node.Selected ? "part-svg--selected" : "")" data-element-id="@this.Part.ElementId">
+    <title>@this.Part.Name</title>
+    <rect class="part-svg__body" width="@SvgNumber(this.Node.Size.Width)" height="@SvgNumber(this.Node.Size.Height)" rx="6" />
+    <path class="part-svg__header" d="@this.HeaderPath" />
+    <svg x="8" y="4" width="12" height="12"><LucideIcon Name="component" Size="12" aria-hidden="true" /></svg>
+    <text class="part-svg__kind" x="27" y="14">«part»</text>
+    <text class="part-svg__name" x="8" y="32">@(string.IsNullOrEmpty(this.Part.Name) ? this.Part.DetailStatus ?? "Loading…" : this.Part.Name)</text>
+    @for (var index = 0; index < this.Part.Attributes.Length; index++)
+    {
+        <g><text class="part-svg__attribute @(index == 0 ? "part-svg__attribute--leading" : "")" x="8" y="@(54 + index * 16)">@this.Part.Attributes[index]</text></g>
+    }
+    <rect class="part-svg__outline" width="@SvgNumber(this.Node.Size.Width)" height="@SvgNumber(this.Node.Size.Height)" rx="6" />
+    @foreach (var port in this.Node.Ports)
+    {
+        var presentation = this.Part.Ports.Single(item => item.ElementId == port.Id);
+        <g class="part-svg__port" data-port-id="@port.Id">
+            <title>@presentation.Name</title>
+            @if (presentation.Direction is { } direction && PortImages.TryGetValue(direction, out var image))
+            {
+                <image class="part-svg__port-direction" data-direction="@direction" href="@image"
+                       x="@SvgNumber(port.MiddlePosition.X - this.Node.Position.X - 6)"
+                       y="@SvgNumber(port.MiddlePosition.Y - this.Node.Position.Y - 6)" width="12" height="12" />
+            }
+            else
+            {
+                <rect x="@SvgNumber(port.Position.X - this.Node.Position.X)" y="@SvgNumber(port.Position.Y - this.Node.Position.Y)" width="8" height="8" />
+            }
+        </g>
+    }
+</g>

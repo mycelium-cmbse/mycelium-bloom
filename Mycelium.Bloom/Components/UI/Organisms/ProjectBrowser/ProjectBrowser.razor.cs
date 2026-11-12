@@ -155,6 +155,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.isDisposed = true;
+            this.scrollReadCancellation.Cancel();
+            this.scrollReadCancellation.Dispose();
             this.isFilterDrawerOpen = false;
             this.isSearchAssistantOpen = false;
             this.collectionChangesSubscription.Dispose();

@@ -108,6 +108,52 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
         }
 
+        [Test]
+        public async Task VerifyScrollRestoresAndPublishesCallerOwnedPosition()
+        {
+            using var viewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            this.RegisterViewModel(viewModel);
+            var module = this.JSInterop.SetupModule("./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js");
+            module.SetupVoid("restoreScroll", _ => true).SetVoidResult();
+            var expected = new Mycelium.Bloom.Model.BrowserScrollPosition(10, 200);
+            module.Setup<Mycelium.Bloom.Model.BrowserScrollPosition>("readScroll", _ => true).SetResult(expected);
+            Mycelium.Bloom.Model.BrowserScrollPosition captured = null;
+            using var component = this.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(value => value.ViewModel, viewModel)
+                .Add(value => value.ScrollPosition, expected)
+                .Add(value => value.ScrollPositionChanged, value => captured = value));
+            Assert.That(module.Invocations["restoreScroll"].Single().Arguments[1], Is.EqualTo(expected));
+            await component.Find(".mb-project-browser__tree-viewport").TriggerEventAsync("onscroll", EventArgs.Empty);
+            Assert.That(captured, Is.EqualTo(expected));
+            await component.InvokeAsync(() => component.Instance.DisposeAsync().AsTask());
+            Assert.That(viewModel.RootNodes, Is.Not.Empty);
+        }
+
+        [Test]
+        public async Task VerifyLateScrollModuleIsDisposedWithoutRestoringClosedTab()
+        {
+            await using var context = new BunitContext();
+            BlueprintTestSetup.Configure(context);
+            using var viewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
+            var pending = new TaskCompletionSource<Microsoft.JSInterop.IJSObjectReference>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var runtime = new Mock<Microsoft.JSInterop.IJSRuntime>();
+            runtime.Setup(value => value.InvokeAsync<Microsoft.JSInterop.IJSObjectReference>("import", It.IsAny<object[]>()))
+                .Returns((string identifier, object[] arguments) => arguments[0]?.ToString() == "./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js"
+                    ? new ValueTask<Microsoft.JSInterop.IJSObjectReference>(pending.Task)
+                    : context.JSInterop.JSRuntime.InvokeAsync<Microsoft.JSInterop.IJSObjectReference>(identifier, arguments));
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(context.Services, runtime.Object);
+            var module = new Mock<Microsoft.JSInterop.IJSObjectReference>(MockBehavior.Strict);
+            module.Setup(value => value.DisposeAsync()).Returns(ValueTask.CompletedTask);
+            using var component = context.Render<ProjectBrowserComponent>(parameters => parameters
+                .Add(value => value.ViewModel, viewModel)
+                .Add(value => value.ScrollPosition, new Mycelium.Bloom.Model.BrowserScrollPosition(0, 100))
+                .Add(value => value.ScrollPositionChanged, _ => { }));
+            await component.InvokeAsync(() => component.Instance.DisposeAsync().AsTask());
+            pending.SetResult(module.Object);
+            await component.WaitForAssertionAsync(() => module.Verify(value => value.DisposeAsync(), Times.Once));
+            Assert.That(viewModel.RootNodes, Is.Not.Empty);
+        }
+
         /// <summary>
         /// Disposes the bUnit test context after each test.
         /// </summary>
@@ -136,7 +182,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
+                Assert.That(component.Markup, Does.Contain("Loading model"));
                 Assert.That(component.Markup, Does.Contain("Preparing the SysML project browser..."));
                 Assert.That(component.Markup, Does.Contain("mb-project-browser__state"));
                 viewModel.Verify(
@@ -197,7 +243,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             {
                 Assert.That(component.Markup, Does.Contain("Quantities"));
                 Assert.That(component.Find(".mb-project-browser__tree").GetAttribute("role"), Is.EqualTo("tree"));
-                Assert.That(component.Markup, Does.Not.Contain("Loading Quantities model"));
+                Assert.That(component.Markup, Does.Not.Contain("Loading model"));
                 viewModel.Verify(
                     x => x.InitializeAsync(It.IsAny<CancellationToken>()),
                     Times.Never);
@@ -1694,7 +1740,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
+            Assert.That(component.Markup, Does.Contain("Loading model"));
 
             isLoading = false;
             notifyingViewModel.Raise(
@@ -1732,7 +1778,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 new PropertyChangedEventArgs(nameof(IProjectBrowserViewModel.IsLoaded)));
 
             component.WaitForAssertion(() =>
-                Assert.That(component.Markup, Does.Contain("Loading Quantities model")));
+                Assert.That(component.Markup, Does.Contain("Loading model")));
         }
 
         /// <summary>
@@ -2110,7 +2156,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 () =>
                 {
                     using var component = this.RenderProjectBrowser();
-                    Assert.That(component.Markup, Does.Contain("Loading Quantities model"));
+                    Assert.That(component.Markup, Does.Contain("Loading model"));
                 },
                 Throws.Nothing);
         }

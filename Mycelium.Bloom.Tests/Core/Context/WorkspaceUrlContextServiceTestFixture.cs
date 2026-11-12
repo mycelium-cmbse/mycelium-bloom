@@ -206,6 +206,34 @@ namespace Mycelium.Bloom.Tests.Core.Context
             }
         }
 
+        [Test]
+        public async Task VerifySelectionEchoPreservesCanonicalContextWithOverlappingIds()
+        {
+            var context = new ContextAwareService();
+            var resolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, context,
+                NullLogger<WorkspaceUrlContextService>.Instance);
+            _ = await service.Restorations.FirstAsync().ToTask();
+            using var requests = service.NavigationRequests.Subscribe(uri => navigation.NavigateTo(uri));
+
+            var first = new Namespace { ElementId = "shared", DeclaredName = "pump" };
+            var second = new Namespace { ElementId = "shared", DeclaredName = "valve" };
+            foreach (var element in new[] { first, new Namespace { ElementId = "another" }, second })
+            {
+                context.SelectedElement = element;
+                var restoration = await service.Restorations.FirstAsync().ToTask();
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(restoration.SelectedElement, Is.SameAs(element));
+                    Assert.That(restoration.ShouldFocusSelectedElement, Is.False);
+                    Assert.That(restoration.CanonicalUri, Is.Null);
+                }
+            }
+            resolver.VerifyNoOtherCalls();
+        }
+
         /// <summary>
         /// Verifies a route transition requests local focus even when shared selection already has the URL identity.
         /// </summary>

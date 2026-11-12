@@ -48,6 +48,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private readonly IModelLoaderService modelLoaderService;
 
+        /// <summary>Resolves model contexts through the circuit-owned canonical registry.</summary>
+        private readonly Mycelium.Bloom.Core.Context.WorkspaceModelSession workspaceModel;
+
         /// <summary>
         /// The shared element selection service.
         /// </summary>
@@ -130,15 +133,18 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         /// <param name="modelLoaderService">The model loader service used to retrieve SysML models.</param>
         /// <param name="elementSelectionService">The shared element selection service.</param>
+        /// <param name="workspaceModel">The active canonical workspace context, when composed by the application.</param>
         public ProjectBrowserViewModel(
             IModelLoaderService modelLoaderService,
-            IElementSelectionService elementSelectionService)
+            IElementSelectionService elementSelectionService,
+            Mycelium.Bloom.Core.Context.WorkspaceModelSession workspaceModel = null)
         {
             ArgumentNullException.ThrowIfNull(modelLoaderService);
             ArgumentNullException.ThrowIfNull(elementSelectionService);
 
             this.modelLoaderService = modelLoaderService;
             this.elementSelectionService = elementSelectionService;
+            this.workspaceModel = workspaceModel;
 
             this.subscriptions.Add(System.ObservableExtensions.Subscribe(
                 this.availableElementTypeSource
@@ -247,11 +253,22 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         }
 
         /// <summary>
-        /// Initializes the project browser from the Quantities model.
+        /// Initializes the project browser from the active workspace model.
         /// </summary>
         /// <param name="cancellationToken">Cancels initialization.</param>
         /// <returns><see langword="true" /> when a new tree is loaded; otherwise, <see langword="false" />.</returns>
-        public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
+        public Task<bool> InitializeAsync(CancellationToken cancellationToken)
+        {
+            return this.InitializeAsync(null, cancellationToken);
+        }
+
+        /// <summary>Initializes an explicitly chosen canonical model without changing other browser instances.</summary>
+        /// <param name="modelRoot">The already assembled model root, or null for the default library.</param>
+        /// <param name="cancellationToken">Cancels initialization.</param>
+        /// <returns>Whether the chosen model was loaded into this browser.</returns>
+        public async Task<bool> InitializeAsync(
+            SysML2.NET.Core.POCO.Root.Namespaces.INamespace modelRoot,
+            CancellationToken cancellationToken)
         {
             if (this.IsDisposed
                 || cancellationToken.IsCancellationRequested
@@ -269,8 +286,10 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
             try
             {
-                var model = await Task.Run(
-                        this.modelLoaderService.LoadQuantitiesModel,
+                var model = modelRoot is null && this.workspaceModel is not null
+                    ? await this.workspaceModel.EnsureLoadedAsync().WaitAsync(initializationToken)
+                    : await Task.Run(
+                        () => modelRoot ?? this.modelLoaderService.LoadQuantitiesModel(),
                         CancellationToken.None)
                     .WaitAsync(initializationToken);
 
@@ -278,7 +297,9 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 
                 if (model is null)
                 {
-                    this.HandleInitializationError("The Quantities model is unavailable.");
+                    this.HandleInitializationError(this.workspaceModel is null
+                        ? "The Quantities model is unavailable."
+                        : "The workspace model is unavailable.");
 
                     return false;
                 }

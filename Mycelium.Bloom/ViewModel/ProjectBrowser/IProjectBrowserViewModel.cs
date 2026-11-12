@@ -65,6 +65,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         string ErrorMessage { get; }
 
+        /// <summary>Initializes this browser from an explicitly chosen canonical root.</summary>
+        /// <param name="modelRoot">The loaded model shared with another workspace view.</param>
+        /// <param name="cancellationToken">Cancels initialization.</param>
+        /// <returns>Whether the chosen model was loaded into this browser.</returns>
+        Task<bool> InitializeAsync(SysML2.NET.Core.POCO.Root.Namespaces.INamespace modelRoot, CancellationToken cancellationToken);
+
         /// <summary>
         /// Initializes the project browser tree from the Quantities SysML model.
         /// </summary>

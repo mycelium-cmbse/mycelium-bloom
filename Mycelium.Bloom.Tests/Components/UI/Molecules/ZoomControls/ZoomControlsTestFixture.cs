@@ -11,16 +11,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
 {
     using System.Collections.Generic;
     using System.Linq;
-
     using BlazorBlueprint.Components;
     using BlazorBlueprint.Primitives.Services;
-
     using Bunit;
-
     using Microsoft.AspNetCore.Components.Web;
-
     using Mycelium.Bloom.Tests.Common;
-
     using ZoomControlsComponent = Mycelium.Bloom.Components.UI.Molecules.ZoomControls.ZoomControls;
 
     /// <summary>
@@ -43,6 +38,19 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
         public ZoomControlsTestFixture()
         {
             this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
+        }
+
+        [Test]
+        public void VerifyResetCanBeHidden()
+        {
+            var component =
+                this.Render<ZoomControlsComponent>(parameters => parameters.Add(value => value.ShowReset, false));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("button[aria-label='Reset zoom']"), Is.Empty);
+                Assert.That(component.FindAll("button"), Has.Count.EqualTo(3));
+                Assert.That(component.Find("output").TextContent.Trim(), Is.EqualTo("100%"));
+            }
         }
 
         /// <summary>
@@ -128,7 +136,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.ZoomControls
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(buttons, Has.Count.EqualTo(4));
-                Assert.That(buttons.All(button => !string.IsNullOrWhiteSpace(button.GetAttribute("aria-label"))), Is.True);
+                Assert.That(buttons.All(button => !string.IsNullOrWhiteSpace(button.GetAttribute("aria-label"))),
+                    Is.True);
                 Assert.That(buttons.All(button =>
                     string.Equals(
                         button.GetAttribute("title"),
