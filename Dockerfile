@@ -1,9 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0.403-noble AS build
-
-# Apply the Noble APT security fix not yet included in the upstream image.
-RUN apt-get update \
-    && apt-get install --yes --only-upgrade apt libapt-pkg6.0t64 \
-    && rm -rf /var/lib/apt/lists/*
+FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 
 WORKDIR /src
 
@@ -27,13 +22,7 @@ RUN grep -q "css/app.css" /app/publish/Mycelium.Bloom.staticwebassets.endpoints.
 RUN test -s /app/publish/wwwroot/_framework/blazor.web.js
 RUN test -s "/app/publish/Resources/Domain Libraries/Quantities and Units/Quantities.json"
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble AS final
-
-RUN apt-get -o Acquire::Retries=0 update \
-    && apt-get -o Acquire::Retries=0 install --yes --no-install-recommends --only-upgrade apt libapt-pkg6.0t64 \
-    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apt)" ge 2.8.4ubuntu0.1 \
-    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libapt-pkg6.0t64)" ge 2.8.4ubuntu0.1 \
-    && rm -rf /var/lib/apt/lists/*
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble AS final
 
 WORKDIR /app
 
