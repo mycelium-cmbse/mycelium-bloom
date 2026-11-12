@@ -44,7 +44,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         public void SetUp()
         {
             this.account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Email = "sample@example.org" };
-            this.capabilities = new OrganizationCapabilities(false);
+            this.capabilities = new OrganizationCapabilities(false, CanViewMembers: true);
             this.contextService = new Mock<IOrganizationContextService>();
             this.contextService.Setup(service => service.GetAccountAsync(It.IsAny<CancellationToken>())).ReturnsAsync(this.account);
             this.viewModel = new OrganizationContextViewModel(this.contextService.Object, new Mock<ILogger<OrganizationContextViewModel>>().Object);
@@ -122,15 +122,18 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             }
         }
 
-        [TestCase(true)]
-        [TestCase(false)]
-        public void VerifySettingsPageIsGatedByTheCapability(bool canEditSettings)
+        [TestCase(OrganizationSection.Settings, true)]
+        [TestCase(OrganizationSection.Settings, false)]
+        [TestCase(OrganizationSection.Members, true)]
+        [TestCase(OrganizationSection.Members, false)]
+        public void VerifyPagesAreGatedByTheirCapability(OrganizationSection section, bool granted)
         {
-            this.SetUpOrganization("orbital-systems", new OrganizationCapabilities(canEditSettings));
+            var pageCapabilities = section == OrganizationSection.Settings ? new OrganizationCapabilities(granted) : new OrganizationCapabilities(false, CanViewMembers: granted);
+            this.SetUpOrganization("orbital-systems", pageCapabilities);
 
-            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Settings);
+            this.viewModel.Location = OrganizationLocation.ForOrganization("orbital-systems", section);
 
-            Assert.That(this.viewModel.Errors, Has.Count.EqualTo(canEditSettings ? 0 : 1));
+            Assert.That(this.viewModel.Errors, Has.Count.EqualTo(granted ? 0 : 1));
         }
 
         [Test]

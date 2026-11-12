@@ -20,6 +20,13 @@
         <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     </PropertyGroup>
     <ItemGroup>
+        <Using Include="BlazorBlueprint.Primitives" />
+        <Using Include="Humanizer" />
+        <Using Include="Mycelium.Bloom.Extensions" />
+        <Using Include="Mycelium.Bloom.ViewModel.Organization" />
+        <Using Include="Mycelium.SDK" />
+    </ItemGroup>
+    <ItemGroup>
         <Content Remove="package.json;package-lock.json" />
         <Content Update="Resources\**\*.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

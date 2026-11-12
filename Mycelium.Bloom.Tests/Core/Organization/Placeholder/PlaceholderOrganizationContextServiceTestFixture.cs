@@ -64,6 +64,9 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
                 Assert.That(result.Value.Organization, Is.EqualTo(expected));
                 Assert.That(result.Value.Capabilities.CanEditSettings, Is.EqualTo(canEditSettings));
                 Assert.That(result.Value.Capabilities.CanCreateProject, Is.EqualTo(canEditSettings));
+                Assert.That(result.Value.Capabilities.CanViewMembers, Is.True);
+                Assert.That(result.Value.Capabilities.CanInviteMembers, Is.EqualTo(canEditSettings));
+                Assert.That(result.Value.Capabilities.CanViewOutsideCollaborators, Is.EqualTo(canEditSettings));
             }
         }
 

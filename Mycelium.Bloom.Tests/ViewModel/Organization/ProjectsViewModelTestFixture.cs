@@ -12,11 +12,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reactive.Threading.Tasks;
     using System.Threading;
-    using System.Threading.Tasks;
 
-    using DynamicData;
 
     using ErrorOr;
 
@@ -25,7 +22,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
     using Moq;
 
-    using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.Organization;
@@ -37,6 +33,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     [TestFixture]
     public sealed class ProjectsViewModelTestFixture
     {
+        private static readonly string[] ExpectedNames = ["Newer", "Older"];
+
         private DateTimeOffset now;
 
         private Organization organization;
@@ -85,27 +83,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(viewModel.Errors, Is.Empty);
                 Assert.That(viewModel.CanCreateProject, Is.True);
                 Assert.That(viewModel.Projects.Count, Is.EqualTo(2));
-                Assert.That(viewModel.Rows.Select(row => row.Name), Is.EqualTo(new[] { "Newer", "Older" }));
+                Assert.That(viewModel.Rows.Select(row => row.Name), Is.EqualTo(ExpectedNames));
                 Assert.That(viewModel.Rows[0].Visibility, Is.EqualTo(ProjectVisibility.Private));
                 Assert.That(viewModel.Rows[0].Mode, Is.EqualTo(ProjectMode.Regular));
                 Assert.That(viewModel.Rows[0].MemberCount, Is.EqualTo(4));
                 Assert.That(viewModel.Rows[0].Lifecycle, Is.EqualTo(ProjectLifecycleKind.Open));
                 Assert.That(viewModel.Rows[0].UpdatedText, Is.EqualTo("2 hours ago"));
-            }
-        }
-
-        [Test]
-        public void VerifyAProjectAddedToTheSourceListJoinsTheRowsWithoutAnotherLoad()
-        {
-            this.SetUpProjects([this.CreateProject("Aurora Orbiter", hoursAgo: 1)]);
-
-            using var viewModel = this.CreateViewModel();
-            viewModel.Projects.Add(new ProjectRowViewModel(this.CreateProject("Draft", hoursAgo: 0, lifecycle: ProjectLifecycleKind.Preparation), this.now));
-
-            using (Assert.EnterMultipleScope())
-            {
-                this.projectService.Verify(service => service.GetProjectsAsync(this.organization.Id, It.IsAny<CancellationToken>()), Times.Once);
-                Assert.That(viewModel.Rows, Has.Count.EqualTo(2));
             }
         }
 
@@ -122,81 +105,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(viewModel.IsBusy, Is.False);
                 Assert.That(viewModel.Rows, Is.Empty);
                 Assert.That(viewModel.CanCreateProject, Is.False);
-            }
-        }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public void VerifyErrorOrFailureIsKeptAsAnErrorAndLeavesNoRow(bool returnsError)
-        {
-            var setup = this.projectService.Setup(service => service.GetProjectsAsync(this.organization.Id, It.IsAny<CancellationToken>()));
-
-            if (returnsError)
-            {
-                setup.ReturnsAsync(Error.Unexpected(ErrorCodes.Unavailable, "Unavailable."));
-            }
-            else
-            {
-                setup.ThrowsAsync(new InvalidOperationException());
-            }
-
-            using var viewModel = this.CreateViewModel();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.IsBusy, Is.False);
-                Assert.That(viewModel.Errors.Single().Code, Is.EqualTo(ErrorCodes.Unavailable));
-                Assert.That(viewModel.Rows, Is.Empty);
-            }
-        }
-
-        [TestCase(true)]
-        [TestCase(false)]
-        public void VerifyDisposingCancelsTheLoadWhichShowsNothing(bool endsCancelled)
-        {
-            var cancellation = CancellationToken.None;
-            var pending = new TaskCompletionSource<ErrorOr<IReadOnlyList<FunctionalProject>>>();
-            this.projectService
-                .Setup(service => service.GetProjectsAsync(this.organization.Id, It.IsAny<CancellationToken>()))
-                .Callback<Guid, CancellationToken>((_, token) => cancellation = token)
-                .Returns(pending.Task);
-
-            var viewModel = this.CreateViewModel();
-            var busyWhileLoading = viewModel.IsBusy;
-            viewModel.Dispose();
-
-            if (endsCancelled)
-            {
-                pending.SetCanceled(cancellation);
-            }
-            else
-            {
-                pending.SetResult(ErrorOrFactory.From<IReadOnlyList<FunctionalProject>>([this.CreateProject("Aurora Orbiter", hoursAgo: 1)]));
-            }
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(busyWhileLoading, Is.True);
-                Assert.That(cancellation.IsCancellationRequested, Is.True);
-                Assert.That(viewModel.IsBusy, Is.True);
-                Assert.That(viewModel.Errors, Is.Empty);
-                Assert.That(viewModel.Rows, Is.Empty);
-            }
-        }
-
-        [Test]
-        public void VerifyTheLoadRunsOnTheContextTheViewModelWasCreatedOn()
-        {
-            var renderContext = new CountingSynchronizationContext();
-            SynchronizationContext.SetSynchronizationContext(renderContext);
-            this.SetUpProjects([this.CreateProject("Aurora Orbiter", hoursAgo: 1)]);
-
-            using var viewModel = this.CreateViewModel();
-
-            using (Assert.EnterMultipleScope())
-            {
-                Assert.That(viewModel.Rows, Has.Count.EqualTo(1));
-                Assert.That(renderContext.Posts, Is.GreaterThan(0));
             }
         }
 

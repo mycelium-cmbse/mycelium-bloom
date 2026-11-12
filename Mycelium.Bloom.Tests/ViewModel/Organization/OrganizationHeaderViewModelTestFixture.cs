@@ -47,7 +47,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             this.organization = new Organization { Id = Guid.NewGuid(), Name = "Orbital Systems" };
             this.membersPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Members);
             this.context = new Mock<IOrganizationContextViewModel>();
-            this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(true));
+            this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(true, CanViewMembers: true));
         }
 
         [Test]
@@ -75,7 +75,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [Test]
         public void VerifySettingsPageIsOfferedOnlyWhenTheCapabilityIsGranted()
         {
-            this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(false));
+            this.SetContext(false, this.membersPage, this.account, this.organization, new OrganizationCapabilities(false, CanViewMembers: true));
 
             using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
 
@@ -105,7 +105,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [TestCase(false, true, true, false)]
         public void VerifyNothingIsDisplayedUntilTheResolutionIsComplete(bool isLoading, bool hasAccount, bool hasOrganization, bool hasCapabilities)
         {
-            var capabilities = hasCapabilities ? new OrganizationCapabilities(true) : null;
+            var capabilities = hasCapabilities ? new OrganizationCapabilities(true, CanViewMembers: true) : null;
             this.SetContext(isLoading, this.membersPage, hasAccount ? this.account : null, hasOrganization ? this.organization : null, capabilities);
 
             using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
@@ -121,7 +121,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             viewModel.PropertyChanged += (_, _) => announced++;
 
             var projectsPage = OrganizationLocation.ForOrganization("orbital-systems", OrganizationSection.Projects);
-            this.SetContext(false, projectsPage, this.account, this.organization, new OrganizationCapabilities(true));
+            this.SetContext(false, projectsPage, this.account, this.organization, new OrganizationCapabilities(true, CanViewMembers: true));
             this.context.Raise(model => model.PropertyChanged += null, new PropertyChangedEventArgs(nameof(IOrganizationContextViewModel.Location)));
             var followedLabel = viewModel.Presentation.SectionLabel;
 

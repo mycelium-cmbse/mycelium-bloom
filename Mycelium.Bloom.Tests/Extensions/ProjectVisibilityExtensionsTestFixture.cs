@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ProjectExtensionsTestFixture.cs" company="Starion Group S.A.">
+// <copyright file="ProjectVisibilityExtensionsTestFixture.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -16,7 +16,7 @@ namespace Mycelium.Bloom.Tests.Extensions
     using Mycelium.SDK;
 
     [TestFixture]
-    public sealed class ProjectExtensionsTestFixture
+    public sealed class ProjectVisibilityExtensionsTestFixture
     {
         private static readonly string[] VisibilityIcons = ["lock", "building-2", "globe"];
 

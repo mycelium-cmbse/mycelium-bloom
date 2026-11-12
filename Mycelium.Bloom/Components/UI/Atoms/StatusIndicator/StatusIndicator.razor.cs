@@ -9,17 +9,17 @@
 
 namespace Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
 {
-    using System.ComponentModel;
-
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.SDK;
 
     /// <summary>
-    /// Shows a status as a coloured dot followed by its label.
+    /// Shows a status as a coloured dot followed by its label. The colour comes from the name of the state, an enum of the SDK
+    /// such as the lifecycle of a project or the status of an account, so that no enum of Bloom has to mirror it.
     /// </summary>
-    public sealed partial class StatusIndicator : BloomComponentBase
+    /// <typeparam name="TState">The enum of the SDK that the status is a value of.</typeparam>
+    public sealed partial class StatusIndicator<TState> : BloomComponentBase
+        where TState : struct, Enum
     {
         /// <summary>
         /// Gets or sets the label of the status.
@@ -28,28 +28,18 @@ namespace Mycelium.Bloom.Components.UI.Atoms.StatusIndicator
         public string Label { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the lifecycle state that the status stands for, which gives the dot its colour.
+        /// Gets or sets the state that the status stands for, which gives the dot its colour.
         /// </summary>
         [Parameter]
-        public ProjectLifecycleKind State { get; set; }
+        public TState State { get; set; }
 
         /// <summary>
-        /// Builds the CSS classes of the root, with the modifier that gives the dot the colour of the lifecycle state.
+        /// Builds the CSS classes of the root, with the modifier named after the state, which the stylesheet colours.
         /// </summary>
         /// <returns>The CSS classes of the root.</returns>
-        /// <exception cref="InvalidEnumArgumentException">Thrown when <see cref="State" /> is not a defined state.</exception>
         private string GetRootCssClass()
         {
-            var modifier = this.State switch
-            {
-                ProjectLifecycleKind.Preparation => "mb-status-indicator--preparation",
-                ProjectLifecycleKind.Open => "mb-status-indicator--open",
-                ProjectLifecycleKind.Review => "mb-status-indicator--review",
-                ProjectLifecycleKind.Archived => "mb-status-indicator--archived",
-                _ => throw new InvalidEnumArgumentException(nameof(this.State), (int)this.State, typeof(ProjectLifecycleKind))
-            };
-
-            return this.BuildRootCssClass("mb-status-indicator", modifier);
+            return this.BuildRootCssClass("mb-status-indicator", $"mb-status-indicator--{this.State.ToString().ToLowerInvariant()}");
         }
     }
 }
