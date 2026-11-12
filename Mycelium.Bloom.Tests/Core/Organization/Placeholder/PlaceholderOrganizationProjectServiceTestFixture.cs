@@ -19,6 +19,7 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
     using Microsoft.Extensions.Time.Testing;
 
     using Mycelium.Bloom.Core;
+    using Mycelium.Bloom.Core.MockedData;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Core.Organization.Placeholder;
 
@@ -32,12 +33,13 @@ namespace Mycelium.Bloom.Tests.Core.Organization.Placeholder
         [SetUp]
         public void SetUp()
         {
-            this.orbitalSystemsId = OrganizationPlaceholderData.Organizations["orbital-systems"].Id;
-            this.service = new PlaceholderOrganizationProjectService(new FakeTimeProvider(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero)));
+            var mockedData = new MockedDataService(new FakeTimeProvider(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero)));
+            this.orbitalSystemsId = mockedData.Organizations["orbital-systems"].Id;
+            this.service = new PlaceholderOrganizationProjectService(mockedData);
         }
 
         [Test]
-        public async Task VerifyProjectsFollowTheSamples()
+        public async Task VerifyProjectsAreTheMockedProjectsOfTheOrganization()
         {
             var projects = await this.service.GetProjectsAsync(this.orbitalSystemsId, CancellationToken.None);
             var unknown = await this.service.GetProjectsAsync(Guid.NewGuid(), CancellationToken.None);

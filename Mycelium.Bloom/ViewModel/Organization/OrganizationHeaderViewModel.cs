@@ -104,7 +104,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
             {
                 Kind = location.Kind,
                 AccountName = account.Name,
-                AccountEmail = account.Mail,
+                AccountEmail = account.Email,
                 AccountItems = AccountItems
             };
 

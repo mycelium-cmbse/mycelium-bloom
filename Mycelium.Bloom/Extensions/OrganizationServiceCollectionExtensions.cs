@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Extensions
     using Microsoft.Extensions.DependencyInjection.Extensions;
 
     using Mycelium.Bloom.Core.Configuration;
+    using Mycelium.Bloom.Core.MockedData;
     using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Core.Organization.Placeholder;
     using Mycelium.Bloom.ViewModel.Organization;
@@ -30,8 +31,8 @@ namespace Mycelium.Bloom.Extensions
         extension(IServiceCollection services)
         {
             /// <summary>
-            /// Binds the organization options and registers the organization services, which answer with placeholder data,
-            /// the ViewModels of the organization context and of its header, one of each per circuit (the layout, the header
+            /// Binds the organization options and registers the mocked data of the circuit, the organization services, which
+            /// answer with it, the ViewModels of the organization context and of its header, one of each per circuit (the layout, the header
             /// and the page content must share the same context, which a transient registration would split in three), and
             /// the factory of the projects page ViewModel, which builds one ViewModel per page instance, and the shared time
             /// provider. Replacing a placeholder service changes this registration only.
@@ -47,6 +48,7 @@ namespace Mycelium.Bloom.Extensions
                 ArgumentNullException.ThrowIfNull(configuration);
 
                 services.Configure<OrganizationOptions>(configuration.GetSection(OrganizationOptions.SectionName));
+                services.AddScoped<IMockedDataService, MockedDataService>();
                 services.AddScoped<IOrganizationContextService, PlaceholderOrganizationContextService>();
                 services.AddScoped<IOrganizationContextViewModel, OrganizationContextViewModel>();
                 services.AddScoped<IOrganizationHeaderViewModel, OrganizationHeaderViewModel>();
