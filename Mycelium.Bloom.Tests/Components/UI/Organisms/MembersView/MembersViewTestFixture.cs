@@ -23,6 +23,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.MembersView
     using Moq;
 
     using Mycelium.Bloom.Components.UI.Organisms.MembersView;
+    using Mycelium.Bloom.Components.UI.Organisms.PendingInvitationsList;
     using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
@@ -86,6 +87,25 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.MembersView
                 Assert.That(cut.FindComponents<BbEmpty>(), Has.Count.EqualTo(emptyStates));
                 Assert.That(cut.FindComponents<BbButton>().Count(button => button.Markup.Contains("Invite member", StringComparison.Ordinal)), Is.EqualTo(inviteButtons));
             }
+        }
+
+        [TestCase(true, false, false, 1)]
+        [TestCase(false, false, false, 0)]
+        [TestCase(true, true, false, 0)]
+        [TestCase(true, false, true, 0)]
+        public void VerifyThePendingInvitationsBlockIsShownOnlyToAnAccountThatMayInviteOnceThePeopleAreLoaded(bool hasInvitations, bool isBusy, bool failed, int blocks)
+        {
+            var invitations = new Mock<IPendingInvitationsViewModel>();
+            invitations.SetupGet(model => model.Errors).Returns([]);
+            invitations.SetupGet(model => model.Rows).Returns(new ReadOnlyObservableCollection<InvitationRowViewModel>([]));
+            this.SetUpRows(2);
+            this.viewModel.SetupGet(model => model.Invitations).Returns(hasInvitations ? invitations.Object : null);
+            this.viewModel.SetupGet(model => model.IsBusy).Returns(isBusy);
+            this.viewModel.SetupGet(model => model.Errors).Returns(failed ? [Error.Unexpected(ErrorCodes.Unavailable, "Failed.")] : []);
+
+            var cut = this.context.Render<MembersView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
+
+            Assert.That(cut.FindComponents<PendingInvitationsList>(), Has.Count.EqualTo(blocks));
         }
 
         [TestCase("All", 7)]

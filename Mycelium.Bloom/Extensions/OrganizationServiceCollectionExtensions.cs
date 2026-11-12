@@ -33,8 +33,9 @@ namespace Mycelium.Bloom.Extensions
             /// Binds the organization options and registers the mocked data of the circuit, the organization services, which
             /// answer with it, the ViewModels of the organization context and of its header, one of each per circuit (the layout, the header
             /// and the page content must share the same context, which a transient registration would split in three), and
-            /// the factories of the projects and members page ViewModels, which build one ViewModel per page instance, and the
-            /// shared time provider. Replacing a placeholder service changes this registration only.
+            /// the factories of the projects and members page ViewModels, which build one ViewModel per page instance, and of the
+            /// pending invitations block, one per members page, and the shared time provider. Replacing a placeholder service
+            /// changes this registration only.
             /// </summary>
             /// <param name="configuration">The application configuration containing the organization section.</param>
             /// <returns>The original service collection for continued registration chaining.</returns>
@@ -55,6 +56,8 @@ namespace Mycelium.Bloom.Extensions
                 services.AddScoped<Func<IProjectsViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<ProjectsViewModel>(serviceProvider));
                 services.AddScoped<IOrganizationMemberService, PlaceholderOrganizationMemberService>();
                 services.AddScoped<Func<IMembersViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<MembersViewModel>(serviceProvider));
+                services.AddScoped<IOrganizationInvitationService, PlaceholderOrganizationInvitationService>();
+                services.AddScoped<Func<IPendingInvitationsViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<PendingInvitationsViewModel>(serviceProvider));
                 services.TryAddSingleton(TimeProvider.System);
 
                 return services;

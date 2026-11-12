@@ -1,0 +1,81 @@
+.mb-pending-invitations {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-12);
+}
+
+.mb-pending-invitations__title {
+    display: flex;
+    gap: var(--spacing-8);
+    margin: 0;
+    color: var(--collaborator-c12);
+    font-size: var(--text-11);
+    font-weight: var(--font-weight-heading-md);
+    line-height: var(--spacing-13);
+    text-transform: uppercase;
+}
+
+.mb-pending-invitations__count {
+    color: var(--placeholder);
+    font-weight: var(--font-weight-body-md);
+}
+
+.mb-pending-invitations__loading {
+    height: var(--spacing-56);
+}
+
+.mb-pending-invitations__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mb-pending-invitations__row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-12);
+    min-width: 0;
+    padding: var(--spacing-13) var(--spacing-15);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-8);
+    background: var(--background);
+}
+
+.mb-pending-invitations ::deep .mb-pending-invitations__icon {
+    flex: none;
+    color: var(--collaborator-c12);
+}
+
+.mb-pending-invitations__text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    min-width: 0;
+}
+
+.mb-pending-invitations__identity {
+    color: var(--foreground-strong);
+    font-size: var(--text-13);
+    font-weight: var(--font-weight-heading-md);
+    line-height: var(--spacing-16);
+}
+
+.mb-pending-invitations__details {
+    overflow: hidden;
+    color: var(--collaborator-c12);
+    font-size: var(--text-12);
+    font-weight: var(--font-weight-body-md);
+    line-height: var(--spacing-15);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-pending-invitations__error {
+    margin: 0;
+    color: var(--foreground);
+    font: var(--typography-typography-body-md), sans-serif;
+}
