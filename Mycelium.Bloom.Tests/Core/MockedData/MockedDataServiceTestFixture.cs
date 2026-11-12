@@ -24,6 +24,8 @@ namespace Mycelium.Bloom.Tests.Core.MockedData
     {
         private static readonly DateTimeOffset Now = new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
 
+        private static readonly bool[] BothOutsideCollaboratorStates = [false, true];
+
         private MockedDataService service;
 
         [SetUp]
@@ -65,7 +67,7 @@ namespace Mycelium.Bloom.Tests.Core.MockedData
                 Assert.That(this.service.Projects, Has.All.Matches<IFunctionalProject>(project => project.Involves.All(member => member.IsPartOf == project && member.User.IsPartOfProjects.Contains(member))));
                 Assert.That(projectMembers, Has.All.Matches<IProjectMember>(member => member.Owns.All(ownership => member.IsPartOf.Defines.Contains(ownership))));
                 Assert.That(this.service.Users, Has.All.Matches<IUser>(user => user.IsPartOfOrganizations.All(organizationMembers.Contains)));
-                Assert.That(projectMembers.Select(member => member.IsOutsideCollaborator).Distinct(), Is.EquivalentTo(new[] { false, true }));
+                Assert.That(projectMembers.Select(member => member.IsOutsideCollaborator).Distinct(), Is.EquivalentTo(BothOutsideCollaboratorStates));
                 Assert.That(this.service.Organizations.Values, Has.All.Matches<IOrganization>(organization => organization.InvolvedUser.Any(member => member.User == this.service.CurrentUser)));
             }
         }
