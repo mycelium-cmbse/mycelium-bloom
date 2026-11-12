@@ -19,9 +19,9 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.POCO.Organization;
-
     using ReactiveUI;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Resolves the account, the organization and the capabilities designated by the location that the layout sets,

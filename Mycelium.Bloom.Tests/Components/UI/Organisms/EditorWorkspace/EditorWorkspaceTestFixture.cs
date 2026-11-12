@@ -2358,6 +2358,33 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
             }
         }
 
+        [TestCase("onpointerup")]
+        [TestCase("onpointercancel")]
+        [TestCase("onlostpointercapture")]
+        public async Task VerifyOnlyActiveSplitterIsHighlightedUntilResizeEnds(string endEvent)
+        {
+            var module = this.JSInterop.SetupModule(JavaScriptModulePath);
+            module.Setup<double[]>("capturePointer", invocation => true).SetResult([300d, 320d, 620d]);
+            module.SetupVoid("releasePointer", invocation => true).SetVoidResult();
+            var state = CreateViewModel();
+            AddGroup(state);
+            AddGroup(state);
+            using var component = this.RenderWorkspace(state);
+
+            await component.Find(SplitterSelector).PointerDownAsync(new PointerEventArgs { Button = 0, ClientX = 300d, PointerId = 71 });
+            await component.Find(SplitterSelector).PointerMoveAsync(new PointerEventArgs { ClientX = 400d, PointerId = 71 });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find(SplitterSelector).GetAttribute("data-resizing"), Is.EqualTo("true"));
+                Assert.That(component.FindAll(SplitterSelector).Skip(1).All(splitter => !splitter.HasAttribute("data-resizing")), Is.True);
+            }
+
+            await component.Find(SplitterSelector).TriggerEventAsync(endEvent, new PointerEventArgs { PointerId = 71 });
+
+            Assert.That(component.FindAll(SplitterSelector).All(splitter => !splitter.HasAttribute("data-resizing")), Is.True);
+        }
+
         [Test]
         public async Task VerifyPointerResizeUsesPracticalPixelMinimumInsteadOfFixedTenPercentShare()
         {

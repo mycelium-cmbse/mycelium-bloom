@@ -16,10 +16,10 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.SDK.POCO;
 
-    using Organization = Mycelium.SDK.POCO.Organization;
-
     using ReactiveUI;
     using ReactiveUI.Primitives.Concurrency;
+
+    using Organization = Mycelium.SDK.POCO.Organization;
 
     /// <summary>
     /// Derives the header of the account and organization pages from the organization context.

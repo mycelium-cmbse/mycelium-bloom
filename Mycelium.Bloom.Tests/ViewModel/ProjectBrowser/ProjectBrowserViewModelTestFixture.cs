@@ -26,52 +26,35 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using ReactiveUI;
 
-    using SysML2.NET.Dal;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Parts;
+    using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
 
     using static Mycelium.Bloom.Tests.Common.ProjectBrowserNodeTestFactory;
 
-    /// <summary>
-    /// Tests the <see cref="ProjectBrowserViewModel" />.
-    /// </summary>
     [TestFixture]
     public sealed class ProjectBrowserViewModelTestFixture
     {
-        /// <summary>
-        /// The expected display-name order of the root node's children.
-        /// </summary>
         private static readonly string[] ExpectedRootChildDisplayNames =
             ["First child", "Second child"];
 
-        /// <summary>
-        /// The expected ordered IsLoading values during initialization.
-        /// </summary>
         private static readonly bool[] ExpectedInitializationLoadingStates =
             [false, true, false];
 
-        /// <summary>
-        /// The expected ordered IsLoaded values during successful initialization.
-        /// </summary>
         private static readonly bool[] ExpectedInitializationLoadedStates =
             [false, true];
 
-        /// <summary>
-        /// The expected ordered ErrorMessage values during failed initialization.
-        /// </summary>
         private static readonly string[] ExpectedInitializationErrorMessages =
             [string.Empty, "Model load failed"];
 
-        /// <summary>
-        /// Verifies that the constructor rejects a null model loader service.
-        /// </summary>
         [Test]
         public void VerifyConstructorThrowsExceptionWhenModelLoaderServiceIsNull()
         {
@@ -84,9 +67,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     .With.Property("ParamName").EqualTo("modelLoaderService"));
         }
 
-        /// <summary>
-        /// Verifies that the constructor rejects a null selection service.
-        /// </summary>
         [Test]
         public void VerifyConstructorThrowsExceptionWhenSelectionServiceIsNull()
         {
@@ -101,25 +81,43 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     .With.Property("ParamName").EqualTo("elementSelectionService"));
         }
 
-        /// <summary>
-        /// Verifies that initialization builds the complete Quantities tree.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncBuildsTreeFromNamespace()
         {
             var model = LoadQuantitiesModel();
             var modelLoaderService = CreateModelLoader(model);
-            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var details = new DetailsPanelViewModel(selectionService);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
+            var root = viewModel.RootNodes[0];
+            var quantities = root.Children.Single(node => node.SourceElement.DeclaredName == "Quantities");
+            viewModel.SelectNode(root);
+            var identity = details.Presentation.Sections.Single(section => section.Title == "Identity")
+                .Properties.ToDictionary(property => property.Key, property => property.Value);
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(initialized, Is.True);
                 Assert.That(viewModel.RootNodes, Has.Count.EqualTo(1));
-                Assert.That(viewModel.RootNodes[0].DisplayName, Is.Not.Empty);
-                Assert.That(viewModel.RootNodes[0].ElementType, Is.EqualTo(typeof(Namespace)));
-                Assert.That(viewModel.RootNodes[0].Children, Is.Not.Empty);
+                Assert.That(root.DisplayName, Is.EqualTo("Model"));
+                Assert.That(root.SourceElement, Is.SameAs(model));
+                Assert.That(root.ElementType, Is.EqualTo(typeof(Namespace)));
+                Assert.That(root.Presentation.IsModelRoot, Is.True);
+                Assert.That(root.Presentation.IconName, Is.EqualTo("network"));
+                Assert.That(quantities.Presentation.Kind, Is.EqualTo("Library package"));
+                Assert.That(quantities.Presentation.IconName, Is.EqualTo("folder"));
+                Assert.That(identity["Declared name"], Is.EqualTo("Not declared"));
+                Assert.That(details.Presentation.DisplayName, Is.EqualTo("Namespace"));
+                Assert.That(details.Presentation.AdvancedProperties
+                    .Single(property => property.Key == "Model kind").Value, Is.EqualTo("Namespace"));
+                Assert.That(details.Presentation.AdvancedProperties
+                    .Single(property => property.Key == "Element ID").Value, Is.EqualTo(model.ElementId));
+                Assert.That(details.Presentation.ModelLinks
+                        .Any(link =>
+                            link.Element is not null && quantities.SourceElement.ElementId == link.Element.ElementId),
+                    Is.True);
                 Assert.That(viewModel.IsLoaded, Is.True);
                 Assert.That(viewModel.IsLoading, Is.False);
                 Assert.That(viewModel.ErrorMessage, Is.Empty);
@@ -127,9 +125,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies that constructing the ViewModel does not load the Quantities model.
-        /// </summary>
         [Test]
         public void VerifyConstructorDefersModelLoading()
         {
@@ -148,9 +143,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies successful initialization loads, selects, and expands a local default root.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncLoadsQuantitiesModelAndSelectsLocalDefaultRoot()
         {
@@ -176,25 +168,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies that separate Project Browser ViewModels keep independent expansion state over shared selection.
-        /// </summary>
         [Test]
         public async Task VerifyProjectBrowserViewModelsKeepIndependentExpansionState()
         {
             var model = CreateMinimalModel();
             var modelLoaderService = CreateModelLoader(model);
             var selectionService = new ContextAwareService();
-            using var firstViewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                selectionService);
-            using var secondViewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                selectionService);
+            using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
+            using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
 
-            await Task.WhenAll(
-                firstViewModel.InitializeAsync(CancellationToken.None),
-                secondViewModel.InitializeAsync(CancellationToken.None));
+            await Task.WhenAll(firstViewModel.InitializeAsync(CancellationToken.None), secondViewModel.InitializeAsync(CancellationToken.None));
 
             var firstRootNode = firstViewModel.RootNodes[0];
             var secondRootNode = secondViewModel.RootNodes[0];
@@ -220,16 +203,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(secondRootNode.IsExpanded, Is.False);
                 Assert.That(firstViewModel.SelectedNode, Is.SameAs(firstRootNode));
                 Assert.That(secondViewModel.SelectedNode, Is.SameAs(secondRootNode));
-                Assert.That(firstViewModel.SelectedNode.SourceElement,
-                    Is.SameAs(secondViewModel.SelectedNode.SourceElement));
+                Assert.That(firstViewModel.SelectedNode.SourceElement, Is.SameAs(secondViewModel.SelectedNode.SourceElement));
                 Assert.That(selectionService.SelectedElement, Is.Null);
                 modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Exactly(2));
             }
         }
 
-        /// <summary>
-        /// Verifies genuine loading failures are handled once by the ViewModel.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncCapturesModelLoadingErrors()
         {
@@ -264,9 +243,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a missing root model becomes controlled Project Browser failure state.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncHandlesMissingRootModel()
         {
@@ -290,9 +266,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies repeated initialization does not reload an already loaded browser.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncReturnsEarlyWhenAlreadyLoaded()
         {
@@ -312,9 +285,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a concurrent initialization attempt returns without starting another load.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncReturnsEarlyWhenAlreadyInitializing()
         {
@@ -354,16 +324,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             modelLoaderService.Verify(x => x.LoadQuantitiesModel(), Times.Once);
         }
 
-        /// <summary>
-        /// Verifies ordinary selection publishes the node's source element and projects it once.
-        /// </summary>
         [Test]
         public async Task VerifySelectNodePublishesSourceElement()
         {
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
 
@@ -376,15 +341,39 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies ordinary toggle changes only nodes with children.
-        /// </summary>
+        [Test]
+        public async Task VerifySelectNodePreservesTreeExpansionState()
+        {
+            var selectionService = new ContextAwareService();
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
+            await viewModel.InitializeAsync(CancellationToken.None);
+
+            var nodes = viewModel.RootNodes.SelectMany(Flatten).ToArray();
+            foreach (var node in nodes.Where(node => node.HasChildren))
+            {
+                node.IsExpanded = node.Id.Length % 2 == 0;
+            }
+
+            var expansionStates = nodes.Select(node => node.IsExpanded).ToArray();
+            var initialNode = nodes[0];
+            var inspectedNode = nodes[^1];
+
+            viewModel.SelectNode(inspectedNode);
+            viewModel.SelectNode(initialNode);
+            viewModel.SelectNode(initialNode);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(nodes.Select(node => node.IsExpanded), Is.EqualTo(expansionStates));
+                Assert.That(viewModel.SelectedNode, Is.SameAs(initialNode));
+                Assert.That(selectionService.SelectedElement, Is.SameAs(initialNode.SourceElement));
+            }
+        }
+
         [Test]
         public async Task VerifyToggleNodeTogglesOnlyNodesWithChildren()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var leafNode = rootNode.Children[0];
@@ -399,15 +388,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies the default filter is inactive and exposes every canonical node.
-        /// </summary>
         [Test]
         public async Task VerifyFilterDefaultsAreInactiveAndExposeCanonicalTree()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
 
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
 
@@ -422,15 +406,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies available Type choices come from distinct concrete non-relationship elements in the loaded model.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncDiscoversAvailableConcreteElementTypes()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
 
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
 
@@ -445,21 +424,16 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Documentation)));
                 Assert.That(viewModel.AvailableElementTypes, Does.Not.Contain(typeof(Membership)));
                 Assert.That(
-                    Flatten(viewModel.RootNodes[0]).Any(node => node.SourceElement is Membership),
-                    Is.True);
+                    Flatten(viewModel.RootNodes[0]).Where(node => node.SourceElement is Membership),
+                    Is.Empty);
                 Assert.That(((IList<Type>)viewModel.AvailableElementTypes).IsReadOnly, Is.True);
             }
         }
 
-        /// <summary>
-        /// Verifies that the committed text criterion is exposed as ordinary reactive state.
-        /// </summary>
         [Test]
         public void VerifyFilterTextPublishesCurrentAndChangedValues()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             var observedValues = new List<string>();
             using var subscription = System.ObservableExtensions.Subscribe(
                 viewModel.WhenAnyValue(owner => owner.FilterText),
@@ -474,15 +448,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies whitespace-only text is preserved as entered but remains an inactive criterion.
-        /// </summary>
         [Test]
         public async Task VerifyFilterTextNormalizesNullAndTreatsWhitespaceAsInactive()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
 
@@ -504,15 +473,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies display-name matching is an ordinal-ignore-case substring match with outer whitespace ignored.
-        /// </summary>
         [Test]
         public async Task VerifyFilterTextMatchesDisplayNameIgnoringCaseAndOuterWhitespace()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
@@ -530,15 +494,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies text filtering can match only the qualified name.
-        /// </summary>
         [Test]
         public async Task VerifyFilterTextMatchesQualifiedName()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateQualifiedNameModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateQualifiedNameModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var qualifiedNameNode = FindNode(rootNode, "Friendly label");
@@ -553,15 +512,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies text filtering does not use the concrete runtime type metadata.
-        /// </summary>
         [Test]
         public async Task VerifyFilterTextDoesNotMatchRuntimeTypeName()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var targetNode = FindNode(rootNode, "Deep target");
@@ -577,15 +531,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies element-type filtering uses multi-select OR semantics and an empty all-types state.
-        /// </summary>
         [Test]
         public async Task VerifyElementTypeFiltersSupportMultipleSelectionsAndEmptyAllTypes()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var partDefinitionNode = FindNode(rootNode, "Mystery element");
@@ -635,15 +584,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies text and element-type criteria use AND semantics.
-        /// </summary>
         [Test]
         public async Task VerifyTextAndElementTypeFiltersUseAndSemantics()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var targetNode = FindNode(rootNode, "Deep target");
@@ -680,15 +624,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies deep matches retain only their ancestor chain while the canonical tree remains unchanged.
-        /// </summary>
         [Test]
         public async Task VerifyFilterPresentationPreservesAncestorsAndExcludesUnrelatedBranches()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var canonicalChildren = rootNode.Children.ToArray();
@@ -711,15 +650,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a direct parent match does not automatically expose nonmatching descendants.
-        /// </summary>
         [Test]
         public async Task VerifyDirectMatchDoesNotExposeNonmatchingDescendants()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
@@ -735,15 +669,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies an active query with no matches publishes a valid empty presentation.
-        /// </summary>
         [Test]
         public async Task VerifyFilterPresentationSupportsNoResults()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
 
             viewModel.FilterText = "No element has this text";
@@ -756,15 +685,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies filtering and guarded toggles never mutate durable expansion state, including after clear.
-        /// </summary>
         [Test]
         public async Task VerifyFilteringPreservesDurableExpansionStateAcrossClear()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
@@ -794,15 +718,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies clear resets reactive criteria and repeated clears are no-ops.
-        /// </summary>
         [Test]
         public async Task VerifyClearFilterResetsReactiveCriteriaAndIsIdempotent()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Deep target";
             viewModel.ToggleElementTypeFilter(typeof(PartDefinition));
@@ -843,15 +762,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies equivalent matching semantics reuse the immutable presentation and exact repeated values are no-ops.
-        /// </summary>
         [Test]
         public async Task VerifyEquivalentAndIdenticalFilterTextAvoidUnnecessaryPresentationPublication()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.FilterText = "Deep target";
             var initialPresentation = viewModel.FilterPresentation;
@@ -877,15 +791,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a filter set before initialization is applied before canonical roots are observed.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncAppliesPreexistingFilterCoherently()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             viewModel.FilterText = "Deep target";
             var collectionPublicationWasCoherent = false;
             var notifyingRoots = (INotifyCollectionChanged)viewModel.RootNodes;
@@ -893,10 +802,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 collectionPublicationWasCoherent = viewModel.RootNodes.Count == 1
                                                    && viewModel.FilterPresentation.IsActive
-                                                   && viewModel.FilterPresentation.IsVisible(
-                                                       FindNode(viewModel.RootNodes[0], "Deep target"))
-                                                   && !viewModel.FilterPresentation.IsVisible(
-                                                       FindNode(viewModel.RootNodes[0], "Sibling branch"));
+                                                   && viewModel.FilterPresentation.IsVisible(FindNode(viewModel.RootNodes[0], "Deep target"))
+                                                   && !viewModel.FilterPresentation.IsVisible(FindNode(viewModel.RootNodes[0], "Sibling branch"));
             };
             notifyingRoots.CollectionChanged += collectionHandler;
 
@@ -912,20 +819,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(collectionPublicationWasCoherent, Is.True);
-                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(4));
+                Assert.That(viewModel.RootNodes[0].Children, Has.Count.EqualTo(3));
                 Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
             }
         }
 
-        /// <summary>
-        /// Verifies an active no-results presentation is installed before newly published roots are observed.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncPublishesActiveEmptyPresentationCoherently()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             viewModel.FilterText = "No matching element";
             var collectionPublicationWasCoherent = false;
             var notifyingRoots = (INotifyCollectionChanged)viewModel.RootNodes;
@@ -933,8 +835,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 collectionPublicationWasCoherent = viewModel.RootNodes.Count == 1
                                                    && viewModel.FilterPresentation.IsActive
-                                                   && !viewModel.FilterPresentation.IsVisible(
-                                                       viewModel.RootNodes[0]);
+                                                   && !viewModel.FilterPresentation.IsVisible(viewModel.RootNodes[0]);
             };
             notifyingRoots.CollectionChanged += collectionHandler;
 
@@ -955,9 +856,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies model-load failure retains a valid active no-results presentation for the empty canonical tree.
-        /// </summary>
         [Test]
         public async Task VerifyInitializationErrorRetainsActiveEmptyFilterPresentation()
         {
@@ -965,9 +863,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             modelLoaderService
                 .Setup(x => x.LoadQuantitiesModel())
                 .Throws(new InvalidOperationException("Model load failed"));
-            using var viewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                new ContextAwareService())
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService())
             {
                 FilterText = "Deep target"
             };
@@ -982,16 +878,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies filtering does not clear hidden selection and visible filtered selection still uses the shared service.
-        /// </summary>
         [Test]
         public async Task VerifyFilteringPreservesHiddenSelectionAndVisibleSelectionFlow()
         {
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var hiddenNode = FindNode(rootNode, "Sibling branch");
@@ -1016,20 +907,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies each Project Browser ViewModel owns independent filter criteria and presentation state.
-        /// </summary>
         [Test]
         public async Task VerifyProjectBrowserViewModelsKeepIndependentFilterState()
         {
             var model = CreateFilterModel();
             var modelLoaderService = CreateModelLoader(model);
-            using var firstViewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                new ContextAwareService());
-            using var secondViewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                new ContextAwareService());
+            using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
+            using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
             await firstViewModel.InitializeAsync(CancellationToken.None);
             await secondViewModel.InitializeAsync(CancellationToken.None);
 
@@ -1048,17 +932,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies repeated commit, remove, Type, and clear mutations never corrupt canonical browser state.
-        /// </summary>
         [Test]
         public async Task VerifyFilterFlushAndRebuildStressPreservesCanonicalState()
         {
             const int iterationCount = 100;
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var branchNode = FindNode(rootNode, "Subsystem alpha");
@@ -1107,9 +986,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies repeated criteria and selection mutations remain isolated across five real browser ViewModels.
-        /// </summary>
         [Test]
         public async Task VerifyMultipleProjectBrowserFilterStressRemainsIsolated()
         {
@@ -1192,15 +1068,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies filter setters and clear do not publish after final disposal.
-        /// </summary>
         [Test]
         public void VerifyFilterMethodsDoNotMutateOrPublishAfterDisposal()
         {
-            var viewModel = new ProjectBrowserViewModel(
-                new Mock<IModelLoaderService>().Object,
-                new ContextAwareService());
+            var viewModel = new ProjectBrowserViewModel(new Mock<IModelLoaderService>().Object, new ContextAwareService());
             var propertyNotifications = new List<string>();
             PropertyChangedEventHandler propertyHandler = (_, args) => propertyNotifications.Add(args.PropertyName);
             viewModel.PropertyChanged += propertyHandler;
@@ -1226,15 +1097,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies ordinary methods preserve their null argument validation.
-        /// </summary>
         [Test]
         public void VerifyNodeMethodsRejectNullNodes()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                new Mock<IModelLoaderService>().Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(new Mock<IModelLoaderService>().Object, new ContextAwareService());
 
             using (Assert.EnterMultipleScope())
             {
@@ -1243,15 +1109,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies Type filter state accepts only available non-relationship element types.
-        /// </summary>
         [Test]
         public async Task VerifyToggleElementTypeFilterRejectsUnavailableTypes()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateFilterModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateFilterModel()).Object, new ContextAwareService());
             await viewModel.InitializeAsync(CancellationToken.None);
 
             using (Assert.EnterMultipleScope())
@@ -1266,16 +1127,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies workspace selection does not replace this browser's local visual selection.
-        /// </summary>
         [Test]
         public async Task VerifyExternalSelectionDoesNotChangeLocalVisualSelection()
         {
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var node = viewModel.RootNodes[0].Children[0];
@@ -1289,16 +1145,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies clearing workspace selection does not clear this browser's local selection.
-        /// </summary>
         [Test]
         public async Task VerifyExternalClearSelectionPreservesLocalVisualSelection()
         {
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
 
@@ -1312,16 +1163,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies final disposal preserves both local presentation and independently changing workspace context.
-        /// </summary>
         [Test]
         public async Task VerifyDisposedViewModelPreservesLocalSelectionAndSharedContext()
         {
             var selectionService = new ContextAwareService();
-            var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var node = viewModel.RootNodes[0].Children[0];
             viewModel.SelectNode(node);
@@ -1337,9 +1183,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies two Project Browsers keep local selection while publishing shared workspace context.
-        /// </summary>
         [Test]
         public async Task VerifyTwoViewModelsKeepIndependentLocalSelectionAndSharedContext()
         {
@@ -1349,9 +1192,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             using var firstViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
             using var secondViewModel = new ProjectBrowserViewModel(modelLoaderService.Object, selectionService);
 
-            await Task.WhenAll(
-                firstViewModel.InitializeAsync(CancellationToken.None),
-                secondViewModel.InitializeAsync(CancellationToken.None));
+            await Task.WhenAll(firstViewModel.InitializeAsync(CancellationToken.None), secondViewModel.InitializeAsync(CancellationToken.None));
 
             var firstRootNode = firstViewModel.RootNodes[0];
             var secondRootNode = secondViewModel.RootNodes[0];
@@ -1382,9 +1223,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies initialization applies a local default without overwriting external workspace context.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncSelectsLocalDefaultAndPreservesExternalContext()
         {
@@ -1393,9 +1231,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             {
                 SelectedElement = externalElement
             };
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
 
             var initialized = await viewModel.InitializeAsync(CancellationToken.None);
 
@@ -1410,9 +1246,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies initialization does not project a matching workspace selection into local presentation.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncDoesNotProjectExistingWorkspaceSelection()
         {
@@ -1435,9 +1268,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies a background browser completing initialization does not replace another browser's selection.
-        /// </summary>
         [Test]
         public async Task VerifyBackgroundInitializationPreservesLocalAndSharedSelection()
         {
@@ -1459,12 +1289,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
                     return model;
                 });
             var selectionService = new ContextAwareService();
-            using var foregroundViewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(model).Object,
-                selectionService);
-            using var backgroundViewModel = new ProjectBrowserViewModel(
-                backgroundModelLoaderService.Object,
-                selectionService);
+            using var foregroundViewModel = new ProjectBrowserViewModel(CreateModelLoader(model).Object, selectionService);
+            using var backgroundViewModel = new ProjectBrowserViewModel(backgroundModelLoaderService.Object, selectionService);
             var backgroundInitialization = backgroundViewModel.InitializeAsync(CancellationToken.None);
 
             try
@@ -1499,15 +1325,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies roots remain read-only, stable, and intrinsically ordered.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncBindsOrderedRootsIntoReadOnlyCollection()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, new ContextAwareService());
             var exposedRoots = viewModel.RootNodes;
 
             await viewModel.InitializeAsync(CancellationToken.None);
@@ -1524,15 +1345,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies SourceList publication uses collection changes without replacing or notifying the root property.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncPublishesRootCollectionChanges()
         {
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, new ContextAwareService());
             var exposedRoots = viewModel.RootNodes;
             var collectionChanges = new List<NotifyCollectionChangedEventArgs>();
             var rootPropertyChanges = new List<string>();
@@ -1564,16 +1380,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies one local selection produces one local selection notification.
-        /// </summary>
         [Test]
         public async Task VerifySelectNodeDoesNotDuplicateLocalSelectionNotification()
         {
             var selectionService = new ContextAwareService();
-            using var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            using var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var observedSelections = new List<ProjectBrowserNodeViewModel>();
 
@@ -1594,9 +1405,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies ordinary initialization reactively reports loading and loaded state.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncNotifiesLoadingAndLoadedState()
         {
@@ -1616,9 +1424,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
                     return CreateMinimalModel();
                 });
-            using var viewModel = new ProjectBrowserViewModel(
-                modelLoaderService.Object,
-                new ContextAwareService());
+            using var viewModel = new ProjectBrowserViewModel(modelLoaderService.Object, new ContextAwareService());
             var observedLoadingStates = new List<bool>();
             var observedLoadedStates = new List<bool>();
 
@@ -1655,9 +1461,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies caller cancellation is non-error and quarantines a late synchronous loader result.
-        /// </summary>
         [Test]
         public async Task VerifyInitializeAsyncCancellationIsNonErrorAndQuarantinesResult()
         {
@@ -1704,9 +1507,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies disposal during a blocked load quarantines its result and emits no later state changes.
-        /// </summary>
         [Test]
         public async Task VerifyDisposeCancelsInFlightInitializationAndQuarantinesResult()
         {
@@ -1762,16 +1562,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies final disposal is idempotent and does not clear scoped selection.
-        /// </summary>
         [Test]
         public async Task VerifyDisposeIsIdempotentAndPreservesSharedSelection()
         {
             var selectionService = new ContextAwareService();
-            var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             viewModel.SelectNode(viewModel.RootNodes[0].Children[0]);
             var selectedElement = selectionService.SelectedElement;
@@ -1782,16 +1577,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(selectionService.SelectedElement, Is.SameAs(selectedElement));
         }
 
-        /// <summary>
-        /// Verifies ordinary methods do not mutate state after final disposal.
-        /// </summary>
         [Test]
         public async Task VerifyMethodsDoNotMutateStateAfterDisposal()
         {
             var selectionService = new ContextAwareService();
-            var viewModel = new ProjectBrowserViewModel(
-                CreateModelLoader(CreateMinimalModel()).Object,
-                selectionService);
+            var viewModel = new ProjectBrowserViewModel(CreateModelLoader(CreateMinimalModel()).Object, selectionService);
             await viewModel.InitializeAsync(CancellationToken.None);
             var rootNode = viewModel.RootNodes[0];
             var childNode = rootNode.Children[0];
@@ -1813,9 +1603,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies root collection publication observes an already coherent local selection.
-        /// </summary>
         [Test]
         public async Task VerifyRootPublicationNotifiesOnlyAfterLocalSelectionIsCoherent()
         {
@@ -1830,9 +1617,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             ((INotifyCollectionChanged)viewModel.RootNodes).CollectionChanged += (_, _) =>
             {
                 coherentPublicationObserved = viewModel.RootNodes.Count == 1
-                                              && ReferenceEquals(
-                                                  viewModel.SelectedNode,
-                                                  viewModel.RootNodes[0]);
+                                              && ReferenceEquals(viewModel.SelectedNode, viewModel.RootNodes[0]);
             };
 
             Assert.That(await viewModel.InitializeAsync(CancellationToken.None), Is.True);
@@ -1845,9 +1630,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies URL focus received before initialization resolves after the canonical tree is published.
-        /// </summary>
         [Test]
         public async Task VerifyFocusElementBeforeInitializationRestoresLocalSelectionAndAncestors()
         {
@@ -1873,9 +1655,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies local URL focus does not mutate text, type, or visibility filter authority.
-        /// </summary>
         [Test]
         public async Task VerifyFocusElementPreservesActiveFilterState()
         {
@@ -1900,9 +1679,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Verifies URL focus affects only the explicitly targeted local Project Browser instance.
-        /// </summary>
         [Test]
         public async Task VerifyFocusElementPreservesOtherBrowserLocalSelection()
         {
@@ -1926,11 +1702,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Creates a model loader that returns the provided namespace.
-        /// </summary>
-        /// <param name="model">The namespace returned by the loader.</param>
-        /// <returns>The configured model loader mock.</returns>
         private static Mock<IModelLoaderService> CreateModelLoader(INamespace model)
         {
             var modelLoaderService = new Mock<IModelLoaderService>();
@@ -1941,10 +1712,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             return modelLoaderService;
         }
 
-        /// <summary>
-        /// Creates a model with two elements used to prove independent local browser selection.
-        /// </summary>
-        /// <returns>The selection-focused namespace model.</returns>
         private static Namespace CreateSelectionModel()
         {
             var thruster = CreateElement<PartDefinition>("thruster", "Thruster");
@@ -1953,10 +1720,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             return CreateElement<Namespace>("root", "Root", thruster, tank);
         }
 
-        /// <summary>
-        /// Creates a small model with two selectable children.
-        /// </summary>
-        /// <returns>The minimal namespace model.</returns>
         private static Namespace CreateMinimalModel()
         {
             var firstChild = CreateElement<PartDefinition>("first-child", "First child");
@@ -1965,84 +1728,35 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             return CreateElement<Namespace>("root", "Root", firstChild, secondChild);
         }
 
-        /// <summary>
-        /// Creates a canonical hierarchy with concrete definition, usage, namespace, and relationship nodes.
-        /// </summary>
-        /// <returns>The filter-focused namespace model.</returns>
         private static Namespace CreateFilterModel()
         {
-            var deepTarget = CreateElement<PartDefinition>(
-                "deep-target",
-                "Deep target");
-            var unrelatedLeaf = CreateElement<PartUsage>(
-                "unrelated-leaf",
-                "Unrelated leaf");
-            var matchingBranch = CreateElement<Namespace>(
-                "matching-branch",
-                "Subsystem alpha",
-                deepTarget,
-                unrelatedLeaf);
-            var siblingBranch = CreateElement<Namespace>(
-                "sibling-branch",
-                "Sibling branch");
-            var duplicateDefinition = CreateElement<PartDefinition>(
-                "duplicate-definition",
-                "Mystery element");
-            var relationship = CreateElement<Membership>(
-                "membership",
-                "Owned membership");
+            var deepTarget = CreateElement<PartDefinition>("deep-target", "Deep target");
+            var unrelatedLeaf = CreateElement<PartUsage>("unrelated-leaf", "Unrelated leaf");
+            var matchingBranch = CreateElement<Namespace>("matching-branch", "Subsystem alpha", deepTarget, unrelatedLeaf);
+            var siblingBranch = CreateElement<Namespace>("sibling-branch", "Sibling branch");
+            var duplicateDefinition = CreateElement<PartDefinition>("duplicate-definition", "Mystery element");
+            var relationship = CreateElement<Membership>("membership", "Owned membership");
 
-            return CreateElement<Namespace>(
-                "filter-root",
-                "Root project",
-                matchingBranch,
-                siblingBranch,
-                duplicateDefinition,
-                relationship);
+            return CreateElement<Namespace>("filter-root", "Root project", matchingBranch, siblingBranch, duplicateDefinition, relationship);
         }
 
-        /// <summary>
-        /// Creates a model whose child matches only through qualified-name metadata.
-        /// </summary>
-        /// <returns>The qualified-name-focused namespace model.</returns>
         private static Namespace CreateQualifiedNameModel()
         {
-            var qualifiedNameOnly = CreateElement<QualifiedNamePartDefinition>(
-                "qualified-name-only",
-                "Friendly label");
+            var qualifiedNameOnly = CreateElement<QualifiedNamePartDefinition>("qualified-name-only", "Friendly label");
 
             return CreateElement<Namespace>("qualified-root", "Root project", qualifiedNameOnly);
         }
 
-        /// <summary>
-        /// Provides deterministic qualified-name metadata while retaining SDK containment behavior.
-        /// </summary>
         private sealed class QualifiedNamePartDefinition : PartDefinition, IElement
         {
-            /// <summary>
-            /// Gets the qualified name used by the qualified-name-only filter scenario.
-            /// </summary>
             string IElement.qualifiedName => "Model::QualifiedNeedle";
         }
 
-        /// <summary>
-        /// Finds one canonical node by its display name.
-        /// </summary>
-        /// <param name="rootNode">The root node to search.</param>
-        /// <param name="displayName">The exact display name.</param>
-        /// <returns>The matching canonical node.</returns>
-        private static ProjectBrowserNodeViewModel FindNode(
-            ProjectBrowserNodeViewModel rootNode,
-            string displayName)
+        private static ProjectBrowserNodeViewModel FindNode(ProjectBrowserNodeViewModel rootNode, string displayName)
         {
             return Flatten(rootNode).Single(node => node.DisplayName == displayName);
         }
 
-        /// <summary>
-        /// Enumerates a canonical tree in pre-order.
-        /// </summary>
-        /// <param name="rootNode">The root node.</param>
-        /// <returns>The root and every descendant in canonical order.</returns>
         private static IEnumerable<ProjectBrowserNodeViewModel> Flatten(ProjectBrowserNodeViewModel rootNode)
         {
             yield return rootNode;
@@ -2056,10 +1770,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        /// <summary>
-        /// Loads the real Quantities model from application resources.
-        /// </summary>
-        /// <returns>The loaded Quantities namespace model.</returns>
         private static INamespace LoadQuantitiesModel()
         {
             var applicationPath = TestRepository.GetDirectoryPath("Mycelium.Bloom");
@@ -2069,11 +1779,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
             using var loggerFactory = LoggerFactory.Create(_ => { });
 
-            var modelLoaderService = new ModelLoaderService(
-                hostEnvironment.Object,
-                new DeSerializer(loggerFactory),
-                new Assembler(loggerFactory),
-                loggerFactory.CreateLogger<ModelLoaderService>());
+            var modelLoaderService = new ModelLoaderService(hostEnvironment.Object, new DeSerializer(loggerFactory),
+                new Assembler(loggerFactory), loggerFactory.CreateLogger<ModelLoaderService>());
 
             return modelLoaderService.LoadQuantitiesModel();
         }

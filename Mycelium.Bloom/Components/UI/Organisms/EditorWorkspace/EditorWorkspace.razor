@@ -7,7 +7,6 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using BlazorBlueprint.Icons.Lucide.Components
 @using Mycelium.Bloom.ViewModel.WorkspaceEditor
 @inherits BloomReactiveComponentBase<IWorkspaceEditorViewModel>
 
@@ -285,6 +284,7 @@
 
                     <div id="@(this.GetSplitterElementId(group.Id, nextGroup.Id))"
                          class="mb-editor-workspace__splitter"
+                         data-resizing="@(this.splitterResizeState?.SeparatorId == this.GetSplitterElementId(group.Id, nextGroup.Id) ? "true" : null)"
                          style="@(this.GetSplitterStyle(currentGroupIndex, renderState))"
                          role="separator"
                          aria-label="@($"Resize {this.GetGroupAccessibleLabel(currentGroupIndex)} and {this.GetGroupAccessibleLabel(currentGroupIndex + 1)}")"

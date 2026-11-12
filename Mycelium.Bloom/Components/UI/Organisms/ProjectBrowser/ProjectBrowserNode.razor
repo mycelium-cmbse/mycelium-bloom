@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @inherits BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
+@using BlazorBlueprint.Icons.Lucide.Components
 
 @if (this.ViewModel is { } viewModel)
 {
@@ -15,40 +16,110 @@
 
     <div @attributes="this.AdditionalAttributes"
          class="@(this.BuildRootCssClass("mb-project-browser-node"))"
-         role="treeitem" aria-expanded="@(GetAriaExpanded(nodePresentation))"
+         role="treeitem"
+         tabindex="@(ReferenceEquals(viewModel, this.SelectedNode) ? "0" : "-1")"
+         aria-label="@(this.GetRowLabel())"
+         aria-level="@(Math.Max(0, this.Depth) + 1)"
+         aria-expanded="@(GetAriaExpanded(nodePresentation))"
+         data-element-id="@viewModel.ElementId"
+         data-kind-group="@(viewModel.IsGroup ? viewModel.DisplayName : null)"
          aria-selected="@(this.GetAriaSelected())">
-        <button
-            type="button"
-            class="@(this.GetNodeCssClass())"
-            style="@(this.GetNodeStyle())"
-            title="@(this.GetTooltip())"
-            @onclick="this.SelectNodeAsync">
-            <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())"></span>
-
-            @if (nodePresentation.HasVisibleChildren)
+        <div class="mb-project-browser-node__line">
+            <span class="mb-project-browser-node__indent" style="@(this.GetIndentStyle())" aria-hidden="true"></span>
+            @if (nodePresentation.CanToggle)
             {
-                <span class="mb-project-browser-node__toggle" aria-hidden="true">
-                    @(nodePresentation.IsExpanded ? "v" : ">")
-                </span>
+                <button type="button"
+                        tabindex="-1"
+                        class="mb-project-browser-node__disclosure"
+                        aria-label="@(this.GetDisclosureLabel(nodePresentation))"
+                        aria-expanded="@(nodePresentation.IsExpanded ? "true" : "false")"
+                        data-testid="project-browser-node-disclosure"
+                        @onclick="this.ToggleNodeAsync">
+                    <span class="mb-project-browser-node__toggle"
+                          data-expanded="@(nodePresentation.IsExpanded ? "true" : "false")"
+                          aria-hidden="true"></span>
+                </button>
             }
             else
             {
-                <span class="mb-project-browser-node__toggle-spacer"></span>
+                <span class="mb-project-browser-node__toggle-spacer" aria-hidden="true"></span>
             }
+            <button
+                type="button"
+                tabindex="-1"
+                class="@(this.GetNodeCssClass())"
+                title="@(this.GetTooltip())"
+                data-testid="project-browser-node-selection"
+                @onclick="this.SelectNodeAsync">
+                @if ((viewModel.IsGroup ? "folder" : viewModel.Presentation.IconName) is { } iconName)
+                {
+                    <span class="mb-project-browser-node__element-icon"
+                          style="@($"--project-browser-node-icon: url('icons/project-browser/{iconName}.svg');")"
+                          aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span class="mb-project-browser-node__fallback-icon" aria-hidden="true">
+                        <LucideIcon Name="@viewModel.Presentation.SymbolName" Size="12" StrokeWidth="1.75" />
+                    </span>
+                }
 
-            <span class="mb-project-browser-node__element-icon" aria-hidden="true"></span>
-
-            @if (!string.IsNullOrWhiteSpace(this.GetStereotype()))
-            {
-                <span class="mb-project-browser-node__stereotype">
-                    @(this.GetStereotype())
+                <span class="mb-project-browser-node__label">
+                    <span class="mb-project-browser-node__title">
+                        @(viewModel.DisplayName)
+                    </span>
+                    @if (viewModel.Row?.TypeLabel is { Length: > 0 } typeLabel)
+                    {
+                        <span class="mb-project-browser-node__type">: @typeLabel</span>
+                    }
+                    @if (viewModel.Multiplicity is { } multiplicity)
+                    {
+                        <span class="mb-project-browser-node__multiplicity">@multiplicity</span>
+                    }
+                    @if (viewModel.Row?.ValueLabel is { } valueLabel)
+                    {
+                        <span class="mb-project-browser-node__value">= @valueLabel</span>
+                    }
+                    @if (!viewModel.IsGroup)
+                    {
+                        <span class="mb-project-browser-node__stereotype">@viewModel.Presentation.Stereotype</span>
+                        @if (viewModel.Row.Visibility is { } visibility)
+                        {
+                            <span class="mb-project-browser-node__visibility" title="@($"Visibility: {visibility}")">
+                                <span aria-hidden="true">@(visibility switch { "public" => "+", "private" => "−", "protected" => "#", _ => visibility })</span>
+                                <span class="sr-only">@visibility</span>
+                            </span>
+                        }
+                    }
+                    @foreach (var indicator in viewModel.Row?.Indicators ?? [])
+                    {
+                        @if (indicator.StartsWith("Verdict:", StringComparison.Ordinal))
+                        {
+                            <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
+                                     Class="mb-project-browser-node__verdict"
+                                     aria-label="@indicator">@indicator</BbBadge>
+                        }
+                        else
+                        {
+                            <span class="mb-project-browser-node__indicator" title="@indicator">
+                                @if (indicator == "Documentation")
+                                {
+                                    <span class="mb-project-browser-node__documentation" role="img" aria-label="Documentation"></span>
+                                }
+                                else if (GetIndicatorIcon(indicator) is { } indicatorIcon)
+                                {
+                                    <LucideIcon Name="@indicatorIcon" Size="12" StrokeWidth="1.75" role="img" aria-label="@indicator" />
+                                }
+                                else
+                                {
+                                    @indicator
+                                }
+                            </span>
+                        }
+                    }
                 </span>
-            }
-
-            <span class="mb-project-browser-node__title">
-                @(viewModel.DisplayName)
-            </span>
-        </button>
+            </button>
+        </div>
 
         @if (nodePresentation.IsExpanded)
         {
@@ -56,11 +127,13 @@
                 @foreach (var child in nodePresentation.VisibleChildren)
                 {
                     <ProjectBrowserNode
+                        @key="child.Id"
                         ViewModel="child"
                         SelectedNode="this.SelectedNode"
                         Depth="@(this.Depth + 1)"
                         FilterPresentation="this.FilterPresentation"
-                        OnNodeSelected="this.OnNodeSelected"/>
+                        OnNodeSelected="this.OnNodeSelected"
+                        OnNodeExpansionToggled="this.OnNodeExpansionToggled"/>
                 }
             </div>
         }

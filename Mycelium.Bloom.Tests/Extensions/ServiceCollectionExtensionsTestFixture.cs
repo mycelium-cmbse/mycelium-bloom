@@ -15,24 +15,56 @@ namespace Mycelium.Bloom.Tests.Extensions
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Options;
 
+    using Moq;
+
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
-    using Moq;
-
+    using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
 
     [TestFixture]
     public sealed class ServiceCollectionExtensionsTestFixture
     {
+        [Test]
+        public void VerifyDetailsPanelFactoryUsesSharedSelectionAndCallerOwnership()
+        {
+            var services = new ServiceCollection();
+            services.AddApplicationServices();
+            using var provider = services.BuildServiceProvider();
+            using var scope = provider.CreateScope();
+            var factory = scope.ServiceProvider.GetRequiredService<Func<IDetailsPanelViewModel>>();
+            using var first = factory();
+            using var second = factory();
+            var selection = scope.ServiceProvider.GetRequiredService<IElementSelectionService>();
+            var target = new Namespace { DeclaredName = "Selected" };
+            first.Inspect(target);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first, Is.Not.SameAs(second));
+                Assert.That(first.Presentation.Element, Is.SameAs(target));
+                Assert.That(second.Presentation.Element, Is.SameAs(target));
+                Assert.That(selection.SelectedElement, Is.SameAs(target));
+                Assert.That(services.Any(descriptor => descriptor.ServiceType == typeof(IDetailsPanelViewModel)), Is.False);
+            }
+            first.Dispose();
+            second.Inspect(new Namespace());
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.Presentation.Element, Is.SameAs(target));
+                Assert.That(second.Presentation.Element, Is.SameAs(selection.SelectedElement));
+            }
+        }
+
         [Test]
         public void VerifyAddApplicationServicesRejectsNullCollection()
         {

@@ -17,18 +17,20 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
-    using SysML2.NET.Core.POCO.Core.Features;
-    using SysML2.NET.Core.POCO.Core.Types;
-    using SysML2.NET.Core.POCO.Root.Annotations;
-    using SysML2.NET.Core.POCO.Root.Elements;
-    using SysML2.NET.Core.POCO.Root.Namespaces;
-    using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
-
     /// <summary>
     /// Renders one recursive node in the project browser tree.
     /// </summary>
     public partial class ProjectBrowserNode : BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
+        /// <summary>
+        /// Describes the effective node state shared by rendering and accessible labels.
+        /// </summary>
+        /// <param name="VisibleChildren">The children visible under the current filter.</param>
+        /// <param name="HasVisibleChildren">Whether any children remain visible.</param>
+        /// <param name="CanToggle">Whether the user may change expansion.</param>
+        /// <param name="IsExpanded">Whether the visible children are rendered.</param>
+        private sealed record NodeState(IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren, bool HasVisibleChildren, bool CanToggle, bool IsExpanded);
+
         /// <summary>
         /// Gets the node ViewModel required while rendering an assigned node.
         /// </summary>
@@ -37,8 +39,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </exception>
         private ProjectBrowserNodeViewModel RequiredViewModel =>
             this.ViewModel
-            ?? throw new InvalidOperationException(
-                $"{nameof(ProjectBrowserNode)} requires a {nameof(ProjectBrowserNodeViewModel)}.");
+            ?? throw new InvalidOperationException($"{nameof(ProjectBrowserNode)} requires a {nameof(ProjectBrowserNodeViewModel)}.");
 
         /// <summary>
         /// Gets or sets the tree depth of this node.
@@ -66,6 +67,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         public EventCallback<ProjectBrowserNodeViewModel> OnNodeSelected { get; set; }
 
         /// <summary>
+        /// Gets or sets the callback invoked by the separate disclosure control.
+        /// </summary>
+        [Parameter]
+        public EventCallback<ProjectBrowserNodeViewModel> OnNodeExpansionToggled { get; set; }
+
+        /// <summary>
         /// Invokes the node selection callback for the current node.
         /// </summary>
         /// <returns>A task representing the asynchronous operation.</returns>
@@ -78,7 +85,28 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
                 return;
             }
 
-            await this.OnNodeSelected.InvokeAsync(viewModel);
+            if (viewModel.IsGroup)
+            {
+                await this.OnNodeExpansionToggled.InvokeAsync(viewModel);
+            }
+            else
+            {
+                await this.OnNodeSelected.InvokeAsync(viewModel);
+            }
+        }
+
+        /// <summary>
+        /// Invokes the disclosure callback without selecting this node.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task ToggleNodeAsync()
+        {
+            var viewModel = this.ViewModel;
+
+            if (viewModel != null)
+            {
+                await this.OnNodeExpansionToggled.InvokeAsync(viewModel);
+            }
         }
 
         /// <summary>
@@ -87,24 +115,30 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The CSS classes for the node row.</returns>
         private string GetNodeCssClass()
         {
-            var cssClass = CssClassBuilder.Build(
-                "mb-project-browser-node__row",
-                CssClassBuilder.When(
-                    "mb-project-browser-node__row--selected",
-                    ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
+            var cssClass = CssClassBuilder.Build("mb-project-browser-node__row",
+                CssClassBuilder.When("mb-project-browser-node__row--selected", ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
 
             return cssClass;
         }
 
         /// <summary>
-        /// Gets the inline style variables for the node row.
+        /// Gets a compact, labelled symbol for an indicator derived from actual model data.
         /// </summary>
-        /// <returns>The inline style variables for the node row.</returns>
-        private string GetNodeStyle()
+        /// <param name="indicator">The semantic indicator label.</param>
+        /// <returns>The established icon name, or null when the indicator should remain text.</returns>
+        private static string GetIndicatorIcon(string indicator)
         {
-            return string.Create(
-                CultureInfo.InvariantCulture,
-                $"--project-browser-node-element-color: {this.GetElementColor()};");
+            return indicator switch
+            {
+                "Imported" => "arrow-down-to-line",
+                "Library" => "library",
+                "Standard library" => "badge-check",
+                "Metadata" => "tag",
+                "Variation" => "git-branch",
+                "Conjugated" => "rotate-cw",
+                "Parallel" => "columns-2",
+                _ => null
+            };
         }
 
         /// <summary>
@@ -114,39 +148,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string GetIndentStyle()
         {
             var safeDepth = Math.Max(0, this.Depth);
-            var width = safeDepth * 16;
-
-            return string.Create(CultureInfo.InvariantCulture, $"width: {width}px;");
-        }
-
-        /// <summary>
-        /// Gets the stereotype label displayed for the node.
-        /// </summary>
-        /// <returns>The stereotype label displayed for the node.</returns>
-        private string GetStereotype()
-        {
-            return this.GetTypeLabel();
-        }
-
-        /// <summary>
-        /// Gets the design token color for the represented SysML element.
-        /// </summary>
-        /// <returns>The design token color for the represented element.</returns>
-        private string GetElementColor()
-        {
-            return this.RequiredViewModel.SourceElement switch
-            {
-                IDocumentation or IComment or IAnnotation or IAnnotatingElement => "var(--info)",
-                IImport => "var(--sysml-allocations-header)",
-                IMembership => "var(--sysml-metadata-header)",
-                IRelationship => "var(--sysml-connections-header)",
-                IDefinition => "var(--sysml-attributes-header)",
-                IUsage => "var(--sysml-behavior-header)",
-                IFeature => "var(--sysml-requirements-header)",
-                IType => "var(--sysml-verification-header)",
-                INamespace => "var(--sysml-structure-header)",
-                _ => "var(--muted-foreground)"
-            };
+            return string.Create(CultureInfo.InvariantCulture, $"width: calc({safeDepth} * var(--spacing-16));");
         }
 
         /// <summary>
@@ -156,28 +158,50 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string GetTooltip()
         {
             var viewModel = this.RequiredViewModel;
-            var suffix = this.GetTypeLabel();
+
+            if (viewModel.IsGroup)
+            {
+                return viewModel.DisplayName;
+            }
+
+            var suffix = viewModel.Presentation.Kind;
 
             if (!string.IsNullOrWhiteSpace(viewModel.QualifiedName))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.QualifiedName} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{this.GetRowLabel()}\n{viewModel.QualifiedName} - {suffix}");
             }
 
             if (!string.IsNullOrWhiteSpace(viewModel.ElementId))
             {
-                return string.Create(CultureInfo.InvariantCulture, $"{viewModel.ElementId} - {suffix}");
+                return string.Create(CultureInfo.InvariantCulture, $"{this.GetRowLabel()}\n{viewModel.ElementId} - {suffix}");
             }
 
-            return suffix;
+            return this.GetRowLabel();
         }
 
         /// <summary>
-        /// Gets the most specific type label available for the node.
+        /// Preserves full row information for assistive technology and the native hover tooltip.
         /// </summary>
-        /// <returns>The most specific type label available for the node.</returns>
-        private string GetTypeLabel()
+        /// <returns>The untruncated model notation, without invented values.</returns>
+        private string GetRowLabel()
         {
-            return this.RequiredViewModel.ElementType.Name;
+            var node = this.RequiredViewModel;
+
+            if (node.IsGroup)
+            {
+                return node.DisplayName;
+            }
+
+            var facets = new[]
+            {
+                node.DisplayName,
+                string.IsNullOrEmpty(node.Row.TypeLabel) ? null : $": {node.Row.TypeLabel}",
+                node.Multiplicity,
+                node.Row.ValueLabel == null ? null : $"= {node.Row.ValueLabel}",
+                node.Presentation.Stereotype,
+                node.Row.Visibility
+            };
+            return string.Join(" ", facets.Where(value => !string.IsNullOrEmpty(value)).Concat(node.Row.Indicators));
         }
 
         /// <summary>
@@ -186,10 +210,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>
         /// The visible canonical children, whether any are visible, and whether they should be rendered.
         /// </returns>
-        private (
-            IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
-            bool HasVisibleChildren,
-            bool IsExpanded) GetNodePresentation()
+        private NodeState GetNodePresentation()
         {
             var viewModel = this.RequiredViewModel;
             var filterPresentation = this.FilterPresentation ?? ProjectBrowserFilterPresentation.Inactive;
@@ -200,7 +221,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             var isExpanded = hasVisibleChildren
                              && (filterPresentation.IsActive || viewModel.IsExpanded);
 
-            return (visibleChildren, hasVisibleChildren, isExpanded);
+            return new(visibleChildren, hasVisibleChildren, hasVisibleChildren && !filterPresentation.IsActive, isExpanded);
+        }
+
+        /// <summary>
+        /// Gets a stateful accessible label for the disclosure control.
+        /// </summary>
+        /// <param name="nodePresentation">The effective presentation used by the current render.</param>
+        /// <returns>The action available for the node's children.</returns>
+        private string GetDisclosureLabel(NodeState nodePresentation)
+        {
+            var action = nodePresentation.IsExpanded ? "Collapse" : "Expand";
+            return $"{action} {this.RequiredViewModel.DisplayName}";
         }
 
         /// <summary>
@@ -208,10 +240,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// </summary>
         /// <param name="nodePresentation">The effective presentation used by the current render.</param>
         /// <returns>The ARIA expanded value for the node.</returns>
-        private static string GetAriaExpanded((
-            IReadOnlyList<ProjectBrowserNodeViewModel> VisibleChildren,
-            bool HasVisibleChildren,
-            bool IsExpanded) nodePresentation)
+        private static string GetAriaExpanded(NodeState nodePresentation)
         {
             if (!nodePresentation.HasVisibleChildren)
             {
@@ -227,7 +256,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The ARIA selected value for the node.</returns>
         private string GetAriaSelected()
         {
-            return ReferenceEquals(this.RequiredViewModel, this.SelectedNode)
+            return this.RequiredViewModel.IsGroup ? null : ReferenceEquals(this.RequiredViewModel, this.SelectedNode)
                 .ToString()
                 .ToLowerInvariant();
         }

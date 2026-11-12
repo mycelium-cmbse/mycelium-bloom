@@ -7,74 +7,53 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using BlazorBlueprint.Icons.Lucide.Components
+@inherits BloomReactiveComponentBase<IDetailsPanelViewModel>
 
-@inherits BloomReactiveInjectableComponentBase<IElementSelectionService>
-
-<section class="@(this.GetCssClass())"
-         aria-labelledby="@(this.headingId)"
-         @attributes="this.AdditionalAttributes">
+<section class="@(this.GetCssClass())" aria-labelledby="@(this.headingId)" @attributes="this.AdditionalAttributes">
     <header class="mb-details-panel__header">
-        <div class="mb-details-panel__heading-content">
-            <h2 id="@(this.headingId)" class="mb-details-panel__title">
-                Details
-            </h2>
-
-            @if (this.SelectedElement is not null)
-            {
-                <p class="mb-details-panel__element-name">
-                    @(GetDisplayName(this.SelectedElement))
-                </p>
-            }
-        </div>
-
+        <span class="mb-details-panel__icon"><LucideIcon Name="align-left" Size="16" aria-hidden="true" /></span>
+        <h2 id="@(this.headingId)" class="mb-details-panel__title">Properties</h2>
         @if (this.CloseRequested.HasDelegate)
         {
-            <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
-                      Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+            <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                       Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-                      Class="mb-details-panel__close"
-                      AriaLabel="Close details panel"
-                      title="Close details panel"
-                      OnClick="this.RequestCloseAsync">
-                <LucideIcon Name="x"
-                            Size="16"
-                            StrokeWidth="1.75"
-                            role="presentation"
-                            aria-hidden="true"
-                            focusable="false" />
+                      AriaLabel="Close Properties" title="Close Properties"
+                      Class="mb-properties-close" data-testid="properties-close" OnClick="this.ClosePanel">
+                <LucideIcon Name="x" Size="14" aria-hidden="true" />
             </BbButton>
         }
     </header>
-
-    @if (this.SelectedElement is null)
+    @if (this.ViewModel.Presentation is null)
     {
-        <p class="mb-details-panel__empty">
-            Select an element to display its details.
-        </p>
+        <p class="mb-details-panel__empty">Select an element to display its details.</p>
     }
     else
     {
-        <dl class="mb-details-panel__properties">
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">ID</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.ElementId))</dd>
-            </div>
-
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">Declared name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.DeclaredName))</dd>
-            </div>
-
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">Declared short name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.DeclaredShortName))</dd>
-            </div>
-
-            <div class="mb-details-panel__property">
-                <dt class="mb-details-panel__label">Qualified name</dt>
-                <dd class="mb-details-panel__value">@(GetDisplayValue(this.SelectedElement.qualifiedName))</dd>
-            </div>
-        </dl>
+        <BbTabs Value="@this.activeTab" ValueChanged="this.ChangeTab" Class="mb-properties-tabs">
+            <BbTabsList AriaLabel="Element detail sections" Class="mb-properties-tabs__list">
+                @foreach (var tab in Tabs)
+                {
+                    <BbTabsTrigger Value="@tab" Class="mb-properties-tabs__trigger"
+                                   aria-selected="@(this.activeTab == tab ? "true" : "false")">@tab</BbTabsTrigger>
+                }
+            </BbTabsList>
+            @foreach (var tab in Tabs)
+            {
+                <BbTabsContent Value="@tab" Class="mb-properties-tabs__content">
+                    @if (this.ViewModel.Presentation.ShowSelectionSummary)
+                    {
+                        <PropertiesSummary Presentation="this.ViewModel.Presentation" />
+                    }
+                    <PropertiesSections Sections="this.ViewModel.Presentation.DisplaySections" Tab="@tab"
+                                        SelectedElement="this.ViewModel.Presentation.Element" InspectRequested="this.InspectElement" />
+                </BbTabsContent>
+            }
+        </BbTabs>
+        @if (this.ShowInBrowserRequested.HasDelegate)
+        {
+            <footer class="mb-details-panel__footer">
+                <BbButton Size="BlazorBlueprint.Components.ButtonSize.Small" OnClick="this.ShowInBrowser">Show in Browser</BbButton>
+            </footer>
+        }
     }
 </section>

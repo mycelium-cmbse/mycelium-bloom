@@ -11,13 +11,18 @@ namespace Mycelium.Bloom.Components.Layout
 {
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
+
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.WorkspaceLayout;
+
+    using ReactiveUI;
 
     /// <summary>
     /// Composes the shared application frame for routed engineering-workspace pages.
@@ -35,9 +40,21 @@ namespace Mycelium.Bloom.Components.Layout
         private bool isNavigationCollapsed = true;
 
         /// <summary>
-        /// A value indicating whether the workspace inspector is visible.
+        /// The stable focus-return target for the Properties region.
         /// </summary>
-        private bool isDetailsPanelOpen = true;
+        private readonly string propertiesToggleId = $"properties-toggle-{Guid.NewGuid():N}";
+
+        /// <summary>The generic shell rendered by this layout.</summary>
+        private WorkspaceShell workspaceShell;
+
+        /// <summary>The routed component owning the current Browser reveal callback.</summary>
+        private object browserRevealOwner;
+
+        /// <summary>The composition-owned callback exposed in the Properties footer.</summary>
+        private EventCallback<SysML2.NET.Core.POCO.Root.Elements.IElement> browserReveal;
+
+        /// <summary>Gets the region preferences owned solely by this layout.</summary>
+        private WorkspaceLayoutViewModel LayoutState { get; } = new();
 
         /// <summary>
         /// A value indicating whether final layout disposal has occurred.
@@ -84,6 +101,34 @@ namespace Mycelium.Bloom.Components.Layout
         /// </summary>
         private IWorkspaceUrlContextService UrlContextService { get; set; }
 
+        /// <summary>Registers or releases a routed component's existing Browser navigation handler.</summary>
+        /// <param name="owner">The component owning the callback.</param>
+        /// <param name="callback">The reveal callback, or an empty value when the owner is disposed.</param>
+        private void RegisterBrowserReveal(object owner, EventCallback<SysML2.NET.Core.POCO.Root.Elements.IElement> callback)
+        {
+            if (this.isDisposed || !callback.HasDelegate && !ReferenceEquals(owner, this.browserRevealOwner))
+            {
+                return;
+            }
+
+            this.browserRevealOwner = callback.HasDelegate ? owner : null;
+            this.browserReveal = callback;
+            _ = this.InvokeAsync(this.StateHasChanged);
+        }
+
+        /// <summary>Reveals the chosen Browser and makes its workspace pane visible at compact widths.</summary>
+        /// <param name="element">The canonical element requested by Properties.</param>
+        /// <returns>The Browser reveal callback completion.</returns>
+        private async Task ShowInBrowser(SysML2.NET.Core.POCO.Root.Elements.IElement element)
+        {
+            await this.browserReveal.InvokeAsync(element);
+
+            if (!this.isDisposed)
+            {
+                this.workspaceShell?.RevealMainContent();
+            }
+        }
+
         /// <summary>
         /// Creates the layout-owned navigation state and initializes its width reservation.
         /// </summary>
@@ -98,7 +143,8 @@ namespace Mycelium.Bloom.Components.Layout
             ArgumentNullException.ThrowIfNull(this.UrlContextServiceFactory);
 
             var navigationViewModel = this.NavigationViewModelFactory()
-                ?? throw new InvalidOperationException("The navigation ViewModel factory returned null.");
+                                      ?? throw new InvalidOperationException("The navigation ViewModel factory returned null.");
+
             IWorkspaceUrlContextService urlContextService = null;
 
             try
@@ -106,6 +152,7 @@ namespace Mycelium.Bloom.Components.Layout
                 urlContextService = this.UrlContextServiceFactory()
                                     ?? throw new InvalidOperationException(
                                         "The URL context service factory returned null.");
+
                 this.isNavigationCollapsed = navigationViewModel.PresentationMode switch
                 {
                     NavigationRailPresentationMode.Expanded => false,
@@ -113,9 +160,23 @@ namespace Mycelium.Bloom.Components.Layout
                     NavigationRailPresentationMode.ExpandOnHover => true,
                     _ => throw CreateInvalidPresentationModeException(navigationViewModel.PresentationMode)
                 };
+
                 this.NavigationViewModel = navigationViewModel;
                 this.UrlContextService = urlContextService;
                 this.ObserveUrlContext();
+
+                this.urlContextSubscriptions.Add(this.LayoutState
+                    .WhenAnyValue(state => state.PropertiesCollapsed, state => state.PropertiesWidth)
+                    .Skip(1)
+                    .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
+                    {
+                        if (!this.isDisposed)
+                        {
+                            this.StateHasChanged();
+                        }
+                    })))
+                    .Concat()
+                    .Subscribe(_ => { }, exception => this.Logger.LogError(exception, "Workspace region rendering failed.")));
             }
             catch
             {
@@ -229,20 +290,31 @@ namespace Mycelium.Bloom.Components.Layout
         }
 
         /// <summary>
-        /// Closes the workspace inspector.
-        /// </summary>
-        private void CloseDetailsPanel()
-        {
-            this.isDetailsPanelOpen = false;
-        }
-
-        /// <summary>
         /// Toggles the workspace inspector visibility.
         /// </summary>
         private void ToggleDetailsPanel()
         {
-            this.isDetailsPanelOpen = !this.isDetailsPanelOpen;
+            this.LayoutState.PropertiesCollapsed = !this.LayoutState.PropertiesCollapsed;
+
+            if (!this.LayoutState.PropertiesCollapsed)
+            {
+                this.workspaceShell?.RevealRightPanel();
+            }
         }
+
+        /// <summary>Reveals Properties only for an explicit composition-owned user intent.</summary>
+        private void RevealProperties()
+        {
+            if (!this.isDisposed)
+            {
+                this.LayoutState.PropertiesCollapsed = false;
+                this.workspaceShell?.RevealRightPanel();
+            }
+        }
+
+        /// <summary>Retains a user-selected width without storing responsive geometry.</summary>
+        /// <param name="width">The preferred Properties panel width in pixels.</param>
+        private void HandlePropertiesWidthChanged(double width) => this.LayoutState.PropertiesWidth = width;
 
         /// <summary>
         /// Gets the accessible action label for the workspace inspector toggle.
@@ -250,7 +322,7 @@ namespace Mycelium.Bloom.Components.Layout
         /// <returns>The action performed by the toggle.</returns>
         private string GetDetailsPanelToggleLabel()
         {
-            return this.isDetailsPanelOpen ? "Close details panel" : "Open details panel";
+            return this.LayoutState.PropertiesCollapsed ? "Expand Properties" : "Collapse Properties";
         }
 
         /// <summary>
@@ -259,7 +331,7 @@ namespace Mycelium.Bloom.Components.Layout
         /// <returns>The Lucide icon name.</returns>
         private string GetDetailsPanelToggleIconName()
         {
-            return this.isDetailsPanelOpen ? "panel-right-close" : "panel-right-open";
+            return this.LayoutState.PropertiesCollapsed ? "panel-right-open" : "panel-right-close";
         }
 
         /// <summary>

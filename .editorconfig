@@ -1,5 +1,62 @@
 root = true
 
 [*.cs]
+indent_style = space
+indent_size = 4
+tab_width = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Layout shared with Mycelium Fabric and SysML2.NET; retain existing argument layout.
+max_line_length = 180
+resharper_wrap_lines = true
+resharper_wrap_parameters_style = wrap_if_long
+resharper_wrap_arguments_style = wrap_if_long
+resharper_max_formal_parameters_on_line = 100
+resharper_max_invocation_arguments_on_line = 100
+resharper_keep_existing_declaration_parens_arrangement = true
+resharper_keep_existing_invocation_parens_arrangement = true
+resharper_wrap_object_and_collection_initializer_style = wrap_if_long
+resharper_wrap_array_initializer_style = wrap_if_long
+resharper_place_simple_initializer_on_single_line = true
+resharper_max_initializer_elements_on_line = 100
+
+# Allman braces and separated control blocks.
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_prefer_braces = true:warning
+resharper_braces_for_ifelse = required
+resharper_braces_for_for = required
+resharper_braces_for_foreach = required
+resharper_braces_for_while = required
+resharper_blank_lines_before_block_statements = 1
+resharper_blank_lines_after_control_transfer_statements = 1
+resharper_blank_lines_before_multiline_statements = 1
+resharper_blank_lines_after_multiline_statements = 1
+resharper_blank_lines_before_single_line_comment = 1
+resharper_keep_blank_lines_in_code = 1
+resharper_keep_blank_lines_in_declarations = 1
+
+# CONTRIBUTING.md: namespace-scoped imports, this qualification and C# type aliases.
+csharp_style_namespace_declarations = block_scoped:warning
+csharp_using_directive_placement = inside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = true
+dotnet_style_qualification_for_field = true:warning
+dotnet_style_qualification_for_property = true:warning
+dotnet_style_qualification_for_method = true:warning
+dotnet_style_qualification_for_event = true:warning
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+resharper_xmldoc_indent_size = 1
+resharper_xmldoc_tab_width = 1
+resharper_xmldoc_indent_tag_content = ZeroIndent
+resharper_xmldoc_wrap_inside_text = false
+
 file_header_template = ------------------------------------------------------------------------------------------------\n<copyright file="{fileName}" company="Starion Group S.A.">\n\n  Copyright 2026 Starion Group S.A.\n  SPDX-License-Identifier: Apache-2.0\n\n</copyright>\n------------------------------------------------------------------------------------------------
 dotnet_diagnostic.IDE0073.severity = warning
