@@ -9,10 +9,35 @@
 
 @inherits BloomReactiveComponentBase<IDetailsPanelViewModel>
 
+@{ this.SynchronizeActiveTab(); }
+
 <section class="@(this.GetCssClass())" aria-labelledby="@(this.headingId)" @attributes="this.AdditionalAttributes">
     <header class="mb-details-panel__header">
-        <span class="mb-details-panel__icon"><LucideIcon Name="align-left" Size="16" aria-hidden="true" /></span>
-        <h2 id="@(this.headingId)" class="mb-details-panel__title">Properties</h2>
+        <span class="mb-details-panel__leading">
+            <span @key="this.leadingBack" class="@(this.animateLeadingControl ? "mb-details-panel__leading-control mb-details-panel__leading-control--changed" : "mb-details-panel__leading-control")">
+                @if (this.leadingBack == true)
+                {
+                    <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                              Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                              Class="mb-properties-back" AriaLabel="Go Back" title="Go Back" OnClick="this.GoBack">
+                        <LucideIcon Name="arrow-left" Size="16" aria-hidden="true" />
+                    </BbButton>
+                }
+                else
+                {
+                    <span class="mb-details-panel__icon"><LucideIcon Name="align-left" Size="16" aria-hidden="true" /></span>
+                }
+            </span>
+        </span>
+        <h2 id="@(this.headingId)" class="@(this.leadingBack == true ? "mb-details-panel__title sr-only" : "mb-details-panel__title")">Properties</h2>
+        <InspectionTrail IsInspecting="this.ViewModel.IsInspecting" DisplayedElementId="@this.ViewModel.Presentation?.Element.ElementId"
+                         MinimumWidthChanged="this.MinimumWidthChanged" />
+        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                  Class="mb-properties-copy" AriaLabel="Copy link to element" title="@(this.copyStatus ?? "Copy link to element")"
+                  Disabled="@(this.isCopying || this.UrlContext is null || string.IsNullOrWhiteSpace(this.ViewModel.Presentation?.Element.ElementId))"
+                  OnClick="this.CopyElementLink">
+            <LucideIcon Name="link" Size="14" aria-hidden="true" />
+        </BbButton>
         @if (this.CloseRequested.HasDelegate)
         {
             <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
@@ -22,6 +47,7 @@
                 <LucideIcon Name="x" Size="14" aria-hidden="true" />
             </BbButton>
         }
+        <span class="sr-only" role="status" aria-live="polite">@this.copyStatus</span>
     </header>
     @if (this.ViewModel.Presentation is null)
     {

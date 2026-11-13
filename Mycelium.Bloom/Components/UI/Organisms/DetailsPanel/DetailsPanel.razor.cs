@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 {
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
@@ -29,11 +30,110 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <summary>The ViewModel constructed and disposed by this panel.</summary>
         private IDetailsPanelViewModel ownedViewModel;
 
+        /// <summary>Gets or sets the layout-owned URI context.</summary>
+        [CascadingParameter]
+        public Mycelium.Bloom.Core.Context.IWorkspaceUrlContextService UrlContext { get; set; }
+
+        /// <summary>Gets or sets the layout callback for the inspection header's measured minimum width.</summary>
+        [Parameter]
+        public EventCallback<double> MinimumWidthChanged { get; set; }
+
         /// <summary>The design's fixed semantic tabs.</summary>
         private static readonly string[] Tabs = ["Properties", "Relations", "Comments", "Attachments"];
 
         /// <summary>The tab selected in this component instance.</summary>
         private string activeTab = "Properties";
+
+        /// <summary>Accessible feedback for the most recent clipboard request.</summary>
+        private string copyStatus;
+
+        /// <summary>Prevents overlapping clipboard requests.</summary>
+        private bool isCopying;
+
+        /// <summary>Suppresses completion updates after disposal.</summary>
+        private bool isDisposed;
+
+        /// <summary>Gets or sets the browser clipboard interop boundary.</summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
+
+        /// <summary>The leading mode, keyed independently of the panel lifetime.</summary>
+        private bool? leadingBack;
+
+        /// <summary>Enables a one-shot entrance after the first leading-mode change.</summary>
+        private bool animateLeadingControl;
+
+        /// <summary>The effective identity seen by the preceding render, including elements without stable identifiers.</summary>
+        private IElement displayedElement;
+
+        /// <summary>The stable identity captured before any subsequent model changes.</summary>
+        private string displayedElementId;
+
+        /// <summary>Copies only the current element's canonical URL; unavailable/rejected APIs report failure.</summary>
+        /// <returns>The clipboard operation with accessible success or failure feedback.</returns>
+        private async Task CopyElementLink()
+        {
+            var element = this.ViewModel.Presentation?.Element;
+            if (this.isDisposed || this.isCopying || this.UrlContext is null || string.IsNullOrWhiteSpace(element?.ElementId))
+            {
+                return;
+            }
+
+            var uri = this.UrlContext.GetElementUri(element);
+            if (string.IsNullOrWhiteSpace(uri))
+            {
+                this.copyStatus = "Unable to copy link";
+                return;
+            }
+
+            this.isCopying = true;
+            this.copyStatus = null;
+            string status;
+            try
+            {
+                await this.JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", uri);
+                status = "Link copied";
+            }
+            catch (Exception exception) when (exception is JSException or InvalidOperationException)
+            {
+                status = "Unable to copy link";
+            }
+            finally
+            {
+                this.isCopying = false;
+            }
+
+            if (!this.isDisposed && this.ViewModel.Presentation?.Element.ElementId == element.ElementId)
+            {
+                this.copyStatus = status;
+            }
+        }
+
+        /// <summary>Resets local tabs only when the effective Properties element changes.</summary>
+        private void SynchronizeActiveTab()
+        {
+            var showBack = this.ViewModel.IsInspecting && this.UrlContext is not null;
+            if (this.leadingBack != showBack)
+            {
+                this.animateLeadingControl = this.leadingBack.HasValue;
+                this.leadingBack = showBack;
+            }
+
+            var element = this.ViewModel.Presentation?.Element;
+            var elementId = element?.ElementId;
+            var isSameElement = string.IsNullOrWhiteSpace(elementId)
+                ? ReferenceEquals(element, this.displayedElement)
+                : string.Equals(elementId, this.displayedElementId, StringComparison.Ordinal);
+
+            if (!isSameElement)
+            {
+                this.activeTab = "Properties";
+                this.copyStatus = null;
+            }
+
+            this.displayedElement = element;
+            this.displayedElementId = elementId;
+        }
 
         /// <summary>
         /// Gets or sets the factory for panel-owned presentation state.
@@ -79,6 +179,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <param name="disposing">Whether managed resources are being released.</param>
         protected override void Dispose(bool disposing)
         {
+            this.isDisposed = true;
             base.Dispose(disposing);
 
             if (disposing)
@@ -92,7 +193,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <param name="element">The canonical target captured by the component.</param>
         private void InspectElement(IElement element)
         {
-            this.ViewModel.Inspect(element);
+            if (this.UrlContext is not null)
+            {
+                this.UrlContext.Inspect(element);
+            }
+            else
+            {
+                this.ViewModel.Inspect(element);
+            }
+        }
+
+        /// <summary>Captures the Back action before delegating to workspace navigation.</summary>
+        /// <returns>The navigation operation, or a completed task when no context is available.</returns>
+        private Task GoBack()
+        {
+            return this.UrlContext?.GoBackAsync() ?? Task.CompletedTask;
         }
 
         /// <summary>Captures the header close event before delegating workspace visibility.</summary>

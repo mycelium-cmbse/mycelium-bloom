@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
+
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>
@@ -49,6 +50,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         [MaybeNull]
         ProjectBrowserNodeViewModel SelectedNode { get; }
+
+        /// <summary>Gets the canonical row inspected by Properties, independently of selection.</summary>
+        ProjectBrowserNodeViewModel InspectedNode { get; }
+
+        /// <summary>Gets or sets whether this Browser is the active inspection presentation.</summary>
+        bool IsInspectionActive { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether the project browser is loading.

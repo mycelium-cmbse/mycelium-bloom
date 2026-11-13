@@ -151,9 +151,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
         [Test]
         public void VerifyNonliteralMultiplicityRetainsCanonicalInspectionTrail()
         {
-            var feature = new Feature { DeclaredName = "items" };
-            var range = new MultiplicityRange();
-            var bound = new FeatureReferenceExpression();
+            var feature = new Feature { ElementId = "items", DeclaredName = "items" };
+            var range = new MultiplicityRange { ElementId = "items-range" };
+            var bound = new FeatureReferenceExpression { ElementId = "items-upper-bound" };
             var referenced = new Feature { DeclaredName = "capacity" };
             Attach<OwningMembership>(feature, range);
             Attach<OwningMembership>(range, bound);
@@ -163,15 +163,24 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using var panel = new DetailsPanelViewModel(selection);
             var link = panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Multiplicity");
             panel.Inspect(link.Element);
-            Assert.That(selection.SelectedElement, Is.SameAs(range));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(feature));
+                Assert.That(selection.InspectedElement, Is.SameAs(range));
+            }
             panel.Inspect(panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Upper bound").Element);
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(selection.SelectedElement, Is.SameAs(bound));
+                Assert.That(selection.SelectedElement, Is.SameAs(feature));
+                Assert.That(selection.InspectedElement, Is.SameAs(bound));
                 Assert.That(panel.Presentation.Expressions.Single().Reference, Is.SameAs(referenced));
             }
             panel.Inspect(range);
-            Assert.That(selection.SelectedElement, Is.SameAs(range));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(feature));
+                Assert.That(selection.InspectedElement, Is.SameAs(range));
+            }
             panel.Inspect(feature);
             using (Assert.EnterMultipleScope())
             {

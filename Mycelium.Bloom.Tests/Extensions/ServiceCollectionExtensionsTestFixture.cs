@@ -46,22 +46,23 @@ namespace Mycelium.Bloom.Tests.Extensions
             using var first = factory();
             using var second = factory();
             var selection = scope.ServiceProvider.GetRequiredService<IElementSelectionService>();
-            var target = new Namespace { DeclaredName = "Selected" };
+            var target = new Namespace { ElementId = "selected", DeclaredName = "Selected" };
             first.Inspect(target);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(first, Is.Not.SameAs(second));
                 Assert.That(first.Presentation.Element, Is.SameAs(target));
                 Assert.That(second.Presentation.Element, Is.SameAs(target));
-                Assert.That(selection.SelectedElement, Is.SameAs(target));
+                Assert.That(selection.SelectedElement, Is.Null);
+                Assert.That(selection.InspectedElement, Is.SameAs(target));
                 Assert.That(services.Any(descriptor => descriptor.ServiceType == typeof(IDetailsPanelViewModel)), Is.False);
             }
             first.Dispose();
-            second.Inspect(new Namespace());
+            second.Inspect(new Namespace { ElementId = "replacement" });
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(first.Presentation.Element, Is.SameAs(target));
-                Assert.That(second.Presentation.Element, Is.SameAs(selection.SelectedElement));
+                Assert.That(second.Presentation.Element, Is.SameAs(selection.InspectedElement));
             }
         }
 

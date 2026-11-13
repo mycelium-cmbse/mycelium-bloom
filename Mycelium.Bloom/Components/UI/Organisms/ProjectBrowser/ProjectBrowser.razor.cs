@@ -19,6 +19,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
@@ -34,6 +35,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// The DOM tree whose focus belongs only to this Browser.
         /// </summary>
         private ElementReference treeRoot;
+
+        /// <summary>The last inspection scrolled in this tree, without DOM focus changes.</summary>
+        private ProjectBrowserNodeViewModel scrolledInspection;
+
+        /// <summary>Gets or sets whether this visible Browser follows Properties inspection.</summary>
+        [Parameter]
+        public bool FollowInspection { get; set; }
+
+        /// <summary>Gets or sets the workspace-owned Browser navigation boundary.</summary>
+        [CascadingParameter]
+        public IWorkspaceUrlContextService UrlContext { get; set; }
 
         /// <summary>
         /// The collocated tree keyboard and focus module.
@@ -138,6 +150,16 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             base.OnParametersSet();
 
+            if (!ReferenceEquals(this.observedViewModel, this.ViewModel) && this.observedViewModel is not null)
+            {
+                this.observedViewModel.IsInspectionActive = false;
+            }
+
+            if (this.ViewModel is not null)
+            {
+                this.ViewModel.IsInspectionActive = this.FollowInspection;
+            }
+
             if (ReferenceEquals(this.observedViewModel, this.ViewModel))
             {
                 return;
@@ -205,6 +227,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             if (!this.isDisposed && this.treeModule is { } module)
             {
                 await module.InvokeVoidAsync("registerTree", this.treeRoot);
+                var inspected = this.FollowInspection ? this.RequiredViewModel.InspectedNode : null;
+                if (!ReferenceEquals(inspected, this.scrolledInspection))
+                {
+                    this.scrolledInspection = inspected;
+                    if (inspected is not null)
+                    {
+                        await module.InvokeVoidAsync("scrollInspectionIntoView", this.treeRoot);
+                    }
+                }
             }
         }
 
@@ -222,6 +253,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.isDisposed = true;
+            if (this.observedViewModel is not null)
+            {
+                this.observedViewModel.IsInspectionActive = false;
+            }
             this.isSearchAssistantOpen = false;
             this.collectionChangesSubscription.Dispose();
 
@@ -394,6 +429,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             var viewModel = this.RequiredViewModel;
 
             viewModel.SelectNode(node);
+
+            if (!node.IsGroup)
+            {
+                this.UrlContext?.ClearInspection();
+            }
+
             await this.SelectedNodeChanged.InvokeAsync(node);
         }
 

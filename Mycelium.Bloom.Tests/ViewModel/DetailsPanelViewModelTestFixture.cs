@@ -22,6 +22,43 @@ namespace Mycelium.Bloom.Tests.ViewModel
     public sealed class DetailsPanelViewModelTestFixture
     {
         [Test]
+        public void VerifyInspectionOfSelectedStableIdentityReturnsToSelection()
+        {
+            var selected = new Namespace { ElementId = "selected", DeclaredName = "Selected" };
+            var reference = new Namespace { ElementId = "reference", DeclaredName = "Reference" };
+            var context = new ContextAwareService { SelectedElement = selected };
+            using var viewModel = new DetailsPanelViewModel(context);
+            viewModel.Inspect(reference);
+            viewModel.Inspect(new Namespace { ElementId = selected.ElementId });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(selected));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+                Assert.That(viewModel.IsInspecting, Is.False);
+            }
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        public void VerifyInspectionWithoutStableIdentityPreservesDisplayedElement(string elementId)
+        {
+            var selected = new Namespace { ElementId = "selected" };
+            var context = new ContextAwareService { SelectedElement = selected };
+            using var viewModel = new DetailsPanelViewModel(context);
+            viewModel.Inspect(new Namespace { ElementId = elementId });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(selected));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+            }
+        }
+
+        [Test]
         public void VerifyPresentationCachesSelectionAndSupportsExplicitRefresh()
         {
             var element = new Namespace { DeclaredName = "Initial" };
@@ -49,14 +86,15 @@ namespace Mycelium.Bloom.Tests.ViewModel
         [Test]
         public void VerifyInspectPreservesCanonicalReplacementAndNullSelection()
         {
-            var first = new Namespace { DeclaredName = "First", Id = Guid.NewGuid() };
-            var second = new Namespace { DeclaredName = "Second", Id = first.Id };
+            var first = new Namespace { ElementId = "first", DeclaredName = "First", Id = Guid.NewGuid() };
+            var second = new Namespace { ElementId = "second", DeclaredName = "Second", Id = first.Id };
             var selection = new ContextAwareService { SelectedElement = first };
             using var viewModel = new DetailsPanelViewModel(selection);
             viewModel.Inspect(second);
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(selection.SelectedElement, Is.SameAs(second));
+                Assert.That(selection.SelectedElement, Is.SameAs(first));
+                Assert.That(selection.InspectedElement, Is.SameAs(second));
                 Assert.That(viewModel.Presentation.Element, Is.SameAs(second));
             }
             viewModel.ClearSelection();
@@ -68,10 +106,10 @@ namespace Mycelium.Bloom.Tests.ViewModel
         }
 
         [Test]
-        public void VerifySynchronousSelectionObserverCanReplaceAnInspectedElement()
+        public void VerifyReferenceInspectionDoesNotNotifySelectionObservers()
         {
-            var initial = new Namespace { DeclaredName = "Initial" };
-            var inspected = new Namespace { DeclaredName = "Inspected" };
+            var initial = new Namespace { ElementId = "initial", DeclaredName = "Initial" };
+            var inspected = new Namespace { ElementId = "inspected", DeclaredName = "Inspected" };
             var replacement = new Namespace { DeclaredName = "Replacement" };
             var selection = new ContextAwareService { SelectedElement = initial };
             using var viewModel = new DetailsPanelViewModel(selection);
@@ -94,9 +132,9 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(selectionChanges, Is.EqualTo(2));
-                Assert.That(selection.SelectedElement, Is.SameAs(replacement));
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(replacement));
+                Assert.That(selectionChanges, Is.Zero);
+                Assert.That(selection.SelectedElement, Is.SameAs(initial));
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
             }
         }
 

@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using System.Collections.ObjectModel;
     using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
+    using System.Reactive;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
 
@@ -115,6 +116,32 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// </summary>
         private IElement pendingFocusElement;
 
+        /// <summary>The row inspected only in this active Browser.</summary>
+        private ProjectBrowserNodeViewModel inspectedNode;
+
+        /// <summary>Whether workspace composition enables inspection following here.</summary>
+        private bool isInspectionActive;
+
+        /// <summary>Gets the canonical row currently inspected in this Browser, independently of local selection.</summary>
+        public ProjectBrowserNodeViewModel InspectedNode
+        {
+            get => this.inspectedNode;
+            private set => this.RaiseAndSetIfChanged(ref this.inspectedNode, value);
+        }
+
+        /// <summary>Gets or sets whether this Browser follows the shared Properties inspection.</summary>
+        public bool IsInspectionActive
+        {
+            get => this.isInspectionActive;
+            set
+            {
+                if (!this.IsDisposed)
+                {
+                    this.RaiseAndSetIfChanged(ref this.isInspectionActive, value);
+                }
+            }
+        }
+
         /// <summary>
         /// Tracks whether initialization owns the current load operation.
         /// </summary>
@@ -178,6 +205,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                         CreateFocusPath)
                     .Where(path => path.Count > 0),
                 this.ApplyFocusPath));
+
+            this.subscriptions.Add(Observable.Merge(
+                    this.elementSelectionService.WhenAnyValue(context => context.InspectedElement, context => context.SelectedElement).Select(_ => Unit.Default),
+                    this.WhenAnyValue(browser => browser.FilterPresentation, browser => browser.IsInspectionActive).Select(_ => Unit.Default),
+                    this.rootNodeSource.Connect().Select(_ => Unit.Default))
+                .Subscribe(_ => this.UpdateInspectionFocus()));
         }
 
         /// <summary>
@@ -370,6 +403,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             {
                 this.SelectedNode = node;
                 this.elementSelectionService.SelectedElement = node.SourceElement;
+                this.elementSelectionService.InspectedElement = null;
             }
         }
 
@@ -403,6 +437,40 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.availableElementTypeSource.Dispose();
             this.rootNodeSource.Dispose();
             this.lifetimeCancellation.Dispose();
+        }
+
+        /// <summary>Reveals only an existing, visible canonical row, without invoking selection or clearing filters.</summary>
+        private void UpdateInspectionFocus()
+        {
+            if (this.IsDisposed)
+            {
+                return;
+            }
+
+            var element = this.elementSelectionService.InspectedElement;
+            var selectedId = this.elementSelectionService.SelectedElement?.ElementId;
+            var path = this.IsInspectionActive && element is not null
+                       && !(ReferenceEquals(element, this.elementSelectionService.SelectedElement)
+                            || (!string.IsNullOrWhiteSpace(element.ElementId) && string.Equals(element.ElementId, selectedId, StringComparison.Ordinal)))
+                ? CreateFocusPath(element, this.RootNodes)
+                : Array.Empty<ProjectBrowserNodeViewModel>();
+            var target = path.Count == 0 ? null : path[^1];
+            if (target is null || !ReferenceEquals(target.SourceElement, element)
+                || !this.FilterPresentation.IsVisible(target))
+            {
+                this.InspectedNode = null;
+                return;
+            }
+
+            if (!this.FilterPresentation.IsActive)
+            {
+                foreach (var ancestor in path.Take(path.Count - 1))
+                {
+                    ancestor.IsExpanded = true;
+                }
+            }
+
+            this.InspectedNode = target;
         }
 
         /// <summary>

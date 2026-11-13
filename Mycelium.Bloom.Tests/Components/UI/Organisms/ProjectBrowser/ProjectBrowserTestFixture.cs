@@ -1283,6 +1283,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         [Test]
         public void VerifyHandleNodeSelectedPreservesExpansionAndInvokesSelectionAndCallbackInOrder()
         {
+            var urls = new Mock<IWorkspaceUrlContextService>();
             var child = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities/length", "Length");
             var node = ProjectBrowserNodeTestFactory.CreateNamespaceNode("quantities", "Quantities", child);
             node.IsExpanded = true;
@@ -1299,6 +1300,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser(parameters => parameters
+                .AddCascadingValue(urls.Object)
                 .Add(browser => browser.SelectedNodeChanged, selectedNode =>
                 {
                     Assert.That(selectedNode, Is.SameAs(node));
@@ -1314,6 +1316,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(node.IsExpanded, Is.True);
                 viewModel.Verify(x => x.ToggleNode(It.IsAny<ProjectBrowserNodeViewModel>()), Times.Never);
                 viewModel.Verify(x => x.SelectNode(node), Times.Exactly(2));
+                urls.Verify(service => service.ClearInspection(), Times.Exactly(2));
             }
         }
 
@@ -2049,6 +2052,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
         private static Mock<IProjectBrowserViewModel> CreateProjectBrowserViewModelMock()
         {
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupProperty(browser => browser.IsInspectionActive);
+            viewModel.SetupGet(browser => browser.InspectedNode).Returns((ProjectBrowserNodeViewModel)null);
             viewModel.SetupProperty(x => x.FilterText, string.Empty);
             viewModel.SetupGet(x => x.AvailableElementTypes).Returns(DefaultAvailableElementTypes);
             viewModel.SetupGet(x => x.SelectedElementTypes)
@@ -2083,6 +2088,49 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var viewModel = new ProjectBrowserViewModel(new Mock<IModelLoaderService>(MockBehavior.Strict).Object, new ContextAwareService());
 
             return viewModel.FilterPresentation;
+        }
+
+        [Test]
+        public async Task VerifyInspectionRowIsAccessibleAndScrollsWithoutChangingSelection()
+        {
+            var b = ProjectBrowserNodeTestFactory.CreateElement<PartUsage>("B", "Beta");
+            var d = ProjectBrowserNodeTestFactory.CreateElement<PartUsage>("D", "Delta");
+            var model = ProjectBrowserNodeTestFactory.CreateElement<Namespace>("A", "Alpha");
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(model, b);
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(model, d);
+            var context = new ContextAwareService();
+            var loader = new Mock<IModelLoaderService>();
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(model);
+            using var browser = new ProjectBrowserViewModel(loader.Object, context);
+            await browser.InitializeAsync(CancellationToken.None);
+            browser.SelectNode(browser.RootNodes[0]);
+            var module = this.JSInterop.SetupModule("./Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js");
+            module.Mode = JSRuntimeMode.Loose;
+            this.RegisterViewModel(browser);
+            var component = this.RenderProjectBrowser(parameters => parameters.Add(browser => browser.FollowInspection, true));
+            await component.InvokeAsync(() => context.InspectedElement = b);
+            await component.WaitForAssertionAsync(() =>
+            {
+                var row = component.Find("[data-inspected='true']");
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(row.GetAttribute("data-element-id"), Is.EqualTo("B"));
+                    Assert.That(row.GetAttribute("aria-selected"), Is.EqualTo("false"));
+                    Assert.That(row.GetAttribute("aria-description"), Does.Contain("inspected in Properties"));
+                    Assert.That(row.QuerySelector(".mb-project-browser-node__row--inspected"), Is.Not.Null);
+                    Assert.That(component.Find("[aria-selected='true']").GetAttribute("data-element-id"), Is.EqualTo("A"));
+                    Assert.That(module.Invocations.Any(invocation => invocation.Identifier == "scrollInspectionIntoView"), Is.True);
+                    Assert.That(context.SelectedElement, Is.SameAs(model));
+                }
+            });
+            var scrolls = module.Invocations.Count(invocation => invocation.Identifier == "scrollInspectionIntoView");
+            component.Render();
+            Assert.That(module.Invocations.Count(invocation => invocation.Identifier == "scrollInspectionIntoView"), Is.EqualTo(scrolls));
+            await component.Find("[data-element-id='D'] [data-testid='project-browser-node-selection']").ClickAsync();
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-inspected='true']"), Is.Empty));
+            Assert.That(context.SelectedElement, Is.SameAs(d));
+            await this.DisposeComponentsAsync();
+            Assert.That(browser.IsInspectionActive, Is.False);
         }
 
         private void RegisterViewModel(IProjectBrowserViewModel viewModel)

@@ -47,6 +47,19 @@ namespace Mycelium.Bloom.Components.Layout
         /// <summary>The generic shell rendered by this layout.</summary>
         private WorkspaceShell workspaceShell;
 
+        /// <summary>The content-based minimum for this workspace's Properties header.</summary>
+        private double propertiesMinimumWidth = 380;
+
+        /// <summary>Applies presentation geometry without changing the user's preferred width.</summary>
+        /// <param name="width">The measured minimum header width in CSS pixels.</param>
+        private void HandlePropertiesMinimumWidthChanged(double width)
+        {
+            if (double.IsFinite(width))
+            {
+                this.propertiesMinimumWidth = Math.Clamp(Math.Ceiling(width), 380, 600);
+            }
+        }
+
         /// <summary>The routed component owning the current Browser reveal callback.</summary>
         private object browserRevealOwner;
 
@@ -220,8 +233,12 @@ namespace Mycelium.Bloom.Components.Layout
         {
             this.urlContextSubscriptions.Add(
                 this.UrlContextService.Restorations
-                    .Select(restoration => Observable.FromAsync(cancellationToken =>
-                        this.ApplyRestorationAsync(restoration, cancellationToken)))
+                    .Select(restoration =>
+                    {
+                        var sourceUri = this.NavigationManager.Uri;
+                        var sourceEntryState = this.NavigationManager.HistoryEntryState;
+                        return Observable.FromAsync(cancellationToken => this.ApplyRestorationAsync(restoration, sourceUri, sourceEntryState, cancellationToken));
+                    })
                     .Concat()
                     .Subscribe(
                         _ => { },
@@ -232,8 +249,11 @@ namespace Mycelium.Bloom.Components.Layout
             this.urlContextSubscriptions.Add(
                 this.UrlContextService.NavigationRequests
                     .Select(uri =>
-                        Observable.FromAsync(cancellationToken =>
-                            this.ApplyNavigationRequestAsync(uri, cancellationToken)))
+                    {
+                        var sourceUri = this.NavigationManager.Uri;
+                        var sourceEntryState = this.NavigationManager.HistoryEntryState;
+                        return Observable.FromAsync(cancellationToken => this.ApplyNavigationRequestAsync(uri, sourceUri, sourceEntryState, cancellationToken));
+                    })
                     .Concat()
                     .Subscribe(
                         _ => { },
@@ -246,17 +266,19 @@ namespace Mycelium.Bloom.Components.Layout
         /// Applies one resolved browser selection through the renderer dispatcher.
         /// </summary>
         /// <param name="restoration">The resolved URL context.</param>
+        /// <param name="sourceUri">The location that produced this restoration.</param>
+        /// <param name="sourceEntryState">The originating browser history entry metadata.</param>
         /// <param name="cancellationToken">Cancels work after subscription disposal.</param>
         /// <returns>A task representing renderer dispatch.</returns>
-        private Task ApplyRestorationAsync(
-            WorkspaceUrlContextRestoration restoration,
-            CancellationToken cancellationToken)
+        private Task ApplyRestorationAsync(WorkspaceUrlContextRestoration restoration, string sourceUri, string sourceEntryState, CancellationToken cancellationToken)
         {
             return this.InvokeAsync(() =>
             {
-                if (!this.isDisposed && !cancellationToken.IsCancellationRequested)
+                if (!this.isDisposed && !cancellationToken.IsCancellationRequested
+                    && sourceUri == this.NavigationManager.Uri && sourceEntryState == this.NavigationManager.HistoryEntryState)
                 {
                     this.ElementSelectionService.SelectedElement = restoration.SelectedElement;
+                    this.ElementSelectionService.InspectedElement = restoration.InspectedElement;
                 }
             });
         }
@@ -265,14 +287,17 @@ namespace Mycelium.Bloom.Components.Layout
         /// Applies one selected-element URI update without leaving Blazor client routing.
         /// </summary>
         /// <param name="uri">The absolute replacement URI.</param>
+        /// <param name="sourceUri">The location that produced this replacement request.</param>
+        /// <param name="sourceEntryState">The originating browser history entry metadata.</param>
         /// <param name="cancellationToken">Cancels work after subscription disposal.</param>
         /// <returns>A task representing renderer dispatch.</returns>
-        private Task ApplyNavigationRequestAsync(string uri, CancellationToken cancellationToken)
+        private Task ApplyNavigationRequestAsync(string uri, string sourceUri, string sourceEntryState, CancellationToken cancellationToken)
         {
             return this.InvokeAsync(() =>
             {
                 if (!this.isDisposed
                     && !cancellationToken.IsCancellationRequested
+                    && sourceUri == this.NavigationManager.Uri && sourceEntryState == this.NavigationManager.HistoryEntryState
                     && !string.Equals(uri, this.NavigationManager.Uri, StringComparison.Ordinal))
                 {
                     this.NavigationManager.NavigateTo(uri, forceLoad: false, replace: true);

@@ -53,6 +53,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         [Parameter]
         public ProjectBrowserNodeViewModel SelectedNode { get; set; }
 
+        /// <summary>Gets or sets the separately inspected row in this Browser.</summary>
+        [Parameter]
+        public ProjectBrowserNodeViewModel InspectedNode { get; set; }
+
         /// <summary>
         /// Gets or sets the immutable presentation that identifies visible canonical nodes.
         /// </summary>
@@ -116,7 +120,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string GetNodeCssClass()
         {
             var cssClass = CssClassBuilder.Build("mb-project-browser-node__row",
-                CssClassBuilder.When("mb-project-browser-node__row--selected", ReferenceEquals(this.RequiredViewModel, this.SelectedNode)));
+                CssClassBuilder.When("mb-project-browser-node__row--selected", ReferenceEquals(this.RequiredViewModel, this.SelectedNode)),
+                CssClassBuilder.When("mb-project-browser-node__row--inspected", ReferenceEquals(this.RequiredViewModel, this.InspectedNode)));
 
             return cssClass;
         }

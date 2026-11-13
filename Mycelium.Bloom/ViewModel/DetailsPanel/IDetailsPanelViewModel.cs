@@ -19,7 +19,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         /// <summary>Gets the current immutable presentation, or null for an empty selection.</summary>
         DetailsPanelPresentation Presentation { get; }
 
-        /// <summary>Inspects a canonical element through the shared selection authority.</summary>
+        /// <summary>Gets a value indicating whether a reference is being inspected.</summary>
+        bool IsInspecting { get; }
+
+        /// <summary>Inspects a canonical reference without changing the main selection.</summary>
         /// <param name="element">The canonical element to inspect.</param>
         void Inspect(IElement element);
 
