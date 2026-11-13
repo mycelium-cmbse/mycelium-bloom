@@ -23,6 +23,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
     public sealed class MembersViewModel : ListLoadingViewModel<MemberRowViewModel>, IMembersViewModel
     {
         /// <summary>
+        /// The identifier of the organization whose people are listed.
+        /// </summary>
+        private readonly Guid organizationId;
+
+        /// <summary>
         /// Provides the people.
         /// </summary>
         private readonly IOrganizationMemberService memberService;
@@ -47,12 +52,13 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <paramref name="timeProvider" /> or <paramref name="logger" /> is <see langword="null" />.
         /// </exception>
         public MembersViewModel(IOrganizationContextViewModel context, IOrganizationMemberService memberService, Func<IPendingInvitationsViewModel> invitationsFactory, TimeProvider timeProvider, ILogger<MembersViewModel> logger)
-            : base(context.Organization.Id, "members", logger)
+            : base("members", logger)
         {
             ArgumentNullException.ThrowIfNull(memberService);
             ArgumentNullException.ThrowIfNull(invitationsFactory);
             ArgumentNullException.ThrowIfNull(timeProvider);
 
+            this.organizationId = context.Organization.Id;
             this.memberService = memberService;
             this.timeProvider = timeProvider;
             this.CanInviteMembers = context.Capabilities is { CanInviteMembers: true };
@@ -91,15 +97,14 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <summary>
         /// Gets the people of the organization as rows, in the order the service returns them, told from one current time.
         /// </summary>
-        /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="cancellationToken">The token that cancels the load.</param>
         /// <returns>The rows, or the errors of the service.</returns>
-        protected override async Task<ErrorOr<IReadOnlyList<MemberRowViewModel>>> LoadRowsAsync(Guid organizationId, CancellationToken cancellationToken)
+        protected override async Task<ErrorOr<IReadOnlyList<MemberRowViewModel>>> LoadRowsAsync(CancellationToken cancellationToken)
         {
-            var result = await this.memberService.GetMembersAsync(organizationId, cancellationToken);
+            var result = await this.memberService.GetMembersAsync(this.organizationId, cancellationToken);
             var now = this.timeProvider.GetUtcNow();
 
-            return result.Then(members => (IReadOnlyList<MemberRowViewModel>)[.. members.Select(member => new MemberRowViewModel(member, organizationId, now))]);
+            return result.Then(members => (IReadOnlyList<MemberRowViewModel>)[.. members.Select(member => new MemberRowViewModel(member, this.organizationId, now))]);
         }
     }
 }

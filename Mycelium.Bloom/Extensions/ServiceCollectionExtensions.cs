@@ -32,6 +32,7 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
+    using Mycelium.Bloom.ViewModel.Home;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.Session;
@@ -260,10 +261,10 @@ namespace Mycelium.Bloom.Extensions
 
             /// <summary>
             /// Registers the session of the SysML2.NET REST client and the session service of the Mycelium SDK that holds it, one
-            /// per circuit so that every page of the user works against the same server, and the factory of the start page
-            /// ViewModel, which builds one ViewModel per page instance. The session assembles the server's model in an assembler
-            /// of its own, not the circuit's <see cref="IAssembler" />, because closing the session drops what it assembled and
-            /// must not drop the locally loaded libraries. The limits of the session service keep the defaults of
+            /// per circuit so that every page of the user works against the same server, and the factories of the start page and
+            /// Home page ViewModels, each of which builds one ViewModel per page instance. The session assembles the server's model
+            /// in an assembler of its own, not the circuit's <see cref="IAssembler" />, because closing the session drops what it
+            /// assembled and must not drop the locally loaded libraries. The limits of the session service keep the defaults of
             /// <see cref="SessionServiceOptions" /> until Bloom needs to set them.
             /// </summary>
             /// <returns>The original service collection for continued registration chaining.</returns>
@@ -277,6 +278,7 @@ namespace Mycelium.Bloom.Extensions
                 services.AddOptions<SessionServiceOptions>();
                 services.AddScoped<ISessionService, SessionService>();
                 services.AddScoped<Func<IConnectViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<ConnectViewModel>(serviceProvider));
+                services.AddScoped<Func<IHomeViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<HomeViewModel>(serviceProvider));
 
                 return services;
             }

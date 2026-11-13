@@ -7,9 +7,10 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.ViewModel.Organization
+namespace Mycelium.Bloom.ViewModel
 {
     using System.Collections.ObjectModel;
+    using System.Reactive;
     using System.Reactive.Linq;
 
     using DynamicData;
@@ -21,23 +22,19 @@ namespace Mycelium.Bloom.ViewModel.Organization
     using ReactiveUI;
 
     /// <summary>
-    /// Loads a list of an organization once and holds it with the failure of the load, for the page that shows it. The rows
-    /// live in a source list that others can subscribe to or add to, and a bound collection mirrors it. The load runs on the
-    /// synchronization context that the ViewModel was created on, which is the one of the renderer, so that the rows are never
-    /// changed while the view reads them. Searching, filtering, counting and paging belong to the view.
+    /// Loads a list once and holds it with the failure of the load, for the page that shows it. The rows live in a source list
+    /// that others can subscribe to or add to, and a bound collection mirrors it. The load runs on the synchronization context
+    /// that the ViewModel was created on, which is the one of the renderer, so that the rows are never changed while the view
+    /// reads them. Searching, filtering, counting and paging belong to the view.
     /// </summary>
     /// <remarks>
-    /// The list ViewModels of the organization pages share this load so that none of them repeats it: they say what a row
-    /// is and where the rows come from, and keep what is theirs (a capability, a child ViewModel).
+    /// The list ViewModels of the organization pages and of the Home page share this load so that none of them repeats it:
+    /// they say what a row is and where the rows come from, and keep what is theirs (the organization, a capability, a child
+    /// ViewModel).
     /// </remarks>
     /// <typeparam name="TRow">The type of the rows of the list.</typeparam>
     public abstract partial class ListLoadingViewModel<TRow> : DisposableViewModel
     {
-        /// <summary>
-        /// The identifier of the organization whose list is loaded.
-        /// </summary>
-        private readonly Guid organizationId;
-
         /// <summary>
         /// The name of the list in the words of the logs and of the failure, such as "projects".
         /// </summary>
@@ -63,19 +60,17 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Initializes a new instance of the <see cref="ListLoadingViewModel{TRow}" /> class. The load starts when the
         /// derived class calls <see cref="BeginLoad" />, once its own state is ready.
         /// </summary>
-        /// <param name="organizationId">The identifier of the organization whose list is loaded.</param>
         /// <param name="listName">The name of the list in the words of the logs and of the failure.</param>
         /// <param name="logger">The logger that receives a failure to load the list.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="listName" /> is empty or white space.</exception>
         /// <exception cref="ArgumentNullException">
         /// Thrown when <paramref name="listName" /> or <paramref name="logger" /> is <see langword="null" />.
         /// </exception>
-        protected ListLoadingViewModel(Guid organizationId, string listName, ILogger logger)
+        protected ListLoadingViewModel(string listName, ILogger logger)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(listName);
             ArgumentNullException.ThrowIfNull(logger);
 
-            this.organizationId = organizationId;
             this.listName = listName;
             this.logger = logger;
             this.loadFailed = Error.Unexpected(ErrorCodes.Unavailable, $"The {listName} could not be loaded.");
@@ -120,19 +115,18 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// </summary>
         protected void BeginLoad()
         {
-            var load = Observable.Return(this.organizationId)
-                .LoadLatest((id, cancellationToken) => this.LoadAsync(id, cancellationToken))
+            var load = Observable.Return(Unit.Default)
+                .LoadLatest((_, cancellationToken) => this.LoadAsync(cancellationToken))
                 .Subscribe();
             this.Disposables.Add(load);
         }
 
         /// <summary>
-        /// Gets the rows of the list of an organization, in the order that the page shows them.
+        /// Gets the rows of the list, in the order that the page shows them.
         /// </summary>
-        /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="cancellationToken">The token that cancels the load.</param>
         /// <returns>The rows, or the errors that tell why they cannot be returned.</returns>
-        protected abstract Task<ErrorOr<IReadOnlyList<TRow>>> LoadRowsAsync(Guid organizationId, CancellationToken cancellationToken);
+        protected abstract Task<ErrorOr<IReadOnlyList<TRow>>> LoadRowsAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Logs the failure to load the list.
@@ -140,7 +134,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <param name="logger">The logger.</param>
         /// <param name="list">The name of the list.</param>
         /// <param name="exception">The failure.</param>
-        [LoggerMessage(Level = LogLevel.Error, Message = "The {List} of the organization could not be loaded.")]
+        [LoggerMessage(Level = LogLevel.Error, Message = "The {List} could not be loaded.")]
         private static partial void LogLoadFailure(ILogger logger, string list, Exception exception);
 
         /// <summary>
@@ -149,22 +143,21 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <param name="logger">The logger.</param>
         /// <param name="list">The name of the list.</param>
         /// <param name="code">The code of the error.</param>
-        [LoggerMessage(Level = LogLevel.Warning, Message = "The {List} of the organization could not be loaded: {Code}.")]
+        [LoggerMessage(Level = LogLevel.Warning, Message = "The {List} could not be loaded: {Code}.")]
         private static partial void LogLoadError(ILogger logger, string list, string code);
 
         /// <summary>
-        /// Loads the list of the organization, then shows it or the failure. A load that the disposal cancelled shows nothing.
+        /// Loads the list, then shows it or the failure. A load that the disposal cancelled shows nothing.
         /// </summary>
-        /// <param name="id">The identifier of the organization.</param>
         /// <param name="cancellationToken">The token that cancels the load.</param>
         /// <returns>A task that completes when the rows or the failure are shown.</returns>
-        private async Task LoadAsync(Guid id, CancellationToken cancellationToken)
+        private async Task LoadAsync(CancellationToken cancellationToken)
         {
             this.IsBusy = true;
 
             try
             {
-                var result = await this.LoadRowsAsync(id, cancellationToken);
+                var result = await this.LoadRowsAsync(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 if (result.IsError)

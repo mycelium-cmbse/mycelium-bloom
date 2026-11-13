@@ -7,7 +7,7 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Tests.ViewModel.Organization
+namespace Mycelium.Bloom.Tests.ViewModel
 {
     using System;
     using System.Collections.Generic;
@@ -30,8 +30,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
     {
         private static readonly string[] ExpectedRows = ["first", "second", "third"];
 
-        private Guid organizationId;
-
         private Mock<ILogger> logger;
 
         private SynchronizationContext testContext;
@@ -41,7 +39,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         {
             this.testContext = SynchronizationContext.Current;
             SynchronizationContext.SetSynchronizationContext(null);
-            this.organizationId = Guid.NewGuid();
             this.logger = new Mock<ILogger>();
         }
 
@@ -56,7 +53,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         {
             var loads = 0;
 
-            using var viewModel = new TestListLoadingViewModel(this.organizationId, this.logger.Object, (id, _) =>
+            using var viewModel = new TestListLoadingViewModel(this.logger.Object, _ =>
             {
                 loads++;
                 return Task.FromResult(ErrorOrFactory.From<IReadOnlyList<string>>(["first", "second"]));
@@ -76,7 +73,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
         [TestCase(false, ErrorCodes.Unavailable)]
         public void VerifyErrorOrFailureIsKeptAsAnErrorAndLeavesNoRow(bool returnsError, string expectedCode)
         {
-            using var viewModel = new TestListLoadingViewModel(this.organizationId, this.logger.Object, (id, _) => returnsError ? Task.FromResult<ErrorOr<IReadOnlyList<string>>>(Error.NotFound(ErrorCodes.NotFound, "Not found.")) : throw new InvalidOperationException());
+            using var viewModel = new TestListLoadingViewModel(this.logger.Object, _ => returnsError ? Task.FromResult<ErrorOr<IReadOnlyList<string>>>(Error.NotFound(ErrorCodes.NotFound, "Not found.")) : throw new InvalidOperationException());
 
             using (Assert.EnterMultipleScope())
             {
@@ -94,7 +91,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             var cancellation = CancellationToken.None;
             var pending = new TaskCompletionSource<ErrorOr<IReadOnlyList<string>>>();
 
-            var viewModel = new TestListLoadingViewModel(this.organizationId, this.logger.Object, (id, token) =>
+            var viewModel = new TestListLoadingViewModel(this.logger.Object, token =>
             {
                 cancellation = token;
                 return pending.Task;
@@ -127,7 +124,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
             var renderContext = new CountingSynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(renderContext);
 
-            using var viewModel = new TestListLoadingViewModel(this.organizationId, this.logger.Object, (id, _) => Task.FromResult(ErrorOrFactory.From<IReadOnlyList<string>>(["first"])));
+            using var viewModel = new TestListLoadingViewModel(this.logger.Object, _ => Task.FromResult(ErrorOrFactory.From<IReadOnlyList<string>>(["first"])));
 
             using (Assert.EnterMultipleScope())
             {
