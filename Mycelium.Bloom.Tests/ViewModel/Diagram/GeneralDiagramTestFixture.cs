@@ -306,6 +306,27 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         }
 
         [Test]
+        public void VerifyNativeViewportGesturesAreReportedWithoutReplayingNativeSetters()
+        {
+            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
+            using var renderer = new GeneralDiagramRenderer(owner);
+            var panNotifications = 0;
+            var zoomNotifications = 0;
+            renderer.Diagram.PanChanged += () => panNotifications++;
+            renderer.Diagram.ZoomChanged += () => zoomNotifications++;
+
+            renderer.Diagram.SetPan(12, 34);
+            renderer.Diagram.SetZoom(1.5);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Viewport, Is.EqualTo(new DiagramViewport(12, 34, 1.5, true)));
+                Assert.That(panNotifications, Is.EqualTo(1));
+                Assert.That(zoomNotifications, Is.EqualTo(1));
+            }
+        }
+
+        [Test]
         public void VerifyNativeGesturesAndControlsShareLiveViewportAndDetachOnUnmount()
         {
             using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
