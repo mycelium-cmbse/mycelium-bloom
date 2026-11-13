@@ -87,7 +87,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.Find(".mb-project-browser-node__value").TextContent, Is.EqualTo("= 3[SI::kg]"));
-                Assert.That(component.Find(".mb-project-browser-node__multiplicity").TextContent, Is.EqualTo("[0..Assembly::count + 1]"));
+                Assert.That(component.Find(".mb-project-browser-node__multiplicity").TextContent, Is.EqualTo("[0..count + 1]"));
                 Assert.That(component.FindAll("[role='treeitem']"), Has.Count.EqualTo(1));
             }
         }

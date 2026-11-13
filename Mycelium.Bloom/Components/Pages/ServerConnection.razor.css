@@ -1,0 +1,82 @@
+.mb-server-connection {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: var(--spacing-24);
+    background: var(--background);
+    color: var(--foreground);
+}
+
+.mb-server-connection__column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-24);
+    width: 100%;
+    max-width: 27.5rem;
+}
+
+.mb-server-connection__brand {
+    display: inline-flex;
+    align-self: center;
+    align-items: center;
+    gap: var(--spacing-10);
+    font: var(--typography-typography-heading-md);
+}
+
+.mb-server-connection__mark {
+    display: inline-flex;
+    font-size: var(--spacing-24);
+}
+
+.mb-server-connection ::deep .mb-server-connection__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-20);
+    padding: var(--spacing-32);
+    border-color: var(--border);
+    border-radius: var(--radius-12);
+    background: var(--card);
+    box-shadow: var(--shadow-popover);
+}
+
+.mb-server-connection ::deep .mb-server-connection__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    padding: 0;
+}
+
+.mb-server-connection ::deep .mb-server-connection__title {
+    font: var(--typography-typography-heading-md);
+    color: var(--foreground);
+}
+
+.mb-server-connection ::deep .mb-server-connection__subtitle,
+.mb-server-connection__help {
+    margin: 0;
+    font: var(--typography-typography-ui-regular-13);
+    color: var(--muted-foreground);
+}
+
+.mb-server-connection ::deep .mb-server-connection__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-20);
+    padding: 0;
+}
+
+.mb-server-connection__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-20);
+}
+
+.mb-server-connection ::deep .mb-server-connection__label {
+    font: var(--typography-typography-ui-medium-13);
+}
+
+.mb-server-connection ::deep .mb-server-connection__submit {
+    height: var(--spacing-40);
+    padding-inline: var(--spacing-14);
+    border-radius: var(--radius-6);
+}
