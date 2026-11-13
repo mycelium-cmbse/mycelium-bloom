@@ -40,5 +40,13 @@ namespace Mycelium.Bloom.Core.Session
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The projects, or an <see cref="ErrorCodes.Unavailable" /> error when no connection is open or the server does not answer as the API expects.</returns>
         Task<ErrorOr<IReadOnlyList<Project>>> GetProjectsAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Reads one project of the server of the open connection.
+        /// </summary>
+        /// <param name="projectId">The identifier of the project.</param>
+        /// <param name="cancellationToken">The token that cancels the request.</param>
+        /// <returns>The project, an <see cref="ErrorCodes.NotFound" /> error when the server does not know it, or an <see cref="ErrorCodes.Unavailable" /> error when no connection is open or the server does not answer as the API expects.</returns>
+        Task<ErrorOr<Project>> GetProjectAsync(Guid projectId, CancellationToken cancellationToken);
     }
 }

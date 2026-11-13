@@ -1,0 +1,37 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="WorkspaceBreadcrumb.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.ViewModel.Workspace
+@inherits BloomReactiveComponentBase<IWorkspaceBreadcrumbViewModel>
+
+@if (this.ViewModel.Project is { } project)
+{
+    <BbBreadcrumb Class="@(this.BuildRootCssClass("mb-crumbs"))" aria-label="Workspace location" @attributes="this.AdditionalAttributes">
+        <BbBreadcrumbList>
+            @if (this.ViewModel.Organization is { } organization)
+            {
+                <BbBreadcrumbSeparator Class="mb-crumbs__separator">/</BbBreadcrumbSeparator>
+                <BbBreadcrumbItem>
+                    <BbBreadcrumbLink Href="@(OrganizationRoutes.GetOrganizationPath(this.OrganizationSlug, OrganizationSection.Overview))" Class="mb-crumbs__crumb">
+                        <LucideIcon Name="building-2" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                        @(organization.Name)
+                    </BbBreadcrumbLink>
+                </BbBreadcrumbItem>
+            }
+
+            <BbBreadcrumbSeparator Class="mb-crumbs__separator">/</BbBreadcrumbSeparator>
+            <BbBreadcrumbItem>
+                <BbBreadcrumbPage Class="mb-crumbs__crumb">
+                    <LucideIcon Name="folder" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    @(project.Name)
+                </BbBreadcrumbPage>
+            </BbBreadcrumbItem>
+        </BbBreadcrumbList>
+    </BbBreadcrumb>
+}

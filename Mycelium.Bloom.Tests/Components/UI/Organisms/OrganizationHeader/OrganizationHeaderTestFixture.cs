@@ -9,7 +9,6 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
 {
-    using System.Linq;
     using System.Threading.Tasks;
 
     using Bunit;
@@ -19,7 +18,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
 
     using Moq;
 
-    using Mycelium.Bloom.Components.UI.Molecules.ActionMenu;
     using Mycelium.Bloom.Components.UI.Molecules.UserMenu;
     using Mycelium.Bloom.Components.UI.Organisms.OrganizationHeader;
     using Mycelium.Bloom.Model;
@@ -36,8 +34,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
 
         private Mock<IOrganizationHeaderViewModel> viewModel;
 
-        private ActionMenuItem projectsItem;
-
         private OrganizationHeaderPresentation organizationPresentation;
 
         [SetUp]
@@ -45,7 +41,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
         {
             this.context = new BunitContext();
             BlueprintTestSetup.Configure(this.context);
-            this.projectsItem = new ActionMenuItem { Id = "/organizations/orbital-systems/projects", Label = "Projects" };
 
             this.organizationPresentation = new OrganizationHeaderPresentation
             {
@@ -54,7 +49,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
                 OrganizationPath = "/organizations/orbital-systems",
                 SectionLabel = "Members",
                 SectionIcon = "users",
-                SectionItems = [this.projectsItem],
+                SectionItems = [new ActionMenuItem { Id = "/organizations/orbital-systems/projects", Label = "Projects" }],
                 AccountName = "Sample Account",
                 AccountEmail = "sample@example.org",
                 AccountItems = [new ActionMenuItem { Id = "/account", Label = "Your profile" }]
@@ -86,21 +81,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindAll("a[href='/organizations/orbital-systems']"), Has.Count.EqualTo(hasOrganizationLink ? 1 : 0));
-                Assert.That(component.FindComponents<ActionMenu>().Count(menu => menu.Instance.TriggerAriaLabel == "Organization section"), Is.EqualTo(hasSectionMenu ? 1 : 0));
+                Assert.That(component.FindAll("button[aria-label='Organization section']"), Has.Count.EqualTo(hasSectionMenu ? 1 : 0));
                 Assert.That(component.FindComponents<UserMenu>(), Has.Count.EqualTo(hasAccountMenu ? 1 : 0));
                 Assert.That(component.FindAll("a[href='/account']"), Has.Count.EqualTo(1));
             }
         }
 
         [Test]
-        public async Task VerifySelectingAnEntryNavigatesToItsRoute()
+        public async Task VerifySelectingAnAccountEntryNavigatesToItsRoute()
         {
             this.viewModel.SetupGet(model => model.Presentation).Returns(this.organizationPresentation);
             var component = this.context.Render<OrganizationHeader>();
 
-            await component.InvokeAsync(() => component.FindComponent<ActionMenu>().Instance.ItemSelected.InvokeAsync(this.projectsItem));
+            await component.InvokeAsync(() => component.FindComponent<UserMenu>().Instance.ItemSelected.InvokeAsync(this.organizationPresentation.AccountItems[0]));
 
-            Assert.That(this.context.Services.GetRequiredService<NavigationManager>().Uri, Does.EndWith("/organizations/orbital-systems/projects"));
+            Assert.That(this.context.Services.GetRequiredService<NavigationManager>().Uri, Does.EndWith("/account"));
         }
     }
 }

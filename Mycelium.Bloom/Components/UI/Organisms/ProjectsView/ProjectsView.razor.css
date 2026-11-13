@@ -77,6 +77,11 @@
     font-size: var(--text-13);
     font-weight: var(--font-weight-body-md-medium);
     line-height: var(--spacing-16);
+    text-decoration: none;
+}
+
+.mb-projects-view__name-text:hover {
+    text-decoration: underline;
 }
 
 .mb-projects-view__description {

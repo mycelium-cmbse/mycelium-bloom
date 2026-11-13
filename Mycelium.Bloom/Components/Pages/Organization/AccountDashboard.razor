@@ -48,7 +48,7 @@
                     <BbDataTableColumn TData="Project" TValue="string" Header="Project">
                         <CellTemplate>
                             <div class="mb-home__name">
-                                <span class="mb-home__name-text">@(context.Name)</span>
+                                <a class="mb-home__name-text" href="@(WorkspaceRoutes.GetProjectPath(context.Id))">@(context.Name)</a>
                                 <span class="mb-home__description" title="@(context.Description)">@(context.Description)</span>
                             </div>
                         </CellTemplate>
@@ -56,6 +56,13 @@
                     <BbDataTableColumn TData="Project" TValue="string" Header="Created">
                         <CellTemplate>
                             <span class="mb-home__created">@(context.Created.Humanize(dateToCompareAgainst: now))</span>
+                        </CellTemplate>
+                    </BbDataTableColumn>
+                    <BbDataTableColumn TData="Project" TValue="string" Header="">
+                        <CellTemplate>
+                            <a class="mb-home__open" href="@(WorkspaceRoutes.GetProjectPath(context.Id))" tabindex="-1" aria-hidden="true">
+                                <LucideIcon Name="arrow-up-right" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                            </a>
                         </CellTemplate>
                     </BbDataTableColumn>
                 </Columns>

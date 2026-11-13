@@ -11,6 +11,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
 {
     using Humanizer;
 
+    using Microsoft.AspNetCore.Components;
+
     using Mycelium.Bloom.ViewModel.Organization;
     using Mycelium.SDK;
 
@@ -51,6 +53,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectsView
         /// Gets the modes that the mode filter offers: no criterion first, then every mode.
         /// </summary>
         private static IReadOnlyList<ProjectMode?> ModeChoices { get; } = [null, .. Enum.GetValues<ProjectMode>().Select(mode => (ProjectMode?)mode)];
+
+        /// <summary>
+        /// Gets or sets the slug of the organization of the page, which a project opened from the table keeps in the address of the
+        /// workspace.
+        /// </summary>
+        [Parameter]
+        public string OrganizationSlug { get; set; }
 
         /// <summary>
         /// Gets or sets the text that the name or the description of the projects must contain.

@@ -32,6 +32,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         {
             ArgumentNullException.ThrowIfNull(project);
 
+            this.EngineeringProjectId = project.EngineeringProjectId;
             this.Name = project.Name;
             this.Description = project.Description;
             this.Visibility = project.Visibility;
@@ -40,6 +41,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
             this.Lifecycle = project.Lifecycle;
             this.UpdatedText = new DateTimeOffset(DateTime.SpecifyKind(project.UpdatedOn, DateTimeKind.Utc)).Humanize(now, CultureInfo.InvariantCulture);
         }
+
+        /// <summary>
+        /// Gets the identifier of the project on the model server, which the modelling workspace opens.
+        /// </summary>
+        public Guid EngineeringProjectId { get; }
 
         /// <summary>
         /// Gets the name of the project.

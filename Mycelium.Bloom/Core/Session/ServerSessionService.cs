@@ -9,6 +9,7 @@
 
 namespace Mycelium.Bloom.Core.Session
 {
+    using System.Net;
     using System.Text.Json;
 
     using ErrorOr;
@@ -34,6 +35,11 @@ namespace Mycelium.Bloom.Core.Session
         /// The time a server has to answer before the attempt fails, so that a server that never answers does not hold the page.
         /// </summary>
         private static readonly TimeSpan ConnectionTimeout = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The error returned when the server does not know the project.
+        /// </summary>
+        private static readonly Error ProjectNotFound = Error.NotFound(ErrorCodes.NotFound, "The project does not exist on this server.");
 
         /// <summary>
         /// The error returned when the server cannot be reached or does not answer as the API expects.
@@ -135,6 +141,49 @@ namespace Mycelium.Bloom.Core.Session
             while (next is not null);
 
             return projects;
+        }
+
+        /// <summary>
+        /// Reads one project of the server of the open connection.
+        /// </summary>
+        /// <param name="projectId">The identifier of the project.</param>
+        /// <param name="cancellationToken">The token that cancels the request.</param>
+        /// <returns>The project, an <see cref="ErrorCodes.NotFound" /> error when the server does not know it, or an <see cref="ErrorCodes.Unavailable" /> error when no connection is open or the server does not answer as the API expects.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
+        public async Task<ErrorOr<Project>> GetProjectAsync(Guid projectId, CancellationToken cancellationToken)
+        {
+            if (this.ServerAddress is null || this.session.Client is not { } client)
+            {
+                return ServerUnavailable;
+            }
+
+            var answer = await this.RequestAsync(token => ReadProjectAsync(client, projectId, token), cancellationToken);
+
+            if (answer.IsError)
+            {
+                return answer.Errors;
+            }
+
+            return answer.Value is { } project ? project : ProjectNotFound;
+        }
+
+        /// <summary>
+        /// Reads one project, with no project when the server answers that it does not know it.
+        /// </summary>
+        /// <param name="client">The client of the open connection.</param>
+        /// <param name="projectId">The identifier of the project.</param>
+        /// <param name="cancellationToken">The token that cancels the request.</param>
+        /// <returns>The project, or <see langword="null" /> when the server does not know it.</returns>
+        private static async Task<Project> ReadProjectAsync(IPsmApiClient client, Guid projectId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await client.GetProjectByIdAsync(projectId, cancellationToken);
+            }
+            catch (PsmApiException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
         }
 
         /// <summary>

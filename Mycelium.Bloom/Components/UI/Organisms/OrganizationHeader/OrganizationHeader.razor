@@ -7,45 +7,57 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@using BlazorBlueprint.Icons.Lucide.Components
+@using BlazorBlueprint.Primitives
 @using Mycelium.Bloom.ViewModel.Organization
 @inherits BloomReactiveInjectableComponentBase<IOrganizationHeaderViewModel>
 
 @{
     RenderFragment organizationSegments =
-        @<text>
-            <span class="mb-organization-header__separator" aria-hidden="true">/</span>
-            <a class="mb-organization-header__segment [font-weight:--theme(--font-weight-body-md-medium)]" href="@(this.ViewModel.Presentation.OrganizationPath)">
-                <LucideIcon Name="building-2" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
-                @(this.ViewModel.Presentation.OrganizationName)
-            </a>
-            <span class="mb-organization-header__separator" aria-hidden="true">/</span>
-            <ActionMenu IsSelectionMenu="true"
-                        ShowChevron="true"
-                        Items="@(this.ViewModel.Presentation.SectionItems)"
-                        TriggerAriaLabel="Organization section"
-                        TriggerTitle="Organization section"
-                        ItemSelected="this.HandleItemSelectedAsync">
-                <TriggerContent>
-                    <LucideIcon Name="@(this.ViewModel.Presentation.SectionIcon)"
-                                Size="14"
-                                StrokeWidth="1.75"
-                                role="presentation"
-                                aria-hidden="true"
-                                focusable="false" />
-                    @(this.ViewModel.Presentation.SectionLabel)
-                </TriggerContent>
-            </ActionMenu>
-        </text>;
+        @<BbBreadcrumb Class="mb-crumbs" aria-label="Organization location"><BbBreadcrumbList>
+            <BbBreadcrumbSeparator Class="mb-crumbs__separator">/</BbBreadcrumbSeparator>
+            <BbBreadcrumbItem>
+                <BbBreadcrumbLink Href="@(this.ViewModel.Presentation.OrganizationPath)" Class="mb-crumbs__crumb">
+                    <LucideIcon Name="building-2" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    @(this.ViewModel.Presentation.OrganizationName)
+                </BbBreadcrumbLink>
+            </BbBreadcrumbItem>
+            <BbBreadcrumbSeparator Class="mb-crumbs__separator">/</BbBreadcrumbSeparator>
+            <BbBreadcrumbItem>
+                <BbDropdownMenu>
+                    <BbDropdownMenuTrigger AsChild="true">
+                        <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Class="mb-crumbs__crumb" aria-label="Organization section" title="Organization section">
+                            <LucideIcon Name="@(this.ViewModel.Presentation.SectionIcon)" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                            @(this.ViewModel.Presentation.SectionLabel)
+                            <LucideIcon Name="chevron-down" Size="8" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                        </BbButton>
+                    </BbDropdownMenuTrigger>
+                    <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
+                        @foreach (var item in this.ViewModel.Presentation.SectionItems)
+                        {
+                            <BbDropdownMenuItem Href="@(item.Id)">
+                                <LucideIcon Name="@(item.Icon)" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                                @(item.Label)
+                                @if (item.IsSelected)
+                                {
+                                    <span class="sr-only">Current page</span>
+                                }
+                            </BbDropdownMenuItem>
+                        }
+                    </BbDropdownMenuContent>
+                </BbDropdownMenu>
+            </BbBreadcrumbItem>
+        </BbBreadcrumbList></BbBreadcrumb>;
 
     RenderFragment accountSegment =
-        @<text>
-            <span class="mb-organization-header__separator" aria-hidden="true">/</span>
-            <span class="mb-organization-header__segment [font-weight:--theme(--font-weight-body-md-medium)]">
-                <LucideIcon Name="user" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
-                Account
-            </span>
-        </text>;
+        @<BbBreadcrumb Class="mb-crumbs" aria-label="Organization location"><BbBreadcrumbList>
+            <BbBreadcrumbSeparator Class="mb-crumbs__separator">/</BbBreadcrumbSeparator>
+            <BbBreadcrumbItem>
+                <BbBreadcrumbPage Class="mb-crumbs__crumb">
+                    <LucideIcon Name="user" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    Account
+                </BbBreadcrumbPage>
+            </BbBreadcrumbItem>
+        </BbBreadcrumbList></BbBreadcrumb>;
 
     RenderFragment user =
         @<UserMenu DisplayName="@(this.ViewModel.Presentation.AccountName)"
@@ -62,8 +74,6 @@
     };
 }
 
-@* The logo leads to the account dashboard, the home of an account. The segments and the account menu are
-   empty until the context is ready, so nothing of a previous organization is shown while another loads. *@
 <div class="mb-organization-header">
     <AppHeader Compact="true"
                AriaLabel="Bloom application header"

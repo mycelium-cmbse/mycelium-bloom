@@ -113,3 +113,40 @@
     font-size: var(--text-13);
     line-height: var(--spacing-16);
 }
+
+.mb-crumbs > ol {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--spacing-8);
+}
+
+.mb-crumbs__separator {
+    color: var(--muted-foreground);
+    font: var(--typography-typography-ui-regular-13);
+}
+
+.mb-crumbs__crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-5);
+    padding: var(--spacing-4) var(--spacing-8);
+    border-radius: var(--radius-5);
+    color: var(--foreground);
+    font: var(--typography-typography-ui-medium-13);
+    text-decoration: none;
+}
+
+.mb-crumbs__crumb svg {
+    color: var(--muted-foreground);
+}
+
+a.mb-crumbs__crumb:hover,
+button.mb-crumbs__crumb:hover {
+    background: var(--accent);
+}
+
+.mb-crumbs__crumb:focus-visible {
+    outline: 1px solid var(--ring);
+    outline-offset: 0;
+}
