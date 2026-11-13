@@ -85,7 +85,7 @@ namespace Mycelium.Bloom.Tests.Hosting
                 .Select(link => link.GetAttribute("href"))
                 .ToArray();
 
-            Assert.That(stylesheets, Has.Length.EqualTo(6));
+            Assert.That(stylesheets, Has.Length.EqualTo(7));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(stylesheets[0], Is.EqualTo("_content/BlazorBlueprint.Primitives/css/primitives.css"));
@@ -94,6 +94,7 @@ namespace Mycelium.Bloom.Tests.Hosting
                 Assert.That(stylesheets[3], Does.Match(@"^css/tokens(?:\.[\w-]+)?\.css$"));
                 Assert.That(stylesheets[4], Does.Match(@"^css/app(?:\.[\w-]+)?\.css$"));
                 Assert.That(stylesheets[5], Does.Match(@"^Mycelium\.Bloom(?:\.[\w-]+)?\.styles\.css$"));
+                Assert.That(stylesheets[6], Is.EqualTo("_content/Z.Blazor.Diagrams/style.min.css"));
             }
         }
 

@@ -18,3 +18,9 @@ Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
 The bundled Inter font files are licensed under the SIL Open Font License 1.1.
 The complete license and source information are distributed alongside the fonts
 in wwwroot/fonts/inter/LICENSE.txt and wwwroot/fonts/inter/SOURCE.md.
+
+Z.Blazor.Diagrams 3.0.4.1
+Copyright (c) 2018 zHaytam
+
+The bundled diagram renderer is licensed under the MIT License. The complete
+license is distributed in wwwroot/licenses/Z.Blazor.Diagrams.txt.

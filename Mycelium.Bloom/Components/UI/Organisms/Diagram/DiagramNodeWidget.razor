@@ -1,0 +1,56 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramNodeWidget.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<DiagramNodeViewModel>
+
+<div @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-occurrence", this.ViewModel.IsSelected ? "diagram-occurrence--selected" : null)" style="@this.Size"
+     data-occurrence-id="@this.Node.Id" data-element-id="@this.ViewModel.Presentation.Occurrence.Element.ElementId"
+     @onclick="this.Select" @onclick:stopPropagation="true" role="group" aria-label="@this.ViewModel.Presentation.Name.Declaration">
+    <button type="button" class="mb-diagram-node-select" aria-label="@this.ViewModel.Presentation.Name.Declaration"
+            aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true"></button>
+    @if (this.ViewModel.Presentation.Kind == DiagramNodeKind.Package)
+    {
+        <DiagramPackageNode Name="@this.ViewModel.Presentation.Name.Declaration" />
+    }
+    else if (this.ViewModel.Presentation.Kind == DiagramNodeKind.Comment)
+    {
+        <DiagramCommentNode Body="@this.ViewModel.Presentation.Body" />
+    }
+    else
+    {
+        <DiagramNodeShell Kind="this.ViewModel.Presentation.Kind">
+            <Name><DiagramNameCompartment Presentation="this.ViewModel.Presentation.Name" /></Name>
+            <NestedView>
+                @if (this.ViewModel.Presentation.NestedView is { } nested)
+                {
+                    <GeneralDiagram ViewModel="this.ViewModel.GetNestedView(nested)" IsNested="true" />
+                }
+            </NestedView>
+            <Compartments>
+                @foreach (var compartment in this.ViewModel.Presentation.Compartments)
+                {
+                    @if (compartment.GraphicalView is { } graphical)
+                    {
+                        <DiagramCompartment Presentation="compartment">
+                            <GraphicalView><GeneralDiagram ViewModel="this.ViewModel.GetNestedView(graphical)" IsNested="true" /></GraphicalView>
+                        </DiagramCompartment>
+                    }
+                    else
+                    {
+                        <DiagramCompartment Presentation="compartment" />
+                    }
+                }
+            </Compartments>
+            <LeftBoundary>@this.BoundaryFeatures(BoundarySide.Left)</LeftBoundary>
+            <RightBoundary>@this.BoundaryFeatures(BoundarySide.Right)</RightBoundary>
+            <TopBoundary>@this.BoundaryFeatures(BoundarySide.Top)</TopBoundary>
+            <BottomBoundary>@this.BoundaryFeatures(BoundarySide.Bottom)</BottomBoundary>
+        </DiagramNodeShell>
+    }
+</div>

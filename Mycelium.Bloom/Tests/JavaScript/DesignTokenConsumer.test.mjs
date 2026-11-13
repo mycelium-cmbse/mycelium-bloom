@@ -420,9 +420,9 @@ test('organization headers resolve runtime references and preserve separate typo
     assert.match(organization, /--font-weight-body-md-medium/);
 });
 
-test('Browser and Properties scoped styles resolve packaged tokens and component state', async () => {
+test('Browser, Properties and Diagram scoped styles resolve packaged tokens and component state', async () => {
     const runtime = await readFile(runtimePath, 'utf8');
-    const directories = ['DetailsPanel', 'ProjectBrowser', 'WorkspaceShell', 'EditorWorkspace'];
+    const directories = ['DetailsPanel', 'ProjectBrowser', 'WorkspaceShell', 'EditorWorkspace', 'Diagram'];
     const inlineState = new Set(['--project-browser-node-icon', '--workspace-shell-effective-right-width', '--workspace-shell-preferred-right-width', '--editor-workspace-group-weight', '--editor-workspace-splitter-position']);
     for (const directory of directories) {
         const root = join(projectDirectory, 'Components/UI/Organisms', directory);

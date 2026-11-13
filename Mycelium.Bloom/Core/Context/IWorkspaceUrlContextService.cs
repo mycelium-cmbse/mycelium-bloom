@@ -26,6 +26,12 @@ namespace Mycelium.Bloom.Core.Context
         /// </summary>
         IObservable<string> NavigationRequests { get; }
 
+        /// <summary>Creates one-use history state identifying a service-issued selection navigation.</summary>
+        /// <param name="uri">The exact replacement URI about to be applied, without yielding to another navigation.</param>
+        /// <returns>The history state composition must apply with the URI, or null for other requests.</returns>
+        /// <exception cref="ArgumentException">The URI is empty or whitespace.</exception>
+        string PrepareNavigationRequest(string uri);
+
         /// <summary>
         /// Creates a destination URI from a canonical NavigationRail route and current shared selection.
         /// </summary>

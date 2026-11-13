@@ -80,6 +80,22 @@ namespace Mycelium.Bloom.Core.Context
         /// </summary>
         private bool isDisposed;
 
+        /// <summary>The exact pending URL emitted for a shared-selection change.</summary>
+        private string selectionNavigationUri;
+
+        /// <summary>The one-use history state composition must apply with the pending selection URI.</summary>
+        private string selectionNavigationState;
+
+        /// <summary>
+        /// Gets replayed workspace restorations derived from authoritative browser locations.
+        /// </summary>
+        public IObservable<WorkspaceUrlContextRestoration> Restorations { get; }
+
+        /// <summary>
+        /// Gets replacement navigation requests derived from shared selection and URL canonicalization.
+        /// </summary>
+        public IObservable<string> NavigationRequests { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceUrlContextService" /> class.
         /// </summary>
@@ -137,7 +153,8 @@ namespace Mycelium.Bloom.Core.Context
                         .TryGetValue(SelectedElementParameterName, out var selected) ? selected.FirstOrDefault() : null,
                     StringComparison.Ordinal))
                 .Select(elementId => this.GetUriWithInspection(this.GetUriWithSelectedElement(this.navigationManager.Uri, elementId), null))
-                .Where(this.IsDifferentFromCurrentUri);
+                .Where(this.IsDifferentFromCurrentUri)
+                .Do(uri => this.selectionNavigationUri = uri);
 
             var canonicalNavigationRequests = restorations
                 .Select(restoration => restoration.CanonicalUri)
@@ -149,15 +166,18 @@ namespace Mycelium.Bloom.Core.Context
             this.restorationConnection = restorations.Connect();
         }
 
-        /// <summary>
-        /// Gets replayed workspace restorations derived from authoritative browser locations.
-        /// </summary>
-        public IObservable<WorkspaceUrlContextRestoration> Restorations { get; }
+        /// <summary>Creates one-use history state for the exact pending selection navigation request.</summary>
+        /// <param name="uri">The requested navigation URI.</param>
+        /// <returns>The opaque history state, or null when the request does not belong to this service.</returns>
+        public string PrepareNavigationRequest(string uri)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(uri);
+            this.selectionNavigationState = !this.isDisposed && string.Equals(uri, this.selectionNavigationUri, StringComparison.Ordinal)
+                ? Guid.NewGuid().ToString("N")
+                : null;
 
-        /// <summary>
-        /// Gets replacement navigation requests derived from shared selection and URL canonicalization.
-        /// </summary>
-        public IObservable<string> NavigationRequests { get; }
+            return this.selectionNavigationState;
+        }
 
         /// <summary>
         /// Adds the current stable element selection to a canonical workspace destination.
@@ -219,7 +239,7 @@ namespace Mycelium.Bloom.Core.Context
             {
                 // Reconcile a pending Browser selection before pushing its first reference entry.
                 var inspectedId = GetStableElementId(this.elementSelectionService.InspectedElement);
-                this.navigationManager.NavigateTo(this.GetUriWithInspection(selectedUri, inspectedId), new NavigationOptions { ReplaceHistoryEntry = true });
+                this.NavigateWithCurrentSelection(this.GetUriWithInspection(selectedUri, inspectedId), new NavigationOptions { ReplaceHistoryEntry = true });
             }
 
             var uri = this.GetUriWithInspection(this.navigationManager.Uri, id);
@@ -251,7 +271,7 @@ namespace Mycelium.Bloom.Core.Context
 
             if (this.IsDifferentFromCurrentUri(uri))
             {
-                this.navigationManager.NavigateTo(uri, new NavigationOptions { ReplaceHistoryEntry = true });
+                this.NavigateWithCurrentSelection(uri, new NavigationOptions { ReplaceHistoryEntry = true });
             }
         }
 
@@ -291,7 +311,7 @@ namespace Mycelium.Bloom.Core.Context
 
             if (this.IsDifferentFromCurrentUri(destination))
             {
-                this.navigationManager.NavigateTo(destination, new NavigationOptions { ReplaceHistoryEntry = true });
+                this.NavigateWithCurrentSelection(destination, new NavigationOptions { ReplaceHistoryEntry = true });
             }
         }
 
@@ -336,10 +356,21 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="trail">The bounded stable identifier snapshot for the destination entry.</param>
         private void PushInspection(string uri, string[] trail)
         {
-            this.navigationManager.NavigateTo(uri, new NavigationOptions
+            this.NavigateWithCurrentSelection(uri, new NavigationOptions
             {
                 HistoryEntryState = JsonSerializer.Serialize(new InspectionHistory(uri, this.navigationManager.Uri, trail))
             });
+        }
+
+        /// <summary>Retains canonical selection for one service-owned navigation while preserving inspection-history metadata.</summary>
+        /// <param name="uri">The exact destination issued by this service.</param>
+        /// <param name="options">The accepted replacement or inspection-history entry options.</param>
+        private void NavigateWithCurrentSelection(string uri, NavigationOptions options)
+        {
+            options = options with { HistoryEntryState = options.HistoryEntryState ?? Guid.NewGuid().ToString("N") };
+            this.selectionNavigationUri = uri;
+            this.selectionNavigationState = options.HistoryEntryState;
+            this.navigationManager.NavigateTo(uri, options);
         }
 
         /// <summary>Pushes an available earlier step only while its rendered trail and URI remain current.</summary>
@@ -515,6 +546,8 @@ namespace Mycelium.Bloom.Core.Context
             }
 
             this.isDisposed = true;
+            this.selectionNavigationUri = null;
+            this.selectionNavigationState = null;
             this.lifetimeCancellation.Cancel();
             this.restorationConnection.Dispose();
             this.lifetimeCancellation.Dispose();
@@ -578,6 +611,12 @@ namespace Mycelium.Bloom.Core.Context
         /// <returns>The resolved selection and optional canonical replacement URI.</returns>
         private async Task<WorkspaceUrlContextRestoration> ResolveSelectionAsync(ParsedLocation parsedLocation, CancellationToken cancellationToken)
         {
+            var isSelectionRoundTrip = this.selectionNavigationState is not null
+                && string.Equals(this.selectionNavigationState, this.navigationManager.HistoryEntryState, StringComparison.Ordinal)
+                && string.Equals(this.selectionNavigationUri, parsedLocation.Location, StringComparison.Ordinal);
+            this.selectionNavigationUri = null;
+            this.selectionNavigationState = null;
+
             if (parsedLocation.ElementId is null)
             {
                 var emptyCanonicalUri = parsedLocation.RequiresCanonicalization
@@ -585,6 +624,18 @@ namespace Mycelium.Bloom.Core.Context
                     : null;
 
                 return new WorkspaceUrlContextRestoration(null, emptyCanonicalUri, false);
+            }
+
+            // A self-generated URL round trip must retain the selected canonical object.
+            // In-memory view models are not necessarily part of the default model's assembler cache.
+            var current = this.elementSelectionService.SelectedElement;
+            if (isSelectionRoundTrip && !parsedLocation.ShouldFocusSelectedElement && current is not null
+                && string.Equals(GetStableElementId(current), parsedLocation.ElementId, StringComparison.Ordinal))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return new WorkspaceUrlContextRestoration(current,
+                    parsedLocation.RequiresCanonicalization ? this.GetUriWithSelectedElement(parsedLocation.Location, parsedLocation.ElementId) : null,
+                    false);
             }
 
             try

@@ -1,0 +1,39 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramEdge.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<DiagramEdgeViewModel>
+
+@using Blazor.Diagrams.Core.Anchors
+@using Blazor.Diagrams.Core.Models
+@if (this.Link.PathGeneratorResult is { } result)
+{
+    var edge = this.ViewModel.Presentation;
+    var middle = result.FullPath.GetPointAtLength(result.FullPath.Length / 2);
+    var start = result.FullPath.GetPointAtLength(Math.Min(24, result.FullPath.Length / 4));
+    var end = result.FullPath.GetPointAtLength(Math.Max(0, result.FullPath.Length - 24));
+    var markerId = ((GeneralDiagramLinkModel)this.Link).MarkerPrefix;
+    <g @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-edge", this.ViewModel.IsSelected ? "diagram-edge--selected" : null)" data-kind="@edge.Kind" data-element-id="@edge.Element.ElementId" role="button" tabindex="0"
+       aria-label="@this.AccessibleName" @onclick="this.Select" @onkeydown="this.KeyDown">
+        <defs>
+            <marker id="@(markerId + "-start")" viewBox="-23 -8 24 16" refX="0" refY="0" markerWidth="24" markerHeight="16" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                @this.Marker(edge.SourceMarker)
+            </marker>
+            <marker id="@(markerId + "-end")" viewBox="-23 -8 24 16" refX="0" refY="0" markerWidth="24" markerHeight="16" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+                @this.Marker(edge.TargetMarker)
+            </marker>
+        </defs>
+        <path d="@result.FullPath.ToString()" fill="none" stroke="currentColor" stroke-dasharray="@(edge.IsDashed ? "5 4" : null)"
+              marker-start="@(edge.SourceMarker == DiagramMarker.None ? null : $"url(#{markerId}-start)")"
+              marker-end="@(edge.TargetMarker == DiagramMarker.None ? null : $"url(#{markerId}-end)")" />
+        <path d="@result.FullPath.ToString()" class="diagram-edge-hit" />
+        <text x="@Number(middle.X)" y="@Number(middle.Y - (edge.Kind == DiagramRelationshipKind.Connection ? 38 : 10))" text-anchor="middle">@edge.Label</text>
+        <text x="@Number(start.X)" y="@Number(start.Y + (this.Link.Source is SinglePortAnchor { Port.Alignment: PortAlignment.Top } ? -18 : 42))">@edge.SourceLabel</text>
+        <text x="@Number(end.X)" y="@Number(end.Y + (this.Link.Target is SinglePortAnchor { Port.Alignment: PortAlignment.Top } ? -18 : 42))" text-anchor="end">@edge.TargetLabel</text>
+    </g>
+}

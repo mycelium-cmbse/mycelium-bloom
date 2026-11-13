@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="@(this.Assets["css/tokens.css"])"/>
     <link rel="stylesheet" href="@(this.Assets["css/app.css"])"/>
     <link rel="stylesheet" href="@(this.Assets["Mycelium.Bloom.styles.css"])"/>
+    <link rel="stylesheet" href="_content/Z.Blazor.Diagrams/style.min.css"/>
     <ImportMap/>
     <link rel="icon"
           type="image/svg+xml"
@@ -34,6 +35,7 @@
 <Routes @rendermode="InteractiveServer"/>
 <ReconnectModal/>
 <script type="module" src="@(this.Assets["Components/UI/Molecules/ApplicationErrorState/ApplicationErrorState.razor.js"])"></script>
+<script src="_content/Z.Blazor.Diagrams/script.min.js"></script>
 <script src="@(this.Assets["_framework/blazor.web.js"])"></script>
 </body>
 

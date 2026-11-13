@@ -1,0 +1,35 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramNameCompartment.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<header @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-name")">
+    @if (!string.IsNullOrWhiteSpace(this.Presentation.Keyword))
+    {
+        <div class="diagram-keyword">
+            @if (this.Presentation.SymbolName is { Length: > 0 } symbol)
+            {
+                <LucideIcon Name="@symbol" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+            }
+            <span>«@this.Presentation.Keyword»</span>
+        </div>
+    }
+    @if (!this.Presentation.AdditionalKeywords.IsDefaultOrEmpty)
+    {
+        @foreach (var keyword in this.Presentation.AdditionalKeywords)
+        {
+            <div class="diagram-keyword">«@keyword»</div>
+        }
+    }
+    <div>@this.Presentation.Declaration</div>
+    @foreach (var alias in this.Presentation.Aliases)
+    {
+        <div>«alias» @alias</div>
+    }
+</header>
