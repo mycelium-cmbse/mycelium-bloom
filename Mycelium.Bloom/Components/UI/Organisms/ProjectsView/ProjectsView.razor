@@ -138,7 +138,7 @@
                 <BbDataTableColumn TData="ProjectRowViewModel" TValue="string" Header="Project">
                     <CellTemplate>
                         <div class="mb-projects-view__name">
-                            <span class="mb-projects-view__name-text">@(context.Name)</span>
+                            <a class="mb-projects-view__name-text" href="@(WorkspaceRoutes.GetProjectPath(context.EngineeringProjectId, this.OrganizationSlug))">@(context.Name)</a>
                             <span class="mb-projects-view__description" title="@(context.Description)">@(context.Description)</span>
                         </div>
                     </CellTemplate>

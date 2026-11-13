@@ -417,7 +417,9 @@ test('organization headers resolve runtime references and preserve separate typo
     assert.match(page, /text-body-sm/);
     assert.match(page, /--font-weight-body-sm/);
     const organization = await readFile(join(projectDirectory, 'Components/UI/Organisms/OrganizationHeader/OrganizationHeader.razor'), 'utf8');
-    assert.match(organization, /--font-weight-body-md-medium/);
+    assert.match(organization, /mb-crumbs__crumb/);
+    const crumbs = await readFile(join(projectDirectory, 'Styles/blueprint-overlays.css'), 'utf8');
+    assert.match(crumbs, /\.mb-crumbs__crumb\s*\{[^}]*font:\s*var\(--typography-typography-ui-medium-13\)/);
 });
 
 test('Browser and Properties scoped styles resolve packaged tokens and component state', async () => {

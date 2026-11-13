@@ -81,6 +81,19 @@ namespace Mycelium.Bloom.Tests.Components.Pages
             }
         }
 
+        [TestCase("6f1d2c3a-0b4e-4c1a-9a51-6d2e8f0a1c01", "http://localhost/workspace/modeling?project=6f1d2c3a-0b4e-4c1a-9a51-6d2e8f0a1c01")]
+        [TestCase("%2F%2Fexample.org", "http://localhost/account")]
+        public void VerifyAnOpenConnectionReturnsOnlyToTheWorkspaceOfAProject(string returnProject, string expectedUri)
+        {
+            var navigation = this.context.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo($"/?returnProject={returnProject}");
+            this.viewModel.SetupGet(model => model.IsConnected).Returns(true);
+
+            this.context.Render<ServerConnection>();
+
+            Assert.That(navigation.Uri, Is.EqualTo(expectedUri));
+        }
+
         [TestCase(true, false, "http://localhost/account")]
         [TestCase(false, true, "http://localhost/account")]
         [TestCase(false, false, "http://localhost/")]

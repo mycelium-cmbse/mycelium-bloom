@@ -145,6 +145,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
                 {
                     Id = OrganizationRoutes.GetOrganizationPath(slug, descriptor.Section),
                     Label = descriptor.Label,
+                    Icon = descriptor.Icon,
                     IsSelected = descriptor.Section == section
                 })
                 .ToArray();

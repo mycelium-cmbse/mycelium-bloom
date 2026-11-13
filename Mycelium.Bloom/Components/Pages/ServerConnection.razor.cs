@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Components.Pages
 
     using Microsoft.AspNetCore.Components;
 
+    using Mycelium.Bloom.Core.Session;
     using Mycelium.Bloom.ViewModel.Session;
 
     using ReactiveUI;
@@ -52,6 +53,14 @@ namespace Mycelium.Bloom.Components.Pages
         /// The subscription that leaves for the Home page once the connection is open.
         /// </summary>
         private IDisposable connectedSubscription;
+
+        /// <summary>
+        /// Gets or sets the project of a workspace that sent the user here for a connection, which the page opens again once the
+        /// connection is open. Only an identifier is read from it, never an address, so that a link cannot send the user
+        /// to another site.
+        /// </summary>
+        [SupplyParameterFromQuery(Name = WorkspaceRoutes.ReturnProjectParameter)]
+        public string ReturnProject { get; set; }
 
         /// <summary>
         /// Gets or sets the factory that creates the state of the page owned by this page instance.
@@ -129,11 +138,12 @@ namespace Mycelium.Bloom.Components.Pages
         }
 
         /// <summary>
-        /// Opens the Home page in place of the start page, so that Back does not return to it.
+        /// Opens the workspace of the project that sent the user here, or else the Home page, in place of the start page, so that
+        /// Back does not return to it.
         /// </summary>
         private void OpenHome()
         {
-            this.NavigationManager.NavigateTo(HomeRoute, replace: true);
+            this.NavigationManager.NavigateTo(Guid.TryParse(this.ReturnProject, out var projectId) ? WorkspaceRoutes.GetProjectPath(projectId) : HomeRoute, replace: true);
         }
     }
 }

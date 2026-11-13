@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Core.Session
 {
     using System;
+    using System.Net;
     using System.Net.Http;
     using System.Text.Json;
     using System.Threading;
@@ -160,6 +161,52 @@ namespace Mycelium.Bloom.Tests.Core.Session
             await this.service.OpenAsync(ServerAddress, CancellationToken.None);
 
             Assert.That(async () => await this.service.GetProjectsAsync(cancellation.Token), Throws.InstanceOf<OperationCanceledException>());
+        }
+
+        [Test]
+        public async Task VerifyAProjectOfTheServerIsRead()
+        {
+            var project = new Project { Id = Guid.NewGuid(), Name = "Spacecraft Mission" };
+            this.client.Setup(client => client.GetProjectByIdAsync(project.Id, It.IsAny<CancellationToken>())).ReturnsAsync(project);
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            var result = await this.service.GetProjectAsync(project.Id, CancellationToken.None);
+
+            Assert.That(result.Value, Is.SameAs(project));
+        }
+
+        [TestCase(HttpStatusCode.NotFound, ErrorType.NotFound)]
+        [TestCase(HttpStatusCode.InternalServerError, ErrorType.Failure)]
+        public async Task VerifyAProjectThatCannotBeReadGivesItsError(HttpStatusCode status, ErrorType expected)
+        {
+            this.client.Setup(client => client.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ThrowsAsync(new PsmApiException(status, new SysML2.NET.PSM.DTO.Error()));
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            var result = await this.service.GetProjectAsync(Guid.NewGuid(), CancellationToken.None);
+
+            Assert.That(result.FirstError.Type, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public async Task VerifyAProjectIsUnavailableWithoutAConnection()
+        {
+            var result = await this.service.GetProjectAsync(Guid.NewGuid(), CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.FirstError.Code, Is.EqualTo(ErrorCodes.Unavailable));
+                this.client.Verify(client => client.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+            }
+        }
+
+        [Test]
+        public async Task VerifyACancelledProjectReadIsNotReportedAsAFailure()
+        {
+            using var cancellation = new CancellationTokenSource();
+            this.client.Setup(client => client.GetProjectByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Callback(cancellation.Cancel).ThrowsAsync(new TaskCanceledException());
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            Assert.That(async () => await this.service.GetProjectAsync(Guid.NewGuid(), cancellation.Token), Throws.InstanceOf<OperationCanceledException>());
         }
     }
 }

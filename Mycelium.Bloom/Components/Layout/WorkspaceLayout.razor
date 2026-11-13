@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------------------------ *@
 
 @using BlazorBlueprint.Primitives.Services
+@using Mycelium.Bloom.Components.UI.Molecules.WorkspaceBreadcrumb
 @using Mycelium.Bloom.Components.UI.Organisms.NavigationRail
 
 @inherits LayoutComponentBase
@@ -41,9 +42,12 @@
                        style="height: 48px; min-height: 48px;">
                 <BrandContent>
                     <div class="mb-workspace-layout__brand">
-                        <span class="sr-only">Bloom workspace</span>
-                        <BrandMark style="width: 22.2px;" />
+                        <a class="mb-workspace-layout__home" href="@(OrganizationRoutes.AccountPath)">
+                            <span class="sr-only">Home</span>
+                            <BrandMark style="width: 22.2px;" />
+                        </a>
                     </div>
+                    <WorkspaceBreadcrumb />
                 </BrandContent>
 
                 <ActionsContent>

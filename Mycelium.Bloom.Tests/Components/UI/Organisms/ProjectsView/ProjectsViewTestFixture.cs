@@ -72,12 +72,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectsView
             this.viewModel.SetupGet(model => model.Errors).Returns(failed ? [Error.Unexpected(ErrorCodes.Unavailable, "Failed.")] : []);
             this.viewModel.SetupGet(model => model.CanCreateProject).Returns(canCreateProject);
 
-            var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object));
+            var cut = this.context.Render<ProjectsView>(parameters => parameters.Add(component => component.ViewModel, this.viewModel.Object).Add(component => component.OrganizationSlug, "orbital-systems"));
 
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(cut.FindAll("[role=status]"), Has.Count.EqualTo(skeletons));
                 Assert.That(cut.FindAll("tbody tr"), Has.Count.EqualTo(rows));
+                Assert.That(cut.FindAll("tbody a[href$='&organization=orbital-systems']"), Has.Count.EqualTo(rows));
                 Assert.That(cut.FindAll("[role=alert]"), Has.Count.EqualTo(alerts));
                 Assert.That(cut.FindAll("#projects-search"), Has.Count.EqualTo(searchBoxes));
                 Assert.That(cut.FindComponents<BbEmpty>(), Has.Count.EqualTo(emptyStates));
