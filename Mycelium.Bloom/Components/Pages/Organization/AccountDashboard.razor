@@ -9,7 +9,57 @@
 
 @page "/account"
 @layout OrganizationLayout
+@using Humanizer
+@using Mycelium.Bloom.ViewModel.Home
+@inherits BloomReactiveComponentBase<IHomeViewModel>
 
-<PageTitle>Account | Mycelium Bloom</PageTitle>
+<PageTitle>Home | Mycelium Bloom</PageTitle>
 
-<PageHeader Title="Account" />
+@if (this.ViewModel.IsConnected)
+{
+    <div class="mb-home">
+        <h1 class="mb-home__title">Projects</h1>
+
+        @if (this.ViewModel.Errors.Count > 0)
+        {
+            <p class="mb-home__error" role="alert">The projects could not be loaded. Try again later.</p>
+        }
+        else if (this.ViewModel.IsBusy)
+        {
+            <div class="mb-home__loading" role="status" aria-live="polite" aria-busy="true">
+                <BbSkeleton Width="100%" Height="100%" />
+                <span class="sr-only">Loading</span>
+            </div>
+        }
+        else if (this.ViewModel.Rows.Count == 0)
+        {
+            <BbEmpty Title="No projects yet" Description="The projects of this server will appear here.">
+                <Icon>
+                    <LucideIcon Name="folder-open" Size="24" StrokeWidth="1.5" role="presentation" aria-hidden="true" focusable="false" />
+                </Icon>
+            </BbEmpty>
+        }
+        else
+        {
+            var now = this.TimeProvider.GetUtcNow().UtcDateTime;
+
+            <BbDataTable TData="Project" Class="mb-home__table" Data="@(this.ViewModel.Rows)" ShowToolbar="false" ShowPagination="@(this.ViewModel.Rows.Count > PageSize)" InitialPageSize="PageSize" AriaLabel="Projects">
+                <Columns>
+                    <BbDataTableColumn TData="Project" TValue="string" Header="Project">
+                        <CellTemplate>
+                            <div class="mb-home__name">
+                                <span class="mb-home__name-text">@(context.Name)</span>
+                                <span class="mb-home__description" title="@(context.Description)">@(context.Description)</span>
+                            </div>
+                        </CellTemplate>
+                    </BbDataTableColumn>
+                    <BbDataTableColumn TData="Project" TValue="string" Header="Created">
+                        <CellTemplate>
+                            <span class="mb-home__created">@(context.Created.Humanize(dateToCompareAgainst: now))</span>
+                        </CellTemplate>
+                    </BbDataTableColumn>
+                </Columns>
+            </BbDataTable>
+        }
+    </div>
+}

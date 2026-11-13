@@ -24,6 +24,7 @@ namespace Mycelium.Bloom.Tests.Core.Session
     using Mycelium.Bloom.Core;
     using Mycelium.Bloom.Core.Session;
 
+    using SysML2.NET.PSM;
     using SysML2.NET.REST.Exceptions;
 
     using SySML2.NET.REST;
@@ -37,12 +38,16 @@ namespace Mycelium.Bloom.Tests.Core.Session
 
         private Mock<ISession> session;
 
+        private Mock<IPsmApiClient> client;
+
         private ServerSessionService service;
 
         [SetUp]
         public void SetUp()
         {
+            this.client = new Mock<IPsmApiClient>();
             this.session = new Mock<ISession>();
+            this.session.SetupGet(session => session.Client).Returns(this.client.Object);
             this.service = new ServerSessionService(this.session.Object, new Mock<ILogger<ServerSessionService>>().Object);
         }
 
@@ -87,6 +92,74 @@ namespace Mycelium.Bloom.Tests.Core.Session
                 Assert.That(async () => await this.service.OpenAsync(ServerAddress, cancellation.Token), Throws.InstanceOf<OperationCanceledException>());
                 Assert.That(this.service.ServerAddress, Is.Null);
             }
+        }
+
+        [Test]
+        public async Task VerifyEveryPageOfProjectsIsRead()
+        {
+            var first = new Project { Id = Guid.NewGuid(), Name = "Spacecraft Mission" };
+            var second = new Project { Id = Guid.NewGuid(), Name = "GroundStation-v2" };
+            this.client.Setup(client => client.GetProjectsAsync(It.Is<QueryParameters>(parameters => parameters.PageAfter == null), It.IsAny<CancellationToken>())).ReturnsAsync(new PagedResult<Project> { Records = [first], Next = new Page("page-2") });
+            this.client.Setup(client => client.GetProjectsAsync(It.Is<QueryParameters>(parameters => parameters.PageAfter != null && parameters.PageAfter.Value.Token == "page-2"), It.IsAny<CancellationToken>())).ReturnsAsync(new PagedResult<Project> { Records = [second] });
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            var result = await this.service.GetProjectsAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                this.client.Verify(client => client.GetProjectsAsync(It.IsAny<QueryParameters>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+                Assert.That(result.IsError, Is.False);
+                Assert.That(result.Value, Is.EqualTo((Project[])[first, second]));
+            }
+        }
+
+        [Test]
+        public async Task VerifyProjectsAreUnavailableWithoutAConnection()
+        {
+            var result = await this.service.GetProjectsAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.FirstError.Code, Is.EqualTo(ErrorCodes.Unavailable));
+                this.client.Verify(client => client.GetProjectsAsync(It.IsAny<QueryParameters>(), It.IsAny<CancellationToken>()), Times.Never);
+            }
+        }
+
+        [TestCaseSource(nameof(ConnectionFailures))]
+        public async Task VerifyAFailureOnALaterPageMakesTheProjectsUnavailable(Exception failure)
+        {
+            this.client.Setup(client => client.GetProjectsAsync(It.Is<QueryParameters>(parameters => parameters.PageAfter == null), It.IsAny<CancellationToken>())).ReturnsAsync(new PagedResult<Project> { Records = [new Project { Id = Guid.NewGuid() }], Next = new Page("page-2") });
+            this.client.Setup(client => client.GetProjectsAsync(It.Is<QueryParameters>(parameters => parameters.PageAfter != null), It.IsAny<CancellationToken>())).ThrowsAsync(failure);
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            var result = await this.service.GetProjectsAsync(CancellationToken.None);
+
+            Assert.That(result.FirstError.Code, Is.EqualTo(ErrorCodes.Unavailable));
+        }
+
+        [Test]
+        public async Task VerifyAListWhosePagesRepeatIsRefused()
+        {
+            this.client.Setup(client => client.GetProjectsAsync(It.IsAny<QueryParameters>(), It.IsAny<CancellationToken>())).ReturnsAsync(new PagedResult<Project> { Records = [new Project { Id = Guid.NewGuid() }], Next = new Page("page-2") });
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            var result = await this.service.GetProjectsAsync(CancellationToken.None);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.FirstError.Code, Is.EqualTo(ErrorCodes.Unavailable));
+                this.client.Verify(client => client.GetProjectsAsync(It.IsAny<QueryParameters>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            }
+        }
+
+        [Test]
+        public async Task VerifyACancelledReadIsNotReportedAsAFailure()
+        {
+            using var cancellation = new CancellationTokenSource();
+            this.client.Setup(client => client.GetProjectsAsync(It.IsAny<QueryParameters>(), It.IsAny<CancellationToken>())).Callback(cancellation.Cancel).ThrowsAsync(new TaskCanceledException());
+            await this.service.OpenAsync(ServerAddress, CancellationToken.None);
+
+            Assert.That(async () => await this.service.GetProjectsAsync(cancellation.Token), Throws.InstanceOf<OperationCanceledException>());
         }
     }
 }

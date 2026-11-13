@@ -77,6 +77,10 @@
         <Content Include="wwwroot/css/tokens.css;wwwroot/css/app.css" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Using Include="SysML2.NET.PSM.DTO.Project" Alias="Project" />
+    </ItemGroup>
+
     <Import Project="Build/Tailwind.targets" />
 
 </Project>
