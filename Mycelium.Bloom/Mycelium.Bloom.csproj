@@ -25,6 +25,7 @@
         <Using Include="Mycelium.Bloom.Extensions" />
         <Using Include="Mycelium.Bloom.ViewModel.Organization" />
         <Using Include="Mycelium.SDK" />
+        <Using Include="SysML2.NET.PSM.DTO.Project" Alias="Project" />
     </ItemGroup>
     <ItemGroup>
         <Content Remove="package.json;package-lock.json" />
@@ -74,9 +75,10 @@
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="Z.Blazor.Diagrams" Version="3.0.4.1" />
-        <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
-        <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
-        <PackageReference Include="SysML2.NET.Serializer.TextualNotation" Version="0.23.0" />
+        <PackageReference Include="SysML2.NET.Dal" Version="0.26.0" />
+        <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.26.0" />
+        <PackageReference Include="SysML2.NET.Serializer.TextualNotation" Version="0.26.0" />
+        <PackageReference Include="SysML2.NET.REST" Version="0.26.0" />
     </ItemGroup>
 
     <ItemGroup>
