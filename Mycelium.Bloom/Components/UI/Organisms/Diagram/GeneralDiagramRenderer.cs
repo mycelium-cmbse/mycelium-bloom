@@ -10,13 +10,18 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
     using System.ComponentModel;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
 
     using Blazor.Diagrams;
     using Blazor.Diagrams.Core.Behaviors;
+    using Blazor.Diagrams.Core.Geometry;
     using Blazor.Diagrams.Options;
 
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
+
+    using ReactiveUI;
 
     /// <summary>Adapts VM-owned presentation to disposable native models and reports native gestures back to the VM.</summary>
     public sealed class GeneralDiagramRenderer : IDisposable
@@ -24,8 +29,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>The tab-owned presentation borrowed by this mount.</summary>
         private readonly IGeneralDiagramViewModel owner;
 
-        /// <summary>Prevents native event feedback while applying a coherent VM snapshot.</summary>
-        private bool applyingViewport;
+        /// <summary>Owns observation of the tab's distinct zoom and pan state for this mount.</summary>
+        private readonly CompositeDisposable viewportSubscriptions = new();
+
+        /// <summary>Prevents replay while transferring viewport state in either direction.</summary>
+        private bool synchronizingViewport;
 
         /// <summary>Marks completion of this mount's cleanup.</summary>
         private bool disposed;
@@ -49,7 +57,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Diagram.RegisterComponent<GeneralDiagramNodeModel, DiagramNodeWidget>();
             this.Diagram.RegisterComponent<GeneralDiagramLinkModel, DiagramEdge>();
             this.CreateModels();
-            this.ApplyViewport();
+            this.viewportSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
+                .Select(viewport => viewport.Zoom)
+                .DistinctUntilChanged()
+                .Subscribe(zoom => this.ApplyViewport(() => this.Diagram.SetZoom(zoom))));
+            this.viewportSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
+                .Select(viewport => new Point(viewport.PanX, viewport.PanY))
+                .DistinctUntilChanged()
+                .Subscribe(pan => this.ApplyViewport(() => this.Diagram.SetPan(pan.X, pan.Y))));
             this.owner.PropertyChanged += this.OwnerChanged;
             this.Diagram.ContainerChanged += this.InitializeViewport;
             this.Diagram.PanChanged += this.ReportViewport;
@@ -65,6 +80,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
 
             this.disposed = true;
+            this.viewportSubscriptions.Dispose();
             this.owner.PropertyChanged -= this.OwnerChanged;
             this.Diagram.ContainerChanged -= this.InitializeViewport;
             this.Diagram.PanChanged -= this.ReportViewport;
@@ -108,11 +124,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="args">The property whose presentation changed.</param>
         private void OwnerChanged(object sender, PropertyChangedEventArgs args)
         {
-            if (args.PropertyName == nameof(IGeneralDiagramViewModel.Viewport))
-            {
-                this.ApplyViewport();
-            }
-            else if (args.PropertyName == nameof(IGeneralDiagramViewModel.Projection))
+            if (args.PropertyName == nameof(IGeneralDiagramViewModel.Projection))
             {
                 this.Diagram.Batch(() =>
                 {
@@ -124,40 +136,44 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
         }
 
-        /// <summary>Restores native drawing state from the authoritative VM snapshot without event feedback.</summary>
-        private void ApplyViewport()
+        /// <summary>Applies a distinct VM-owned viewport value without replaying native gesture notifications.</summary>
+        /// <param name="apply">The native setter for the changed zoom or pan value.</param>
+        private void ApplyViewport(Action apply)
         {
-            this.applyingViewport = true;
+            if (this.synchronizingViewport)
+            {
+                return;
+            }
+
+            this.synchronizingViewport = true;
 
             try
             {
-                var viewport = this.owner.Viewport;
-
-                // These are exact retained values, not results of independent geometric calculations.
-                // Equality prevents redundant native notifications; an epsilon would discard requested state.
-
-                if (!this.Diagram.Zoom.Equals(viewport.Zoom))
-                {
-                    this.Diagram.SetZoom(viewport.Zoom);
-                }
-
-                if (!this.Diagram.Pan.X.Equals(viewport.PanX) || !this.Diagram.Pan.Y.Equals(viewport.PanY))
-                {
-                    this.Diagram.SetPan(viewport.PanX, viewport.PanY);
-                }
+                apply();
             }
             finally
             {
-                this.applyingViewport = false;
+                this.synchronizingViewport = false;
             }
         }
 
         /// <summary>Captures a native navigation gesture without retaining a second presentation owner.</summary>
         private void ReportViewport()
         {
-            if (!this.applyingViewport)
+            if (this.synchronizingViewport)
+            {
+                return;
+            }
+
+            this.synchronizingViewport = true;
+
+            try
             {
                 this.owner.SetViewport(this.Diagram.Pan.X, this.Diagram.Pan.Y, this.Diagram.Zoom);
+            }
+            finally
+            {
+                this.synchronizingViewport = false;
             }
         }
     }
