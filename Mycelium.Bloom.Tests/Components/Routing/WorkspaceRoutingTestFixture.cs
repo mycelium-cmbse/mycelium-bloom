@@ -27,6 +27,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Moq;
 
     using Mycelium.Bloom.Components.Layout;
+    using Mycelium.Bloom.Components.Pages;
     using Mycelium.Bloom.Components.Pages.Workspace;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
@@ -37,8 +38,11 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.ViewModel.Session;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
     using Mycelium.SDK;
+
+    using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -134,9 +138,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         /// Verifies both Modelling entry routes and their query or fragment variants select the canonical destination.
         /// </summary>
         /// <param name="route">The Modelling route to load directly.</param>
-        [TestCase("/")]
         [TestCase("/workspace/modeling")]
-        [TestCase("/?foo=bar")]
         [TestCase("/workspace/modeling?foo=bar#test")]
         public void VerifyDirectModellingRoutesUseCanonicalWorkspaceDestination(string route)
         {
@@ -169,6 +171,24 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         /// <summary>
         /// Verifies a direct proof-route load selects Dashboard without constructing editor state.
         /// </summary>
+        [Test]
+        public void VerifyTheRootRouteOpensTheStartPageOutsideTheWorkspace()
+        {
+            var connectViewModel = new Mock<IConnectViewModel>();
+            connectViewModel.SetupGet(model => model.ServerAddress).Returns(string.Empty);
+            connectViewModel.SetupGet(model => model.Errors).Returns([]);
+            connectViewModel.SetupGet(model => model.Connect).Returns(ReactiveCommand.Create(() => { }));
+            this.Services.AddSingleton<Func<IConnectViewModel>>(() => connectViewModel.Object);
+
+            using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(routes.FindComponents<ServerConnection>(), Has.Count.EqualTo(1));
+                Assert.That(routes.FindComponents<WorkspaceLayout>(), Is.Empty);
+            }
+        }
+
         [Test]
         public void VerifyDirectDashboardRouteUsesSharedWorkspaceLayout()
         {
@@ -207,7 +227,6 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         /// <param name="route">The direct workspace route.</param>
         /// <param name="expectedDestinationId">The canonical NavigationRail destination.</param>
         /// <param name="expectsProjectBrowser">Whether the route composes modeling content.</param>
-        [TestCase("/?selectedElement=part%2Falpha%20value", "modelling", true)]
         [TestCase("/workspace/modeling?selectedElement=part%2Falpha%20value", "modelling", true)]
         [TestCase("/workspace/dashboard?selectedElement=part%2Falpha%20value", "dashboard", false)]
         public void VerifyDirectWorkspaceUrlRestoresSelectedElement(
@@ -297,6 +316,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             this.elementIdResolver
                 .Setup(resolver => resolver.ResolveAsync("restored", It.IsAny<CancellationToken>()))
                 .Returns(() => ValueTask.FromResult<IElement>(element));
+            this.Services.GetRequiredService<NavigationManager>().NavigateTo("/workspace/modeling");
             using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
             var layout = routes.FindComponent<WorkspaceLayout>().Instance;
             var editor = routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel;
@@ -325,6 +345,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         [Test]
         public async Task VerifyWorkspaceRouteRoundTripPreservesChromeAndRecreatesEditorSession()
         {
+            this.Services.GetRequiredService<NavigationManager>().NavigateTo("/workspace/modeling");
             using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
             var initialLayout = routes.FindComponent<WorkspaceLayout>().Instance;
             var initialNavigation = routes.FindComponent<NavigationRailComponent>().Instance.ViewModel;
@@ -426,6 +447,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
         [Test]
         public void VerifyLeavingWorkspaceLayoutDisposesNavigationState()
         {
+            this.Services.GetRequiredService<NavigationManager>().NavigateTo("/workspace/modeling");
             using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
             var navigation = routes.FindComponent<NavigationRailComponent>().Instance.ViewModel;
             var notificationCount = 0;

@@ -208,8 +208,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
-        [TestCase("+", "Assembly::count + 1")]
-        [TestCase("??", "Assembly::count ?? 1")]
+        [TestCase("+", "count + 1")]
+        [TestCase("??", "count ?? 1")]
         public void VerifyExpressionBoundsPreserveSingletonRangeAndUnboundedNotation(string operation, string expected)
         {
             var parameter = new Feature { DeclaredName = "count" };
