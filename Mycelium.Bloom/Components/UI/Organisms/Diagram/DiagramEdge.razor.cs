@@ -20,6 +20,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     /// <summary>Renders shared relationship paths, markers and labels and captures selection intent.</summary>
     public partial class DiagramEdge : BloomReactiveComponentBase<DiagramEdgeViewModel>
     {
+        /// <summary>The SVG paint that follows the relationship's inherited color.</summary>
+        private const string CurrentColor = "currentColor";
+
         /// <summary>Gets or sets the native link adapted from caller-owned presentation.</summary>
         [Parameter, EditorRequired]
         public BaseLinkModel Link { get; set; }
@@ -72,7 +75,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Builds the SVG endpoint symbol requested by shared notation.</summary>
         /// <param name="marker">The endpoint symbol to draw.</param>
         /// <returns>The SVG fragment for the requested endpoint.</returns>
-        private RenderFragment Marker(DiagramMarker marker) => builder =>
+        private static RenderFragment Marker(DiagramMarker marker) => builder =>
         {
             if (marker == DiagramMarker.None)
             {
@@ -88,18 +91,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             });
             builder.AddAttribute(2, "fill", marker switch
             {
-                DiagramMarker.FilledDiamond => "currentColor",
+                DiagramMarker.FilledDiamond => CurrentColor,
                 DiagramMarker.HollowDiamond or DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "var(--background)",
                 _ => "none"
             });
-            builder.AddAttribute(3, "stroke", "currentColor");
+            builder.AddAttribute(3, "stroke", CurrentColor);
             builder.CloseElement();
 
             if (marker == DiagramMarker.BarredTriangle)
             {
                 builder.OpenElement(4, "path");
                 builder.AddAttribute(5, "d", "M-16 -6 L-16 6");
-                builder.AddAttribute(6, "stroke", "currentColor");
+                builder.AddAttribute(6, "stroke", CurrentColor);
                 builder.CloseElement();
             }
 
@@ -107,7 +110,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             {
                 builder.OpenElement(7, "path");
                 builder.AddAttribute(8, "d", "M-18 -4 a1.5 1.5 0 1 0 0.1 0 M-18 4 a1.5 1.5 0 1 0 0.1 0");
-                builder.AddAttribute(9, "fill", "currentColor");
+                builder.AddAttribute(9, "fill", CurrentColor);
                 builder.CloseElement();
             }
         };

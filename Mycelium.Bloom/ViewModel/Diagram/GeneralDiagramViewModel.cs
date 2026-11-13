@@ -211,12 +211,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 ? matches
                 : Array.Empty<DiagramElementViewModel>();
 
-            foreach (var previous in this.selectedTargets)
+            foreach (var previous in this.selectedTargets.Where(previous => !targets.Contains(previous)))
             {
-                if (!targets.Contains(previous))
-                {
-                    previous.SetSelected(false);
-                }
+                previous.SetSelected(false);
             }
 
             foreach (var target in targets)
@@ -361,12 +358,10 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         {
             var nodes = projection.Nodes.ToDictionary(node => node.Occurrence.Id);
 
-            foreach (var edge in projection.Edges)
+            if (projection.Edges.Any(edge => !IsEndpointFeature(nodes[edge.Source], edge.SourceFeature)
+                || !IsEndpointFeature(nodes[edge.Target], edge.TargetFeature)))
             {
-                if (!IsEndpointFeature(nodes[edge.Source], edge.SourceFeature) || !IsEndpointFeature(nodes[edge.Target], edge.TargetFeature))
-                {
-                    throw new ArgumentException("A diagram edge feature must be the canonical endpoint element or one of its boundary features.", nameof(projection));
-                }
+                throw new ArgumentException("A diagram edge feature must be the canonical endpoint element or one of its boundary features.", nameof(projection));
             }
         }
 

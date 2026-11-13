@@ -136,12 +136,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 // These are exact retained values, not results of independent geometric calculations.
                 // Equality prevents redundant native notifications; an epsilon would discard requested state.
 
-                if (this.Diagram.Zoom != viewport.Zoom)
+                if (!this.Diagram.Zoom.Equals(viewport.Zoom))
                 {
                     this.Diagram.SetZoom(viewport.Zoom);
                 }
 
-                if (this.Diagram.Pan.X != viewport.PanX || this.Diagram.Pan.Y != viewport.PanY)
+                if (!this.Diagram.Pan.X.Equals(viewport.PanX) || !this.Diagram.Pan.Y.Equals(viewport.PanY))
                 {
                     this.Diagram.SetPan(viewport.PanX, viewport.PanY);
                 }

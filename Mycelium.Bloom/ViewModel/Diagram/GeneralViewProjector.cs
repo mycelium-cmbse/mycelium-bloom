@@ -60,9 +60,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 index)).ToImmutableArray();
             var lookup = new Dictionary<IElement, Guid>(ReferenceEqualityComparer.Instance);
 
-            foreach (var node in nodes)
+            foreach (var occurrence in nodes.Select(node => node.Occurrence))
             {
-                lookup.Add(node.Occurrence.Element, node.Occurrence.Id);
+                lookup.Add(occurrence.Element, occurrence.Id);
             }
 
             foreach (var node in nodes)
@@ -140,15 +140,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             if (kind is null)
             {
-                if (relationship is IOwningMembership ownedMember)
-                {
-                    // Namespace ownership has distinct BNF notation; a displayed node is not an ownership edge.
-                    // A connector, however, is represented by its usage edge rather than a separate node.
-                    return ownedMember.MemberElement is not IConnector
-                        || !edges.Any(edge => ReferenceEquals(edge.Element, ownedMember.MemberElement));
-                }
-
-                return relationship is not IDefinition and not IConnector && source.Any(element => ReferenceEquals(element, relationship));
+                return HasOmittedRelationshipContent(relationship, source, edges);
             }
 
             var sources = relationship is IMembership membership ? new IElement[] { membership.membershipOwningNamespace } : relationship.Source.ToArray();
@@ -175,6 +167,24 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             edges.Add(new DiagramEdgePresentation(Guid.NewGuid(), relationship, from, to, kind.Value, Label(relationship, kind.Value), SourceFeature: start, TargetFeature: end));
 
             return false;
+        }
+
+        /// <summary>Reports requested content that has no supported standalone relationship notation.</summary>
+        /// <param name="relationship">The canonical relationship without a supported edge kind.</param>
+        /// <param name="source">The explicit requested slice.</param>
+        /// <param name="edges">The already represented connector and relationship presentations.</param>
+        /// <returns>Whether the relationship has unrepresented requested content.</returns>
+        private static bool HasOmittedRelationshipContent(IRelationship relationship, IElement[] source, ImmutableArray<DiagramEdgePresentation>.Builder edges)
+        {
+            if (relationship is IOwningMembership ownedMember)
+            {
+                // Namespace ownership has distinct BNF notation; a displayed node is not an ownership edge.
+                // A connector, however, is represented by its usage edge rather than a separate node.
+                return ownedMember.MemberElement is not IConnector
+                    || !edges.Any(edge => ReferenceEquals(edge.Element, ownedMember.MemberElement));
+            }
+
+            return relationship is not IDefinition and not IConnector && source.Any(element => ReferenceEquals(element, relationship));
         }
 
         /// <summary>Checks whether an attribute membership is already shown in a visible node's textual compartment.</summary>

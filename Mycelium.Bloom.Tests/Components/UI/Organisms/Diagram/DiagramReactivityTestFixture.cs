@@ -122,7 +122,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             var owner = this.CreateOwner(GeneralViewExample.Create(), new CountingSelectionService());
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
-            var boundary = component.FindComponents<DiagramBoundaryFeature>().First();
+            var boundary = component.FindComponents<DiagramBoundaryFeature>()[0];
             var parent = component.FindComponents<DiagramNodeWidget>().Single(node => node.Instance.ViewModel.BoundaryFeatures.Contains(boundary.Instance.ViewModel));
             var parentRenders = parent.RenderCount;
             await boundary.InvokeAsync(() => boundary.Instance.ViewModel.Select());

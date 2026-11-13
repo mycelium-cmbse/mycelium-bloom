@@ -22,10 +22,10 @@
        aria-label="@this.AccessibleName" @onclick="this.Select" @onkeydown="this.KeyDown">
         <defs>
             <marker id="@(markerId + "-start")" viewBox="-23 -8 24 16" refX="0" refY="0" markerWidth="24" markerHeight="16" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-                @this.Marker(edge.SourceMarker)
+                @Marker(edge.SourceMarker)
             </marker>
             <marker id="@(markerId + "-end")" viewBox="-23 -8 24 16" refX="0" refY="0" markerWidth="24" markerHeight="16" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
-                @this.Marker(edge.TargetMarker)
+                @Marker(edge.TargetMarker)
             </marker>
         </defs>
         <path d="@result.FullPath.ToString()" fill="none" stroke="currentColor" stroke-dasharray="@(edge.IsDashed ? "5 4" : null)"
