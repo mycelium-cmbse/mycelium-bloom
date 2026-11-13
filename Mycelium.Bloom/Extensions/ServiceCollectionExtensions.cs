@@ -33,6 +33,7 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
+    using Mycelium.Bloom.ViewModel.Home;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.Session;
@@ -259,8 +260,8 @@ namespace Mycelium.Bloom.Extensions
 
             /// <summary>
             /// Registers the session of the SysML2.NET REST client and the service that holds it, one per circuit so that every
-            /// page of the user works against the same server, and the factory of the start page ViewModel, which builds one
-            /// ViewModel per page instance.
+            /// page of the user works against the same server, and the factories of the start page and Home page ViewModels, each
+            /// of which builds one ViewModel per page instance.
             /// </summary>
             /// <returns>The original service collection for continued registration chaining.</returns>
             /// <exception cref="ArgumentNullException">Thrown when <paramref name="services" /> is <see langword="null" />.</exception>
@@ -272,6 +273,7 @@ namespace Mycelium.Bloom.Extensions
                 services.AddScoped<ISession>(serviceProvider => new Session(serviceProvider.GetRequiredService<IHttpClientFactory>(), new DeSerializer(), new Serializer(), serviceProvider.GetRequiredService<ILoggerFactory>()));
                 services.AddScoped<IServerSessionService, ServerSessionService>();
                 services.AddScoped<Func<IConnectViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<ConnectViewModel>(serviceProvider));
+                services.AddScoped<Func<IHomeViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<HomeViewModel>(serviceProvider));
 
                 return services;
             }
