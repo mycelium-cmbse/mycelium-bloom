@@ -119,7 +119,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
         private static readonly string[] ExpectedPlaceholderTabIconNames = ["file-text", "file-text"];
 
-        private static readonly string[] ExpectedAddTabActions = ["Project Browser"];
+        private static readonly string[] ExpectedAddTabActions = ["Project Browser", "General View", "General View example"];
 
         private static readonly ReadOnlyObservableCollection<Type> EmptyElementTypes =
             new(new ObservableCollection<Type>());
@@ -135,6 +135,36 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
+        }
+
+        [Test]
+        public async Task VerifyGeneralViewTabsOwnIndependentStateAndDisposeOnClose()
+        {
+            var composition = this.RegisterWorkspaceServices(3);
+            this.SetRendererInfo(new RendererInfo("Server", true));
+            using var navigation = composition.Navigation;
+            this.JSInterop.Mode = JSRuntimeMode.Loose;
+            this.JSInterop.Setup<Blazor.Diagrams.Core.Geometry.Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true)
+                .SetResult(new Blazor.Diagrams.Core.Geometry.Rectangle(0, 0, 1000, 700));
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            var group = composition.Editor.Groups[2];
+            await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
+            await this.FindPortalledMenuItem("General View example").ClickAsync();
+            var firstTab = group.ActiveTab;
+            var first = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.GeneralDiagram>().Instance.ViewModel;
+            await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
+            await this.FindPortalledMenuItem("General View example").ClickAsync();
+            var second = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.GeneralDiagram>().Instance.ViewModel;
+            Assert.That(second, Is.Not.SameAs(first));
+            var secondViewport = second.Viewport;
+            first.ChangeZoom(200);
+            Assert.That(second.Viewport, Is.EqualTo(secondViewport));
+            var element = first.Projection.Nodes[0].Occurrence.Element;
+            Assert.DoesNotThrow(() => first.Select(element));
+            await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{firstTab.Id}']").ClickAsync();
+            Assert.Throws<ObjectDisposedException>(() => first.Select(element));
+            Assert.DoesNotThrow(() => second.Select(second.Projection.Nodes[0].Occurrence.Element));
         }
 
         [Test]
@@ -208,7 +238,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(addTabMenus, Has.Count.EqualTo(3));
                 Assert.That(
                     addTabMenus.All(menu => menu.Instance.Items.Select(item => item.Symbol)
-                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Tree })),
+                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Tree, SymbolIconName.Document, SymbolIconName.Document })),
                     Is.True);
                 Assert.That(renderedTabIcons[composition.Editor.Groups[0].ActiveTab.Id], Is.EqualTo("list-tree"));
                 Assert.That(
@@ -286,7 +316,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         }
 
         [Test]
-        public async Task VerifyAddTabOffersOnlyProjectBrowserAndTargetsExactOwningGroup()
+        public async Task VerifyAddTabOffersSupportedViewsAndTargetsExactOwningGroup()
         {
             var composition = this.RegisterWorkspaceServices(3);
             using var navigationViewModel = composition.Navigation;
@@ -1471,7 +1501,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
         private IElement FindPortalledMenuItem(string label)
         {
-            return this.portalHost.WaitForElements("[role='menuitem']", 1)
+            return this.portalHost.WaitForElements("[role='menuitem']", 3)
                 .Single(item => string.Equals(item.TextContent.Trim(), label, StringComparison.Ordinal));
         }
 

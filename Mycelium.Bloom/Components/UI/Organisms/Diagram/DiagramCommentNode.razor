@@ -1,0 +1,12 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramCommentNode.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<div @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-comment")" tabindex="0" role="group" aria-label="Comment text" @onwheel:stopPropagation="true">@this.Body</div>

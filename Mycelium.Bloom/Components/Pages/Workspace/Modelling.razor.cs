@@ -15,8 +15,10 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
@@ -55,7 +57,9 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private static readonly EditorTypePresentation[] EditorTypes =
         [
-            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree)
+            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree),
+            new("open-general-view", "General View", "general-view", SymbolIconName.Document),
+            new("open-general-example", "General View example", "general-view-example", SymbolIconName.Document)
         ];
 
         /// <summary>
@@ -67,6 +71,9 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// The Project Browser ViewModels owned by their exact durable editor-tab identities.
         /// </summary>
         private readonly Dictionary<Guid, IProjectBrowserViewModel> projectBrowserViewModels = [];
+
+        /// <summary>The session state owned by each exact General View editor tab.</summary>
+        private readonly Dictionary<Guid, GeneralDiagramViewModel> diagrams = [];
 
         /// <summary>
         /// The initial-only presentation weights supplied to the editor workspace.
@@ -82,6 +89,10 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// The number assigned to the next generic placeholder tab.
         /// </summary>
         private int nextPlaceholderTabNumber;
+
+        /// <summary>Gets or sets the circuit-owned canonical selection authority.</summary>
+        [Inject]
+        private IElementSelectionService ElementSelection { get; set; }
 
         /// <summary>
         /// Gets or sets the factory that creates editor state owned by this routed page.
@@ -193,6 +204,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             this.RegisterBrowserReveal?.Invoke(this, default);
             this.subscriptions.Dispose();
             this.DisposeProjectBrowserViewModels();
+            foreach (var diagram in this.diagrams.Values)
+            {
+                diagram.Dispose();
+            }
+            this.diagrams.Clear();
             this.WorkspaceEditorViewModel?.Dispose();
         }
 
@@ -438,6 +454,12 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             switch (item.Id)
             {
+                case "open-general-example":
+                    this.OpenGeneralView(groupId, true);
+                    break;
+                case "open-general-view":
+                    this.OpenGeneralView(groupId);
+                    break;
                 case ProjectBrowserActionId:
                     _ = this.OpenProjectBrowserTab(groupId);
                     break;
@@ -451,6 +473,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private void HandleTabClosed(EditorTabItem tab)
         {
             ArgumentNullException.ThrowIfNull(tab);
+
+            if (this.diagrams.Remove(tab.Id, out var diagram))
+            {
+                diagram.Dispose();
+            }
 
             if (IsProjectBrowserTab(tab)
                 && this.projectBrowserViewModels.Remove(tab.Id, out var viewModel))
@@ -508,8 +535,23 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         }
 
         /// <summary>
-        /// Attempts to open one rendering-neutral placeholder tab in a workspace-owned group.
+        /// Opens a General View over canonical objects with independently owned session state.
         /// </summary>
+        /// <param name="groupId">The target editor group.</param>
+        /// <param name="example">Whether to open the explicit in-memory example instead of the selected model slice.</param>
+        private void OpenGeneralView(Guid groupId, bool example = false)
+        {
+            var selected = this.ElementSelection.SelectedElement;
+            var root = selected ?? this.projectBrowserViewModels.Values.SelectMany(browser => browser.RootNodes).FirstOrDefault()?.SourceElement;
+            var projection = example ? GeneralViewExample.Create() : GeneralViewProjector.CreateForRoot(root);
+
+            if (this.WorkspaceEditorViewModel.TryOpenTab(groupId, example ? "General View example" : "General View", "general-view", out var tab))
+            {
+                this.diagrams.Add(tab.Id, new GeneralDiagramViewModel(projection, this.ElementSelection));
+            }
+        }
+
+        /// <summary>Opens a structural placeholder in the specified editor group.</summary>
         /// <param name="groupId">The target editor group.</param>
         private void OpenPlaceholderTab(Guid groupId)
         {
