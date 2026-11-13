@@ -1,0 +1,53 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="ServerConnection.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@page "/"
+@layout BlankLayout
+@using Mycelium.Bloom.ViewModel.Session
+@inherits BloomReactiveComponentBase<IConnectViewModel>
+
+<PageTitle>Connect to a server | Mycelium Bloom</PageTitle>
+
+<main class="mb-server-connection">
+    <div class="mb-server-connection__column">
+        <div class="mb-server-connection__brand">
+            <span class="mb-server-connection__mark"><BrandMark /></span>
+            <span>Mycelium Bloom</span>
+        </div>
+
+        <BbCard Class="mb-server-connection__card">
+            <BbCardHeader Class="mb-server-connection__header">
+                <BbCardTitle As="h1" Class="mb-server-connection__title">Connect to a server</BbCardTitle>
+                <BbCardDescription Class="mb-server-connection__subtitle">to continue to Mycelium Bloom</BbCardDescription>
+            </BbCardHeader>
+
+            <BbCardContent Class="mb-server-connection__content">
+                <p class="mb-server-connection__help">Enter the address of your model server. Any server that implements the OMG Systems Modeling API works, Mycelium Fabric included.</p>
+
+                <form class="mb-server-connection__form" novalidate @onsubmit="this.ConnectAsync" @onsubmit:preventDefault>
+                    <BbField IsInvalid="this.AddressErrors.Length > 0">
+                        <BbFieldLabel For="@AddressInputId" Class="mb-server-connection__label">Server address</BbFieldLabel>
+                        <BbInput @ref="this.addressInput" Id="@AddressInputId" Type="InputType.Url" Placeholder="https://fabric.example.org" UpdateTiming="UpdateTiming.Immediate" @bind-Value="this.ViewModel.ServerAddress" Disabled="this.ViewModel.IsBusy" AriaInvalid="this.AddressErrors.Length > 0" AriaDescribedBy="@(this.AddressErrors.Length > 0 ? AddressErrorId : null)" />
+                        <BbFieldError Id="@AddressErrorId" Errors="this.AddressErrors" />
+                    </BbField>
+
+                    @foreach (var serverError in this.ServerErrors)
+                    {
+                        <BbAlert Variant="AlertVariant.Danger">
+                            <BbAlertTitle>@serverError</BbAlertTitle>
+                            <BbAlertDescription>Check the address, or make sure the server implements the OMG Systems Modeling API.</BbAlertDescription>
+                        </BbAlert>
+                    }
+
+                    <BbButton Type="ButtonType.Submit" Loading="this.ViewModel.IsBusy" LoadingText="Connecting" Disabled="string.IsNullOrWhiteSpace(this.ViewModel.ServerAddress)" Class="mb-server-connection__submit">Connect</BbButton>
+                </form>
+            </BbCardContent>
+        </BbCard>
+    </div>
+</main>
