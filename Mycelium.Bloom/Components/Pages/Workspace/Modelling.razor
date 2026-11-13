@@ -15,6 +15,8 @@
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
+@using Mycelium.Bloom.Components.UI.Organisms.Diagram
+
 <div class="mb-main-workspace" data-testid="main-workspace">
     <h1 class="sr-only">Modelling</h1>
 
@@ -60,7 +62,11 @@
         </AddTabControl>
 
         <EditorContent Context="tab">
-            @if (IsProjectBrowserTab(tab))
+            @if (this.diagrams.TryGetValue(tab.Id, out var diagram))
+            {
+                <GeneralDiagram @key="tab.Id" ViewModel="diagram" />
+            }
+            else if (IsProjectBrowserTab(tab))
             {
                 @if (this.TryGetProjectBrowserViewModel(tab, out var projectBrowserViewModel))
                 {

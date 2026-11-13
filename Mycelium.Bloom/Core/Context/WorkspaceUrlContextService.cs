@@ -10,12 +10,15 @@
 namespace Mycelium.Bloom.Core.Context
 {
     using System.Reactive.Linq;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Routing;
     using Microsoft.AspNetCore.WebUtilities;
+
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model;
+
     using ReactiveUI;
 
     /// <summary>
@@ -57,6 +60,12 @@ namespace Mycelium.Bloom.Core.Context
         /// A value indicating whether final service disposal has occurred.
         /// </summary>
         private bool isDisposed;
+
+        /// <summary>The exact pending URL emitted for a shared-selection change.</summary>
+        private string selectionNavigationUri;
+
+        /// <summary>The one-use history state composition must apply with the pending selection URI.</summary>
+        private string selectionNavigationState;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceUrlContextService" /> class.
@@ -111,7 +120,8 @@ namespace Mycelium.Bloom.Core.Context
                 .Skip(1)
                 .SkipUntil(restorations.Take(1))
                 .Select(elementId => this.GetUriWithSelectedElement(this.navigationManager.Uri, elementId))
-                .Where(this.IsDifferentFromCurrentUri);
+                .Where(this.IsDifferentFromCurrentUri)
+                .Do(uri => this.selectionNavigationUri = uri);
 
             var canonicalNavigationRequests = restorations
                 .Select(restoration => restoration.CanonicalUri)
@@ -133,6 +143,16 @@ namespace Mycelium.Bloom.Core.Context
         /// Gets replacement navigation requests derived from shared selection and URL canonicalization.
         /// </summary>
         public IObservable<string> NavigationRequests { get; }
+
+        /// <inheritdoc />
+        public string PrepareNavigationRequest(string uri)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(uri);
+            this.selectionNavigationState = !this.isDisposed && string.Equals(uri, this.selectionNavigationUri, StringComparison.Ordinal)
+                ? Guid.NewGuid().ToString("N")
+                : null;
+            return this.selectionNavigationState;
+        }
 
         /// <summary>
         /// Adds the current stable element selection to a canonical workspace destination.
@@ -161,6 +181,8 @@ namespace Mycelium.Bloom.Core.Context
             }
 
             this.isDisposed = true;
+            this.selectionNavigationUri = null;
+            this.selectionNavigationState = null;
             this.restorationConnection.Dispose();
         }
 
@@ -235,6 +257,12 @@ namespace Mycelium.Bloom.Core.Context
             ParsedLocation parsedLocation,
             CancellationToken cancellationToken)
         {
+            var isSelectionRoundTrip = this.selectionNavigationState is not null
+                && string.Equals(this.selectionNavigationState, this.navigationManager.HistoryEntryState, StringComparison.Ordinal)
+                && string.Equals(this.selectionNavigationUri, parsedLocation.Location, StringComparison.Ordinal);
+            this.selectionNavigationUri = null;
+            this.selectionNavigationState = null;
+
             if (parsedLocation.ElementId is null)
             {
                 var emptyCanonicalUri = parsedLocation.RequiresCanonicalization
@@ -242,6 +270,18 @@ namespace Mycelium.Bloom.Core.Context
                     : null;
 
                 return new WorkspaceUrlContextRestoration(null, emptyCanonicalUri, false);
+            }
+
+            // A self-generated URL round trip must retain the selected canonical object.
+            // In-memory view models are not necessarily part of the default model's assembler cache.
+            var current = this.elementSelectionService.SelectedElement;
+            if (isSelectionRoundTrip && !parsedLocation.ShouldFocusSelectedElement && current is not null
+                && string.Equals(GetStableElementId(current), parsedLocation.ElementId, StringComparison.Ordinal))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return new WorkspaceUrlContextRestoration(current,
+                    parsedLocation.RequiresCanonicalization ? this.GetUriWithSelectedElement(parsedLocation.Location, parsedLocation.ElementId) : null,
+                    false);
             }
 
             try

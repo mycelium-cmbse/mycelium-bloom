@@ -1,0 +1,43 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="GeneralDiagram.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<IGeneralDiagramViewModel>
+
+<section @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
+         @onpointermove:stopPropagation="this.IsNested" @onpointerup:stopPropagation="this.IsNested" @onwheel:stopPropagation="this.IsNested"
+         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "General View")">
+    @if (!this.IsNested)
+    {
+        <div class="diagram-navigation">
+            <ZoomControls MinimumZoom="@(DiagramViewport.MinimumZoom * 100)" MaximumZoom="@(DiagramViewport.MaximumZoom * 100)" Zoom="@(this.ViewModel.Viewport.Zoom * 100)" ZoomChanged="this.ChangeZoom" OnResetZoom="this.ResetZoom" OnFitToView="this.FitToView" Compact="true" />
+        </div>
+    }
+    <div class="diagram-view-contents @(string.IsNullOrWhiteSpace(this.ViewModel.Projection.ViewName) ? "" : "diagram-view-contents--framed")">
+        @if (this.ViewModel.Projection.ViewName is { Length: > 0 } name)
+        {
+            <div class="diagram-view-frame">«view» @name</div>
+        }
+        <div class="general-diagram-canvas">
+            @if (this.renderer is not null)
+            {
+                <CascadingValue Value="this.renderer.Diagram" IsFixed="true" @key="this.renderer">
+                    <DiagramCanvasHost />
+                </CascadingValue>
+            }
+        </div>
+        @if (this.ViewModel.Projection.HasOmittedContent)
+        {
+            <div class="diagram-ellipsis" aria-label="Some content is not shown">...</div>
+        }
+        @if (this.ViewModel.Projection.Nodes.IsEmpty)
+        {
+            <p role="status">No elements in this General View.</p>
+        }
+    </div>
+</section>

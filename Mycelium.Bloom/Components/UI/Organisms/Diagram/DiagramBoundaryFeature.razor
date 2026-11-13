@@ -1,0 +1,16 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramBoundaryFeature.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<DiagramBoundaryViewModel>
+
+<button @attributes="this.AdditionalAttributes" type="button" class="@this.BuildRootCssClass("diagram-boundary", $"diagram-boundary--{this.Presentation.Side.ToString().ToLowerInvariant()}")"
+        style="@this.Position" title="@this.Presentation.Label" aria-label="@this.Presentation.Label" aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true">
+    <span class="diagram-boundary-square" aria-hidden="true">@this.Glyph</span>
+    <span class="diagram-boundary-label">@this.Presentation.Label</span>
+</button>
