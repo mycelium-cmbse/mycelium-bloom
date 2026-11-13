@@ -76,7 +76,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await component.FindAll("button[aria-label^='Inspect']").First(button => button.GetAttribute("aria-label").EndsWith(": mRef", StringComparison.Ordinal)).ClickAsync();
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(this.selection.SelectedElement, Is.SameAs(target));
+                Assert.That(this.selection.SelectedElement, Is.SameAs(dimensions));
+                Assert.That(this.selection.InspectedElement, Is.SameAs(target));
                 Assert.That(component.Instance.ViewModel.Presentation.Element, Is.SameAs(target));
                 Assert.That(first.SelectedNode, Is.SameAs(firstSelected));
                 Assert.That(second.SelectedNode, Is.SameAs(secondSelected));
@@ -105,7 +106,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             }
 
             await component.Find("button[aria-label='Inspect Value expression: mRef.dimensions']").ClickAsync();
-            Assert.That(this.selection.SelectedElement, Is.SameAs(expression));
+            Assert.That(this.selection.SelectedElement, Is.SameAs(element));
+            Assert.That(this.selection.InspectedElement, Is.SameAs(expression));
         }
 
         [Test]
@@ -123,6 +125,38 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 Assert.That(component.Find("section[aria-label='Classification']").TextContent, Does.Contain("[*]"));
                 Assert.That(component.Find("section[aria-label='Multiplicity']").TextContent, Does.Contain("*").And.Not.Contain("not supported"));
             }
+        }
+
+        [Test]
+        public async Task VerifyReferenceClickAndExplicitSelectionResetTabWithoutRemountingPanel()
+        {
+            var target = new PartDefinition { ElementId = "B", DeclaredName = "Target" };
+            var selected = new PartUsage { ElementId = "A", DeclaredName = "Selected" };
+            BrowserAcceptanceModelTestFactory.AddRelationship(selected,
+                new SysML2.NET.Core.POCO.Core.Features.FeatureTyping { Type = target });
+            this.selection.SelectedElement = selected;
+            var component = this.Render<Panel>();
+            var instance = component.Instance;
+            var viewModel = instance.ViewModel;
+            await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Relations").ClickAsync();
+            await component.Find("button[aria-label='Inspect Typed by: Target']").ClickAsync();
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(target));
+                Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                Assert.That(this.selection.SelectedElement, Is.SameAs(selected));
+            });
+            await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Comments").ClickAsync();
+            var next = new PartUsage { ElementId = "C", DeclaredName = "Next" };
+            await component.InvokeAsync(() => this.selection.SelectedElement = next);
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(next));
+                Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                Assert.That(this.selection.InspectedElement, Is.Null);
+            });
+            Assert.That(component.Instance, Is.SameAs(instance));
+            Assert.That(component.Instance.ViewModel, Is.SameAs(viewModel));
         }
 
         [Test]

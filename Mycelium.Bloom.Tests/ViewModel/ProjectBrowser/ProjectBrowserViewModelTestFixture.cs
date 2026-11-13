@@ -1702,6 +1702,84 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             }
         }
 
+        [Test]
+        public async Task VerifyInspectionFocusIsIndependentAndRejectsNoncanonicalOrFilteredRows()
+        {
+            var b = CreateElement<PartUsage>("B", "Beta");
+            var c = CreateElement<PartUsage>("C", "Gamma");
+            var branch = CreateElement<Namespace>("branch", "Branch");
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(branch, b);
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(branch, c);
+            var d = CreateElement<PartUsage>("D", "Delta");
+            var model = CreateElement<Namespace>("A", "Alpha");
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(model, branch);
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(model, d);
+            var context = new ContextAwareService();
+            using var first = new ProjectBrowserViewModel(CreateModelLoader(model).Object, context) { IsInspectionActive = true };
+            using var second = new ProjectBrowserViewModel(CreateModelLoader(model).Object, context);
+            await first.InitializeAsync(CancellationToken.None);
+            await second.InitializeAsync(CancellationToken.None);
+            first.SelectNode(first.RootNodes[0]);
+            var secondSelection = second.SelectedNode;
+            var secondBranch = FindNode(second.RootNodes[0], "Branch");
+            secondBranch.IsExpanded = false;
+            foreach (var target in new IElement[] { b, c, b, c })
+            {
+                context.InspectedElement = target;
+                Assert.That(first.InspectedNode.SourceElement, Is.SameAs(target));
+                Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
+                Assert.That(context.SelectedElement, Is.SameAs(model));
+                Assert.That(second.InspectedNode, Is.Null);
+                Assert.That(second.SelectedNode, Is.SameAs(secondSelection));
+                Assert.That(secondBranch.IsExpanded, Is.False);
+            }
+            Assert.That(FindNode(first.RootNodes[0], "Branch").IsExpanded, Is.True);
+            first.FilterText = "Beta";
+            Assert.That(first.InspectedNode, Is.Null);
+            context.InspectedElement = b;
+            Assert.That(first.InspectedNode.SourceElement, Is.SameAs(b));
+            first.ToggleElementTypeFilter(typeof(Namespace));
+            Assert.That(first.InspectedNode, Is.Null);
+            first.ClearFilter();
+            context.InspectedElement = new PartUsage { ElementId = b.ElementId };
+            Assert.That(first.InspectedNode, Is.Null);
+            context.InspectedElement = model.ownedMembership.First();
+            Assert.That(first.InspectedNode, Is.Null);
+            context.InspectedElement = b;
+            first.SelectNode(FindNode(first.RootNodes[0], "Delta"));
+            Assert.That(context.SelectedElement, Is.SameAs(d));
+            Assert.That(first.InspectedNode, Is.Null);
+            context.InspectedElement = b;
+            first.IsInspectionActive = false;
+            Assert.That(first.InspectedNode, Is.Null);
+            first.IsInspectionActive = true;
+            var retained = first.InspectedNode;
+            first.Dispose();
+            context.InspectedElement = c;
+            Assert.That(first.InspectedNode, Is.SameAs(retained));
+        }
+
+        [Test]
+        public async Task VerifyImportedInspectionHighlightsOnlyCanonicalNavigableMember()
+        {
+            var imported = new PartUsage { ElementId = "imported", DeclaredName = "Imported" };
+            var hidden = new SysML2.NET.Core.POCO.Kernel.FeatureValues.FeatureValue { ElementId = "detail" };
+            var root = new Mock<INamespace>();
+            root.SetupGet(element => element.ElementId).Returns("root");
+            root.SetupGet(element => element.ownedElement).Returns([]);
+            root.SetupGet(element => element.importedMembership).Returns([
+                new Membership { MemberElement = imported }, new Membership { MemberElement = hidden }]);
+            var context = new ContextAwareService();
+            using var browser = new ProjectBrowserViewModel(CreateModelLoader(root.Object).Object, context) { IsInspectionActive = true };
+            await browser.InitializeAsync(CancellationToken.None);
+            context.InspectedElement = imported;
+            Assert.That(browser.InspectedNode?.SourceElement, Is.SameAs(imported));
+            var selected = browser.SelectedNode;
+            context.InspectedElement = hidden;
+            Assert.That(browser.InspectedNode, Is.Null);
+            Assert.That(browser.SelectedNode, Is.SameAs(selected));
+        }
+
         private static Mock<IModelLoaderService> CreateModelLoader(INamespace model)
         {
             var modelLoaderService = new Mock<IModelLoaderService>();

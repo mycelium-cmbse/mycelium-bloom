@@ -22,7 +22,7 @@ namespace Mycelium.Bloom.Core.Context
     /// </summary>
     public sealed class ContextAwareService : ReactiveObject, IContextAwareService
     {
-        /// <inheritdoc />
+        /// <summary>Gets or sets the canonical main selection, clearing reference inspection when it changes.</summary>
         public IElement SelectedElement
         {
             get;
@@ -33,13 +33,21 @@ namespace Mycelium.Bloom.Core.Context
                     return;
                 }
 
+                this.InspectedElement = null;
                 this.RaisePropertyChanging(nameof(this.SelectedElement));
                 field = value;
                 this.RaisePropertyChanged(nameof(this.SelectedElement));
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>Gets or sets the canonical reference inspected independently of main selection.</summary>
+        public IElement InspectedElement
+        {
+            get;
+            set => this.RaiseAndSetIfChanged(ref field, value);
+        }
+
+        /// <summary>Gets or sets the validated project lifecycle state for this circuit.</summary>
         public ProjectLifecycleKind LifecycleState
         {
             get;

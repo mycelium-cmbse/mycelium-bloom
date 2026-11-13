@@ -17,8 +17,8 @@
     align-items: center;
     gap: var(--spacing-8);
     flex: 0 0 calc(var(--spacing-44) + var(--spacing-2));
-    padding: 0 var(--spacing-14);
-    border-bottom: 1px solid var(--border-subtle);
+    padding: var(--spacing-12) var(--spacing-14) calc(var(--spacing-12) - 1px);
+    border-bottom: 1px solid var(--border);
 }
 
 .mb-details-panel__icon { color: var(--primary); }
@@ -31,10 +31,12 @@
     line-height: var(--spacing-17);
 }
 
-.mb-details-panel ::deep .mb-properties-close {
-    width: var(--spacing-22);
+.mb-details-panel ::deep :is(.mb-properties-close, .mb-properties-copy) {
+    flex: 0 0 var(--spacing-14);
+    width: var(--spacing-14);
     height: var(--spacing-22);
     padding: 0;
+    position: relative;
     color: var(--muted-foreground);
 }
 
@@ -122,4 +124,69 @@
 @container (max-width: 340px) {
     .mb-details-panel ::deep .mb-properties-tabs__list { padding-inline: var(--spacing-6); }
     .mb-details-panel ::deep .mb-properties-tabs__trigger { padding-inline: var(--spacing-8); }
+}
+
+.mb-details-panel__leading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 var(--spacing-16);
+    width: var(--spacing-16);
+    height: var(--spacing-22);
+}
+
+.mb-details-panel__leading-control { display: inline-flex; align-items: center; justify-content: center; }
+.mb-details-panel__leading-control--changed { animation: properties-leading-change 170ms ease-out both; }
+.mb-details-panel__leading ::deep .mb-properties-back {
+    width: var(--spacing-32);
+    height: var(--spacing-32);
+    padding: 0;
+    color: var(--primary);
+}
+
+/* Preserve the inspection control's spacing without a visible divider. */
+.mb-details-panel__header:has(.mb-properties-back) {
+    padding-block: var(--spacing-7) calc(var(--spacing-7) - 1px);
+}
+
+.mb-details-panel__header:has(.mb-properties-back) .mb-details-panel__leading {
+    position: relative;
+    flex-basis: var(--spacing-32);
+    width: var(--spacing-32);
+    height: var(--spacing-32);
+    margin-inline-end: var(--spacing-5);
+}
+
+.mb-details-panel ::deep .mb-properties-copy { margin-inline-start: auto; }
+.mb-details-panel__leading ::deep .mb-properties-back:focus-visible {
+    outline: var(--spacing-2) solid var(--ring);
+    outline-offset: var(--spacing-2);
+}
+@keyframes properties-leading-change {
+    from { opacity: .55; transform: translateX(calc(-1 * var(--spacing-2))); }
+    to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mb-details-panel__leading-control--changed { animation: none; }
+}
+
+.mb-details-panel__title { min-width: 0; white-space: nowrap; }
+.mb-details-panel ::deep :is(.mb-properties-close, .mb-properties-copy)::before {
+    content: "";
+    position: absolute;
+    inset: 0 calc(-1 * var(--spacing-4));
+}
+.mb-details-panel ::deep :is(.mb-properties-close, .mb-properties-copy):focus-visible {
+    outline: var(--spacing-2) solid var(--ring);
+    outline-offset: var(--spacing-2);
+}
+
+/* A missing/unresolved selected root cannot form a trail; retain the visible heading in that case. */
+.mb-details-panel__header:not(:has(.mb-inspection-trail)) .mb-details-panel__title.sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
 }

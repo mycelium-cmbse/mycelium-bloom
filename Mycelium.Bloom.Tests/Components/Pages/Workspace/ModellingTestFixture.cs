@@ -899,11 +899,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var initializingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
                 initializingMutableRoots);
             var initializingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            initializingViewModel.SetupProperty(browser => browser.IsInspectionActive);
+            initializingViewModel.SetupGet(browser => browser.InspectedNode).Returns((ProjectBrowserNodeViewModel)null);
             var survivingNode = ProjectBrowserNodeTestFactory.CreateNamespaceNode("surviving", "Surviving");
             ObservableCollection<ProjectBrowserNodeViewModel> survivingMutableRoots = [survivingNode];
             var survivingRoots = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
                 survivingMutableRoots);
             var survivingViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            survivingViewModel.SetupProperty(browser => browser.IsInspectionActive);
+            survivingViewModel.SetupGet(browser => browser.InspectedNode).Returns((ProjectBrowserNodeViewModel)null);
             var initializationToken = CancellationToken.None;
 
             initializingViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(initializingRoots);
@@ -1475,6 +1479,54 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 .Single(item => string.Equals(item.TextContent.Trim(), label, StringComparison.Ordinal));
         }
 
+        [Test]
+        public async Task VerifyOnlyFocusedBrowserFollowsInspectionWithoutChangingTabsOrOtherTree()
+        {
+            var target = ProjectBrowserNodeTestFactory.CreateElement<Namespace>("B", "Beta");
+            var model = ProjectBrowserNodeTestFactory.CreateElement<Namespace>("A", "Alpha");
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(model, target);
+            var browsers = new List<ProjectBrowserViewModel>();
+            var composition = this.RegisterWorkspaceServices(3, context =>
+            {
+                var loader = new Mock<IModelLoaderService>();
+                loader.Setup(service => service.LoadQuantitiesModel()).Returns(model);
+                var browser = new ProjectBrowserViewModel(loader.Object, context);
+                browsers.Add(browser);
+                return browser;
+            });
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            await this.OpenProjectBrowserAsync(modelling, composition.Editor.Groups[1].Id);
+            await component.WaitForAssertionAsync(() => Assert.That(browsers.All(browser => browser.IsLoaded), Is.True));
+            await component.InvokeAsync(() => composition.Editor.FocusGroup(composition.Editor.Groups[0].Id));
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(browsers[0].IsInspectionActive, Is.True);
+                Assert.That(browsers[1].IsInspectionActive, Is.False);
+            });
+            browsers[0].SelectNode(browsers[0].RootNodes[0]);
+            var otherSelection = browsers[1].SelectedNode;
+            var otherExpansion = browsers[1].RootNodes[0].IsExpanded;
+            var tabs = composition.Editor.Groups.Select(group => group.ActiveTab).ToArray();
+            await component.InvokeAsync(() => composition.Context.InspectedElement = target);
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(browsers[0].InspectedNode?.SourceElement, Is.SameAs(target));
+                Assert.That(browsers[1].InspectedNode, Is.Null);
+                Assert.That(browsers[1].SelectedNode, Is.SameAs(otherSelection));
+                Assert.That(browsers[1].RootNodes[0].IsExpanded, Is.EqualTo(otherExpansion));
+                Assert.That(composition.Editor.Groups.Select(group => group.ActiveTab), Is.EqualTo(tabs));
+                Assert.That(composition.Context.SelectedElement, Is.SameAs(model));
+            });
+            await component.InvokeAsync(() => composition.Editor.FocusGroup(composition.Editor.Groups[1].Id));
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(browsers[0].InspectedNode, Is.Null);
+                Assert.That(browsers[1].InspectedNode?.SourceElement, Is.SameAs(target));
+                Assert.That(composition.Context.SelectedElement, Is.SameAs(model));
+            });
+        }
+
         private (
             WorkspaceEditorViewModel Editor,
             NavigationRailViewModel Navigation,
@@ -1515,6 +1567,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     };
                     var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(mutableRootNodes);
                     var projectBrowserViewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+                    projectBrowserViewModel.SetupProperty(browser => browser.IsInspectionActive);
+                    projectBrowserViewModel.SetupGet(browser => browser.InspectedNode).Returns((ProjectBrowserNodeViewModel)null);
                     projectBrowserViewModel.SetupGet(viewModel => viewModel.RootNodes).Returns(rootNodes);
                     projectBrowserViewModel.SetupGet(viewModel => viewModel.AvailableElementTypes)
                         .Returns(EmptyElementTypes);

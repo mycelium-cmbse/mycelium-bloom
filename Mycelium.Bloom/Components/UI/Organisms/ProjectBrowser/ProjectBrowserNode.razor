@@ -22,6 +22,8 @@
          aria-level="@(Math.Max(0, this.Depth) + 1)"
          aria-expanded="@(GetAriaExpanded(nodePresentation))"
          data-element-id="@viewModel.ElementId"
+         data-inspected="@(ReferenceEquals(viewModel, this.InspectedNode) ? "true" : null)"
+         aria-description="@(ReferenceEquals(viewModel, this.InspectedNode) ? "Currently inspected in Properties" : null)"
          data-kind-group="@(viewModel.IsGroup ? viewModel.DisplayName : null)"
          aria-selected="@(this.GetAriaSelected())">
         <div class="mb-project-browser-node__line">
@@ -130,6 +132,7 @@
                         @key="child.Id"
                         ViewModel="child"
                         SelectedNode="this.SelectedNode"
+                        InspectedNode="this.InspectedNode"
                         Depth="@(this.Depth + 1)"
                         FilterPresentation="this.FilterPresentation"
                         OnNodeSelected="this.OnNodeSelected"

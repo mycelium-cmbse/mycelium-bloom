@@ -23,5 +23,8 @@ namespace Mycelium.Bloom.Core.Selection
         /// </summary>
         /// <remarks>Selection updates are made on the owning Blazor circuit's renderer context.</remarks>
         IElement SelectedElement { get; set; }
+
+        /// <summary>Gets or sets the canonical reference displayed independently of selection.</summary>
+        IElement InspectedElement { get; set; }
     }
 }

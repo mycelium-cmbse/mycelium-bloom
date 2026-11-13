@@ -23,7 +23,9 @@ import {
     unregisterKeydownGuards
 } from "../../Components/UI/Organisms/EditorWorkspace/EditorWorkspace.razor.js";
 
-import { registerTree, disposeTree } from "../../Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js";
+import { registerTree, disposeTree, scrollInspectionIntoView } from "../../Components/UI/Organisms/ProjectBrowser/ProjectBrowser.razor.js";
+
+import { observeTrail, stopObserving } from "../../Components/UI/Organisms/DetailsPanel/InspectionTrail.razor.js";
 
 let dom;
 let animationFrameQueue;
@@ -1138,4 +1140,87 @@ test("Browser focus recovery distinguishes pre-removal blur from leaving the tre
     assert.equal(document.activeElement, outside, "an external focus target must not be stolen");
 
     disposeTree(root);
+});
+
+
+test("inspection scrolling is confined to its Browser and never moves focus", () => {
+    const root = createBrowserTree();
+    const viewport = document.createElement("div");
+    viewport.className = "mb-project-browser__tree-viewport";
+    document.body.append(viewport);
+    viewport.append(root);
+    const item = root.querySelector('[role="treeitem"]');
+    item.dataset.inspected = "true";
+    const row = item.querySelector(".mb-project-browser-node__row");
+    Object.defineProperty(viewport, "clientHeight", { value: 100 });
+    viewport.getBoundingClientRect = () => ({ top: 100, bottom: 200 });
+    row.getBoundingClientRect = () => ({ top: 240, bottom: 270 });
+    const focused = document.createElement("button");
+    document.body.append(focused);
+    focused.focus();
+    scrollInspectionIntoView(root);
+    assert.equal(viewport.scrollTop, 70);
+    assert.equal(document.activeElement, focused);
+    row.getBoundingClientRect = () => ({ top: 80, bottom: 110 });
+    scrollInspectionIntoView(root);
+    assert.equal(viewport.scrollTop, 50);
+    row.getBoundingClientRect = () => ({ top: 130, bottom: 160 });
+    scrollInspectionIntoView(root);
+    assert.equal(viewport.scrollTop, 50);
+    delete item.dataset.inspected;
+    scrollInspectionIntoView(root);
+    scrollInspectionIntoView(null);
+    disposeTree(root);
+    viewport.remove();
+    focused.remove();
+});
+
+
+test("inspection header measures natural names, ignores spare space and disconnects per panel", async () => {
+    const original = globalThis.ResizeObserver;
+    let callback;
+    let disconnects = 0;
+    globalThis.ResizeObserver = class {
+        constructor(report) { callback = report; }
+        observe() {}
+        disconnect() { disconnects++; }
+    };
+    try {
+        const header = document.createElement("header");
+        header.className = "mb-details-panel__header";
+        header.style.cssText = "column-gap:8px;padding:0 14px";
+        header.innerHTML = `<div style="margin-right:5px"></div><h2 style="position:absolute">Properties</h2>
+            <nav><ol style="column-gap:2px"><li><button><span>Root</span></button></li><li><span>Current</span></li></ol></nav>
+            <button class="mb-properties-copy" style="margin-left:200px"></button><button></button>`;
+        document.body.append(header);
+        const root = header.querySelector("nav");
+        header.children[0].getBoundingClientRect = () => ({ width: 32 });
+        for (const button of header.querySelectorAll(":scope > button")) button.getBoundingClientRect = () => ({ width: 14 });
+        for (const item of root.querySelectorAll("li")) item.getBoundingClientRect = () => ({ width: 100 });
+        let width = 100;
+        const labels = root.querySelectorAll("span");
+        for (const label of labels) {
+            Object.defineProperty(label, "clientWidth", { get: () => 100 });
+            Object.defineProperty(label, "scrollWidth", { get: () => label === labels[0] ? width : 100 });
+        }
+        const values = [];
+        const dotnet = { invokeMethodAsync: (method, value) => { assert.equal(method, "SetRequiredWidth"); values.push(value); return Promise.resolve(); } };
+        observeTrail(root, dotnet);
+        observeTrail(root, dotnet);
+        callback();
+        width = 250;
+        callback();
+        callback();
+        width = 500;
+        observeTrail(root, dotnet);
+        assert.deepEqual(values, [380, 469, 600]);
+        stopObserving(root);
+        stopObserving(root);
+        assert.equal(disconnects, 1);
+        width = 100;
+        callback();
+        assert.deepEqual(values, [380, 469, 600]);
+        observeTrail(null, dotnet);
+        header.remove();
+    } finally { globalThis.ResizeObserver = original; }
 });
