@@ -1501,8 +1501,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.InvokeAsync(() => composition.Editor.FocusGroup(composition.Editor.Groups[0].Id));
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(browsers[0].IsInspectionActive, Is.True);
-                Assert.That(browsers[1].IsInspectionActive, Is.False);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(browsers[0].IsInspectionActive, Is.True);
+                    Assert.That(browsers[1].IsInspectionActive, Is.False);
+                }
             });
             browsers[0].SelectNode(browsers[0].RootNodes[0]);
             var otherSelection = browsers[1].SelectedNode;
@@ -1511,19 +1514,25 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await component.InvokeAsync(() => composition.Context.InspectedElement = target);
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(browsers[0].InspectedNode?.SourceElement, Is.SameAs(target));
-                Assert.That(browsers[1].InspectedNode, Is.Null);
-                Assert.That(browsers[1].SelectedNode, Is.SameAs(otherSelection));
-                Assert.That(browsers[1].RootNodes[0].IsExpanded, Is.EqualTo(otherExpansion));
-                Assert.That(composition.Editor.Groups.Select(group => group.ActiveTab), Is.EqualTo(tabs));
-                Assert.That(composition.Context.SelectedElement, Is.SameAs(model));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(browsers[0].InspectedNode?.SourceElement, Is.SameAs(target));
+                    Assert.That(browsers[1].InspectedNode, Is.Null);
+                    Assert.That(browsers[1].SelectedNode, Is.SameAs(otherSelection));
+                    Assert.That(browsers[1].RootNodes[0].IsExpanded, Is.EqualTo(otherExpansion));
+                    Assert.That(composition.Editor.Groups.Select(group => group.ActiveTab), Is.EqualTo(tabs));
+                    Assert.That(composition.Context.SelectedElement, Is.SameAs(model));
+                }
             });
             await component.InvokeAsync(() => composition.Editor.FocusGroup(composition.Editor.Groups[1].Id));
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(browsers[0].InspectedNode, Is.Null);
-                Assert.That(browsers[1].InspectedNode?.SourceElement, Is.SameAs(target));
-                Assert.That(composition.Context.SelectedElement, Is.SameAs(model));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(browsers[0].InspectedNode, Is.Null);
+                    Assert.That(browsers[1].InspectedNode?.SourceElement, Is.SameAs(target));
+                    Assert.That(composition.Context.SelectedElement, Is.SameAs(model));
+                }
             });
         }
 

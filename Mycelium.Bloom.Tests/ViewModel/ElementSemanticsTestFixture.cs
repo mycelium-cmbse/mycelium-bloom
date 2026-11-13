@@ -163,8 +163,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using var panel = new DetailsPanelViewModel(selection);
             var link = panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Multiplicity");
             panel.Inspect(link.Element);
-            Assert.That(selection.SelectedElement, Is.SameAs(feature));
-            Assert.That(selection.InspectedElement, Is.SameAs(range));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(feature));
+                Assert.That(selection.InspectedElement, Is.SameAs(range));
+            }
             panel.Inspect(panel.Presentation.ModelLinks.Single(candidate => candidate.Role == "Upper bound").Element);
             using (Assert.EnterMultipleScope())
             {
@@ -173,8 +176,11 @@ namespace Mycelium.Bloom.Tests.ViewModel
                 Assert.That(panel.Presentation.Expressions.Single().Reference, Is.SameAs(referenced));
             }
             panel.Inspect(range);
-            Assert.That(selection.SelectedElement, Is.SameAs(feature));
-            Assert.That(selection.InspectedElement, Is.SameAs(range));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(feature));
+                Assert.That(selection.InspectedElement, Is.SameAs(range));
+            }
             panel.Inspect(feature);
             using (Assert.EnterMultipleScope())
             {

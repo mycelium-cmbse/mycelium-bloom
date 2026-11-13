@@ -1726,12 +1726,15 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             foreach (var target in new IElement[] { b, c, b, c })
             {
                 context.InspectedElement = target;
-                Assert.That(first.InspectedNode.SourceElement, Is.SameAs(target));
-                Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
-                Assert.That(context.SelectedElement, Is.SameAs(model));
-                Assert.That(second.InspectedNode, Is.Null);
-                Assert.That(second.SelectedNode, Is.SameAs(secondSelection));
-                Assert.That(secondBranch.IsExpanded, Is.False);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(first.InspectedNode.SourceElement, Is.SameAs(target));
+                    Assert.That(first.SelectedNode, Is.SameAs(first.RootNodes[0]));
+                    Assert.That(context.SelectedElement, Is.SameAs(model));
+                    Assert.That(second.InspectedNode, Is.Null);
+                    Assert.That(second.SelectedNode, Is.SameAs(secondSelection));
+                    Assert.That(secondBranch.IsExpanded, Is.False);
+                }
             }
             Assert.That(FindNode(first.RootNodes[0], "Branch").IsExpanded, Is.True);
             first.FilterText = "Beta";
@@ -1747,8 +1750,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(first.InspectedNode, Is.Null);
             context.InspectedElement = b;
             first.SelectNode(FindNode(first.RootNodes[0], "Delta"));
-            Assert.That(context.SelectedElement, Is.SameAs(d));
-            Assert.That(first.InspectedNode, Is.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(d));
+                Assert.That(first.InspectedNode, Is.Null);
+            }
             context.InspectedElement = b;
             first.IsInspectionActive = false;
             Assert.That(first.InspectedNode, Is.Null);
@@ -1776,8 +1782,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
             Assert.That(browser.InspectedNode?.SourceElement, Is.SameAs(imported));
             var selected = browser.SelectedNode;
             context.InspectedElement = hidden;
-            Assert.That(browser.InspectedNode, Is.Null);
-            Assert.That(browser.SelectedNode, Is.SameAs(selected));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browser.InspectedNode, Is.Null);
+                Assert.That(browser.SelectedNode, Is.SameAs(selected));
+            }
         }
 
         private static Mock<IModelLoaderService> CreateModelLoader(INamespace model)

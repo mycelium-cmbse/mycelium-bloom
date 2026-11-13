@@ -33,8 +33,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         /// <summary>Prevents renderer work after disposal.</summary>
         private bool isDisposed;
 
-        /// <summary>The last requested panel minimum, independent of navigation state.</summary>
-        private double requiredWidth = 380;
+        /// <summary>The last requested whole-pixel panel minimum, independent of navigation state.</summary>
+        private int requiredWidth = 380;
 
         /// <summary>The currently rendered trail root.</summary>
         private ElementReference trailRoot;
@@ -150,14 +150,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
                 return Task.CompletedTask;
             }
 
-            width = Math.Clamp(Math.Ceiling(width), 380, 600);
-            if (this.requiredWidth == width)
+            var boundedWidth = (int)Math.Clamp(Math.Ceiling(width), 380, 600);
+            if (this.requiredWidth == boundedWidth)
             {
                 return Task.CompletedTask;
             }
 
-            this.requiredWidth = width;
-            return this.MinimumWidthChanged.InvokeAsync(width);
+            this.requiredWidth = boundedWidth;
+            return this.MinimumWidthChanged.InvokeAsync(boundedWidth);
         });
 
         /// <summary>Releases renderer subscriptions, callbacks and the owned browser observer.</summary>

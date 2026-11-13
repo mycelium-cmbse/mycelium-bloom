@@ -474,11 +474,14 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             await routes.InvokeAsync(() => panel.UrlContext.Inspect(inspected));
             await routes.WaitForAssertionAsync(() =>
             {
-                Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(inspected));
-                Assert.That(this.context.SelectedElement, Is.SameAs(selected));
-                Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
-                Assert.That(routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel, Is.SameAs(editor));
-                Assert.That(routes.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(panel));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(inspected));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
+                    Assert.That(routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel, Is.SameAs(editor));
+                    Assert.That(routes.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(panel));
+                }
             });
             browser.Verify(viewModel => viewModel.FocusElement(inspected), Times.Never);
             browser.Verify(viewModel => viewModel.Dispose(), Times.Never);
@@ -487,10 +490,13 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             navigation.NavigateTo("/workspace/dashboard?selectedElement=A&inspectedElement=B#target");
             await routes.WaitForAssertionAsync(() =>
             {
-                Assert.That(routes.FindComponents<Dashboard>(), Has.Count.EqualTo(1));
-                Assert.That(this.context.SelectedElement, Is.SameAs(selected));
-                Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(inspected));
-                Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(routes.FindComponents<Dashboard>(), Has.Count.EqualTo(1));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(inspected));
+                    Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
+                }
             });
         }
 

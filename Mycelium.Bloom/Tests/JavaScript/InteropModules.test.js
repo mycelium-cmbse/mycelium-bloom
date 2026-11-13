@@ -1176,51 +1176,71 @@ test("inspection scrolling is confined to its Browser and never moves focus", ()
 });
 
 
-test("inspection header measures natural names, ignores spare space and disconnects per panel", async () => {
-    const original = globalThis.ResizeObserver;
-    let callback;
-    let disconnects = 0;
-    globalThis.ResizeObserver = class {
-        constructor(report) { callback = report; }
-        observe() {}
-        disconnect() { disconnects++; }
-    };
-    try {
-        const header = document.createElement("header");
-        header.className = "mb-details-panel__header";
-        header.style.cssText = "column-gap:8px;padding:0 14px";
-        header.innerHTML = `<div style="margin-right:5px"></div><h2 style="position:absolute">Properties</h2>
-            <nav><ol style="column-gap:2px"><li><button><span>Root</span></button></li><li><span>Current</span></li></ol></nav>
-            <button class="mb-properties-copy" style="margin-left:200px"></button><button></button>`;
-        document.body.append(header);
-        const root = header.querySelector("nav");
-        header.children[0].getBoundingClientRect = () => ({ width: 32 });
-        for (const button of header.querySelectorAll(":scope > button")) button.getBoundingClientRect = () => ({ width: 14 });
-        for (const item of root.querySelectorAll("li")) item.getBoundingClientRect = () => ({ width: 100 });
-        let width = 100;
-        const labels = root.querySelectorAll("span");
-        for (const label of labels) {
-            Object.defineProperty(label, "clientWidth", { get: () => 100 });
-            Object.defineProperty(label, "scrollWidth", { get: () => label === labels[0] ? width : 100 });
+for (const fontOutcome of ["rejected", "settled after disposal"]) {
+    test(`inspection header measures natural names and handles fonts ${fontOutcome}`, async () => {
+        const original = globalThis.ResizeObserver;
+        const originalFonts = Object.getOwnPropertyDescriptor(document, "fonts");
+        const fontReady = Promise.withResolvers();
+        Object.defineProperty(document, "fonts", { configurable: true, value: { ready: fontReady.promise } });
+        let callback;
+        let disconnects = 0;
+        globalThis.ResizeObserver = class {
+            constructor(report) { callback = report; }
+            observe() {}
+            disconnect() { disconnects++; }
+        };
+        try {
+            const header = document.createElement("header");
+            header.className = "mb-details-panel__header";
+            header.style.cssText = "column-gap:8px;padding:0 14px";
+            header.innerHTML = `<div style="margin-right:5px"></div><h2 style="position:absolute">Properties</h2>
+                <nav><ol style="column-gap:2px"><li><button><span>Root</span></button></li><li><span>Current</span></li></ol></nav>
+                <button class="mb-properties-copy" style="margin-left:200px"></button><button></button>`;
+            document.body.append(header);
+            const root = header.querySelector("nav");
+            header.children[0].getBoundingClientRect = () => ({ width: 32 });
+            for (const button of header.querySelectorAll(":scope > button")) button.getBoundingClientRect = () => ({ width: 14 });
+            for (const item of root.querySelectorAll("li")) item.getBoundingClientRect = () => ({ width: 100 });
+            let width = 100;
+            const labels = root.querySelectorAll("span");
+            for (const label of labels) {
+                Object.defineProperty(label, "clientWidth", { get: () => 100 });
+                Object.defineProperty(label, "scrollWidth", { get: () => label === labels[0] ? width : 100 });
+            }
+            const values = [];
+            const dotnet = { invokeMethodAsync: (method, value) => { assert.equal(method, "SetRequiredWidth"); values.push(value); return Promise.resolve(); } };
+            observeTrail(root, dotnet);
+            observeTrail(root, dotnet);
+            callback();
+            width = 250;
+            callback();
+            callback();
+            width = 500;
+            observeTrail(root, dotnet);
+            assert.deepEqual(values, [380, 469, 600]);
+            if (fontOutcome === "rejected") {
+                fontReady.reject(new Error("Font readiness unavailable"));
+                await new Promise(resolve => setImmediate(resolve));
+            }
+            stopObserving(root);
+            stopObserving(root);
+            assert.equal(disconnects, 1);
+            width = 100;
+            callback();
+            if (fontOutcome === "settled after disposal") {
+                fontReady.resolve();
+                await new Promise(resolve => setImmediate(resolve));
+            }
+            assert.deepEqual(values, [380, 469, 600]);
+            observeTrail(null, dotnet);
+            header.remove();
+        } finally {
+            globalThis.ResizeObserver = original;
+            if (originalFonts) {
+                Object.defineProperty(document, "fonts", originalFonts);
+            } else {
+                delete document.fonts;
+            }
         }
-        const values = [];
-        const dotnet = { invokeMethodAsync: (method, value) => { assert.equal(method, "SetRequiredWidth"); values.push(value); return Promise.resolve(); } };
-        observeTrail(root, dotnet);
-        observeTrail(root, dotnet);
-        callback();
-        width = 250;
-        callback();
-        callback();
-        width = 500;
-        observeTrail(root, dotnet);
-        assert.deepEqual(values, [380, 469, 600]);
-        stopObserving(root);
-        stopObserving(root);
-        assert.equal(disconnects, 1);
-        width = 100;
-        callback();
-        assert.deepEqual(values, [380, 469, 600]);
-        observeTrail(null, dotnet);
-        header.remove();
-    } finally { globalThis.ResizeObserver = original; }
-});
+    });
+}

@@ -454,7 +454,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                             || (!string.IsNullOrWhiteSpace(element.ElementId) && string.Equals(element.ElementId, selectedId, StringComparison.Ordinal)))
                 ? CreateFocusPath(element, this.RootNodes)
                 : Array.Empty<ProjectBrowserNodeViewModel>();
-            var target = path.LastOrDefault();
+            var target = path.Count == 0 ? null : path[^1];
             if (target is null || !ReferenceEquals(target.SourceElement, element)
                 || !this.FilterPresentation.IsVisible(target))
             {

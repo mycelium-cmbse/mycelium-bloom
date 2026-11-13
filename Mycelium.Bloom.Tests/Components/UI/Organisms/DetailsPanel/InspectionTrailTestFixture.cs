@@ -32,6 +32,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
     [TestFixture, FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class InspectionTrailTestFixture : BunitContext
     {
+        private static readonly string[] HiddenStepNames = ["B", "C"];
+        private static readonly double[] MeasuredInspectionWidths = [482d, 600d];
+        private static readonly double[] MeasuredWidthsAfterReturn = [482d, 600d, 380d];
+
         private readonly BehaviorSubject<WorkspaceUrlContextRestoration> restorations = new(CreateRestoration("A"));
         private readonly Mock<IWorkspaceUrlContextService> urls = new();
         private readonly IRenderedComponent<BbPortalHost> portal;
@@ -62,20 +66,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 component.Render(parameters => parameters.Add(trail => trail.IsInspecting, true).Add(trail => trail.DisplayedElementId, ids[^1]));
                 await component.WaitForAssertionAsync(() =>
                 {
-                    Assert.That(component.Find("nav").GetAttribute("aria-label"), Is.EqualTo("Inspection Trail"));
-                    Assert.That(component.Find("button[title='A']").TextContent.Trim(), Is.EqualTo("A"));
-                    Assert.That(component.Find("[aria-current='step']").TextContent.Trim(), Is.EqualTo(ids[^1]));
-                    Assert.That(component.Find("[aria-current='step']").QuerySelector("button"), Is.Null);
-                    Assert.That(component.FindAll("[aria-selected]"), Is.Empty);
-                    Assert.That(component.FindAll(".mb-inspection-trail__step"), Has.Count.EqualTo(2));
-                    Assert.That(component.FindAll("button[aria-label='Show earlier inspected elements']"), Has.Count.EqualTo(ids.Length > 2 ? 1 : 0));
+                    using (Assert.EnterMultipleScope())
+                    {
+                        Assert.That(component.Find("nav").GetAttribute("aria-label"), Is.EqualTo("Inspection Trail"));
+                        Assert.That(component.Find("button[title='A']").TextContent.Trim(), Is.EqualTo("A"));
+                        Assert.That(component.Find("[aria-current='step']").TextContent.Trim(), Is.EqualTo(ids[^1]));
+                        Assert.That(component.Find("[aria-current='step']").QuerySelector("button"), Is.Null);
+                        Assert.That(component.FindAll("[aria-selected]"), Is.Empty);
+                        Assert.That(component.FindAll(".mb-inspection-trail__step"), Has.Count.EqualTo(2));
+                        Assert.That(component.FindAll("button[aria-label='Show earlier inspected elements']"), Has.Count.EqualTo(ids.Length > 2 ? 1 : 0));
+                    }
                 });
             }
-            Assert.That(component.FindAll("button[title='B']"), Is.Empty);
-            Assert.That(component.FindAll("button[title='C']"), Is.Empty);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("button[title='B']"), Is.Empty);
+                Assert.That(component.FindAll("button[title='C']"), Is.Empty);
+            }
             await component.Find("button[aria-label='Show earlier inspected elements']").ClickAsync();
             await this.portal.WaitForAssertionAsync(() => Assert.That(this.portal.FindAll("[role='menuitem']"), Has.Count.EqualTo(2)));
-            Assert.That(this.portal.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(new[] { "B", "C" }));
+            Assert.That(this.portal.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(HiddenStepNames));
             await this.portal.FindAll("[role='menuitem']")[0].ClickAsync();
             this.urls.Verify(service => service.InspectTrailStepAsync(1, "B"), Times.Once);
             await component.Find("button[title='A']").ClickAsync();
@@ -99,8 +109,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await component.Find("button[aria-label='Show earlier inspected elements']").ClickAsync();
             await this.portal.WaitForAssertionAsync(() => Assert.That(this.portal.FindAll("[role='menuitem'][aria-disabled='true']"), Has.Count.EqualTo(1)));
             component.Render(parameters => parameters.Add(trail => trail.DisplayedElementId, "new-location"));
-            Assert.That(component.FindAll("nav"), Is.Empty);
-            Assert.That(this.restorations.HasObservers, Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("nav"), Is.Empty);
+                Assert.That(this.restorations.HasObservers, Is.True);
+            }
             await this.DisposeComponentsAsync();
             Assert.That(this.restorations.HasObservers, Is.False);
             var css = File.ReadAllText(Path.Combine(TestRepository.GetDirectoryPath("Mycelium.Bloom"),
@@ -114,12 +127,15 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             this.restorations.OnNext(CreateRestoration("A", "B", "C", "D"));
             var component = this.Render<Trail>(parameters => parameters.AddCascadingValue(this.urls.Object)
                 .Add(trail => trail.IsInspecting, true).Add(trail => trail.DisplayedElementId, "D"));
-            Assert.That(component.FindAll("button[title='C']"), Is.Empty);
-            Assert.That(component.Find("button[title='A']"), Is.Not.Null);
-            Assert.That(component.Find("[aria-current='step']").TextContent.Trim(), Is.EqualTo("D"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindAll("button[title='C']"), Is.Empty);
+                Assert.That(component.Find("button[title='A']"), Is.Not.Null);
+                Assert.That(component.Find("[aria-current='step']").TextContent.Trim(), Is.EqualTo("D"));
+            }
             await component.Find("button[aria-label='Show earlier inspected elements']").ClickAsync();
             await this.portal.WaitForAssertionAsync(() => Assert.That(this.portal.FindAll("[role='menuitem']"), Has.Count.EqualTo(2)));
-            Assert.That(this.portal.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(new[] { "B", "C" }));
+            Assert.That(this.portal.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(HiddenStepNames));
             await this.portal.FindAll("[role='menuitem']")[1].ClickAsync();
             this.urls.Verify(service => service.InspectTrailStepAsync(2, "C"), Times.Once);
             Assert.That(component.FindAll("button[title='C']"), Is.Empty);
@@ -140,9 +156,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
                 .Add(trail => trail.IsInspecting, true).Add(trail => trail.DisplayedElementId, "D"));
             var root = component.Find("nav li:first-child button");
             var current = component.Find("[aria-current='step'] span[title]");
-            Assert.That(root.GetAttribute("title"), Is.EqualTo(rootName));
-            Assert.That(current.GetAttribute("title"), Is.EqualTo(currentName));
-            Assert.That(current.TextContent, Is.EqualTo(currentName));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(root.GetAttribute("title"), Is.EqualTo(rootName));
+                Assert.That(current.GetAttribute("title"), Is.EqualTo(currentName));
+                Assert.That(current.TextContent, Is.EqualTo(currentName));
+            }
             await root.ClickAsync();
             this.urls.Verify(service => service.InspectTrailStepAsync(0, "A"), Times.Once);
         }
@@ -159,9 +178,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await component.Instance.SetRequiredWidth(481.2);
             await component.Instance.SetRequiredWidth(double.NaN);
             await component.Instance.SetRequiredWidth(1000);
-            Assert.That(widths, Is.EqualTo(new[] { 482d, 600d }));
+            Assert.That(widths, Is.EqualTo(MeasuredInspectionWidths));
             component.Render(parameters => parameters.Add(trail => trail.IsInspecting, false));
-            await component.WaitForAssertionAsync(() => Assert.That(widths, Is.EqualTo(new[] { 482d, 600d, 380d })));
+            await component.WaitForAssertionAsync(() => Assert.That(widths, Is.EqualTo(MeasuredWidthsAfterReturn)));
             await component.Instance.DisposeAsync();
             await component.Instance.SetRequiredWidth(500);
             Assert.That(widths, Has.Count.EqualTo(3));

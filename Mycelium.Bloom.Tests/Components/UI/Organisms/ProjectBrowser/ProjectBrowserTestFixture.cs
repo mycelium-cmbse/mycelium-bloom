@@ -2112,13 +2112,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             await component.WaitForAssertionAsync(() =>
             {
                 var row = component.Find("[data-inspected='true']");
-                Assert.That(row.GetAttribute("data-element-id"), Is.EqualTo("B"));
-                Assert.That(row.GetAttribute("aria-selected"), Is.EqualTo("false"));
-                Assert.That(row.GetAttribute("aria-description"), Does.Contain("inspected in Properties"));
-                Assert.That(row.QuerySelector(".mb-project-browser-node__row--inspected"), Is.Not.Null);
-                Assert.That(component.Find("[aria-selected='true']").GetAttribute("data-element-id"), Is.EqualTo("A"));
-                Assert.That(module.Invocations.Any(invocation => invocation.Identifier == "scrollInspectionIntoView"), Is.True);
-                Assert.That(context.SelectedElement, Is.SameAs(model));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(row.GetAttribute("data-element-id"), Is.EqualTo("B"));
+                    Assert.That(row.GetAttribute("aria-selected"), Is.EqualTo("false"));
+                    Assert.That(row.GetAttribute("aria-description"), Does.Contain("inspected in Properties"));
+                    Assert.That(row.QuerySelector(".mb-project-browser-node__row--inspected"), Is.Not.Null);
+                    Assert.That(component.Find("[aria-selected='true']").GetAttribute("data-element-id"), Is.EqualTo("A"));
+                    Assert.That(module.Invocations.Any(invocation => invocation.Identifier == "scrollInspectionIntoView"), Is.True);
+                    Assert.That(context.SelectedElement, Is.SameAs(model));
+                }
             });
             var scrolls = module.Invocations.Count(invocation => invocation.Identifier == "scrollInspectionIntoView");
             component.Render();

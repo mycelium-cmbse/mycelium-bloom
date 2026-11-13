@@ -40,6 +40,14 @@ namespace Mycelium.Bloom.Tests.Core.Context
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class WorkspaceUrlContextServiceTestFixture : BunitContext
     {
+        private static readonly string[] BranchingElementIds = ["A", "B", "C", "D", "E"];
+        private static readonly string[] BoundedTrailEndpointIds = ["0", "40"];
+        private static readonly string[] TrailWithIntermediateIds = ["A", "B", "D"];
+        private static readonly string[] DirectTrailIds = ["A", "D"];
+        private static readonly string[] ContradictoryTrailIds = ["B", "A", "D"];
+        private static readonly string[] SelectedRootIds = ["A"];
+        private static readonly string[] PendingCanonicalizationElementIds = ["A", "B", "C"];
+
         /// <summary>
         /// Disposes the bUnit context after each test.
         /// </summary>
@@ -379,8 +387,11 @@ namespace Mycelium.Bloom.Tests.Core.Context
             await service.Restorations.Where(restoration => ReferenceEquals(restoration.InspectedElement, third)).FirstAsync().ToTask();
             delayed.SetResult(second);
             await Task.Yield();
-            Assert.That(inspections, Is.EqualTo(new IElement[] { null, third }));
-            Assert.That(context.SelectedElement, Is.SameAs(selected));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(inspections, Is.EqualTo(new IElement[] { null, third }));
+                Assert.That(context.SelectedElement, Is.SameAs(selected));
+            }
             service.Dispose();
             var uri = navigation.Uri;
             service.Inspect(second);
@@ -422,8 +433,11 @@ namespace Mycelium.Bloom.Tests.Core.Context
             {
                 context.SelectedElement = value.SelectedElement;
                 context.InspectedElement = value.InspectedElement;
-                Assert.That(browser.InspectedNode?.SourceElement, Is.SameAs(value.InspectedElement));
-                Assert.That(browser.SelectedNode.SourceElement, Is.SameAs(a));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(browser.InspectedNode?.SourceElement, Is.SameAs(value.InspectedElement));
+                    Assert.That(browser.SelectedNode.SourceElement, Is.SameAs(a));
+                }
             });
             service.Inspect(b);
             service.Inspect(c);
@@ -435,19 +449,25 @@ namespace Mycelium.Bloom.Tests.Core.Context
             Assert.That(context.InspectedElement, Is.SameAs(c));
             await service.GoBackAsync();
             await service.GoBackAsync();
-            Assert.That(context.InspectedElement, Is.Null);
-            Assert.That(context.SelectedElement, Is.SameAs(a));
-            Assert.That(navigation.Uri, Does.EndWith("selectedElement=A&mode=review#target"));
-            Assert.That(navigation.EntryCount, Is.EqualTo(entries));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(context.SelectedElement, Is.SameAs(a));
+                Assert.That(navigation.Uri, Does.EndWith("selectedElement=A&mode=review#target"));
+                Assert.That(navigation.EntryCount, Is.EqualTo(entries));
+            }
             navigation.Move(1);
             Assert.That(context.InspectedElement, Is.SameAs(b));
             service.Inspect(d);
             navigation.Move(1);
             Assert.That(context.InspectedElement, Is.SameAs(d));
             await service.GoBackAsync();
-            Assert.That(context.InspectedElement, Is.SameAs(b));
-            Assert.That(context.SelectedElement, Is.SameAs(a));
-            Assert.That(js.BackCalls, Is.EqualTo(4));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.InspectedElement, Is.SameAs(b));
+                Assert.That(context.SelectedElement, Is.SameAs(a));
+                Assert.That(js.BackCalls, Is.EqualTo(4));
+            }
         }
 
         [Test]
@@ -470,11 +490,14 @@ namespace Mycelium.Bloom.Tests.Core.Context
                 context.InspectedElement = value.InspectedElement;
             });
             await service.GoBackAsync();
-            Assert.That(js.BackCalls, Is.Zero);
-            Assert.That(navigation.Uri, Does.EndWith("/workspace/modeling?selectedElement=A#target"));
-            Assert.That(context.SelectedElement, Is.SameAs(a));
-            Assert.That(context.InspectedElement, Is.Null);
-            Assert.That(navigation.EntryCount, Is.EqualTo(2));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(js.BackCalls, Is.Zero);
+                Assert.That(navigation.Uri, Does.EndWith("/workspace/modeling?selectedElement=A#target"));
+                Assert.That(context.SelectedElement, Is.SameAs(a));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(navigation.EntryCount, Is.EqualTo(2));
+            }
         }
 
         [Test]
@@ -505,7 +528,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
         [Test]
         public async Task VerifyTrailFollowsNativeHistoryBranchingAndExplicitStepNavigation()
         {
-            var elements = new[] { "A", "B", "C", "D", "E" }.ToDictionary(id => id, id => new Namespace { ElementId = id, DeclaredName = id });
+            var elements = BranchingElementIds.ToDictionary(id => id, id => new Namespace { ElementId = id, DeclaredName = id });
             var resolver = new Mock<IElementIdResolver>();
             resolver.Setup(candidate => candidate.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken _) => ValueTask.FromResult<IElement>(elements.GetValueOrDefault(id)));
@@ -564,9 +587,12 @@ namespace Mycelium.Bloom.Tests.Core.Context
 
             void AssertTrail(params string[] expected)
             {
-                Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(expected));
-                Assert.That(context.SelectedElement, Is.SameAs(elements["A"]));
-                Assert.That(context.InspectedElement?.ElementId, Is.EqualTo(expected.Length > 1 ? expected[^1] : null));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(expected));
+                    Assert.That(context.SelectedElement, Is.SameAs(elements["A"]));
+                    Assert.That(context.InspectedElement?.ElementId, Is.EqualTo(expected.Length > 1 ? expected[^1] : null));
+                }
             }
         }
 
@@ -594,9 +620,12 @@ namespace Mycelium.Bloom.Tests.Core.Context
                 service.Inspect(elements[index.ToString()]);
             }
             Assert.That(snapshot.InspectionTrail, Has.Count.EqualTo(32));
-            Assert.That(snapshot.InspectionTrail[0].ElementId, Is.EqualTo("0"));
-            Assert.That(snapshot.InspectionTrail[^1].ElementId, Is.EqualTo("40"));
-            Assert.That(navigation.HistoryEntryState, Does.Not.Contain("DisplayName").And.Not.Contain("DeclaredName"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(snapshot.InspectionTrail[0].ElementId, Is.EqualTo("0"));
+                Assert.That(snapshot.InspectionTrail[^1].ElementId, Is.EqualTo("40"));
+                Assert.That(navigation.HistoryEntryState, Does.Not.Contain("DisplayName").And.Not.Contain("DeclaredName"));
+            }
             var unavailable = snapshot.InspectionTrail[1].ElementId;
             elements.Remove(unavailable);
             navigation.Move(-1);
@@ -606,18 +635,18 @@ namespace Mycelium.Bloom.Tests.Core.Context
             await service.InspectTrailStepAsync(snapshot.InspectionTrail.ToList().IndexOf(step), unavailable);
             Assert.That(navigation.Uri, Is.EqualTo(uri));
             navigation.NavigateTo("/workspace/modeling?selectedElement=0&inspectedElement=40");
-            Assert.That(snapshot.InspectionTrail.Select(item => item.ElementId), Is.EqualTo(new[] { "0", "40" }));
+            Assert.That(snapshot.InspectionTrail.Select(item => item.ElementId), Is.EqualTo(BoundedTrailEndpointIds));
             navigation.NavigateTo("/workspace/modeling?selectedElement=0&inspectedElement=40", new NavigationOptions
             {
                 HistoryEntryState = "{not valid json}"
             });
-            Assert.That(snapshot.InspectionTrail.Select(item => item.ElementId), Is.EqualTo(new[] { "0", "40" }));
+            Assert.That(snapshot.InspectionTrail.Select(item => item.ElementId), Is.EqualTo(BoundedTrailEndpointIds));
         }
 
         [Test]
         public void VerifySameUriHistoryEntriesRestoreTheirOwnTrailAndRejectContradictoryMetadata()
         {
-            var elements = new[] { "A", "B", "D" }.ToDictionary(id => id, id => new Namespace { ElementId = id });
+            var elements = TrailWithIntermediateIds.ToDictionary(id => id, id => new Namespace { ElementId = id });
             var resolver = new Mock<IElementIdResolver>();
             resolver.Setup(candidate => candidate.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken _) => ValueTask.FromResult<IElement>(elements.GetValueOrDefault(id)));
@@ -628,23 +657,26 @@ namespace Mycelium.Bloom.Tests.Core.Context
             Mycelium.Bloom.Model.WorkspaceUrlContextRestoration snapshot = null;
             using var subscription = service.Restorations.Subscribe(value => snapshot = value);
             var uri = navigation.Uri;
-            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { "A", "D" }));
+            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(DirectTrailIds));
             navigation.NavigateTo(uri, new NavigationOptions
             {
-                HistoryEntryState = System.Text.Json.JsonSerializer.Serialize(new { CurrentUri = uri, PreviousUri = (string)null, Trail = new[] { "A", "B", "D" } })
+                HistoryEntryState = System.Text.Json.JsonSerializer.Serialize(new { CurrentUri = uri, PreviousUri = (string)null, Trail = TrailWithIntermediateIds })
             });
-            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { "A", "B", "D" }));
+            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(TrailWithIntermediateIds));
             navigation.NavigateTo(uri, new NavigationOptions
             {
-                HistoryEntryState = System.Text.Json.JsonSerializer.Serialize(new { CurrentUri = uri, PreviousUri = (string)null, Trail = new[] { "B", "A", "D" } })
+                HistoryEntryState = System.Text.Json.JsonSerializer.Serialize(new { CurrentUri = uri, PreviousUri = (string)null, Trail = ContradictoryTrailIds })
             });
-            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { "A", "D" }));
+            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(DirectTrailIds));
             navigation.Move(-1);
-            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { "A", "B", "D" }));
+            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(TrailWithIntermediateIds));
             navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=A");
-            Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { "A" }));
-            Assert.That(snapshot.InspectedElement, Is.Null);
-            Assert.That(snapshot.CanonicalUri, Does.Not.Contain("inspectedElement"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(snapshot.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(SelectedRootIds));
+                Assert.That(snapshot.InspectedElement, Is.Null);
+                Assert.That(snapshot.CanonicalUri, Does.Not.Contain("inspectedElement"));
+            }
         }
 
         [Test]
@@ -678,9 +710,12 @@ namespace Mycelium.Bloom.Tests.Core.Context
             navigation.NavigateTo(inspectedLink);
             using var reopened = new WorkspaceUrlContextService(navigation, resolver.Object, new ContextAwareService(), NullLogger<WorkspaceUrlContextService>.Instance);
             var restoration = await reopened.Restorations.FirstAsync().ToTask();
-            Assert.That(restoration.SelectedElement, Is.SameAs(a));
-            Assert.That(restoration.InspectedElement, Is.SameAs(b));
-            Assert.That(restoration.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { a.ElementId, b.ElementId }));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(restoration.SelectedElement, Is.SameAs(a));
+                Assert.That(restoration.InspectedElement, Is.SameAs(b));
+                Assert.That(restoration.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(new[] { a.ElementId, b.ElementId }));
+            }
         }
 
         [Test]
@@ -703,12 +738,15 @@ namespace Mycelium.Bloom.Tests.Core.Context
             service.Inspect(b);
 
             var query = QueryHelpers.ParseQuery(new Uri(navigation.Uri).Query);
-            Assert.That(pendingReplacements, Has.Count.EqualTo(1));
-            Assert.That(query["selectedElement"].Single(), Is.EqualTo("D"));
-            Assert.That(query["inspectedElement"].Single(), Is.EqualTo("B"));
-            Assert.That(query["mode"].Single(), Is.EqualTo("review"));
-            Assert.That(new Uri(navigation.Uri).Fragment, Is.EqualTo("#target"));
-            Assert.That(context.SelectedElement, Is.SameAs(d));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(pendingReplacements, Has.Count.EqualTo(1));
+                Assert.That(query["selectedElement"].Single(), Is.EqualTo("D"));
+                Assert.That(query["inspectedElement"].Single(), Is.EqualTo("B"));
+                Assert.That(query["mode"].Single(), Is.EqualTo("review"));
+                Assert.That(new Uri(navigation.Uri).Fragment, Is.EqualTo("#target"));
+                Assert.That(context.SelectedElement, Is.SameAs(d));
+            }
             navigation.Move(-1);
             Assert.That(navigation.Uri, Does.Contain("selectedElement=D").And.Not.Contain("inspectedElement"));
         }
@@ -716,7 +754,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
         [Test]
         public void VerifyPendingDuplicateCanonicalizationPreservesTheInspectedPredecessor()
         {
-            var elements = new[] { "A", "B", "C" }.ToDictionary(id => id, id => new Namespace { ElementId = id });
+            var elements = PendingCanonicalizationElementIds.ToDictionary(id => id, id => new Namespace { ElementId = id });
             var resolver = new Mock<IElementIdResolver>();
             resolver.Setup(candidate => candidate.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .Returns((string id, CancellationToken _) => ValueTask.FromResult<IElement>(elements.GetValueOrDefault(id)));
@@ -729,8 +767,11 @@ namespace Mycelium.Bloom.Tests.Core.Context
             navigation.Move(-1);
 
             var query = QueryHelpers.ParseQuery(new Uri(navigation.Uri).Query);
-            Assert.That(query["selectedElement"].ToArray(), Is.EqualTo(new[] { "A" }));
-            Assert.That(query["inspectedElement"].Single(), Is.EqualTo("B"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(query["selectedElement"].ToArray(), Is.EqualTo(SelectedRootIds));
+                Assert.That(query["inspectedElement"].Single(), Is.EqualTo("B"));
+            }
         }
 
         [Test]
@@ -755,28 +796,104 @@ namespace Mycelium.Bloom.Tests.Core.Context
             browser.SelectNode(browser.RootNodes[0]);
             service.ClearInspection();
 
-            Assert.That(context.SelectedElement, Is.SameAs(a));
-            Assert.That(context.InspectedElement, Is.Null);
-            Assert.That(browser.InspectedNode, Is.Null);
-            Assert.That(navigation.Uri, Does.Contain("selectedElement=A").And.Contain("mode=review").And.EndsWith("#target").And.Not.Contain("inspectedElement"));
-            Assert.That(navigation.EntryCount, Is.EqualTo(entries));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(a));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(browser.InspectedNode, Is.Null);
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=A").And.Contain("mode=review").And.EndsWith("#target").And.Not.Contain("inspectedElement"));
+                Assert.That(navigation.EntryCount, Is.EqualTo(entries));
+            }
+        }
+
+        [Test]
+        public async Task VerifyDisposalCancelsPendingNativeBackWithoutLeavingWorkspace()
+        {
+            var a = new Namespace { ElementId = "A" };
+            var b = new Namespace { ElementId = "B" };
+            var resolver = new Mock<IElementIdResolver>();
+            resolver.Setup(candidate => candidate.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => ValueTask.FromResult<IElement>(id == "A" ? a : b));
+            var navigation = new InspectionHistoryNavigationManager();
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A");
+            var context = new ContextAwareService { SelectedElement = a };
+            var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var js = new InspectionHistoryJsRuntime(() => { }) { PendingBack = pending.Task };
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, context, NullLogger<WorkspaceUrlContextService>.Instance, js);
+            using var restoration = service.Restorations.Subscribe(value => context.InspectedElement = value.InspectedElement);
+            service.Inspect(b);
+            var uri = navigation.Uri;
+            var back = service.GoBackAsync();
+
+            Assert.That(js.BackCancellation.CanBeCanceled, Is.True);
+            service.Dispose();
+            await back.WaitAsync(TimeSpan.FromSeconds(5));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(js.BackCancellation.IsCancellationRequested, Is.True);
+                Assert.That(navigation.Uri, Is.EqualTo(uri));
+                Assert.That(context.SelectedElement, Is.SameAs(a));
+                Assert.That(js.BackCalls, Is.EqualTo(1));
+            }
+        }
+
+        [TestCase(null)]
+        [TestCase("null")]
+        [TestCase("{}")]
+        public async Task VerifyAbsentHistoryMetadataRestoresEndpointsAndBackStaysInWorkspace(string entryState)
+        {
+            var a = new Namespace { ElementId = "A" };
+            var b = new Namespace { ElementId = "B" };
+            var resolver = new Mock<IElementIdResolver>();
+            resolver.Setup(candidate => candidate.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => ValueTask.FromResult<IElement>(id == "A" ? a : b));
+            var navigation = new InspectionHistoryNavigationManager();
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=B", new NavigationOptions { HistoryEntryState = entryState });
+            var context = new ContextAwareService();
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, context, NullLogger<WorkspaceUrlContextService>.Instance);
+            using var restoration = service.Restorations.Subscribe(value =>
+            {
+                context.SelectedElement = value.SelectedElement;
+                context.InspectedElement = value.InspectedElement;
+            });
+            Assert.That(context.InspectedElement, Is.SameAs(b));
+            await service.GoBackAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(a));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(navigation.Uri, Does.EndWith("/workspace/modeling?selectedElement=A"));
+            }
         }
 
         private sealed class InspectionHistoryJsRuntime(Action back) : IJSRuntime
         {
             public int BackCalls { get; private set; }
 
+            public CancellationToken BackCancellation { get; private set; }
+
+            public Task PendingBack { get; set; }
+
             public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object[] args)
             {
                 return this.InvokeAsync<TValue>(identifier, CancellationToken.None, args);
             }
 
-            public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object[] args)
+            public async ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object[] args)
             {
                 Assert.That(identifier, Is.EqualTo("history.back"));
                 this.BackCalls++;
+                this.BackCancellation = cancellationToken;
                 back();
-                return ValueTask.FromResult(default(TValue));
+
+                if (this.PendingBack is not null)
+                {
+                    await this.PendingBack.WaitAsync(cancellationToken);
+                }
+
+                return default;
             }
         }
 

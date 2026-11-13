@@ -88,24 +88,24 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 
             this.isCopying = true;
             this.copyStatus = null;
+            string status;
             try
             {
                 await this.JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", uri);
-                if (!this.isDisposed && this.ViewModel.Presentation?.Element.ElementId == element.ElementId)
-                {
-                    this.copyStatus = "Link copied";
-                }
+                status = "Link copied";
             }
             catch (Exception exception) when (exception is JSException or InvalidOperationException)
             {
-                if (!this.isDisposed && this.ViewModel.Presentation?.Element.ElementId == element.ElementId)
-                {
-                    this.copyStatus = "Unable to copy link";
-                }
+                status = "Unable to copy link";
             }
             finally
             {
                 this.isCopying = false;
+            }
+
+            if (!this.isDisposed && this.ViewModel.Presentation?.Element.ElementId == element.ElementId)
+            {
+                this.copyStatus = status;
             }
         }
 

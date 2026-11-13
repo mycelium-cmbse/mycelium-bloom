@@ -232,7 +232,7 @@ namespace Mycelium.Bloom.Core.Context
                 return;
             }
 
-            var trail = this.ReadTrailIds(this.navigationManager.Uri, this.navigationManager.HistoryEntryState,
+            var trail = ReadTrailIds(this.navigationManager.Uri, this.navigationManager.HistoryEntryState,
                 GetStableElementId(this.elementSelectionService.SelectedElement),
                 GetStableElementId(this.elementSelectionService.InspectedElement));
             var nextTrail = string.Equals(id, selectedId, StringComparison.Ordinal)
@@ -273,7 +273,11 @@ namespace Mycelium.Bloom.Core.Context
                 this.backPending = true;
                 try
                 {
-                    await this.jsRuntime.InvokeVoidAsync("history.back");
+                    await this.jsRuntime.InvokeVoidAsync("history.back", this.lifetimeCancellation.Token);
+                }
+                catch (OperationCanceledException) when (this.lifetimeCancellation.IsCancellationRequested)
+                {
+                    this.backPending = false;
                 }
                 catch
                 {
@@ -299,7 +303,7 @@ namespace Mycelium.Bloom.Core.Context
             try
             {
                 var state = JsonSerializer.Deserialize<InspectionHistory>(this.navigationManager.HistoryEntryState ?? "null");
-                if (state?.CurrentUri != this.navigationManager.Uri || string.IsNullOrEmpty(state.PreviousUri))
+                if (state is null || state.CurrentUri != this.navigationManager.Uri || string.IsNullOrEmpty(state.PreviousUri))
                 {
                     return null;
                 }
@@ -358,7 +362,7 @@ namespace Mycelium.Bloom.Core.Context
                 return;
             }
 
-            var trail = this.ReadTrailIds(source, state, GetStableElementId(this.elementSelectionService.SelectedElement),
+            var trail = ReadTrailIds(source, state, GetStableElementId(this.elementSelectionService.SelectedElement),
                 GetStableElementId(this.elementSelectionService.InspectedElement));
             if (index < 0 || index >= trail.Length - 1 || trail[index] != elementId)
             {
@@ -407,7 +411,7 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="selectedId">The canonical main selection identifier.</param>
         /// <param name="inspectedId">The distinct inspected identifier, or <see langword="null" />.</param>
         /// <returns>A validated bounded snapshot, falling back to the real URI endpoints.</returns>
-        private string[] ReadTrailIds(string location, string entryState, string selectedId, string inspectedId)
+        private static string[] ReadTrailIds(string location, string entryState, string selectedId, string inspectedId)
         {
             if (selectedId is null)
             {
@@ -422,7 +426,7 @@ namespace Mycelium.Bloom.Core.Context
             try
             {
                 var state = JsonSerializer.Deserialize<InspectionHistory>(entryState ?? "null");
-                if (state?.CurrentUri == location && state.Trail is { Length: >= 2 and <= MaximumTrailLength } ids
+                if (state is not null && state.CurrentUri == location && state.Trail is { Length: >= 2 and <= MaximumTrailLength } ids
                     && ids[0] == selectedId && ids[^1] == inspectedId && ids.All(id => !string.IsNullOrWhiteSpace(id)))
                 {
                     return ids;
@@ -443,7 +447,7 @@ namespace Mycelium.Bloom.Core.Context
         private async Task<WorkspaceUrlContextRestoration> ResolveTrailRestorationAsync(ParsedLocation location, CancellationToken cancellationToken)
         {
             var restoration = await this.ResolveRestorationAsync(location, cancellationToken);
-            var ids = this.ReadTrailIds(location.Location, location.EntryState,
+            var ids = ReadTrailIds(location.Location, location.EntryState,
                 GetStableElementId(restoration.SelectedElement), GetStableElementId(restoration.InspectedElement));
             var steps = new List<InspectionTrailStep>();
             foreach (var id in ids)
@@ -452,9 +456,19 @@ namespace Mycelium.Bloom.Core.Context
                 var label = id;
                 try
                 {
-                    element = id == GetStableElementId(restoration.SelectedElement) ? restoration.SelectedElement
-                        : id == GetStableElementId(restoration.InspectedElement) ? restoration.InspectedElement
-                        : await this.elementIdResolver.ResolveAsync(id, cancellationToken);
+                    if (id == GetStableElementId(restoration.SelectedElement))
+                    {
+                        element = restoration.SelectedElement;
+                    }
+                    else if (id == GetStableElementId(restoration.InspectedElement))
+                    {
+                        element = restoration.InspectedElement;
+                    }
+                    else
+                    {
+                        element = await this.elementIdResolver.ResolveAsync(id, cancellationToken);
+                    }
+
                     if (GetStableElementId(element) != id)
                     {
                         element = null;

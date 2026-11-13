@@ -125,9 +125,12 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             });
 
             await component.InvokeAsync(() => { });
-            Assert.That(this.context.SelectedElement, Is.SameAs(current));
-            Assert.That(navigation.Uri, Does.Contain("selectedElement=current&inspectedElement=reference"));
-            Assert.That(navigation.HistoryEntryState, Is.EqualTo("new entry"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.context.SelectedElement, Is.SameAs(current));
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=current&inspectedElement=reference"));
+                Assert.That(navigation.HistoryEntryState, Is.EqualTo("new entry"));
+            }
         }
 
         [Test]
@@ -138,13 +141,19 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             var details = component.FindComponent<DetailsPanelComponent>().Instance;
             Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(380));
             await component.InvokeAsync(() => details.MinimumWidthChanged.InvokeAsync(485));
-            Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(485));
-            Assert.That(shell.RightPanelWidth, Is.EqualTo(380));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(485));
+                Assert.That(shell.RightPanelWidth, Is.EqualTo(380));
+            }
             await component.InvokeAsync(() => details.MinimumWidthChanged.InvokeAsync(900));
             Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(600));
             await component.InvokeAsync(() => details.MinimumWidthChanged.InvokeAsync(380));
-            Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(380));
-            Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(details));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(380));
+                Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(details));
+            }
         }
 
         [Test]
@@ -560,15 +569,21 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             await component.InvokeAsync(() => urls.Inspect(new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A" }));
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(first));
-                Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(first));
+                    Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement"));
+                }
             });
             await component.InvokeAsync(() => urls.Inspect(second));
             await component.InvokeAsync(() => this.context.SelectedElement = third);
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(third));
-                Assert.That(navigation.Uri, Does.Contain("selectedElement=C%20value").And.Not.Contain("inspectedElement"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(third));
+                    Assert.That(navigation.Uri, Does.Contain("selectedElement=C%20value").And.Not.Contain("inspectedElement"));
+                }
             });
         }
 
@@ -595,17 +610,23 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             var panel = component.FindComponent<DetailsPanelComponent>();
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(this.context.SelectedElement, Is.SameAs(selected));
-                Assert.That(panel.Instance.ViewModel.Presentation.Element, Is.SameAs(valid ? inspected : selected));
-                Assert.That(this.context.InspectedElement, valid ? Is.SameAs(inspected) : Is.Null);
-                Assert.That(navigation.Uri, Does.Contain("selectedElement=A").And.Contain("mode=review").And.EndsWith("#target"));
-                Assert.That(QueryHelpers.ParseQuery(new Uri(navigation.Uri).Query).ContainsKey("inspectedElement"), Is.EqualTo(valid));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(panel.Instance.ViewModel.Presentation.Element, Is.SameAs(valid ? inspected : selected));
+                    Assert.That(this.context.InspectedElement, valid ? Is.SameAs(inspected) : Is.Null);
+                    Assert.That(navigation.Uri, Does.Contain("selectedElement=A").And.Contain("mode=review").And.EndsWith("#target"));
+                    Assert.That(QueryHelpers.ParseQuery(new Uri(navigation.Uri).Query).ContainsKey("inspectedElement"), Is.EqualTo(valid));
+                }
             });
             if (!valid)
             {
                 var history = ((BunitNavigationManager)navigation).History.First();
-                Assert.That(history.Options.ReplaceHistoryEntry, Is.True);
-                Assert.That(history.Options.ForceLoad, Is.False);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(history.Options.ReplaceHistoryEntry, Is.True);
+                    Assert.That(history.Options.ForceLoad, Is.False);
+                }
             }
 
             if (valid)
@@ -631,31 +652,40 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             var viewModel = instance.ViewModel;
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
-                Assert.That(panel.FindAll("button[aria-label='Go Back']"), Has.Count.EqualTo(1));
-                AssertActiveTab("Properties");
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
+                    Assert.That(panel.FindAll("button[aria-label='Go Back']"), Has.Count.EqualTo(1));
+                    AssertActiveTab("Properties");
+                }
             });
             await ChooseTab("Comments");
             var count = navigation.History.Count;
             await panel.Find("button[aria-label='Go Back']").ClickAsync();
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
-                Assert.That(this.context.SelectedElement, Is.SameAs(selected));
-                Assert.That(navigation.Uri, Does.EndWith("/workspace/modeling?selectedElement=A&mode=review#target"));
-                Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.True);
-                Assert.That(navigation.History, Has.Count.EqualTo(count));
-                Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
-                AssertActiveTab("Properties");
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(navigation.Uri, Does.EndWith("/workspace/modeling?selectedElement=A&mode=review#target"));
+                    Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.True);
+                    Assert.That(navigation.History, Has.Count.EqualTo(count));
+                    Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
+                    AssertActiveTab("Properties");
+                }
             });
             Assert.That(this.JSInterop.Invocations.Any(invocation => invocation.Identifier == "history.back"), Is.False);
             await ChooseTab("Attachments");
             navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=A&mode=other#fragment");
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement"));
-                Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
-                AssertActiveTab("Attachments");
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement"));
+                    Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
+                    AssertActiveTab("Attachments");
+                }
             });
 
             // Restore a distinct inspection into the already-mounted panel.
@@ -682,11 +712,14 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=B&mode=unrelated#new-fragment");
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
-                AssertActiveTab("Properties");
-                Assert.That(this.context.SelectedElement, Is.SameAs(selected));
-                Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(instance));
-                Assert.That(instance.ViewModel, Is.SameAs(viewModel));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
+                    AssertActiveTab("Properties");
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(instance));
+                    Assert.That(instance.ViewModel, Is.SameAs(viewModel));
+                }
             });
 
             Task ChooseTab(string tab) => panel.FindAll("[role='tab']").Single(element => element.TextContent == tab).ClickAsync();
@@ -708,33 +741,42 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             var viewModel = panel.Instance.ViewModel;
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(panel.Find("nav[aria-label='Inspection Trail'] [aria-current='step']").TextContent.Trim(), Is.EqualTo("D"));
-                Assert.That(panel.FindAll("nav[aria-label='Inspection Trail'] li"), Has.Count.EqualTo(2));
-                Assert.That(panel.Find("nav[aria-label='Inspection Trail']").ParentElement.TagName, Is.EqualTo("HEADER"));
-                Assert.That(panel.Find("header h2").ClassList, Does.Contain("sr-only"));
-                Assert.That(panel.Find("header").NextElementSibling.ClassList, Does.Contain("mb-properties-tabs"));
-                Assert.That(this.context.SelectedElement, Is.SameAs(a));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.Find("nav[aria-label='Inspection Trail'] [aria-current='step']").TextContent.Trim(), Is.EqualTo("D"));
+                    Assert.That(panel.FindAll("nav[aria-label='Inspection Trail'] li"), Has.Count.EqualTo(2));
+                    Assert.That(panel.Find("nav[aria-label='Inspection Trail']").ParentElement.TagName, Is.EqualTo("HEADER"));
+                    Assert.That(panel.Find("header h2").ClassList, Does.Contain("sr-only"));
+                    Assert.That(panel.Find("header").NextElementSibling.ClassList, Does.Contain("mb-properties-tabs"));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(a));
+                }
             });
             await panel.FindAll("[role='tab']").Single(tab => tab.TextContent == "Comments").ClickAsync();
             await panel.Find("nav[aria-label='Inspection Trail'] button[title='A']").ClickAsync();
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(panel.FindAll("nav[aria-label='Inspection Trail']"), Is.Empty);
-                Assert.That(panel.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
-                Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement").And.Contain("mode=review").And.EndsWith("#target"));
-                Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.False);
-                Assert.That(this.context.SelectedElement, Is.SameAs(a));
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(a));
-                Assert.That(panel.Instance.ViewModel, Is.SameAs(viewModel));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.FindAll("nav[aria-label='Inspection Trail']"), Is.Empty);
+                    Assert.That(panel.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                    Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement").And.Contain("mode=review").And.EndsWith("#target"));
+                    Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.False);
+                    Assert.That(this.context.SelectedElement, Is.SameAs(a));
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(a));
+                    Assert.That(panel.Instance.ViewModel, Is.SameAs(viewModel));
+                }
             });
             navigation.NavigateTo(direct);
             await component.WaitForAssertionAsync(() => Assert.That(panel.FindAll("nav[aria-label='Inspection Trail'] li"), Has.Count.EqualTo(2)));
             await component.InvokeAsync(() => this.context.SelectedElement = d);
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(panel.FindAll("nav[aria-label='Inspection Trail']"), Is.Empty);
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(d));
-                Assert.That(navigation.Uri, Does.Contain("selectedElement=D").And.Not.Contain("inspectedElement"));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.FindAll("nav[aria-label='Inspection Trail']"), Is.Empty);
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(d));
+                    Assert.That(navigation.Uri, Does.Contain("selectedElement=D").And.Not.Contain("inspectedElement"));
+                }
             });
         }
 

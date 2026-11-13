@@ -29,6 +29,8 @@
     font-size: var(--text-14);
     font-weight: 600;
     line-height: var(--spacing-17);
+    min-width: 0;
+    white-space: nowrap;
 }
 
 .mb-details-panel ::deep :is(.mb-properties-close, .mb-properties-copy) {
@@ -170,7 +172,6 @@
     .mb-details-panel__leading-control--changed { animation: none; }
 }
 
-.mb-details-panel__title { min-width: 0; white-space: nowrap; }
 .mb-details-panel ::deep :is(.mb-properties-close, .mb-properties-copy)::before {
     content: "";
     position: absolute;

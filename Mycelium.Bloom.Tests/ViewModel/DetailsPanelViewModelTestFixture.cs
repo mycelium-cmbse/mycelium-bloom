@@ -31,10 +31,13 @@ namespace Mycelium.Bloom.Tests.ViewModel
             viewModel.Inspect(reference);
             viewModel.Inspect(new Namespace { ElementId = selected.ElementId });
 
-            Assert.That(context.SelectedElement, Is.SameAs(selected));
-            Assert.That(context.InspectedElement, Is.Null);
-            Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
-            Assert.That(viewModel.IsInspecting, Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(selected));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+                Assert.That(viewModel.IsInspecting, Is.False);
+            }
         }
 
         [TestCase(null)]
@@ -47,9 +50,12 @@ namespace Mycelium.Bloom.Tests.ViewModel
             using var viewModel = new DetailsPanelViewModel(context);
             viewModel.Inspect(new Namespace { ElementId = elementId });
 
-            Assert.That(context.SelectedElement, Is.SameAs(selected));
-            Assert.That(context.InspectedElement, Is.Null);
-            Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(context.SelectedElement, Is.SameAs(selected));
+                Assert.That(context.InspectedElement, Is.Null);
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+            }
         }
 
         [Test]

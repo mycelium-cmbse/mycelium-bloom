@@ -106,8 +106,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             }
 
             await component.Find("button[aria-label='Inspect Value expression: mRef.dimensions']").ClickAsync();
-            Assert.That(this.selection.SelectedElement, Is.SameAs(element));
-            Assert.That(this.selection.InspectedElement, Is.SameAs(expression));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.selection.SelectedElement, Is.SameAs(element));
+                Assert.That(this.selection.InspectedElement, Is.SameAs(expression));
+            }
         }
 
         [Test]
@@ -142,18 +145,24 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.DetailsPanel
             await component.Find("button[aria-label='Inspect Typed by: Target']").ClickAsync();
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(target));
-                Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
-                Assert.That(this.selection.SelectedElement, Is.SameAs(selected));
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(target));
+                    Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                    Assert.That(this.selection.SelectedElement, Is.SameAs(selected));
+                }
             });
             await component.FindAll("[role='tab']").Single(tab => tab.TextContent == "Comments").ClickAsync();
             var next = new PartUsage { ElementId = "C", DeclaredName = "Next" };
             await component.InvokeAsync(() => this.selection.SelectedElement = next);
             await component.WaitForAssertionAsync(() =>
             {
-                Assert.That(viewModel.Presentation.Element, Is.SameAs(next));
-                Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
-                Assert.That(this.selection.InspectedElement, Is.Null);
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(next));
+                    Assert.That(component.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                    Assert.That(this.selection.InspectedElement, Is.Null);
+                }
             });
             Assert.That(component.Instance, Is.SameAs(instance));
             Assert.That(component.Instance.ViewModel, Is.SameAs(viewModel));

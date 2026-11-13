@@ -68,7 +68,9 @@ export function observeTrail(root, callback) {
     observers.set(root, { report, disconnect() { active = false; observer.disconnect(); } });
     observer.observe(root);
     observer.observe(header);
-    document.fonts?.ready.then(report);
+    document.fonts?.ready.then(report).catch(() => {
+        // Initial measurement and ResizeObserver remain available if font readiness fails.
+    });
     report();
 }
 
