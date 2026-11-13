@@ -83,6 +83,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Organization
                 Assert.That(page.FindAll("[role=status]"), Has.Count.EqualTo(isBusy ? 1 : 0));
                 Assert.That(page.FindComponents<BbEmpty>(), Has.Count.EqualTo(projectCount == 0 && !isBusy && !hasFailed ? 1 : 0));
                 Assert.That(page.FindAll("tbody tr"), Has.Count.EqualTo(isBusy || hasFailed ? 0 : projectCount));
+                Assert.That(page.FindAll("tbody a[href^='/workspace/modeling?project=']"), Has.Count.EqualTo(isBusy || hasFailed ? 0 : 2 * projectCount));
                 Assert.That(page.FindAll("tbody tr"), Has.All.Property("TextContent").Contains("2 days ago"));
             }
         }

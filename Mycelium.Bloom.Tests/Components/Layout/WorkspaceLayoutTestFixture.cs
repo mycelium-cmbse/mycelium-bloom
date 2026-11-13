@@ -39,6 +39,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.NavigationRail;
+    using Mycelium.Bloom.ViewModel.Workspace;
     using Mycelium.SDK;
 
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
@@ -76,6 +77,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                     this.elementIdResolver.Object,
                     this.context,
                     NullLogger<WorkspaceUrlContextService>.Instance));
+            this.Services.AddScoped<Func<IWorkspaceBreadcrumbViewModel>>(_ => () => new Mock<IWorkspaceBreadcrumbViewModel>().Object);
             this.Services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
             this.Services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
                 () =>
