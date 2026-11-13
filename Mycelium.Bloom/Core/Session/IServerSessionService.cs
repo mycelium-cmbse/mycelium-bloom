@@ -11,6 +11,8 @@ namespace Mycelium.Bloom.Core.Session
 {
     using ErrorOr;
 
+    using SysML2.NET.PSM.DTO;
+
     /// <summary>
     /// Holds the connection of the current user to a server that implements the OMG Systems Modeling API and Services, one per
     /// circuit, so that every page of the user works against the same server.
@@ -30,5 +32,13 @@ namespace Mycelium.Bloom.Core.Session
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>Success, or an <see cref="ErrorCodes.Unavailable" /> error when the server does not answer as the API expects.</returns>
         Task<ErrorOr<Success>> OpenAsync(Uri serverAddress, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Reads every project of the server of the open connection, page after page, in the order the server returns them. A
+        /// list whose pages repeat or never end is refused as a server that does not answer as the API expects.
+        /// </summary>
+        /// <param name="cancellationToken">The token that cancels the request.</param>
+        /// <returns>The projects, or an <see cref="ErrorCodes.Unavailable" /> error when no connection is open or the server does not answer as the API expects.</returns>
+        Task<ErrorOr<IReadOnlyList<Project>>> GetProjectsAsync(CancellationToken cancellationToken);
     }
 }

@@ -1,0 +1,82 @@
+.mb-home {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-32);
+    min-width: 0;
+}
+
+.mb-home__title {
+    margin: 0;
+    color: var(--foreground);
+    font: var(--typography-typography-heading-xs);
+}
+
+.mb-home__title:focus {
+    outline: none;
+}
+
+.mb-home__error {
+    margin: 0;
+    color: var(--foreground);
+    font: var(--typography-typography-body-md);
+}
+
+.mb-home__loading {
+    height: var(--spacing-240);
+}
+
+.mb-home__name {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    min-width: 0;
+}
+
+.mb-home__name-text {
+    color: var(--foreground);
+    font: var(--typography-typography-ui-medium-13);
+}
+
+.mb-home__description {
+    overflow: hidden;
+    color: var(--muted-foreground);
+    font: var(--typography-typography-ui-regular-11);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-home__created {
+    color: var(--muted-foreground);
+    font: var(--typography-typography-ui-regular-12);
+}
+
+.mb-home ::deep .mb-home__table div:has(> table) {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-8);
+    background: var(--card);
+}
+
+.mb-home ::deep .mb-home__table thead {
+    background: var(--muted);
+}
+
+.mb-home ::deep .mb-home__table tr {
+    border-color: var(--border);
+}
+
+.mb-home ::deep .mb-home__table th {
+    height: var(--spacing-40);
+    padding-inline: var(--spacing-20);
+    color: var(--muted-foreground);
+    font-size: var(--text-11);
+    font-weight: var(--font-weight-heading-md);
+    text-transform: uppercase;
+}
+
+.mb-home ::deep .mb-home__table td {
+    height: var(--spacing-60);
+    padding-block: var(--spacing-14);
+    padding-inline: var(--spacing-20);
+    vertical-align: middle;
+}

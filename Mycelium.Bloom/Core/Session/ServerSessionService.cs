@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.Core.Session
 
     using ErrorOr;
 
+    using SysML2.NET.PSM;
     using SysML2.NET.REST.Exceptions;
 
     using SySML2.NET.REST;
@@ -24,6 +25,11 @@ namespace Mycelium.Bloom.Core.Session
     /// </summary>
     public sealed partial class ServerSessionService : IServerSessionService
     {
+        /// <summary>
+        /// The most pages read for one list, so that a server that never ends its list does not hold the page or its memory.
+        /// </summary>
+        private const int MaximumPageCount = 1000;
+
         /// <summary>
         /// The time a server has to answer before the attempt fails, so that a server that never answers does not hold the page.
         /// </summary>
@@ -79,17 +85,11 @@ namespace Mycelium.Bloom.Core.Session
 
             this.ServerAddress = null;
 
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(ConnectionTimeout);
+            var opened = await this.RequestAsync(token => this.session.Open(serverAddress, token), cancellationToken);
 
-            try
+            if (opened.IsError)
             {
-                await this.session.Open(serverAddress, timeout.Token);
-            }
-            catch (Exception exception) when (exception is HttpRequestException or PsmApiException or JsonException or NotSupportedException || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested))
-            {
-                this.LogConnectionFailure(exception);
-                return ServerUnavailable;
+                return opened.Errors;
             }
 
             this.ServerAddress = serverAddress;
@@ -97,10 +97,76 @@ namespace Mycelium.Bloom.Core.Session
         }
 
         /// <summary>
-        /// Logs a connection that failed, with a message that names no address.
+        /// Reads every project of the server of the open connection, page after page, in the order the server returns them. A
+        /// list whose pages repeat or never end is refused as a server that does not answer as the API expects.
+        /// </summary>
+        /// <param name="cancellationToken">The token that cancels the request.</param>
+        /// <returns>The projects, or an <see cref="ErrorCodes.Unavailable" /> error when no connection is open or the server does not answer as the API expects.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
+        public async Task<ErrorOr<IReadOnlyList<Project>>> GetProjectsAsync(CancellationToken cancellationToken)
+        {
+            if (this.ServerAddress is null || this.session.Client is not { } client)
+            {
+                return ServerUnavailable;
+            }
+
+            var projects = new List<Project>();
+            var readCursors = new HashSet<string>();
+            Page? next = null;
+
+            do
+            {
+                var parameters = new QueryParameters { PageAfter = next };
+                var page = await this.RequestAsync(token => client.GetProjectsAsync(parameters, token), cancellationToken);
+
+                if (page.IsError)
+                {
+                    return page.Errors;
+                }
+
+                projects.AddRange(page.Value.Records);
+                next = page.Value.Next;
+
+                if (next is { } cursor && (!readCursors.Add(cursor.Token) || readCursors.Count > MaximumPageCount))
+                {
+                    return ServerUnavailable;
+                }
+            }
+            while (next is not null);
+
+            return projects;
+        }
+
+        /// <summary>
+        /// Sends one request to the server with its own time limit, and turns a server that cannot be reached or does not answer as
+        /// the API expects into an <see cref="ErrorCodes.Unavailable" /> error.
+        /// </summary>
+        /// <typeparam name="T">The type of the answer.</typeparam>
+        /// <param name="request">The request, given the token that cancels it.</param>
+        /// <param name="cancellationToken">The token that cancels the request.</param>
+        /// <returns>The answer, or the <see cref="ErrorCodes.Unavailable" /> error.</returns>
+        /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
+        private async Task<ErrorOr<T>> RequestAsync<T>(Func<CancellationToken, Task<T>> request, CancellationToken cancellationToken)
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(ConnectionTimeout);
+
+            try
+            {
+                return await request(timeout.Token);
+            }
+            catch (Exception exception) when (exception is HttpRequestException or PsmApiException or JsonException or NotSupportedException || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested))
+            {
+                this.LogRequestFailure(exception);
+                return ServerUnavailable;
+            }
+        }
+
+        /// <summary>
+        /// Logs a request that failed, with a message that names no address.
         /// </summary>
         /// <param name="exception">The failure.</param>
-        [LoggerMessage(Level = LogLevel.Warning, Message = "The connection to the model server failed.")]
-        private partial void LogConnectionFailure(Exception exception);
+        [LoggerMessage(Level = LogLevel.Warning, Message = "A request to the model server failed.")]
+        private partial void LogRequestFailure(Exception exception);
     }
 }

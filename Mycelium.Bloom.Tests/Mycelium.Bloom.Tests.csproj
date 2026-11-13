@@ -44,6 +44,7 @@
 
     <ItemGroup>
         <Using Include="NUnit.Framework"/>
+        <Using Include="SysML2.NET.PSM.DTO.Project" Alias="Project"/>
     </ItemGroup>
 
     <ItemGroup>
