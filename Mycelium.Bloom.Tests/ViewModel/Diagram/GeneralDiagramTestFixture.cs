@@ -166,7 +166,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.HasOmittedContent, Is.EqualTo(!includeTarget));
-                Assert.That(projection.Edges.Length, Is.EqualTo(includeTarget ? 1 : 0));
+                Assert.That(projection.Edges, Has.Length.EqualTo(includeTarget ? 1 : 0));
             }
         }
 
@@ -185,7 +185,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 // Namespace ownership itself is not drawn, even when all member nodes are present.
                 Assert.That(projection.HasOmittedContent, Is.True);
                 Assert.That(projection.Edges, Is.Empty);
-                Assert.That(projection.Nodes.Length, Is.EqualTo(includeNestedMember ? 3 : 2));
+                Assert.That(projection.Nodes, Has.Length.EqualTo(includeNestedMember ? 3 : 2));
             }
         }
 
@@ -256,6 +256,52 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             {
                 Assert.That(projection.Edges, Is.Empty);
                 Assert.That(projection.HasOmittedContent, Is.True);
+            }
+        }
+
+        [Test]
+        public void VerifyViewportPreservesAdjacentValuesWithoutRedundantNativeNotifications()
+        {
+            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
+            owner.SetViewport(12, 34, 1.5);
+            using var renderer = new GeneralDiagramRenderer(owner);
+            var panNotifications = 0;
+            var zoomNotifications = 0;
+            renderer.Diagram.PanChanged += () => panNotifications++;
+            renderer.Diagram.ZoomChanged += () => zoomNotifications++;
+            var panX = Math.BitIncrement(12);
+            var panY = Math.BitDecrement(34);
+            var zoom = Math.BitIncrement(1.5);
+
+            owner.SetViewport(panX, panY, zoom);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(renderer.Diagram.Pan.X, Is.EqualTo(panX));
+                Assert.That(renderer.Diagram.Pan.Y, Is.EqualTo(panY));
+                Assert.That(renderer.Diagram.Zoom, Is.EqualTo(zoom));
+                Assert.That(owner.Viewport, Is.EqualTo(new DiagramViewport(panX, panY, zoom, true)));
+                Assert.That(panNotifications, Is.EqualTo(1));
+                Assert.That(zoomNotifications, Is.EqualTo(1));
+            }
+
+            owner.SetViewport(panX, panY, Math.BitIncrement(zoom));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(renderer.Diagram.Zoom, Is.EqualTo(Math.BitIncrement(zoom)));
+                Assert.That(panNotifications, Is.EqualTo(1));
+                Assert.That(zoomNotifications, Is.EqualTo(2));
+            }
+
+            owner.SetViewport(Math.BitIncrement(panX), Math.BitDecrement(panY), Math.BitIncrement(zoom));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(renderer.Diagram.Pan.X, Is.EqualTo(Math.BitIncrement(panX)));
+                Assert.That(renderer.Diagram.Pan.Y, Is.EqualTo(Math.BitDecrement(panY)));
+                Assert.That(panNotifications, Is.EqualTo(2));
+                Assert.That(zoomNotifications, Is.EqualTo(2));
             }
         }
 
