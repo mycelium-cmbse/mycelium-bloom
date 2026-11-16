@@ -76,6 +76,22 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             var source = candidates.Take(maximumElements).Where(element => element is not null).ToArray();
             var nodes = source.Where(element => element is IDefinition || element is not IRelationship and not IConnector).Select((element, index) => this.Node(element,
                 index, referenceSite)).ToImmutableArray();
+            var lookup = CreateOccurrenceLookup(nodes);
+            var edges = ImmutableArray.CreateBuilder<DiagramEdgePresentation>();
+            var relationships = source.OfType<IRelationship>().Concat(source.SelectMany(element => element.OwnedRelationship))
+                .Distinct<IRelationship>(ReferenceEqualityComparer.Instance);
+            omitted = ProjectConnectors(omitted, source, lookup, edges);
+            omitted = ProjectRelationships(omitted, relationships, source, lookup, edges);
+            omitted = ProjectAnnotations(omitted, source.OfType<IComment>(), lookup, edges);
+
+            return new(nodes, edges.ToImmutable(), name, omitted);
+        }
+
+        /// <summary>Registers canonical node and boundary references while preserving standalone occurrence precedence.</summary>
+        /// <param name="nodes">The typed occurrences in projection order.</param>
+        /// <returns>The canonical-reference lookup used by relationship and annotation endpoints.</returns>
+        private static Dictionary<IElement, Guid> CreateOccurrenceLookup(ImmutableArray<DiagramNodePresentation> nodes)
+        {
             var lookup = new Dictionary<IElement, Guid>(ReferenceEqualityComparer.Instance);
 
             foreach (var occurrence in nodes.Select(node => node.Occurrence))
@@ -83,21 +99,27 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 lookup.Add(occurrence.Element, occurrence.Id);
             }
 
-            foreach (var node in nodes)
+            foreach (var shell in nodes.OfType<DiagramShellPresentation>())
             {
-                foreach (var boundary in node is DiagramShellPresentation shell ? shell.Boundary : [])
+                foreach (var boundary in shell.Boundary)
                 {
-                    lookup.TryAdd(boundary.Element, node.Occurrence.Id);
+                    lookup.TryAdd(boundary.Element, shell.Occurrence.Id);
                 }
             }
 
-            var edges = ImmutableArray.CreateBuilder<DiagramEdgePresentation>();
-            var relationships = source.OfType<IRelationship>().Concat(source.SelectMany(element => element.OwnedRelationship))
-                .Distinct<IRelationship>(ReferenceEqualityComparer.Instance);
-            omitted = ProjectConnectors(omitted, source, lookup, edges);
-            omitted = ProjectRelationships(omitted, relationships, source, lookup, edges);
+            return lookup;
+        }
 
-            foreach (var comment in source.OfType<IComment>())
+        /// <summary>Projects represented annotation targets and retains explicit omission state.</summary>
+        /// <param name="omitted">Whether requested content is already known to be omitted.</param>
+        /// <param name="comments">The canonical comments in projection order.</param>
+        /// <param name="lookup">The canonical-reference mapping to node occurrences.</param>
+        /// <param name="edges">The builder receiving supported annotation edges.</param>
+        /// <returns>Whether any requested content remains omitted.</returns>
+        private static bool ProjectAnnotations(bool omitted, IEnumerable<IComment> comments, Dictionary<IElement, Guid> lookup,
+            ImmutableArray<DiagramEdgePresentation>.Builder edges)
+        {
+            foreach (var comment in comments)
             {
                 foreach (var target in comment.annotatedElement)
                 {
@@ -112,7 +134,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 }
             }
 
-            return new(nodes, edges.ToImmutable(), name, omitted);
+            return omitted;
         }
 
         /// <summary>Projects supported binary relationships and reports omitted or unavailable endpoints.</summary>

@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.ViewModel.Diagram
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
 
     using Blazor.Diagrams.Core.Geometry;
@@ -716,6 +717,78 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(projection.Edges.Any(edge => edge.SourceMarker == DiagramMarker.HollowDiamond), Is.True);
                 Assert.That(projection.Edges.Any(edge => edge.Kind == DiagramRelationshipKind.Annotation), Is.True);
                 Assert.That(projection.Edges.Any(edge => edge.Kind == DiagramRelationshipKind.Definition), Is.True);
+            }
+        }
+
+        [Test]
+        public void VerifyExampleLayoutPreservesProjectedIdentitiesAndNestedCanonicalReferences()
+        {
+            var actualProjector = DiagramTestFactory.CreateProjector();
+            var projector = new Mock<IGeneralViewProjector>(MockBehavior.Strict);
+            GeneralViewProjection source = null;
+            GeneralViewProjection nested = null;
+            projector.Setup(value => value.Create(It.IsAny<IEnumerable<IElement>>(), It.IsAny<string>(), It.IsAny<bool>()))
+                .Returns((IEnumerable<IElement> elements, string name, bool omitted) =>
+                {
+                    var projection = actualProjector.Create(elements, name, omitted);
+
+                    if (name == "FuelContext")
+                    {
+                        nested = projection;
+                    }
+                    else
+                    {
+                        source = projection;
+                    }
+
+                    return projection;
+                });
+
+            var result = GeneralViewExample.Create(projector.Object);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(source, Is.Not.Null);
+                Assert.That(nested, Is.Not.Null);
+            }
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(nested.Nodes, Has.Length.EqualTo(1));
+                Assert.That(result.Nodes, Has.Length.EqualTo(source.Nodes.Length));
+                Assert.That(result.Edges, Has.Length.EqualTo(source.Edges.Length));
+                Assert.That(result.ViewName, Is.EqualTo(source.ViewName));
+                Assert.That(result.HasOmittedContent, Is.EqualTo(source.HasOmittedContent));
+            }
+
+            foreach (var (before, after) in source.Nodes.Zip(result.Nodes))
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(after.GetType(), Is.EqualTo(before.GetType()));
+                    Assert.That(after.Occurrence.Id, Is.EqualTo(before.Occurrence.Id));
+                    Assert.That(after.Occurrence.Element, Is.SameAs(before.Occurrence.Element));
+                    Assert.That(after.Name, Is.SameAs(before.Name));
+                }
+            }
+
+            foreach (var (before, after) in source.Edges.Zip(result.Edges))
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(after, Is.EqualTo(before with { Bends = after.Bends }));
+                    Assert.That(after.Element, Is.SameAs(before.Element));
+                }
+            }
+
+            var view = result.Nodes.OfType<DiagramShellPresentation>().Single(node => node.Occurrence.Element.ElementId == "example-view");
+            var item = result.Nodes.Single(node => node.Occurrence.Element.ElementId == "example-item");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(view.NestedView, Is.SameAs(nested));
+                Assert.That(nested.Nodes[0].Occurrence.Element, Is.SameAs(item.Occurrence.Element));
+                Assert.That(nested.Nodes[0].Occurrence.Id, Is.Not.EqualTo(item.Occurrence.Id));
             }
         }
 

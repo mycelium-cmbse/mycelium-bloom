@@ -167,7 +167,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 ["example-comment"] = (800, 820),
                 ["example-view"] = (1200, 820)
             };
-            var nodes = LayoutNodes(projection, placements, vehicleDefinition, view, attribute, part, item, projector);
+            var layout = new ExampleLayoutContext(vehicleDefinition, view, attribute, part, item, projector);
+            var nodes = LayoutNodes(projection, placements, layout);
             var edges = projection.Edges.Select(edge => edge with
             {
                 Bends = edge.Kind switch
@@ -188,57 +189,87 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Applies authored example placements and slot contents to the canonical projection.</summary>
         /// <param name="projection">The immutable projected notation.</param>
         /// <param name="placements">The authored example coordinates keyed by example element identity.</param>
-        /// <param name="vehicleDefinition">The canonical example definition shown with compact geometry.</param>
-        /// <param name="view">The canonical example view containing nested graphical content.</param>
-        /// <param name="attribute">The canonical example attribute shown as a compact standalone occurrence.</param>
-        /// <param name="part">The canonical example part with a truncated attribute compartment.</param>
-        /// <param name="item">The canonical example item repeated in a nested view.</param>
-        /// <param name="projector">The registered general-view projection service.</param>
+        /// <param name="context">The borrowed canonical elements and projector used by the example layout.</param>
         /// <returns>The example occurrences retaining the original canonical references.</returns>
         private static ImmutableArray<DiagramNodePresentation> LayoutNodes(GeneralViewProjection projection, Dictionary<string, (double X, double Y)> placements,
-            PartDefinition vehicleDefinition, ViewUsage view, AttributeUsage attribute, PartUsage part, ItemUsage item, IGeneralViewProjector projector)
+            ExampleLayoutContext context)
         {
-            var nodes = projection.Nodes.Select(node =>
-            {
-                var position = placements[node.Occurrence.Element.ElementId];
-                var shell = node as DiagramShellPresentation;
-                var boundary = (shell?.Boundary ?? []).Select(feature => feature with
-                {
-                    Side = feature.Element.ElementId switch
-                    {
-                        "example-port" => BoundarySide.Left,
-                        "example-output" => BoundarySide.Right,
-                        "example-top" => BoundarySide.Top,
-                        "example-bottom" => BoundarySide.Bottom,
-                        _ => BoundarySide.Left
-                    },
-                    Offset = feature.Element.ElementId == "example-counter" ? 0.8 : 0.5
-                }).ToImmutableArray();
-                var element = node.Occurrence.Element;
-                var height = element switch
-                {
-                    _ when ReferenceEquals(element, vehicleDefinition) => 140,
-                    _ when ReferenceEquals(element, view) => 260,
-                    _ when ReferenceEquals(element, attribute) => 120,
-                    ConnectionDefinition => 120,
-                    _ => 180
-                };
-
-                var occurrence = node.Occurrence with { X = position.X, Y = position.Y, Width = ReferenceEquals(element, vehicleDefinition) ? 160 : 240, Height = height };
-
-                return shell is null ? node with { Occurrence = occurrence } : shell with
-                {
-                    Occurrence = occurrence,
-                    Boundary = boundary,
-                    Compartments = node.Occurrence.Element == part
-                        ? [shell.Compartments[0] with { Rows = shell.Compartments[0].Rows.Take(1).ToImmutableArray(), IsTruncated = true }]
-                        : shell.Compartments,
-                    NestedView = node.Occurrence.Element == view ? projector.Create([item], "FuelContext") : null
-                };
-            }).ToImmutableArray();
-
-            return nodes;
+            return projection.Nodes.Select(node => LayoutNode(node, placements[node.Occurrence.Element.ElementId], context)).ToImmutableArray();
         }
+
+        /// <summary>Applies authored geometry and slot contents to one typed occurrence.</summary>
+        /// <param name="node">The immutable projected notation.</param>
+        /// <param name="position">The authored model-space coordinates.</param>
+        /// <param name="context">The borrowed canonical elements and projector used by the example layout.</param>
+        /// <returns>The same notation type and occurrence identity with the authored layout.</returns>
+        private static DiagramNodePresentation LayoutNode(DiagramNodePresentation node, (double X, double Y) position, ExampleLayoutContext context)
+        {
+            var element = node.Occurrence.Element;
+            var occurrence = node.Occurrence with
+            {
+                X = position.X,
+                Y = position.Y,
+                Width = ReferenceEquals(element, context.VehicleDefinition) ? 160 : 240,
+                Height = GetNodeHeight(element, context)
+            };
+
+            if (node is not DiagramShellPresentation shell)
+            {
+                return node with { Occurrence = occurrence };
+            }
+
+            var boundary = shell.Boundary.Select(LayoutBoundaryFeature).ToImmutableArray();
+            var compartments = shell.Compartments;
+
+            if (ReferenceEquals(element, context.Part))
+            {
+                compartments = [shell.Compartments[0] with { Rows = shell.Compartments[0].Rows.Take(1).ToImmutableArray(), IsTruncated = true }];
+            }
+
+            GeneralViewProjection nestedView = null;
+
+            if (ReferenceEquals(element, context.View))
+            {
+                nestedView = context.Projector.Create([context.Item], "FuelContext");
+            }
+
+            return shell with
+            {
+                Occurrence = occurrence,
+                Boundary = boundary,
+                Compartments = compartments,
+                NestedView = nestedView
+            };
+        }
+
+        /// <summary>Selects the authored height for a canonical example element.</summary>
+        /// <param name="element">The borrowed canonical element.</param>
+        /// <param name="context">The canonical references distinguishing compact example nodes.</param>
+        /// <returns>The authored height in model-space units.</returns>
+        private static int GetNodeHeight(IElement element, ExampleLayoutContext context) => element switch
+        {
+            _ when ReferenceEquals(element, context.VehicleDefinition) => 140,
+            _ when ReferenceEquals(element, context.View) => 260,
+            _ when ReferenceEquals(element, context.Attribute) => 120,
+            ConnectionDefinition => 120,
+            _ => 180
+        };
+
+        /// <summary>Applies the authored side and offset to one example boundary feature.</summary>
+        /// <param name="feature">The immutable feature notation retaining its canonical element.</param>
+        /// <returns>The same canonical feature at its authored boundary position.</returns>
+        private static DiagramBoundaryPresentation LayoutBoundaryFeature(DiagramBoundaryPresentation feature) => feature with
+        {
+            Side = feature.Element.ElementId switch
+            {
+                "example-port" => BoundarySide.Left,
+                "example-output" => BoundarySide.Right,
+                "example-top" => BoundarySide.Top,
+                "example-bottom" => BoundarySide.Bottom,
+                _ => BoundarySide.Left
+            },
+            Offset = feature.Element.ElementId == "example-counter" ? 0.8 : 0.5
+        };
 
         /// <summary>Authors one canonical example connector end and its multiplicity.</summary>
         /// <param name="connector">The canonical connector being authored for this example.</param>
@@ -281,5 +312,15 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 owner.AssignOwnership(relationship, child);
             }
         }
+
+        /// <summary>Groups borrowed canonical references and projection services for the authored example layout.</summary>
+        /// <param name="VehicleDefinition">The definition shown with compact geometry.</param>
+        /// <param name="View">The canonical view containing nested graphical content.</param>
+        /// <param name="Attribute">The attribute shown as a compact standalone occurrence.</param>
+        /// <param name="Part">The part with a truncated attribute compartment.</param>
+        /// <param name="Item">The item repeated in the nested view.</param>
+        /// <param name="Projector">The borrowed service creating nested projections.</param>
+        private sealed record ExampleLayoutContext(PartDefinition VehicleDefinition, ViewUsage View, AttributeUsage Attribute, PartUsage Part, ItemUsage Item,
+            IGeneralViewProjector Projector);
     }
 }
