@@ -14,43 +14,7 @@
      @onclick="this.Select" @onclick:stopPropagation="true" role="group" aria-label="@this.ViewModel.Presentation.Name.Declaration">
     <button type="button" class="mb-diagram-node-select" aria-label="@this.ViewModel.Presentation.Name.Declaration"
             aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true"></button>
-    @if (this.ViewModel.Presentation.Kind == DiagramNodeKind.Package)
-    {
-        <DiagramPackageNode Name="@this.ViewModel.Presentation.Name.Declaration" />
-    }
-    else if (this.ViewModel.Presentation.Kind == DiagramNodeKind.Comment)
-    {
-        <DiagramCommentNode Body="@this.ViewModel.Presentation.Body" />
-    }
-    else
-    {
-        <DiagramNodeShell Kind="this.ViewModel.Presentation.Kind">
-            <Name><DiagramNameCompartment Presentation="this.ViewModel.Presentation.Name" /></Name>
-            <NestedView>
-                @if (this.ViewModel.Presentation.NestedView is { } nested)
-                {
-                    <GeneralDiagram ViewModel="this.ViewModel.GetNestedView(nested)" IsNested="true" />
-                }
-            </NestedView>
-            <Compartments>
-                @foreach (var compartment in this.ViewModel.Presentation.Compartments)
-                {
-                    @if (compartment.GraphicalView is { } graphical)
-                    {
-                        <DiagramCompartment Presentation="compartment">
-                            <GraphicalView><GeneralDiagram ViewModel="this.ViewModel.GetNestedView(graphical)" IsNested="true" /></GraphicalView>
-                        </DiagramCompartment>
-                    }
-                    else
-                    {
-                        <DiagramCompartment Presentation="compartment" />
-                    }
-                }
-            </Compartments>
-            <LeftBoundary>@this.BoundaryFeatures(BoundarySide.Left)</LeftBoundary>
-            <RightBoundary>@this.BoundaryFeatures(BoundarySide.Right)</RightBoundary>
-            <TopBoundary>@this.BoundaryFeatures(BoundarySide.Top)</TopBoundary>
-            <BottomBoundary>@this.BoundaryFeatures(BoundarySide.Bottom)</BottomBoundary>
-        </DiagramNodeShell>
-    }
+    <CascadingValue Value="this.ViewModel">
+        <DynamicComponent Type="@this.Components.GetComponentType(this.ViewModel.Presentation.GetType())" Parameters="@this.GetComponentParameters()" />
+    </CascadingValue>
 </div>

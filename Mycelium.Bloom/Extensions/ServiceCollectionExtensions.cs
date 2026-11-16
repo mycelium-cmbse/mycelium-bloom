@@ -15,12 +15,16 @@ namespace Mycelium.Bloom.Extensions
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
 
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -108,6 +112,8 @@ namespace Mycelium.Bloom.Extensions
             {
                 ArgumentNullException.ThrowIfNull(services);
 
+                services.AddDiagramServices();
+
                 services.AddScoped<IAssembler, Assembler>();
                 services.AddScoped<IDeSerializer, DeSerializer>();
                 services.AddScoped<IModelLoaderService, ModelLoaderService>();
@@ -128,6 +134,26 @@ namespace Mycelium.Bloom.Extensions
                     () => ActivatorUtilities.CreateInstance<WorkspaceUrlContextService>(serviceProvider));
                 services.AddScoped<Func<IWorkspaceEditorViewModel>>(serviceProvider =>
                     () => ActivatorUtilities.CreateInstance<WorkspaceEditorViewModel>(serviceProvider));
+
+                return services;
+            }
+
+            /// <summary>Registers extensible diagram projection, typed rendering and caller-owned ViewModel factories.</summary>
+            /// <returns>The supplied service collection.</returns>
+            /// <exception cref="ArgumentNullException">The service collection is null.</exception>
+            public IServiceCollection AddDiagramServices()
+            {
+                ArgumentNullException.ThrowIfNull(services);
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IDiagramNodeFactory, PackageDiagramNodeFactory>());
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IDiagramNodeFactory, CommentDiagramNodeFactory>());
+                services.TryAddEnumerable(ServiceDescriptor.Singleton<IDiagramNodeFactory, ShellDiagramNodeFactory>());
+                services.TryAddScoped<IGeneralViewProjector, GeneralViewProjector>();
+                services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramShellPresentation), typeof(DiagramShellNode)));
+                services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramPackagePresentation), typeof(DiagramPackageNode)));
+                services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramCommentPresentation), typeof(DiagramCommentNode)));
+                services.TryAddSingleton<DiagramNodeComponentRegistry>();
+                services.TryAddScoped<Func<GeneralViewProjection, IGeneralDiagramViewModel>>(serviceProvider =>
+                    projection => ActivatorUtilities.CreateInstance<GeneralDiagramViewModel>(serviceProvider, projection));
 
                 return services;
             }

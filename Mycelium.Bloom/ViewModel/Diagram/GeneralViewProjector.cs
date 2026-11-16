@@ -17,7 +17,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
     using SysML2.NET.Core.POCO.Kernel.Connectors;
-    using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Annotations;
     using SysML2.NET.Core.POCO.Root.Dependencies;
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -26,21 +25,32 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
     using SysML2.NET.Core.POCO.Systems.Flows;
     using SysML2.NET.Core.POCO.Systems.Interfaces;
-    using SysML2.NET.Core.POCO.Systems.Ports;
 
     /// <summary>Projects an explicit general-view slice, preserving canonical object references.</summary>
-    public static class GeneralViewProjector
+    public sealed class GeneralViewProjector : IGeneralViewProjector
     {
+        /// <summary>The factories in registration order, used to break equally specific matches.</summary>
+        private readonly IDiagramNodeFactory[] factories;
+
+        /// <summary>Creates a projector over the registered notation factories.</summary>
+        /// <param name="factories">The factories whose most specific SDK types take precedence.</param>
+        /// <exception cref="ArgumentNullException">The factory inventory is null.</exception>
+        public GeneralViewProjector(IEnumerable<IDiagramNodeFactory> factories)
+        {
+            ArgumentNullException.ThrowIfNull(factories);
+            this.factories = factories.ToArray();
+        }
+
         /// <summary>Projects the selected canonical root and its direct members.</summary>
         /// <param name="root">The selected element, or null when the workspace has no available model.</param>
         /// <returns>The bounded read-only slice; unavailable roots yield an empty view.</returns>
-        public static GeneralViewProjection CreateForRoot(IElement root)
+        public GeneralViewProjection CreateForRoot(IElement root)
         {
             var elements = root is null ? Array.Empty<IElement>()
                 : new[] { root }.Concat(root.OwnedRelationship.OfType<IMembership>()
                     .Select(member => member.MemberElement).Where(element => element is not null));
 
-            return Create(elements);
+            return this.CreateCore(elements, null, false, root);
         }
 
         /// <summary>Projects a bounded explicit model slice without mutating canonical elements.</summary>
@@ -48,7 +58,15 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="name">The optional view-frame name.</param>
         /// <param name="omitted">Whether the caller already knows content was omitted.</param>
         /// <returns>The immutable projected view and its omission state.</returns>
-        public static GeneralViewProjection Create(IEnumerable<IElement> elements, string name = null, bool omitted = false)
+        public GeneralViewProjection Create(IEnumerable<IElement> elements, string name = null, bool omitted = false) => this.CreateCore(elements, name, omitted, null);
+
+        /// <summary>Projects a bounded slice with its canonical reference context.</summary>
+        /// <param name="elements">The explicit canonical elements.</param>
+        /// <param name="name">The optional view-frame name.</param>
+        /// <param name="omitted">Whether content is already known to be omitted.</param>
+        /// <param name="referenceSite">The optional canonical source supplying contextual names.</param>
+        /// <returns>The immutable typed projection.</returns>
+        private GeneralViewProjection CreateCore(IEnumerable<IElement> elements, string name, bool omitted, IElement referenceSite)
         {
             ArgumentNullException.ThrowIfNull(elements);
             // This rendering slice is bounded; regional navigation belongs to the specialized views.
@@ -56,8 +74,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             var candidates = elements.Distinct<IElement>(ReferenceEqualityComparer.Instance).Take(maximumElements + 1).ToArray();
             omitted |= candidates.Length > maximumElements || candidates.Any(element => element is null);
             var source = candidates.Take(maximumElements).Where(element => element is not null).ToArray();
-            var nodes = source.Where(element => element is IDefinition || element is not IRelationship and not IConnector).Select((element, index) => Node(element,
-                index)).ToImmutableArray();
+            var nodes = source.Where(element => element is IDefinition || element is not IRelationship and not IConnector).Select((element, index) => this.Node(element,
+                index, referenceSite)).ToImmutableArray();
             var lookup = new Dictionary<IElement, Guid>(ReferenceEqualityComparer.Instance);
 
             foreach (var occurrence in nodes.Select(node => node.Occurrence))
@@ -67,7 +85,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             foreach (var node in nodes)
             {
-                foreach (var boundary in node.Boundary)
+                foreach (var boundary in node is DiagramShellPresentation shell ? shell.Boundary : [])
                 {
                     lookup.TryAdd(boundary.Element, node.Occurrence.Id);
                 }
@@ -248,29 +266,18 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Projects generic slots for one canonical definition, usage, package or annotation.</summary>
         /// <param name="element">The borrowed canonical SDK element.</param>
         /// <param name="index">The nonnegative position in the initial grid layout.</param>
+        /// <param name="source">The optional canonical reference site.</param>
         /// <returns>The reusable node presentation with an independent occurrence identity.</returns>
-        public static DiagramNodePresentation Node(IElement element, int index = 0)
+        public DiagramNodePresentation Node(IElement element, int index = 0, IElement source = null)
         {
-            var kind = element switch
-            {
-                IPackage => DiagramNodeKind.Package,
-                IComment => DiagramNodeKind.Comment,
-                IDefinition => DiagramNodeKind.Definition,
-                IUsage { isReference: true } => DiagramNodeKind.Reference,
-                IUsage => DiagramNodeKind.Usage,
-                _ => DiagramNodeKind.Element
-            };
-            var attributes = element.OwnedRelationship.OfType<IMembership>().Select(member => member.MemberElement).OfType<IAttributeUsage>().ToArray();
-            var compartments = attributes.Length == 0 ? ImmutableArray<DiagramCompartmentPresentation>.Empty
-                : [new("attributes", attributes.Select(attribute => DiagramNotation.Declaration(attribute, true)).ToImmutableArray())];
-            var ports = element.OwnedRelationship.OfType<IMembership>().Select(member => member.MemberElement).OfType<IFeature>()
-                .Where(feature => feature is IPortUsage || feature.Direction is not null).ToArray();
-            var boundary = ports.Select((port, position) => new DiagramBoundaryPresentation(port, DiagramNotation.Declaration(port),
-                BoundarySide.Right, (position + 1d) / (ports.Length + 1), port.Direction?.ToString())).ToImmutableArray();
-            var row = index / 3;
+            ArgumentNullException.ThrowIfNull(element);
+            var matches = this.factories.Where(factory => factory.ElementType.IsInstanceOfType(element)).ToArray();
+            var factory = matches.FirstOrDefault(candidate => !matches.Any(other => other.ElementType != candidate.ElementType
+                && candidate.ElementType.IsAssignableFrom(other.ElementType)))
+                ?? throw new InvalidOperationException("No diagram node factory accepts this SDK element.");
+            var occurrence = new DiagramOccurrence(Guid.NewGuid(), element, 90 + index % 3 * 360, 90 + index / 3 * 270);
 
-            return new(new(Guid.NewGuid(), element, 90 + index % 3 * 360, 90 + row * 270), kind,
-                DiagramNotation.Name(element), compartments, boundary, (element as IComment)?.Body);
+            return factory.Create(occurrence, source);
         }
 
         /// <summary>Classifies supported relationships using canonical SDK interfaces.</summary>

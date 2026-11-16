@@ -32,9 +32,11 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -85,6 +87,8 @@ namespace Mycelium.Bloom.Tests.Components.Routing
 
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.Services.AddSingleton(new Mock<IGeneralViewProjector>(MockBehavior.Strict).Object);
+            this.Services.AddSingleton(new Mock<Func<GeneralViewProjection, IGeneralDiagramViewModel>>(MockBehavior.Strict).Object);
             this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
                 () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             this.Services.AddSingleton(this.elementIdResolver.Object);

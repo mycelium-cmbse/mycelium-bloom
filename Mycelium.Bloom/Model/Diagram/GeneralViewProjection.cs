@@ -13,15 +13,6 @@ namespace Mycelium.Bloom.Model.Diagram
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
-    /// <summary>Identifies one graphical occurrence independently of its canonical semantic element.</summary>
-    /// <param name="Id">The view-local graphical identity.</param>
-    /// <param name="Element">The borrowed canonical SDK object.</param>
-    /// <param name="X">The horizontal model-space coordinate.</param>
-    /// <param name="Y">The vertical model-space coordinate.</param>
-    /// <param name="Width">The positive occurrence width.</param>
-    /// <param name="Height">The positive occurrence height.</param>
-    public sealed record DiagramOccurrence(Guid Id, IElement Element, double X, double Y, double Width = 240, double Height = 160);
-
     /// <summary>Selects a reusable general-node shape.</summary>
     public enum DiagramNodeKind
     {
@@ -34,12 +25,6 @@ namespace Mycelium.Bloom.Model.Diagram
 
         /// <summary>A dotted reference usage.</summary>
         Reference,
-
-        /// <summary>A tabbed package.</summary>
-        Package,
-
-        /// <summary>A folded-corner comment.</summary>
-        Comment,
 
         /// <summary>A general element without specialized notation.</summary>
         Element
@@ -149,18 +134,6 @@ namespace Mycelium.Bloom.Model.Diagram
     /// <param name="AdditionalKeywords">Optional subsequent BNF keyword lines for a specialized name compartment.</param>
     public sealed record DiagramNamePresentation(string Keyword, string Declaration, ImmutableArray<string> Aliases, string SymbolName = null,
         ImmutableArray<string> AdditionalKeywords = default);
-
-    /// <summary>Combines reusable node slots for one canonical element occurrence.</summary>
-    /// <param name="Occurrence">The graphical identity and geometry.</param>
-    /// <param name="Kind">The graphical notation variant.</param>
-    /// <param name="Name">The formatted name compartment.</param>
-    /// <param name="Compartments">The compartment stack in caller-specified order.</param>
-    /// <param name="Boundary">The boundary ports and parameters.</param>
-    /// <param name="Body">The optional comment text.</param>
-    /// <param name="NestedView">The optional graphical view preceding the compartment stack.</param>
-    public sealed record DiagramNodePresentation(DiagramOccurrence Occurrence, DiagramNodeKind Kind, DiagramNamePresentation Name,
-        ImmutableArray<DiagramCompartmentPresentation> Compartments, ImmutableArray<DiagramBoundaryPresentation> Boundary, string Body = null,
-            GeneralViewProjection NestedView = null);
 
     /// <summary>Combines optional role, multiplicity and adornment notation at a relationship end.</summary>
     /// <param name="Role">The optional end role name.</param>

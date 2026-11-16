@@ -30,7 +30,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     using ReactiveUI;
@@ -64,6 +66,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void SetUp()
         {
             this.context = new BunitContext();
+            this.context.Services.AddDiagramServices();
+            this.context.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/GeneralDiagram.razor.js").SetupVoid("ensureDiagramScript").SetVoidResult();
             this.context.SetRendererInfo(new RendererInfo("Server", true));
             this.ownedViews = [];
             this.context.JSInterop.Mode = JSRuntimeMode.Loose;
@@ -90,7 +94,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public async Task VerifyTwoHundredNodesOnlyRenderChangedSelectionOccurrences()
         {
             var selection = new CountingSelectionService();
-            var projection = GeneralViewProjector.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Node" + index }));
+            var projection = DiagramTestFactory.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Node" + index }));
             var owner = this.CreateOwner(projection, selection);
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
             var nodes = component.FindComponents<DiagramNodeWidget>();
@@ -120,7 +124,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public async Task VerifyBoundarySelectionRendersOnlyItsReactiveBoundary()
         {
-            var owner = this.CreateOwner(GeneralViewExample.Create(), new CountingSelectionService());
+            var owner = this.CreateOwner(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new CountingSelectionService());
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
             var boundary = component.FindComponents<DiagramBoundaryFeature>()[0];
             var parent = component.FindComponents<DiagramNodeWidget>().Single(node => node.Instance.ViewModel.BoundaryFeatures.Contains(boundary.Instance.ViewModel));
@@ -134,9 +138,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifySelectionUpdatesRepeatedOccurrencesWithoutCrossingCanonicalModels()
         {
             var selection = new CountingSelectionService();
-            var first = GeneralViewProjector.Node(new PartUsage { Id = Guid.NewGuid(), ElementId = "overlap" });
+            var first = DiagramTestFactory.Node(new PartUsage { Id = Guid.NewGuid(), ElementId = "overlap" });
             var repeated = first with { Occurrence = first.Occurrence with { Id = Guid.NewGuid(), X = 500 } };
-            var other = GeneralViewProjector.Node(new PartUsage { Id = first.Occurrence.Element.Id, ElementId = "overlap" });
+            var other = DiagramTestFactory.Node(new PartUsage { Id = first.Occurrence.Element.Id, ElementId = "overlap" });
             var owner = this.CreateOwner(new([first, repeated, other], []), selection);
             owner.Select(first.Occurrence.Element);
             using (Assert.EnterMultipleScope())
@@ -157,9 +161,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public async Task VerifyProjectionReplacementUpdatesNotationAndNativeGeometryWithoutMutatingSdk()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var owner = this.CreateOwner(projection, new CountingSelectionService());
-            var original = projection.Nodes.First(node => !node.Boundary.IsEmpty);
+            var original = projection.Nodes.OfType<DiagramShellPresentation>().First(node => !node.Boundary.IsEmpty);
             var state = owner.GetNodeViewModel(original.Occurrence.Id);
             var boundaryState = state.BoundaryFeatures[0];
             var canonicalName = state.Element.DeclaredName;
@@ -187,7 +191,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public async Task VerifyRelationshipSelectionAndPresentationUpdateAreReactive()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var owner = this.CreateOwner(projection, new CountingSelectionService());
             var edge = projection.Edges.First();
             var state = owner.GetEdgeViewModel(edge.Id);
@@ -207,7 +211,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public void VerifyInvalidSnapshotLeavesReactiveStateAndNativeResourcesUnchanged()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var owner = this.CreateOwner(projection, new CountingSelectionService());
             using var renderer = new GeneralDiagramRenderer(owner);
             var state = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
@@ -226,7 +230,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public async Task VerifyUnmountRemountAndTabCloseOwnSubscriptionsCorrectly()
         {
             var selection = new CountingSelectionService();
-            var projection = GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid() }]);
+            var projection = DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid() }]);
             var owner = this.CreateOwner(projection, selection);
             var state = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
             var first = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
@@ -256,9 +260,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifyRemovedNestedViewReleasesItsSubscription()
         {
             var selection = new CountingSelectionService();
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var owner = this.CreateOwner(projection, selection);
-            var parent = projection.Nodes.Single(node => node.NestedView is not null);
+            var parent = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.NestedView is not null);
             var nested = owner.GetNodeViewModel(parent.Occurrence.Id).GetNestedView(parent.NestedView);
             Assert.That(selection.ActiveSubscriptions, Is.EqualTo(2));
             owner.UpdateProjection(projection with { Nodes = projection.Nodes.Replace(parent, parent with { NestedView = null }) });
@@ -274,9 +278,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifyNestedViewportIsRetainedOnlyForTheSameCanonicalParent(bool replaceCanonicalParent)
         {
             var selection = new CountingSelectionService();
-            var nestedProjection = GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid() }]);
+            var nestedProjection = DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid() }]);
             var parentElement = new PartUsage { Id = Guid.NewGuid() };
-            var parent = GeneralViewProjector.Node(parentElement) with { NestedView = nestedProjection };
+            var parent = DiagramTestFactory.Node(parentElement) with { NestedView = nestedProjection };
             var owner = this.CreateOwner(new([parent], []), selection);
             var previous = owner.GetNodeViewModel(parent.Occurrence.Id).GetNestedView(nestedProjection);
             previous.SetViewport(47, 91, 1.25);
@@ -314,8 +318,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public async Task VerifyReplacingBorrowedTabStateDetachesOldOccurrenceComponents()
         {
             var selection = new CountingSelectionService();
-            var first = this.CreateOwner(GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "First" }]), selection);
-            var second = this.CreateOwner(GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Second" }]), selection);
+            var first = this.CreateOwner(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "First" }]), selection);
+            var second = this.CreateOwner(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Second" }]), selection);
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, first));
             var oldNode = component.FindComponent<DiagramNodeWidget>();
             await component.InvokeAsync(() => component.Render(parameters => parameters.Add(value => value.ViewModel, second)));
@@ -338,7 +342,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var empty = new GeneralViewProjection([], []);
             var owner = this.CreateOwner(empty, selection);
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
-            var populated = GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Added" }]);
+            var populated = DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Added" }]);
             await component.InvokeAsync(() => owner.UpdateProjection(populated));
             component.WaitForAssertion(() => Assert.That(component.FindComponents<DiagramNodeWidget>(), Has.Count.EqualTo(1)));
             var state = owner.GetNodeViewModel(populated.Nodes[0].Occurrence.Id);
@@ -362,7 +366,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var renderer = new GeneralDiagramRenderer(owner);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
             Assert.That(owner.Viewport.IsInitialized, Is.False);
-            owner.UpdateProjection(GeneralViewProjector.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Node" + index })));
+            owner.UpdateProjection(DiagramTestFactory.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Node" + index })));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(owner.Viewport.IsInitialized, Is.True);
@@ -374,7 +378,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public async Task VerifyStaticRenderingDoesNotInitializeNativeInterop()
         {
-            var owner = this.CreateOwner(GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Static node" }], "Static view"),
+            var owner = this.CreateOwner(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Static node" }], "Static view"),
                 new CountingSelectionService());
             var parameters = ParameterView.FromDictionary(new Dictionary<string, object> { [nameof(GeneralDiagram.ViewModel)] = owner });
             await using (var renderer = new HtmlRenderer(this.context.Services, this.context.Services.GetRequiredService<ILoggerFactory>()))
@@ -388,7 +392,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public void VerifyCanvasPreservesThirdPartyInheritanceAndNativeHostLifecycle()
         {
-            var owner = this.CreateOwner(GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid() }]), new CountingSelectionService());
+            var owner = this.CreateOwner(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid() }]), new CountingSelectionService());
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
             using (Assert.EnterMultipleScope())
             {

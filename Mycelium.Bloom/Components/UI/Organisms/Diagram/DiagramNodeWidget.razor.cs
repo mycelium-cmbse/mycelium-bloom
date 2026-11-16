@@ -9,17 +9,25 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
-
     /// <summary>Adapts a native occurrence to the shared node components and captures selection.</summary>
     public partial class DiagramNodeWidget : BloomReactiveComponentBase<DiagramNodeViewModel>
     {
+        /// <summary>The immutable presentation used by the cached component parameters.</summary>
+        private DiagramNodePresentation renderedPresentation;
+
+        /// <summary>The native DynamicComponent parameters for the current presentation.</summary>
+        private IDictionary<string, object> componentParameters;
+
+        /// <summary>Gets or sets the registered presentation-to-component map.</summary>
+        [Inject]
+        private DiagramNodeComponentRegistry Components { get; set; }
+
         /// <summary>Gets or sets the native occurrence adapter.</summary>
         [Parameter, EditorRequired]
         public GeneralDiagramNodeModel Node { get; set; }
@@ -41,19 +49,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             base.OnParametersSet();
         }
 
-        /// <summary>Renders only the features assigned to one node-shell boundary slot.</summary>
-        /// <param name="side">The slot's graphical boundary.</param>
-        /// <returns>The boundary components capturing their canonical selection intent.</returns>
-        private RenderFragment BoundaryFeatures(BoundarySide side) => builder =>
+        /// <summary>Reuses framework parameters until the immutable presentation changes.</summary>
+        /// <returns>The parameters for the typed notation component.</returns>
+        private IDictionary<string, object> GetComponentParameters()
         {
-            foreach (var feature in this.ViewModel.BoundaryFeatures.Where(feature => feature.Presentation.Side == side))
+            if (!ReferenceEquals(this.renderedPresentation, this.ViewModel.Presentation))
             {
-                builder.OpenComponent<DiagramBoundaryFeature>(0);
-                builder.SetKey(feature);
-                builder.AddAttribute(1, nameof(DiagramBoundaryFeature.ViewModel), feature);
-                builder.CloseComponent();
+                this.renderedPresentation = this.ViewModel.Presentation;
+                this.componentParameters = new Dictionary<string, object> { ["Presentation"] = this.renderedPresentation };
             }
-        };
+
+            return this.componentParameters;
+        }
 
         /// <summary>Delegates occurrence selection to its presentation owner.</summary>
         private void Select() => this.ViewModel.Select();

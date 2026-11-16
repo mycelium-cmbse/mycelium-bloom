@@ -110,8 +110,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
         /// <summary>Builds name notation from canonical SDK semantics and local alias memberships.</summary>
         /// <param name="element">The borrowed canonical SDK element.</param>
+        /// <param name="source">The optional canonical reference site supplying local names and aliases.</param>
         /// <returns>The keyword, SDK declaration, aliases and accepted Bloom symbol.</returns>
-        public static DiagramNamePresentation Name(IElement element)
+        public static DiagramNamePresentation Name(IElement element, IElement source = null)
         {
             ArgumentNullException.ThrowIfNull(element);
             var keyword = Keyword(element);
@@ -123,14 +124,16 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 _ => ImmutableArray<string>.Empty
             };
 
-            var aliases = element.owningNamespace?.OwnedRelationship
+            var aliasScope = source as INamespace ?? source?.owningNamespace ?? element.owningNamespace;
+            var aliases = aliasScope?.OwnedRelationship
                 .OfType<IMembership>()
                 .Where(member => ReferenceEquals(member.MemberElement, element) && member is not IOwningMembership)
                 .Select(member => member.MemberName).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct().ToImmutableArray()
                 ?? ImmutableArray<string>.Empty;
 
-            // Reuse the accepted visual symbol only; SDK interfaces above determine graphical semantics.
-            return new(keyword, Declaration(element), aliases, ProjectBrowserElementPresentation.For(element.GetType()).SymbolName, additionalKeywords);
+            var declaration = element is IDefinition or IUsage ? Declaration(element) : ReferenceName(element, source ?? element.owningNamespace);
+
+            return new(keyword, declaration, aliases, ProjectBrowserElementPresentation.For(element.GetType()).SymbolName, additionalKeywords);
         }
 
         /// <summary>Classifies graphical keywords by canonical SDK interfaces in specificity order.</summary>
@@ -155,7 +158,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             if (element is not INamespace scope)
             {
-                return ElementPresentation.GetDisplayName(element);
+                return ReferenceName(element, element.owningNamespace);
             }
 
             try
@@ -178,7 +181,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                         break;
                     default:
 
-                        return ElementPresentation.GetDisplayName(element);
+                        return context.NameResolutionCache.Resolve(element, element.owningNamespace ?? scope);
                 }
 
                 if (includeValue && element is IFeature feature)
@@ -201,6 +204,33 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             catch (NotSupportedException)
             {
                 return "Notation unavailable (unsupported SDK declaration)";
+            }
+        }
+
+        /// <summary>Resolves a contextual reference name using the SDK's alias and shadowing rules.</summary>
+        /// <param name="element">The canonical target element.</param>
+        /// <param name="source">The reference site, or null when no contextual scope is available.</param>
+        /// <returns>The SDK reference name, a context-free display name or explicit incomplete-model notation.</returns>
+        public static string ReferenceName(IElement element, IElement source)
+        {
+            ArgumentNullException.ThrowIfNull(element);
+            var scope = source?.owningNamespace ?? source as INamespace ?? element.owningNamespace ?? element as INamespace;
+
+            if (scope is null)
+            {
+                return ElementPresentation.GetDisplayName(element);
+            }
+
+            try
+            {
+                using var context = new TextualNotationWriterContext(scope);
+                var name = context.NameResolutionCache.Resolve(element, source ?? scope);
+
+                return string.IsNullOrWhiteSpace(name) ? ElementPresentation.GetDisplayName(element) : name;
+            }
+            catch (IncompleteModelException)
+            {
+                return "Notation unavailable (incomplete model)";
             }
         }
     }

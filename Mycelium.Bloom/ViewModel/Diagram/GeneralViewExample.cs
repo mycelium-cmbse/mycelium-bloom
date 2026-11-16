@@ -38,9 +38,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     public static class GeneralViewExample
     {
         /// <summary>Creates the representative session-only heterogeneous SDK model and its presentation.</summary>
+        /// <param name="projector">The registered general-view projection service.</param>
         /// <returns>The immutable projected view and its omission state.</returns>
-        public static GeneralViewProjection Create()
+        /// <exception cref="ArgumentNullException">The projector is null.</exception>
+        public static GeneralViewProjection Create(IGeneralViewProjector projector)
         {
+            ArgumentNullException.ThrowIfNull(projector);
             var package = new Package { Id = Guid.NewGuid(), ElementId = "example-package", DeclaredName = "Vehicle" };
             var vehicleDefinition = new PartDefinition { Id = Guid.NewGuid(), ElementId = "example-vehicle-definition", DeclaredName = "VehicleType" };
             var definition = new PartDefinition { Id = Guid.NewGuid(), ElementId = "example-definition", DeclaredName = "Engine" };
@@ -145,7 +148,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             AddEnd(connection, sparePort);
             AddEnd(binding, top);
             AddEnd(binding, counter);
-            var projection = GeneralViewProjector.Create([package, vehicleDefinition, definition, backupDefinition, part, backup, action, item, attributeDefinition,
+            var projection = projector.Create([package, vehicleDefinition, definition, backupDefinition, part, backup, action, item, attributeDefinition,
                 portDefinition, connectionType, comment, view, attribute, dependency, classification, subset, redefine, connection, binding], "VehicleGeneralView", true);
             var placements = new Dictionary<string, (double X, double Y)>
             {
@@ -164,7 +167,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 ["example-comment"] = (800, 820),
                 ["example-view"] = (1200, 820)
             };
-            var nodes = LayoutNodes(projection, placements, vehicleDefinition, view, attribute, part, item);
+            var nodes = LayoutNodes(projection, placements, vehicleDefinition, view, attribute, part, item, projector);
             var edges = projection.Edges.Select(edge => edge with
             {
                 Bends = edge.Kind switch
@@ -190,15 +193,16 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="attribute">The canonical example attribute shown as a compact standalone occurrence.</param>
         /// <param name="part">The canonical example part with a truncated attribute compartment.</param>
         /// <param name="item">The canonical example item repeated in a nested view.</param>
+        /// <param name="projector">The registered general-view projection service.</param>
         /// <returns>The example occurrences retaining the original canonical references.</returns>
         private static ImmutableArray<DiagramNodePresentation> LayoutNodes(GeneralViewProjection projection, Dictionary<string, (double X, double Y)> placements,
-            PartDefinition vehicleDefinition, ViewUsage view, AttributeUsage attribute,
-            PartUsage part, ItemUsage item)
+            PartDefinition vehicleDefinition, ViewUsage view, AttributeUsage attribute, PartUsage part, ItemUsage item, IGeneralViewProjector projector)
         {
             var nodes = projection.Nodes.Select(node =>
             {
                 var position = placements[node.Occurrence.Element.ElementId];
-                var boundary = node.Boundary.Select(feature => feature with
+                var shell = node as DiagramShellPresentation;
+                var boundary = (shell?.Boundary ?? []).Select(feature => feature with
                 {
                     Side = feature.Element.ElementId switch
                     {
@@ -220,13 +224,16 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                     _ => 180
                 };
 
-                return node with
+                var occurrence = node.Occurrence with { X = position.X, Y = position.Y, Width = ReferenceEquals(element, vehicleDefinition) ? 160 : 240, Height = height };
+
+                return shell is null ? node with { Occurrence = occurrence } : shell with
                 {
-                    Occurrence = node.Occurrence with { X = position.X, Y = position.Y, Width = ReferenceEquals(element, vehicleDefinition) ? 160 : 240, Height = height },
+                    Occurrence = occurrence,
                     Boundary = boundary,
-                    Compartments = node.Occurrence.Element == part ? [node.Compartments[0] with { Rows = node.Compartments[0].Rows.Take(1).ToImmutableArray(),
-                        IsTruncated = true }] : node.Compartments,
-                    NestedView = node.Occurrence.Element == view ? GeneralViewProjector.Create([item], "FuelContext") : null
+                    Compartments = node.Occurrence.Element == part
+                        ? [shell.Compartments[0] with { Rows = shell.Compartments[0].Rows.Take(1).ToImmutableArray(), IsTruncated = true }]
+                        : shell.Compartments,
+                    NestedView = node.Occurrence.Element == view ? projector.Create([item], "FuelContext") : null
                 };
             }).ToImmutableArray();
 

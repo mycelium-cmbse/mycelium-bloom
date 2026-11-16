@@ -61,11 +61,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 return;
             }
 
-            var boundaries = ImmutableArray.CreateBuilder<DiagramBoundaryViewModel>(value.Boundary.Length);
+            var features = value is DiagramShellPresentation shell ? shell.Boundary : [];
+            var boundaries = ImmutableArray.CreateBuilder<DiagramBoundaryViewModel>(features.Length);
 
-            for (var index = 0; index < value.Boundary.Length; index++)
+            for (var index = 0; index < features.Length; index++)
             {
-                var boundary = value.Boundary[index];
+                var boundary = features[index];
                 var state = index < this.boundaryFeatures.Length && ReferenceEquals(this.boundaryFeatures[index].Element, boundary.Element)
                     ? this.boundaryFeatures[index]
                     : new DiagramBoundaryViewModel(boundary, this.Owner);

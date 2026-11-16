@@ -51,7 +51,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var package = new Package { Id = Guid.NewGuid() };
             var definition = new PartDefinition { Id = Guid.NewGuid() };
             var membership = BrowserAcceptanceModelTestFactory.Own<OwningMembership>(package, definition);
-            var projection = GeneralViewProjector.Create([package, definition]);
+            var projection = DiagramTestFactory.Create([package, definition]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes, Has.Length.EqualTo(2));
@@ -77,7 +77,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 BrowserAcceptanceModelTestFactory.Own<EndFeatureMembership>(connector, end);
                 BrowserAcceptanceModelTestFactory.AddRelationship(end, new ReferenceSubsetting { ReferencedFeature = target });
             }
-            var projection = GeneralViewProjector.Create([package, first, second, connector]);
+            var projection = DiagramTestFactory.Create([package, first, second, connector]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes.Any(node => ReferenceEquals(node.Occurrence.Element, connector)), Is.False);
@@ -126,7 +126,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyReviewFitIncludesAllTwoHundredNodesAtNativeZoom()
         {
-            var projection = GeneralViewProjector.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid() }));
+            var projection = DiagramTestFactory.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid() }));
             using var owner = new GeneralDiagramViewModel(projection, new ContextAwareService());
             using var renderer = new GeneralDiagramRenderer(owner);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
@@ -144,7 +144,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [TestCase(false)]
         public void VerifyReviewForeignBoundaryAssociationIsRejected(bool source)
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var edge = projection.Edges.Single(value => value.Kind == DiagramRelationshipKind.Connection);
             var foreign = new PortUsage { Id = edge.SourceFeature.Id, ElementId = edge.SourceFeature.ElementId };
             var invalid = source ? edge with { SourceFeature = foreign } : edge with { TargetFeature = foreign };
@@ -162,7 +162,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var target = new PartUsage { Id = Guid.NewGuid() };
             BrowserAcceptanceModelTestFactory.AddRelationship(comment, new Annotation { AnnotatedElement = target });
             IElement[] elements = includeTarget ? [comment, target] : [comment];
-            var projection = GeneralViewProjector.Create(elements);
+            var projection = DiagramTestFactory.Create(elements);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.HasOmittedContent, Is.EqualTo(!includeTarget));
@@ -179,7 +179,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var nested = new PartUsage { Id = Guid.NewGuid() };
             BrowserAcceptanceModelTestFactory.Own<OwningMembership>(root, child);
             BrowserAcceptanceModelTestFactory.Own<OwningMembership>(child, nested);
-            var projection = includeNestedMember ? GeneralViewProjector.Create([root, child, nested]) : GeneralViewProjector.CreateForRoot(root);
+            var projection = includeNestedMember ? DiagramTestFactory.Create([root, child, nested]) : DiagramTestFactory.CreateForRoot(root);
             using (Assert.EnterMultipleScope())
             {
                 // Namespace ownership itself is not drawn, even when all member nodes are present.
@@ -197,12 +197,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var port = new PortUsage { Id = Guid.NewGuid(), DeclaredName = "power" };
             BrowserAcceptanceModelTestFactory.Own<FeatureMembership>(part, attribute);
             BrowserAcceptanceModelTestFactory.Own<FeatureMembership>(part, port);
-            var projection = GeneralViewProjector.Create([part]);
+            var projection = DiagramTestFactory.Create([part]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes, Has.Length.EqualTo(1));
-                Assert.That(projection.Nodes[0].Compartments.Single().Rows, Has.Length.EqualTo(1));
-                Assert.That(projection.Nodes[0].Boundary.Single().Element, Is.SameAs(port));
+                Assert.That(((DiagramShellPresentation)projection.Nodes[0]).Compartments.Single().Rows, Has.Length.EqualTo(1));
+                Assert.That(((DiagramShellPresentation)projection.Nodes[0]).Boundary.Single().Element, Is.SameAs(port));
                 Assert.That(projection.Edges, Is.Empty);
                 Assert.That(projection.HasOmittedContent, Is.False);
             }
@@ -211,7 +211,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyExplicitZoomWinsOverPendingInitialFit()
         {
-            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
+            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
             using var renderer = new GeneralDiagramRenderer(owner);
             owner.ChangeZoom(200);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
@@ -236,7 +236,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 BrowserAcceptanceModelTestFactory.AddRelationship(end, new ReferenceSubsetting { ReferencedFeature = target });
             }
 
-            var represented = GeneralViewProjector.Create([first, second, connection]);
+            var represented = DiagramTestFactory.Create([first, second, connection]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(represented.Edges, Has.Length.EqualTo(1));
@@ -251,7 +251,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var second = new PartUsage { Id = Guid.NewGuid() };
             var relationship = new ReferenceSubsetting { ReferencedFeature = second };
             BrowserAcceptanceModelTestFactory.AddRelationship(first, relationship);
-            var projection = GeneralViewProjector.Create([first, second, relationship]);
+            var projection = DiagramTestFactory.Create([first, second, relationship]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Edges, Is.Empty);
@@ -262,7 +262,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyViewportPreservesAdjacentValuesWithoutRedundantNativeNotifications()
         {
-            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
+            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
             owner.SetViewport(12, 34, 1.5);
             using var renderer = new GeneralDiagramRenderer(owner);
             var panNotifications = 0;
@@ -308,7 +308,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyNativeViewportGesturesAreReportedWithoutReplayingNativeSetters()
         {
-            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
+            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
             using var renderer = new GeneralDiagramRenderer(owner);
             var panNotifications = 0;
             var zoomNotifications = 0;
@@ -329,7 +329,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyNativeGesturesAndControlsShareLiveViewportAndDetachOnUnmount()
         {
-            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), new ContextAwareService());
+            using var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
             var renderer = new GeneralDiagramRenderer(owner);
             renderer.Diagram.SetPan(12, 34);
             renderer.Diagram.SetZoom(1.5);
@@ -361,21 +361,22 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Direction = SysML2.NET.Core.Core.Types.FeatureDirectionKind.In
             };
             BrowserAcceptanceModelTestFactory.Own<FeatureMembership>(part, port);
-            var projection = GeneralViewProjector.CreateForRoot(part);
+            var projection = DiagramTestFactory.CreateForRoot(part);
             using var owner = new GeneralDiagramViewModel(projection, new ContextAwareService());
             using var renderer = new GeneralDiagramRenderer(owner);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes, Has.Length.EqualTo(2));
-                Assert.That(projection.Nodes.Single(node => ReferenceEquals(node.Occurrence.Element, part)).Boundary.Single().Element, Is.SameAs(port));
+                Assert.That(projection.Nodes.OfType<DiagramShellPresentation>().Single(node => ReferenceEquals(node.Occurrence.Element, part)).Boundary.Single().Element,
+                    Is.SameAs(port));
             }
         }
 
         [Test]
         public void VerifyBoundaryAnchorsUseCanonicalReferencesAndGraphicalPortIdentities()
         {
-            var projection = GeneralViewExample.Create();
-            var part = projection.Nodes.Single(node => node.Occurrence.Element.ElementId == "example-part");
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var part = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.Occurrence.Element.ElementId == "example-part");
             var first = part.Boundary[0].Element;
             var second = part.Boundary[1].Element;
             // Deliberately collide SDK IDs; anchors must still follow exact canonical references.
@@ -402,9 +403,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyDanglingEndpointsAndNonfiniteGeometryAreRejected()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var edge = projection.Edges[0];
-            var node = projection.Nodes.First(value => !value.Boundary.IsEmpty);
+            var node = projection.Nodes.OfType<DiagramShellPresentation>().First(value => !value.Boundary.IsEmpty);
             var invalidBoundary = node with
             {
                 Boundary = node.Boundary.SetItem(0, node.Boundary[0] with { Offset = double.NaN })
@@ -432,7 +433,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyFitIncludesManualBendsOutsideNodeBounds()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var bend = new DiagramPoint(-400, 1200);
             projection = projection with
             {
@@ -462,7 +463,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             {
                 Assert.That(DiagramNotation.Declaration(attribute, true), Does.Contain("value notation unavailable"));
                 Assert.That(attribute.OwnedRelationship, Is.EqualTo(relationships));
-                var projection = GeneralViewExample.Create();
+                var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
                 Assert.That(projection.Edges.Where(edge => edge.Kind is DiagramRelationshipKind.CompositeMembership or DiagramRelationshipKind.NoncompositeMembership)
                     .Any(edge => edge.Source == edge.Target), Is.False);
                 Assert.That(projection.Nodes.Any(node => node.Occurrence.Element is ConnectionDefinition), Is.True);
@@ -494,7 +495,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             dependency.Client.Add(first);
             dependency.Client.Add(second);
             dependency.Supplier.Add(third);
-            var projection = GeneralViewProjector.Create([first, second, third, dependency, null]);
+            var projection = DiagramTestFactory.Create([first, second, third, dependency, null]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Edges, Is.Empty);
@@ -506,7 +507,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         public void VerifyLargeModelProjectionIsBoundedAndReportsOmissions()
         {
             var elements = Enumerable.Range(0, 10000).Select(index => new PartUsage { Id = Guid.NewGuid(), ElementId = index.ToString() });
-            var projection = GeneralViewProjector.Create(elements);
+            var projection = DiagramTestFactory.Create(elements);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes, Has.Length.EqualTo(200));
@@ -517,7 +518,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyRepeatedOccurrencesKeepGraphicalIdentityAndCanonicalObjectsUnchanged()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var original = projection.Nodes.First(node => node.Occurrence.Element.ElementId == "example-part");
             var element = original.Occurrence.Element;
             var relationships = element.OwnedRelationship.ToArray();
@@ -550,8 +551,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyNestedStateIsOwnedByTabAndInvalidGeometryIsRejected()
         {
-            var projection = GeneralViewExample.Create();
-            var nested = projection.Nodes.Single(node => node.NestedView is not null).NestedView;
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var nested = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.NestedView is not null).NestedView;
             var owner = new GeneralDiagramViewModel(projection, new ContextAwareService());
             var child = owner.GetNestedView(Guid.Empty, nested);
             child.ChangeZoom(200);
@@ -637,7 +638,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 }
             }
 
-            var projection = GeneralViewProjector.Create([first, second, connection, binding, flow]);
+            var projection = DiagramTestFactory.Create([first, second, connection, binding, flow]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.HasOmittedContent, Is.True);
@@ -691,7 +692,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 RedefiningFeature = firstUsage,
                 RedefinedFeature = secondUsage
             };
-            var projection = GeneralViewProjector.Create([first, second, firstUsage, secondUsage, specialization, subset, redefine]);
+            var projection = DiagramTestFactory.Create([first, second, firstUsage, secondUsage, specialization, subset, redefine]);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Edges, Has.Length.EqualTo(3));
@@ -705,12 +706,12 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyExampleUsesHeterogeneousCanonicalObjectsAndMembershipDiamonds()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(projection.Nodes.Select(node => node.Kind), Does.Contain(DiagramNodeKind.Package));
-                Assert.That(projection.Nodes.Select(node => node.Kind), Does.Contain(DiagramNodeKind.Comment));
-                Assert.That(projection.Nodes.Select(node => node.Kind), Does.Contain(DiagramNodeKind.Definition));
+                Assert.That(projection.Nodes.OfType<DiagramPackagePresentation>(), Is.Not.Empty);
+                Assert.That(projection.Nodes.OfType<DiagramCommentPresentation>(), Is.Not.Empty);
+                Assert.That(projection.Nodes.OfType<DiagramShellPresentation>().Select(node => node.Kind), Does.Contain(DiagramNodeKind.Definition));
                 Assert.That(projection.Edges.Any(edge => edge.SourceMarker == DiagramMarker.FilledDiamond), Is.True);
                 Assert.That(projection.Edges.Any(edge => edge.SourceMarker == DiagramMarker.HollowDiamond), Is.True);
                 Assert.That(projection.Edges.Any(edge => edge.Kind == DiagramRelationshipKind.Annotation), Is.True);
@@ -721,8 +722,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifySdkWritesTypedDeclarationsValuesAndVisiblePortLabels()
         {
-            var projection = GeneralViewExample.Create();
-            var part = projection.Nodes.Single(node => node.Occurrence.Element.ElementId == "example-part");
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var part = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.Occurrence.Element.ElementId == "example-part");
             var connection = projection.Edges.Single(edge => edge.Kind == DiagramRelationshipKind.Connection);
             Assert.That(connection.SourceLabel.ToString(), Is.EqualTo("source [1] {ordered}"));
             using (Assert.EnterMultipleScope())
@@ -742,7 +743,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             var element = (IElement)Activator.CreateInstance(type);
             element.DeclaredName = "Example";
-            var node = GeneralViewProjector.Node(element);
+            var node = DiagramTestFactory.Node(element);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(node.Name.Keyword, Is.EqualTo(keyword));
@@ -764,8 +765,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 DeclaredName = "second"
             };
             var selection = new ContextAwareService();
-            using var left = new GeneralDiagramViewModel(GeneralViewProjector.Create([first]), selection);
-            using var right = new GeneralDiagramViewModel(GeneralViewProjector.Create([second]), selection);
+            using var left = new GeneralDiagramViewModel(DiagramTestFactory.Create([first]), selection);
+            using var right = new GeneralDiagramViewModel(DiagramTestFactory.Create([second]), selection);
             left.Select(first);
             right.Select(first);
             using (Assert.EnterMultipleScope())
@@ -782,7 +783,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyRendererRemountPreservesViewportAndReleasesGraph()
         {
-            var projection = GeneralViewExample.Create();
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             using var owner = new GeneralDiagramViewModel(projection, new ContextAwareService());
             var renderer = new GeneralDiagramRenderer(owner);
             renderer.Diagram.SetPan(12, 34);

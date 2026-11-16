@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.ViewModel.Diagram
 {
+    using System.Collections.Immutable;
+
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Diagram;
 
@@ -17,10 +19,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Owns presentation and nested-view lifetimes for one tab, borrowing canonical objects and selection.</summary>
-    public sealed class GeneralDiagramViewModel : BloomBaseViewModel, IGeneralDiagramViewModel
+    public class GeneralDiagramViewModel : BloomBaseViewModel, IGeneralDiagramViewModel
     {
         /// <summary>The circuit-owned selection authority.</summary>
         private readonly IElementSelectionService selection;
+
+        /// <summary>Constructs nested state with the same caller-owned factory contract.</summary>
+        private readonly Func<GeneralViewProjection, IGeneralDiagramViewModel> createNestedView;
 
         /// <summary>The view's single subscription to canonical selection.</summary>
         private readonly IDisposable selectionSubscription;
@@ -49,14 +54,14 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Prevents operations from extending a closed tab's lifetime.</summary>
         private bool disposed;
 
-        /// <inheritdoc />
+        /// <summary>Gets the current immutable graphical projection.</summary>
         public GeneralViewProjection Projection
         {
             get => this.currentProjection;
             private set => this.RaiseAndSetIfChanged(ref this.currentProjection, value);
         }
 
-        /// <inheritdoc />
+        /// <summary>Gets the viewport retained by this view.</summary>
         public DiagramViewport Viewport
         {
             get => this.viewport;
@@ -66,22 +71,30 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Creates tab state over validated presentation and observes shared selection.</summary>
         /// <param name="projection">The immutable view with occurrence-scoped graphical identities.</param>
         /// <param name="selection">The circuit-owned canonical selection service.</param>
-        public GeneralDiagramViewModel(GeneralViewProjection projection, IElementSelectionService selection)
+        /// <param name="createNestedView">The optional factory for caller-owned nested views.</param>
+        public GeneralDiagramViewModel(GeneralViewProjection projection, IElementSelectionService selection,
+            Func<GeneralViewProjection, IGeneralDiagramViewModel> createNestedView = null)
         {
             ArgumentNullException.ThrowIfNull(projection);
             ArgumentNullException.ThrowIfNull(selection);
             this.selection = selection;
+            this.createNestedView = createNestedView ?? (child => new GeneralDiagramViewModel(child, selection));
             this.UpdateProjection(projection);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
         }
 
-        /// <inheritdoc />
+        /// <summary>Gets retained reactive state for one graphical node.</summary>
+        /// <param name="occurrenceId">The graphical node identity.</param>
+        /// <returns>The tab-owned node state.</returns>
         public DiagramNodeViewModel GetNodeViewModel(Guid occurrenceId) => this.nodeStates[occurrenceId];
 
-        /// <inheritdoc />
+        /// <summary>Gets retained reactive state for one graphical relationship.</summary>
+        /// <param name="occurrenceId">The graphical relationship identity.</param>
+        /// <returns>The tab-owned relationship state.</returns>
         public DiagramEdgeViewModel GetEdgeViewModel(Guid occurrenceId) => this.edgeStates[occurrenceId];
 
-        /// <inheritdoc />
+        /// <summary>Replaces validated graphical presentation while retaining compatible occurrence state.</summary>
+        /// <param name="projection">The new immutable projection.</param>
         public void UpdateProjection(GeneralViewProjection projection)
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
@@ -117,7 +130,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.Projection = projection;
         }
 
-        /// <inheritdoc />
+        /// <summary>Selects the supplied represented canonical element.</summary>
+        /// <param name="element">The represented canonical object, or null.</param>
         public void Select(IElement element)
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
@@ -128,19 +142,24 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>Changes the zoom percentage while preserving pan.</summary>
+        /// <param name="percent">The finite requested zoom percentage.</param>
         public void ChangeZoom(double percent)
         {
             this.SetViewport(this.Viewport.PanX, this.Viewport.PanY, Finite(percent) / 100);
         }
 
-        /// <inheritdoc />
+        /// <summary>Restores the zoom to one hundred percent.</summary>
         public void ResetZoom()
         {
             this.ChangeZoom(100);
         }
 
-        /// <inheritdoc />
+        /// <summary>Replaces the finite, bounded viewport snapshot.</summary>
+        /// <param name="panX">The finite horizontal translation.</param>
+        /// <param name="panY">The finite vertical translation.</param>
+        /// <param name="zoom">The finite scale, clamped to supported bounds.</param>
+        /// <param name="isInitialized">Whether the viewport has been explicitly initialized.</param>
         public void SetViewport(double panX, double panY, double zoom, bool isInitialized = true)
         {
             if (this.disposed)
@@ -151,7 +170,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.Viewport = new DiagramViewport(Finite(panX), Finite(panY), Math.Clamp(Finite(zoom), DiagramViewport.MinimumZoom, DiagramViewport.MaximumZoom), isInitialized);
         }
 
-        /// <inheritdoc />
+        /// <summary>Fits the represented content within the supplied canvas bounds.</summary>
+        /// <param name="width">The available canvas width.</param>
+        /// <param name="height">The available canvas height.</param>
         public void FitToView(double width, double height)
         {
             if (width <= 0 || height <= 0 || !double.IsFinite(width) || !double.IsFinite(height) || this.Projection.Nodes.IsEmpty)
@@ -165,7 +186,10 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 (height - (bounds.Bottom - bounds.Top) * zoom) / 2 - bounds.Top * zoom, zoom);
         }
 
-        /// <inheritdoc />
+        /// <summary>Gets or creates nested state owned by the exact parent occurrence.</summary>
+        /// <param name="occurrenceId">The parent graphical identity.</param>
+        /// <param name="projection">The immutable nested projection.</param>
+        /// <returns>The retained caller-owned nested state.</returns>
         public IGeneralDiagramViewModel GetNestedView(Guid occurrenceId, GeneralViewProjection projection)
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
@@ -173,7 +197,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             if (!this.nestedViews.TryGetValue((occurrenceId, projection), out var nested))
             {
-                nested = new GeneralDiagramViewModel(projection, this.selection);
+                nested = this.createNestedView(projection);
                 this.nestedViews.Add((occurrenceId, projection), nested);
             }
 
@@ -183,7 +207,15 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Detaches observation and releases child state without disposing canonical objects or the shared service.</summary>
         public void Dispose()
         {
-            if (this.disposed)
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>Releases view-owned subscriptions and child state for derived diagram implementations.</summary>
+        /// <param name="disposing">Whether managed resources are being released.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing || this.disposed)
             {
                 return;
             }
@@ -288,7 +320,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         private void ReleaseRemovedNestedViews(GeneralViewProjection projection)
         {
             var previousParents = this.Projection?.Nodes.ToDictionary(node => node.Occurrence.Id, node => node.Occurrence.Element);
-            var retained = projection.Nodes.Where(node => previousParents is not null
+            var retained = projection.Nodes.OfType<DiagramShellPresentation>().Where(node => previousParents is not null
                 && previousParents.TryGetValue(node.Occurrence.Id, out var parent) && ReferenceEquals(parent, node.Occurrence.Element))
                 .SelectMany(node => node.Compartments.Select(compartment => compartment.GraphicalView)
                 .Append(node.NestedView).Where(view => view is not null).Select(view => (node.Occurrence.Id, view))).ToHashSet();
@@ -306,10 +338,10 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         {
             const double padding = 32;
             var nodes = this.Projection.Nodes;
-            var left = nodes.Min(node => node.Occurrence.X - (!node.Boundary.IsEmpty ? 220 : 0)) - padding;
-            var top = nodes.Min(node => node.Occurrence.Y - (!node.Boundary.IsEmpty ? 40 : 0)) - padding;
-            var right = nodes.Max(node => node.Occurrence.X + node.Occurrence.Width + (!node.Boundary.IsEmpty ? 220 : 0)) + padding;
-            var bottom = nodes.Max(node => node.Occurrence.Y + node.Occurrence.Height + (!node.Boundary.IsEmpty ? 40 : 0)) + padding;
+            var left = nodes.Min(node => node.Occurrence.X - (!Boundaries(node).IsEmpty ? 220 : 0)) - padding;
+            var top = nodes.Min(node => node.Occurrence.Y - (!Boundaries(node).IsEmpty ? 40 : 0)) - padding;
+            var right = nodes.Max(node => node.Occurrence.X + node.Occurrence.Width + (!Boundaries(node).IsEmpty ? 220 : 0)) + padding;
+            var bottom = nodes.Max(node => node.Occurrence.Y + node.Occurrence.Height + (!Boundaries(node).IsEmpty ? 40 : 0)) + padding;
             var bends = this.Projection.Edges.Where(edge => !edge.Bends.IsDefaultOrEmpty).SelectMany(edge => edge.Bends).ToArray();
 
             if (bends.Length > 0)
@@ -365,6 +397,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
+        /// <summary>Gets boundary notation only for node types that support shell boundaries.</summary>
+        /// <param name="node">The typed node presentation.</param>
+        /// <returns>The shell's boundaries, or an empty collection for other node types.</returns>
+        private static ImmutableArray<DiagramBoundaryPresentation> Boundaries(DiagramNodePresentation node) => node is DiagramShellPresentation shell ? shell.Boundary : [];
+
         /// <summary>Checks the canonical association without confusing equal semantic IDs across models.</summary>
         /// <param name="node">The graphical endpoint occurrence.</param>
         /// <param name="feature">The optional canonical element or boundary feature.</param>
@@ -372,7 +409,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         private static bool IsEndpointFeature(DiagramNodePresentation node, IElement feature)
         {
             return feature is null || ReferenceEquals(node.Occurrence.Element, feature)
-                || node.Boundary.Any(boundary => ReferenceEquals(boundary.Element, feature));
+                || Boundaries(node).Any(boundary => ReferenceEquals(boundary.Element, feature));
         }
 
         /// <summary>Checks that SVG dimensions and coordinates are finite and positive where required.</summary>
@@ -395,8 +432,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
                 if (occurrence.Id == Guid.Empty || occurrence.Element is null || !ids.Add(occurrence.Id)
                     || !HasValidGeometry(occurrence)
-                    || node.Boundary.IsDefault || node.Compartments.IsDefault
-                    || node.Boundary.Any(feature => feature.Element is null || !double.IsFinite(feature.Offset) || feature.Offset < 0 || feature.Offset > 1))
+                    || node is DiagramShellPresentation shell && (shell.Boundary.IsDefault || shell.Compartments.IsDefault
+                        || shell.Boundary.Any(feature => feature.Element is null || !double.IsFinite(feature.Offset) || feature.Offset < 0 || feature.Offset > 1)))
                 {
                     throw new ArgumentException("Diagram occurrences require unique graphical identities and finite positive geometry with normalized boundaries.",
                         nameof(projection));

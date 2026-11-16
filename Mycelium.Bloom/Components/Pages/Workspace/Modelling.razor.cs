@@ -17,6 +17,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -73,7 +74,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         private readonly Dictionary<Guid, IProjectBrowserViewModel> projectBrowserViewModels = [];
 
         /// <summary>The session state owned by each exact General View editor tab.</summary>
-        private readonly Dictionary<Guid, GeneralDiagramViewModel> diagrams = [];
+        private readonly Dictionary<Guid, IGeneralDiagramViewModel> diagrams = [];
 
         /// <summary>
         /// The initial-only presentation weights supplied to the editor workspace.
@@ -93,6 +94,14 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// <summary>Gets or sets the circuit-owned canonical selection authority.</summary>
         [Inject]
         private IElementSelectionService ElementSelection { get; set; }
+
+        /// <summary>Gets or sets the service projecting canonical General View content.</summary>
+        [Inject]
+        private IGeneralViewProjector GeneralViewProjector { get; set; }
+
+        /// <summary>Gets or sets the factory creating tab-owned diagram state.</summary>
+        [Inject]
+        private Func<GeneralViewProjection, IGeneralDiagramViewModel> GeneralDiagramViewModelFactory { get; set; }
 
         /// <summary>
         /// Gets or sets the factory that creates editor state owned by this routed page.
@@ -204,10 +213,12 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             this.RegisterBrowserReveal?.Invoke(this, default);
             this.subscriptions.Dispose();
             this.DisposeProjectBrowserViewModels();
+
             foreach (var diagram in this.diagrams.Values)
             {
                 diagram.Dispose();
             }
+
             this.diagrams.Clear();
             this.WorkspaceEditorViewModel?.Dispose();
         }
@@ -553,11 +564,11 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         {
             var selected = this.ElementSelection.SelectedElement;
             var root = selected ?? this.projectBrowserViewModels.Values.SelectMany(browser => browser.RootNodes).FirstOrDefault()?.SourceElement;
-            var projection = example ? GeneralViewExample.Create() : GeneralViewProjector.CreateForRoot(root);
+            var projection = example ? GeneralViewExample.Create(this.GeneralViewProjector) : this.GeneralViewProjector.CreateForRoot(root);
 
             if (this.WorkspaceEditorViewModel.TryOpenTab(groupId, example ? "General View example" : "General View", "general-view", out var tab))
             {
-                this.diagrams.Add(tab.Id, new GeneralDiagramViewModel(projection, this.ElementSelection));
+                this.diagrams.Add(tab.Id, this.GeneralDiagramViewModelFactory(projection));
             }
         }
 

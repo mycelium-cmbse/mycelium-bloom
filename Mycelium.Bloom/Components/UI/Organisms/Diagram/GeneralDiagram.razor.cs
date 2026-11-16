@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
     using Microsoft.AspNetCore.Components;
+    using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.ViewModel.Diagram;
@@ -23,12 +24,40 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>The exact ViewModel borrowed by the adapter.</summary>
         private IGeneralDiagramViewModel observed;
 
+        /// <summary>Records availability of the native browser API before creating its canvas.</summary>
+        private bool scriptReady;
+
         /// <summary>Guards component-local work after unmount.</summary>
         private bool disposed;
 
         /// <summary>Gets or sets whether the view is hosted inside another graphical occurrence.</summary>
         [Parameter]
         public bool IsNested { get; set; }
+
+        /// <summary>Gets or sets the runtime that loads diagram support for this interactive view.</summary>
+        [Inject]
+        private IJSRuntime ScriptRuntime { get; set; }
+
+        /// <summary>Loads native script support before parameter binding can create a native canvas.</summary>
+        /// <returns>Completion of interactive script initialization.</returns>
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+
+            if (this.RendererInfo.IsInteractive)
+            {
+                try
+                {
+                    await using var module = await this.ScriptRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/UI/Organisms/Diagram/GeneralDiagram.razor.js");
+                    await module.InvokeVoidAsync("ensureDiagramScript");
+                    this.scriptReady = true;
+                }
+                catch (JSDisconnectedException)
+                {
+                    // A disconnected circuit cannot initialize or release browser references.
+                }
+            }
+        }
 
         /// <summary>Rebinds the adapter when the caller changes the presentation owner.</summary>
         protected override void OnParametersSet()
@@ -54,7 +83,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Creates one adapter for the exact current caller-owned ViewModel.</summary>
         private void BindRenderer()
         {
-            if (this.RendererInfo.IsInteractive && !this.disposed && !ReferenceEquals(this.observed, this.ViewModel))
+            if (this.scriptReady && !this.disposed && !ReferenceEquals(this.observed, this.ViewModel))
             {
                 this.renderer?.Dispose();
                 this.observed = this.ViewModel;

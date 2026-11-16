@@ -75,44 +75,48 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Builds the SVG endpoint symbol requested by shared notation.</summary>
         /// <param name="marker">The endpoint symbol to draw.</param>
         /// <returns>The SVG fragment for the requested endpoint.</returns>
-        private static RenderFragment Marker(DiagramMarker marker) => builder =>
+        private static RenderFragment Marker(DiagramMarker marker)
         {
-            if (marker == DiagramMarker.None)
+            return builder =>
             {
-                return;
-            }
-            builder.OpenElement(0, "path");
-            builder.AddAttribute(1, "d", marker switch
-            {
-                DiagramMarker.FilledDiamond or DiagramMarker.HollowDiamond => "M0 0 L-8 -5 L-16 0 L-8 5 Z",
-                DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "M0 0 L-12 -6 L-12 6 Z",
-                DiagramMarker.CrossedArrow => "M-12 -5 L0 0 L-12 5 M-6 -5 L-6 5",
-                _ => "M-12 -5 L0 0 L-12 5"
-            });
-            builder.AddAttribute(2, "fill", marker switch
-            {
-                DiagramMarker.FilledDiamond => CurrentColor,
-                DiagramMarker.HollowDiamond or DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "var(--background)",
-                _ => "none"
-            });
-            builder.AddAttribute(3, "stroke", CurrentColor);
-            builder.CloseElement();
+                if (marker == DiagramMarker.None)
+                {
+                    return;
+                }
 
-            if (marker == DiagramMarker.BarredTriangle)
-            {
-                builder.OpenElement(4, "path");
-                builder.AddAttribute(5, "d", "M-16 -6 L-16 6");
-                builder.AddAttribute(6, "stroke", CurrentColor);
+                builder.OpenElement(0, "path");
+                builder.AddAttribute(1, "d", marker switch
+                {
+                    DiagramMarker.FilledDiamond or DiagramMarker.HollowDiamond => "M0 0 L-8 -5 L-16 0 L-8 5 Z",
+                    DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "M0 0 L-12 -6 L-12 6 Z",
+                    DiagramMarker.CrossedArrow => "M-12 -5 L0 0 L-12 5 M-6 -5 L-6 5",
+                    _ => "M-12 -5 L0 0 L-12 5"
+                });
+                builder.AddAttribute(2, "fill", marker switch
+                {
+                    DiagramMarker.FilledDiamond => CurrentColor,
+                    DiagramMarker.HollowDiamond or DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "var(--background)",
+                    _ => "none"
+                });
+                builder.AddAttribute(3, "stroke", CurrentColor);
                 builder.CloseElement();
-            }
 
-            if (marker == DiagramMarker.TypingTriangle)
-            {
-                builder.OpenElement(7, "path");
-                builder.AddAttribute(8, "d", "M-18 -4 a1.5 1.5 0 1 0 0.1 0 M-18 4 a1.5 1.5 0 1 0 0.1 0");
-                builder.AddAttribute(9, "fill", CurrentColor);
-                builder.CloseElement();
-            }
-        };
+                if (marker == DiagramMarker.BarredTriangle)
+                {
+                    builder.OpenElement(4, "path");
+                    builder.AddAttribute(5, "d", "M-16 -6 L-16 6");
+                    builder.AddAttribute(6, "stroke", CurrentColor);
+                    builder.CloseElement();
+                }
+
+                if (marker == DiagramMarker.TypingTriangle)
+                {
+                    builder.OpenElement(7, "path");
+                    builder.AddAttribute(8, "d", "M-18 -4 a1.5 1.5 0 1 0 0.1 0 M-18 4 a1.5 1.5 0 1 0 0.1 0");
+                    builder.AddAttribute(9, "fill", CurrentColor);
+                    builder.CloseElement();
+                }
+            };
+        }
     }
 }

@@ -11,19 +11,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using Blazor.Diagrams.Core.Geometry;
 
     using Bunit;
 
-
     using Moq;
 
     using Mycelium.Bloom.Components.UI.Molecules.ZoomControls;
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     using SysML2.NET.Core.POCO.Systems.Parts;
@@ -42,6 +44,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void SetUp()
         {
             this.context = new BunitContext();
+            this.context.Services.AddDiagramServices();
+            this.context.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/GeneralDiagram.razor.js").SetupVoid("ensureDiagramScript").SetVoidResult();
             this.context.SetRendererInfo(new Microsoft.AspNetCore.Components.RendererInfo("Server", true));
             this.viewModel = new Mock<IGeneralDiagramViewModel>();
             this.ownedViewModels = [];
@@ -61,6 +65,27 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 {
                     owned.Dispose();
                 }
+            }
+        }
+
+        [Test]
+        public void VerifyTypedPresentationsRenderTheirRegisteredComponents()
+        {
+            this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var owner = new GeneralDiagramViewModel(projection, new ContextAwareService());
+            this.ownedViewModels.Add(owner);
+            var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var package = component.FindComponent<DiagramPackageNode>();
+            var comment = component.FindComponent<DiagramCommentNode>();
+            var shells = component.FindComponents<DiagramShellNode>();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(package.Instance.Presentation, Is.SameAs(projection.Nodes.OfType<DiagramPackagePresentation>().Single()));
+                Assert.That(comment.Instance.Presentation, Is.SameAs(projection.Nodes.OfType<DiagramCommentPresentation>().Single()));
+                Assert.That(shells, Is.Not.Empty);
+                Assert.That(shells.Select(shell => shell.Instance.Presentation), Has.All.InstanceOf<DiagramShellPresentation>());
             }
         }
 
@@ -84,7 +109,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             var initialization = this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
             var selection = new ContextAwareService();
-            var owner = new GeneralDiagramViewModel(GeneralViewProjector.Create([new PartUsage { Id = Guid.NewGuid() }]), selection);
+            var owner = new GeneralDiagramViewModel(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid() }]), selection);
             this.ownedViewModels.Add(owner);
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
             var canvas = component.FindComponent<DiagramCanvasHost>().Instance;
@@ -138,7 +163,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             this.context.JSInterop.Mode = JSRuntimeMode.Loose;
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
             var selection = new ContextAwareService();
-            var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(), selection);
+            var owner = new GeneralDiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
             this.ownedViewModels.Add(owner);
             var component = this.context.Render<GeneralDiagram>(parameters => parameters.Add(value => value.ViewModel, owner));
             var element = owner.Projection.Nodes[0].Occurrence.Element;

@@ -9,4 +9,4 @@
 
 @inherits BloomComponentBase
 
-<div @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-comment")" tabindex="0" role="group" aria-label="Comment text" @onwheel:stopPropagation="true">@this.Body</div>
+<div @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-comment")" tabindex="0" role="group" aria-label="Comment text" @onwheel:stopPropagation="true">@(this.Presentation?.Body ?? this.Body)</div>

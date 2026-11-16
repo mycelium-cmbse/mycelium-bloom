@@ -39,10 +39,13 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -135,6 +138,38 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
+        }
+
+        [Test]
+        public async Task VerifyGeneralViewUsesInjectedProjectionAndViewModelFactory()
+        {
+            var root = new Namespace { DeclaredName = "Selected" };
+            var projection = new GeneralViewProjection([], []);
+            var projector = new Mock<IGeneralViewProjector>(MockBehavior.Strict);
+            projector.Setup(service => service.CreateForRoot(root)).Returns(projection);
+            var diagram = new Mock<IGeneralDiagramViewModel>(MockBehavior.Strict);
+            diagram.SetupGet(viewModel => viewModel.Projection).Returns(projection);
+            diagram.SetupGet(viewModel => viewModel.Viewport).Returns(new DiagramViewport());
+            diagram.Setup(viewModel => viewModel.Dispose());
+            var factory = new Mock<Func<GeneralViewProjection, IGeneralDiagramViewModel>>(MockBehavior.Strict);
+            factory.Setup(create => create(It.Is<GeneralViewProjection>(value => ReferenceEquals(value, projection)))).Returns(diagram.Object);
+            var composition = this.RegisterWorkspaceServices(3, generalViewProjector: projector.Object, createDiagram: factory.Object);
+            using var navigation = composition.Navigation;
+            this.SetRendererInfo(new RendererInfo("Static", false));
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            composition.Context.SelectedElement = root;
+            var modelling = component.FindComponent<Modelling>();
+            var group = composition.Editor.Groups[2];
+
+            await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
+            await this.FindPortalledMenuItem("General View").ClickAsync();
+
+            Assert.That(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.GeneralDiagram>().Instance.ViewModel, Is.SameAs(diagram.Object));
+            projector.Verify(service => service.CreateForRoot(root), Times.Once);
+            factory.Verify(create => create(It.IsAny<GeneralViewProjection>()), Times.Once);
+            var tab = group.ActiveTab;
+            await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{tab.Id}']").ClickAsync();
+            diagram.Verify(viewModel => viewModel.Dispose(), Times.Once);
         }
 
         [Test]
@@ -1578,7 +1613,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             ContextAwareService Context,
             List<ProjectBrowserNodeViewModel> ProjectBrowserNodes) RegisterWorkspaceServices(
             int maximumGroupCount,
-            Func<ContextAwareService, IProjectBrowserViewModel> createProjectBrowserViewModel = null)
+            Func<ContextAwareService, IProjectBrowserViewModel> createProjectBrowserViewModel = null,
+            IGeneralViewProjector generalViewProjector = null, Func<GeneralViewProjection, IGeneralDiagramViewModel> createDiagram = null)
         {
             var context = new ContextAwareService();
             var editorViewModel = new WorkspaceEditorViewModel(
@@ -1644,6 +1680,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             this.Services.AddScoped<Func<INavigationRailViewModel>>(_ => () => navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
+            this.Services.AddDiagramServices();
+            this.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/GeneralDiagram.razor.js").SetupVoid("ensureDiagramScript").SetVoidResult();
             this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
                 () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             var elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
@@ -1666,6 +1704,16 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                     elementIdResolver.Object,
                     context,
                     NullLogger<WorkspaceUrlContextService>.Instance));
+            if (generalViewProjector is not null)
+            {
+                this.Services.AddSingleton(generalViewProjector);
+            }
+
+            if (createDiagram is not null)
+            {
+                this.Services.AddSingleton(createDiagram);
+            }
+
             this.portalHost = this.Render<BbPortalHost>();
 
             return (

@@ -41,9 +41,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Size = new Size(presentation.Occurrence.Width, presentation.Occurrence.Height);
             this.ControlledSize = true;
 
-            for (var index = 0; index < presentation.Boundary.Length; index++)
+            for (var index = 0; index < this.ViewModel.BoundaryFeatures.Length; index++)
             {
-                var feature = presentation.Boundary[index];
+                var feature = this.ViewModel.BoundaryFeatures[index].Presentation;
                 var alignment = feature.Side switch
                 {
                     BoundarySide.Left => PortAlignment.Left,
@@ -104,9 +104,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         {
             var occurrence = (GeneralDiagramNodeModel)node;
 
-            for (var index = 0; index < occurrence.Presentation.Boundary.Length; index++)
+            for (var index = 0; index < occurrence.ViewModel.BoundaryFeatures.Length; index++)
             {
-                if (ReferenceEquals(occurrence.Presentation.Boundary[index].Element, feature))
+                if (ReferenceEquals(occurrence.ViewModel.BoundaryFeatures[index].Element, feature))
                 {
                     return new SinglePortAnchor(node.Ports[index]);
                 }

@@ -1142,6 +1142,42 @@ test("Browser focus recovery distinguishes pre-removal blur from leaving the tre
     disposeTree(root);
 });
 
+test("diagram mounts share a single script load", async () => {
+    const { ensureDiagramScript } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    const first = ensureDiagramScript();
+    const second = ensureDiagramScript();
+    const scripts = document.querySelectorAll("script");
+    assert.equal(scripts.length, 1);
+    assert.equal(scripts[0].src, "https://bloom.test/_content/Z.Blazor.Diagrams/script.min.js");
+    scripts[0].onload();
+    await Promise.all([first, second]);
+    assert.equal(document.querySelectorAll("script").length, 1);
+});
+
+test("a failed diagram script load can be retried", async () => {
+    const { ensureDiagramScript } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    const first = ensureDiagramScript();
+    const failed = assert.rejects(first, /diagram script could not be loaded/);
+    document.querySelector("script").onerror();
+    await failed;
+    assert.equal(document.querySelectorAll("script").length, 0);
+    const second = ensureDiagramScript();
+    document.querySelector("script").onload();
+    await second;
+    assert.equal(document.querySelectorAll("script").length, 1);
+});
+
+test("an already loaded diagram script is reused", async () => {
+    const { ensureDiagramScript } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    globalThis.ZBlazorDiagrams = {};
+    try {
+        await ensureDiagramScript();
+        assert.equal(document.querySelectorAll("script").length, 0);
+    } finally {
+        delete globalThis.ZBlazorDiagrams;
+    }
+});
+
 
 test("inspection scrolling is confined to its Browser and never moves focus", () => {
     const root = createBrowserTree();
@@ -1251,3 +1287,42 @@ for (const fontOutcome of ["rejected", "settled after disposal"]) {
         }
     });
 }
+
+test("diagram assets wait for one shared lazy stylesheet across simultaneous mounts", async () => {
+    const { ensureDiagramAssets } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    const first = ensureDiagramAssets();
+    const second = ensureDiagramAssets();
+    const styles = document.querySelectorAll('link[rel="stylesheet"]');
+    assert.equal(styles.length, 1);
+    assert.equal(styles[0].href, "https://bloom.test/_content/Z.Blazor.Diagrams/style.min.css");
+    let ready = false;
+    first.then(() => { ready = true; });
+    document.querySelector("script").onload();
+    await Promise.resolve();
+    assert.equal(ready, false);
+    styles[0].onload();
+    await Promise.all([first, second]);
+    await ensureDiagramAssets();
+    assert.equal(document.querySelectorAll('link[rel="stylesheet"]').length, 1);
+    assert.equal(document.querySelectorAll("script").length, 1);
+});
+
+test("failed lazy diagram styles can retry without reloading the successful script", async () => {
+    const { ensureDiagramAssets } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    const first = ensureDiagramAssets();
+    const failure = assert.rejects(first, /diagram stylesheet could not be loaded/);
+    document.querySelector("script").onload();
+    document.querySelector('link[rel="stylesheet"]').onerror();
+    await failure;
+    assert.equal(document.querySelectorAll('link[rel="stylesheet"]').length, 0);
+    const second = ensureDiagramAssets();
+    document.querySelector('link[rel="stylesheet"]').onload();
+    await second;
+    assert.equal(document.querySelectorAll("script").length, 1);
+});
+
+test("diagram modules do not load native styles before a canvas requests them", async () => {
+    await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    assert.equal(document.querySelectorAll('link[rel="stylesheet"]').length, 0);
+    assert.equal(document.querySelectorAll("script").length, 0);
+});
