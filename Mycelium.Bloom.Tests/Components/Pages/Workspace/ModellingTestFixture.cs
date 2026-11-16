@@ -1497,7 +1497,12 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using var component = this.RenderWorkspaceLayoutWithModelling();
             var modelling = component.FindComponent<Modelling>();
             await this.OpenProjectBrowserAsync(modelling, composition.Editor.Groups[1].Id);
-            await component.WaitForAssertionAsync(() => Assert.That(browsers.All(browser => browser.IsLoaded), Is.True));
+            await component.WaitForStateAsync(() => browsers.Count == 2 && browsers.All(browser => browser.IsLoaded && !browser.IsLoading));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browsers, Has.Count.EqualTo(2));
+                Assert.That(browsers.All(browser => browser.IsLoaded), Is.True);
+            }
             await component.InvokeAsync(() => composition.Editor.FocusGroup(composition.Editor.Groups[0].Id));
             await component.WaitForAssertionAsync(() =>
             {

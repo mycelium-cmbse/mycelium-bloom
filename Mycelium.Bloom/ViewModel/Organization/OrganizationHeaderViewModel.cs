@@ -140,7 +140,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         private static ActionMenuItem[] GetSectionItems(string slug, OrganizationSection section, OrganizationCapabilities capabilities)
         {
             return Sections
-                .Where(descriptor => descriptor.Section != OrganizationSection.Settings || capabilities.CanEditSettings)
+                .Where(descriptor => capabilities.CanOpen(descriptor.Section))
                 .Select(descriptor => new ActionMenuItem
                 {
                     Id = OrganizationRoutes.GetOrganizationPath(slug, descriptor.Section),
