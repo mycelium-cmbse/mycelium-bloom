@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ProjectExtensions.cs" company="Starion Group S.A.">
+// <copyright file="ProjectVisibilityExtensions.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -9,12 +9,11 @@
 
 namespace Mycelium.Bloom.Extensions
 {
-    using Mycelium.SDK;
 
     /// <summary>
     /// Gives the icon by which the projects list shows the visibility of a project.
     /// </summary>
-    public static class ProjectExtensions
+    public static class ProjectVisibilityExtensions
     {
         /// <summary>
         /// Defines what the projects list shows about the visibility of a project.

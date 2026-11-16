@@ -14,7 +14,8 @@
     background: var(--muted-foreground);
 }
 
-.mb-status-indicator--preparation .mb-status-indicator__dot {
+.mb-status-indicator--preparation .mb-status-indicator__dot,
+.mb-status-indicator--pending .mb-status-indicator__dot {
     background: var(--lifecycle-preparation);
 }
 
@@ -26,6 +27,19 @@
     background: var(--lifecycle-review);
 }
 
-.mb-status-indicator--archived .mb-status-indicator__dot {
+.mb-status-indicator--archived .mb-status-indicator__dot,
+.mb-status-indicator--deleted .mb-status-indicator__dot {
     background: var(--lifecycle-archived);
+}
+
+.mb-status-indicator--active .mb-status-indicator__dot {
+    background: var(--success);
+}
+
+.mb-status-indicator--suspended {
+    color: var(--destructive);
+}
+
+.mb-status-indicator--suspended .mb-status-indicator__dot {
+    background: var(--destructive);
 }
