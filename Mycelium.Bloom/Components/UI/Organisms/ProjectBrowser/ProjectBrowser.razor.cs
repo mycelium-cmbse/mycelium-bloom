@@ -37,7 +37,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private ElementReference treeRoot;
 
         /// <summary>The last inspection scrolled in this tree, without DOM focus changes.</summary>
-        private ProjectBrowserNodeViewModel scrolledInspection;
+        private IProjectBrowserNodeViewModel scrolledInspection;
 
         /// <summary>Gets or sets whether this visible Browser follows Properties inspection.</summary>
         [Parameter]

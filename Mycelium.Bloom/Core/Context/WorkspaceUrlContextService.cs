@@ -38,6 +38,9 @@ namespace Mycelium.Bloom.Core.Context
         /// <summary>The independent Properties reference identifier.</summary>
         public const string InspectedElementParameterName = "inspectedElement";
 
+        /// <summary>Bounds each entry's identifier-only trail, retaining the root and newest steps.</summary>
+        private const int MaximumTrailLength = 32;
+
         /// <summary>
         /// Resolves stable identifiers against the loaded SysML model.
         /// </summary>
@@ -64,9 +67,6 @@ namespace Mycelium.Bloom.Core.Context
         /// <summary>Prevents repeated Back clicks while a native traversal is pending.</summary>
         private bool backPending;
 
-        /// <summary>Bounds each entry's identifier-only trail, retaining the root and newest steps.</summary>
-        private const int MaximumTrailLength = 32;
-
         /// <summary>Cancels explicit trail-step resolution when the layout service is disposed.</summary>
         private readonly CancellationTokenSource lifetimeCancellation = new();
 
@@ -88,12 +88,8 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="elementSelectionService">The shared selected-element authority.</param>
         /// <param name="logger">Reports model-resolution failures.</param>
         /// <param name="jsRuntime">Supports native traversal of reference history entries.</param>
-        public WorkspaceUrlContextService(
-            NavigationManager navigationManager,
-            IElementIdResolver elementIdResolver,
-            IElementSelectionService elementSelectionService,
-            ILogger<WorkspaceUrlContextService> logger,
-            IJSRuntime jsRuntime = null)
+        public WorkspaceUrlContextService(NavigationManager navigationManager, IElementIdResolver elementIdResolver,
+            IElementSelectionService elementSelectionService, ILogger<WorkspaceUrlContextService> logger, IJSRuntime jsRuntime = null)
         {
             ArgumentNullException.ThrowIfNull(navigationManager);
             ArgumentNullException.ThrowIfNull(elementIdResolver);
@@ -120,10 +116,7 @@ namespace Mycelium.Bloom.Core.Context
                 .Select(location => this.CreateLocationTransition(location.Location) with { EntryState = location.EntryState })
                 .Scan((previous, current) => current with
                 {
-                    RouteChanged = !string.Equals(
-                        previous.AbsolutePath,
-                        current.AbsolutePath,
-                        StringComparison.OrdinalIgnoreCase)
+                    RouteChanged = !string.Equals(previous.AbsolutePath, current.AbsolutePath, StringComparison.OrdinalIgnoreCase)
                 })
                 .Select(transition => this.ParseLocation(transition) with { EntryState = transition.EntryState })
                 .Select(parsedLocation => Observable.FromAsync(cancellationToken =>
@@ -188,6 +181,7 @@ namespace Mycelium.Bloom.Core.Context
         public string GetElementUri(IElement element)
         {
             var elementId = GetStableElementId(element);
+
             if (this.isDisposed || elementId is null)
             {
                 return null;
@@ -204,6 +198,7 @@ namespace Mycelium.Bloom.Core.Context
         {
             ArgumentNullException.ThrowIfNull(element);
             var id = GetStableElementId(element);
+
             if (this.isDisposed || this.backPending || id is null)
             {
                 return;
@@ -211,6 +206,7 @@ namespace Mycelium.Bloom.Core.Context
 
             var displayedId = GetStableElementId(this.elementSelectionService.InspectedElement)
                               ?? GetStableElementId(this.elementSelectionService.SelectedElement);
+
             if (string.Equals(id, displayedId, StringComparison.Ordinal))
             {
                 return;
@@ -227,6 +223,7 @@ namespace Mycelium.Bloom.Core.Context
             }
 
             var uri = this.GetUriWithInspection(this.navigationManager.Uri, id);
+
             if (!this.IsDifferentFromCurrentUri(uri))
             {
                 return;
@@ -268,6 +265,7 @@ namespace Mycelium.Bloom.Core.Context
             }
 
             var previous = this.ReadPreviousInspectionUri();
+
             if (previous is not null && this.jsRuntime is not null)
             {
                 this.backPending = true;
@@ -290,6 +288,7 @@ namespace Mycelium.Bloom.Core.Context
 
             // A direct link has no known workspace predecessor; stay on this route.
             var destination = previous ?? this.GetUriWithInspection(this.navigationManager.Uri, null);
+
             if (this.IsDifferentFromCurrentUri(destination))
             {
                 this.navigationManager.NavigateTo(destination, new NavigationOptions { ReplaceHistoryEntry = true });
@@ -303,6 +302,7 @@ namespace Mycelium.Bloom.Core.Context
             try
             {
                 var state = JsonSerializer.Deserialize<InspectionHistory>(this.navigationManager.HistoryEntryState ?? "null");
+
                 if (state is null || state.CurrentUri != this.navigationManager.Uri || string.IsNullOrEmpty(state.PreviousUri))
                 {
                     return null;
@@ -312,10 +312,12 @@ namespace Mycelium.Bloom.Core.Context
                 var previous = this.navigationManager.ToAbsoluteUri(state.PreviousUri);
                 var query = QueryHelpers.ParseQuery(previous.Query);
                 var selectedId = query.TryGetValue(SelectedElementParameterName, out var selected) && selected.Count == 1
-                    ? selected[0] : null;
+                    ? selected[0]
+                    : null;
                 return previous.GetLeftPart(UriPartial.Path) == current.GetLeftPart(UriPartial.Path)
                        && string.Equals(selectedId, GetStableElementId(this.elementSelectionService.SelectedElement), StringComparison.Ordinal)
-                    ? state.PreviousUri : null;
+                    ? state.PreviousUri
+                    : null;
             }
             catch (Exception exception) when (exception is JsonException or ArgumentException or UriFormatException)
             {
@@ -356,6 +358,7 @@ namespace Mycelium.Bloom.Core.Context
             var query = QueryHelpers.ParseQuery(this.navigationManager.ToAbsoluteUri(source).Query);
             var selectedId = query.TryGetValue(SelectedElementParameterName, out var selected) && selected.Count == 1 ? selected[0] : null;
             var inspectedId = query.TryGetValue(InspectedElementParameterName, out var inspected) && inspected.Count == 1 ? inspected[0] : null;
+
             if (selectedId != GetStableElementId(this.elementSelectionService.SelectedElement)
                 || inspectedId != GetStableElementId(this.elementSelectionService.InspectedElement))
             {
@@ -364,6 +367,7 @@ namespace Mycelium.Bloom.Core.Context
 
             var trail = ReadTrailIds(source, state, GetStableElementId(this.elementSelectionService.SelectedElement),
                 GetStableElementId(this.elementSelectionService.InspectedElement));
+
             if (index < 0 || index >= trail.Length - 1 || trail[index] != elementId)
             {
                 return;
@@ -372,6 +376,7 @@ namespace Mycelium.Bloom.Core.Context
             try
             {
                 var element = await this.elementIdResolver.ResolveAsync(trail[index], this.lifetimeCancellation.Token);
+
                 if (this.isDisposed || element is null || this.backPending
                     || !string.Equals(GetStableElementId(element), trail[index], StringComparison.Ordinal)
                     || source != this.navigationManager.Uri || state != this.navigationManager.HistoryEntryState)
@@ -380,6 +385,7 @@ namespace Mycelium.Bloom.Core.Context
                 }
 
                 var uri = this.GetUriWithInspection(source, trail[index]);
+
                 if (this.IsDifferentFromCurrentUri(uri))
                 {
                     this.PushInspection(uri, trail.Take(index + 1).ToArray());
@@ -402,7 +408,8 @@ namespace Mycelium.Bloom.Core.Context
         {
             var ids = steps.Where(id => !string.IsNullOrWhiteSpace(id)).ToArray();
             return ids.Length <= MaximumTrailLength
-                ? ids : new[] { ids[0] }.Concat(ids.TakeLast(MaximumTrailLength - 1)).ToArray();
+                ? ids
+                : new[] { ids[0] }.Concat(ids.TakeLast(MaximumTrailLength - 1)).ToArray();
         }
 
         /// <summary>Accepts history metadata only when its endpoints agree with the authoritative URI context.</summary>
@@ -426,6 +433,7 @@ namespace Mycelium.Bloom.Core.Context
             try
             {
                 var state = JsonSerializer.Deserialize<InspectionHistory>(entryState ?? "null");
+
                 if (state is not null && state.CurrentUri == location && state.Trail is { Length: >= 2 and <= MaximumTrailLength } ids
                     && ids[0] == selectedId && ids[^1] == inspectedId && ids.All(id => !string.IsNullOrWhiteSpace(id)))
                 {
@@ -450,6 +458,7 @@ namespace Mycelium.Bloom.Core.Context
             var ids = ReadTrailIds(location.Location, location.EntryState,
                 GetStableElementId(restoration.SelectedElement), GetStableElementId(restoration.InspectedElement));
             var steps = new List<InspectionTrailStep>();
+
             foreach (var id in ids)
             {
                 IElement element = null;
@@ -490,7 +499,9 @@ namespace Mycelium.Bloom.Core.Context
 
             return new WorkspaceUrlContextRestoration(restoration.SelectedElement, restoration.CanonicalUri,
                 restoration.ShouldFocusSelectedElement, restoration.InspectedElement)
-            { InspectionTrail = steps.ToArray() };
+            {
+                InspectionTrail = steps.ToArray()
+            };
         }
 
         /// <summary>
@@ -518,8 +529,7 @@ namespace Mycelium.Bloom.Core.Context
         {
             try
             {
-                var query = QueryHelpers.ParseQuery(
-                    this.navigationManager.ToAbsoluteUri(transition.Location).Query);
+                var query = QueryHelpers.ParseQuery(this.navigationManager.ToAbsoluteUri(transition.Location).Query);
 
                 if (!query.TryGetValue(SelectedElementParameterName, out var values))
                 {
@@ -538,17 +548,10 @@ namespace Mycelium.Bloom.Core.Context
                 var duplicateValuesAreIdentical =
                     candidates.All(value => string.Equals(value, candidate, StringComparison.Ordinal));
                 var shouldFocusSelectedElement = transition.RouteChanged
-                                                 || !string.Equals(
-                                                     candidate,
-                                                     GetStableElementId(this.elementSelectionService.SelectedElement),
-                                                     StringComparison.Ordinal);
+                                                 || !string.Equals(candidate, GetStableElementId(this.elementSelectionService.SelectedElement), StringComparison.Ordinal);
 
                 return duplicateValuesAreIdentical
-                    ? new ParsedLocation(
-                        transition.Location,
-                        candidate,
-                        candidates.Length > 1,
-                        shouldFocusSelectedElement)
+                    ? new ParsedLocation(transition.Location, candidate, candidates.Length > 1, shouldFocusSelectedElement)
                     : new ParsedLocation(transition.Location, null, true, false);
             }
             catch (Exception exception) when (exception is ArgumentException or UriFormatException)
@@ -564,10 +567,7 @@ namespace Mycelium.Bloom.Core.Context
         /// <returns>The transition candidate, treated as an initial route until paired by the stream.</returns>
         private LocationTransition CreateLocationTransition(string location)
         {
-            return new LocationTransition(
-                location,
-                this.navigationManager.ToAbsoluteUri(location).AbsolutePath,
-                true);
+            return new LocationTransition(location, this.navigationManager.ToAbsoluteUri(location).AbsolutePath, true);
         }
 
         /// <summary>
@@ -576,9 +576,7 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="parsedLocation">The parsed URL state.</param>
         /// <param name="cancellationToken">Cancels stale resolution.</param>
         /// <returns>The resolved selection and optional canonical replacement URI.</returns>
-        private async Task<WorkspaceUrlContextRestoration> ResolveSelectionAsync(
-            ParsedLocation parsedLocation,
-            CancellationToken cancellationToken)
+        private async Task<WorkspaceUrlContextRestoration> ResolveSelectionAsync(ParsedLocation parsedLocation, CancellationToken cancellationToken)
         {
             if (parsedLocation.ElementId is null)
             {
@@ -591,9 +589,7 @@ namespace Mycelium.Bloom.Core.Context
 
             try
             {
-                var element = await this.elementIdResolver.ResolveAsync(
-                    parsedLocation.ElementId,
-                    cancellationToken);
+                var element = await this.elementIdResolver.ResolveAsync(parsedLocation.ElementId, cancellationToken);
                 string canonicalUri;
 
                 if (element is null)
@@ -602,19 +598,14 @@ namespace Mycelium.Bloom.Core.Context
                 }
                 else if (parsedLocation.RequiresCanonicalization)
                 {
-                    canonicalUri = this.GetUriWithSelectedElement(
-                        parsedLocation.Location,
-                        parsedLocation.ElementId);
+                    canonicalUri = this.GetUriWithSelectedElement(parsedLocation.Location, parsedLocation.ElementId);
                 }
                 else
                 {
                     canonicalUri = null;
                 }
 
-                return new WorkspaceUrlContextRestoration(
-                    element,
-                    canonicalUri,
-                    element is not null && parsedLocation.ShouldFocusSelectedElement);
+                return new WorkspaceUrlContextRestoration(element, canonicalUri, element is not null && parsedLocation.ShouldFocusSelectedElement);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -632,11 +623,11 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="parsedLocation">The selected-element candidate and original browser location.</param>
         /// <param name="cancellationToken">Cancels superseded endpoint resolution.</param>
         /// <returns>The canonical selected and inspected endpoints with any required URI replacement.</returns>
-        private async Task<WorkspaceUrlContextRestoration> ResolveRestorationAsync(
-            ParsedLocation parsedLocation, CancellationToken cancellationToken)
+        private async Task<WorkspaceUrlContextRestoration> ResolveRestorationAsync(ParsedLocation parsedLocation, CancellationToken cancellationToken)
         {
             var selection = await this.ResolveSelectionAsync(parsedLocation, cancellationToken);
             var query = QueryHelpers.ParseQuery(this.navigationManager.ToAbsoluteUri(parsedLocation.Location).Query);
+
             if (!query.TryGetValue(InspectedElementParameterName, out var values))
             {
                 return selection;
@@ -645,6 +636,7 @@ namespace Mycelium.Bloom.Core.Context
             var candidates = values.ToArray();
             var candidate = candidates.FirstOrDefault();
             IElement inspected = null;
+
             if (!string.IsNullOrWhiteSpace(candidate)
                 && candidates.All(value => string.Equals(value, candidate, StringComparison.Ordinal)))
             {
@@ -668,6 +660,7 @@ namespace Mycelium.Bloom.Core.Context
             }
 
             var canonical = selection.CanonicalUri;
+
             if (inspected is null || candidates.Length > 1
                 || !string.Equals(candidate, GetStableElementId(inspected), StringComparison.Ordinal))
             {
@@ -685,6 +678,7 @@ namespace Mycelium.Bloom.Core.Context
         private string GetUriWithInspection(string uri, string elementId)
         {
             var query = QueryHelpers.ParseQuery(this.navigationManager.ToAbsoluteUri(uri).Query);
+
             if (query.TryGetValue(SelectedElementParameterName, out var selected)
                 && selected.Count == 1 && string.Equals(elementId, selected[0], StringComparison.Ordinal))
             {
@@ -728,7 +722,7 @@ namespace Mycelium.Bloom.Core.Context
         /// </summary>
         /// <param name="element">The selected model element.</param>
         /// <returns>The exact identifier, or <see langword="null" /> when unavailable.</returns>
-        private static string GetStableElementId(SysML2.NET.Core.POCO.Root.Elements.IElement element)
+        private static string GetStableElementId(IElement element)
         {
             return string.IsNullOrWhiteSpace(element?.ElementId) ? null : element.ElementId;
         }
@@ -741,12 +735,7 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="RequiresCanonicalization">Whether the selected-element parameter must be rewritten.</param>
         /// <param name="ShouldFocusSelectedElement">Whether the browser transition requests local focus.</param>
         /// <param name="EntryState">The originating browser history metadata.</param>
-        private sealed record ParsedLocation(
-            string Location,
-            string ElementId,
-            bool RequiresCanonicalization,
-            bool ShouldFocusSelectedElement,
-            string EntryState = null);
+        private sealed record ParsedLocation(string Location, string ElementId, bool RequiresCanonicalization, bool ShouldFocusSelectedElement, string EntryState = null);
 
         /// <summary>
         /// Carries immutable location state between adjacent framework navigation events.
@@ -755,10 +744,6 @@ namespace Mycelium.Bloom.Core.Context
         /// <param name="AbsolutePath">The current escaped absolute path.</param>
         /// <param name="RouteChanged">Whether the route differs from the prior location.</param>
         /// <param name="EntryState">The originating browser history metadata.</param>
-        private sealed record LocationTransition(
-            string Location,
-            string AbsolutePath,
-            bool RouteChanged,
-            string EntryState = null);
+        private sealed record LocationTransition(string Location, string AbsolutePath, bool RouteChanged, string EntryState = null);
     }
 }

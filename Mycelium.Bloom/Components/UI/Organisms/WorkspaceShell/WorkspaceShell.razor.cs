@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Model;
 
     /// <summary>
     /// Represents a reusable top-level engineering workspace layout.
@@ -95,7 +96,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell
 
         /// <summary>Gets or sets the caller-owned preferred right width in CSS pixels.</summary>
         [Parameter]
-        public double RightPanelWidth { get; set; } = 380;
+        public double RightPanelWidth { get; set; } = DetailsPanelSizing.MinimumWidth;
 
         /// <summary>Gets or sets the callback for a completed user resize.</summary>
         [Parameter]

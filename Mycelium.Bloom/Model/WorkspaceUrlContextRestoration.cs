@@ -23,11 +23,7 @@ namespace Mycelium.Bloom.Model
         /// <param name="canonicalUri">The replacement URI required for canonical input, or <see langword="null" />.</param>
         /// <param name="shouldFocusSelectedElement">Whether this browser transition requests local presentation focus.</param>
         /// <param name="inspectedElement">The distinct canonical reference, or <see langword="null" /> for main selection.</param>
-        public WorkspaceUrlContextRestoration(
-            IElement selectedElement,
-            string canonicalUri,
-            bool shouldFocusSelectedElement,
-            IElement inspectedElement = null)
+        public WorkspaceUrlContextRestoration(IElement selectedElement, string canonicalUri, bool shouldFocusSelectedElement, IElement inspectedElement = null)
         {
             this.SelectedElement = selectedElement;
             this.InspectedElement = inspectedElement;

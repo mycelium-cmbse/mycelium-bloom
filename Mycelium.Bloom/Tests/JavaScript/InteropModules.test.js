@@ -1209,14 +1209,14 @@ for (const fontOutcome of ["rejected", "settled after disposal"]) {
             }
             const values = [];
             const dotnet = { invokeMethodAsync: (method, value) => { assert.equal(method, "SetRequiredWidth"); values.push(value); return Promise.resolve(); } };
-            observeTrail(root, dotnet);
-            observeTrail(root, dotnet);
+            observeTrail(root, dotnet, 380, 600);
+            observeTrail(root, dotnet, 380, 600);
             callback();
             width = 250;
             callback();
             callback();
             width = 500;
-            observeTrail(root, dotnet);
+            observeTrail(root, dotnet, 380, 600);
             assert.deepEqual(values, [380, 469, 600]);
             if (fontOutcome === "rejected") {
                 fontReady.reject(new Error("Font readiness unavailable"));
@@ -1232,7 +1232,14 @@ for (const fontOutcome of ["rejected", "settled after disposal"]) {
                 await new Promise(resolve => setImmediate(resolve));
             }
             assert.deepEqual(values, [380, 469, 600]);
-            observeTrail(null, dotnet);
+            observeTrail(null, dotnet, 380, 600);
+            values.length = 0;
+            observeTrail(root, dotnet, 400, 500);
+            assert.deepEqual(values, [400]);
+            width = 500;
+            callback();
+            assert.deepEqual(values, [400, 500]);
+            stopObserving(root);
             header.remove();
         } finally {
             globalThis.ResizeObserver = original;

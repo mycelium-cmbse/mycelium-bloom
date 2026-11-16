@@ -9,7 +9,6 @@
 
 namespace Mycelium.Bloom.Tests.Core.Context
 {
-    using System;
     using System.Collections.Generic;
     using System.ComponentModel;
 
@@ -38,6 +37,50 @@ namespace Mycelium.Bloom.Tests.Core.Context
             ProjectLifecycleKind.Open,
             ProjectLifecycleKind.Review
         ];
+
+        [Test]
+        public void VerifySelectionChangesClearInspectionBeforePublishingTheNewSelection()
+        {
+            var selected = new Namespace { ElementId = "selected" };
+            var inspected = new Namespace { ElementId = "reference" };
+            using var service = new ContextAwareService();
+            service.SelectedElement = selected;
+            service.InspectedElement = inspected;
+            IElement inspectionAtPublication = inspected;
+            service.PropertyChanged += (_, change) =>
+            {
+                if (change.PropertyName == nameof(service.SelectedElement))
+                {
+                    inspectionAtPublication = service.InspectedElement;
+                }
+            };
+
+            service.SelectedElement = selected;
+            Assert.That(service.InspectedElement, Is.SameAs(inspected));
+
+            var replacement = new Namespace { ElementId = selected.ElementId };
+            service.SelectedElement = replacement;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(service.SelectedElement, Is.SameAs(replacement));
+                Assert.That(service.InspectedElement, Is.Null);
+                Assert.That(inspectionAtPublication, Is.Null);
+            }
+        }
+
+        [Test]
+        public void VerifyContextDisposalDetachesInspectionClearing()
+        {
+            using var service = new ContextAwareService();
+            service.Dispose();
+            service.Dispose();
+            var inspected = new Namespace { ElementId = "reference" };
+            service.InspectedElement = inspected;
+            service.SelectedElement = new Namespace { ElementId = "selected" };
+
+            Assert.That(service.InspectedElement, Is.SameAs(inspected));
+        }
 
         [Test]
         public void VerifyInitialStateAndCurrentValueObservables()

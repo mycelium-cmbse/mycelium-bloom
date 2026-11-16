@@ -117,13 +117,13 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         private IElement pendingFocusElement;
 
         /// <summary>The row inspected only in this active Browser.</summary>
-        private ProjectBrowserNodeViewModel inspectedNode;
+        private IProjectBrowserNodeViewModel inspectedNode;
 
         /// <summary>Whether workspace composition enables inspection following here.</summary>
         private bool isInspectionActive;
 
         /// <summary>Gets the canonical row currently inspected in this Browser, independently of local selection.</summary>
-        public ProjectBrowserNodeViewModel InspectedNode
+        public IProjectBrowserNodeViewModel InspectedNode
         {
             get => this.inspectedNode;
             private set => this.RaiseAndSetIfChanged(ref this.inspectedNode, value);

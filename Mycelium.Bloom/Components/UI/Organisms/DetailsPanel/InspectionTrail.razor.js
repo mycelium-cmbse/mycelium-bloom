@@ -4,9 +4,11 @@ const observers = new WeakMap();
  * Measures the full root/overflow/current header without stretching the visible steps.
  * @param {HTMLElement|null} root The component-local trail whose names are measured.
  * @param {{invokeMethodAsync: Function}} callback The owning component's width callback.
+ * @param {number} minimumWidth The shared minimum header width in CSS pixels.
+ * @param {number} maximumWidth The shared maximum header width in CSS pixels.
  * @returns {void}
  */
-export function observeTrail(root, callback) {
+export function observeTrail(root, callback, minimumWidth, maximumWidth) {
     if (!root) {
         return;
     }
@@ -56,7 +58,7 @@ export function observeTrail(root, callback) {
         // The Copy action's automatic margin is spare space, not required content width.
         const fixedWidth = siblings.reduce((width, element) => width +
             (element.classList.contains('mb-properties-copy') ? element.getBoundingClientRect().width : outerWidth(element)), 0);
-        const width = Math.max(380, Math.min(600, Math.ceil(trailWidth + fixedWidth +
+        const width = Math.max(minimumWidth, Math.min(maximumWidth, Math.ceil(trailWidth + fixedWidth +
             siblings.length * pixels(style.columnGap) + pixels(style.paddingLeft) + pixels(style.paddingRight))));
         if (width !== previous) {
             previous = width;

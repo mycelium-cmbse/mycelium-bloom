@@ -34,7 +34,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         private bool isDisposed;
 
         /// <summary>The last requested whole-pixel panel minimum, independent of navigation state.</summary>
-        private int requiredWidth = 380;
+        private int requiredWidth = DetailsPanelSizing.MinimumWidth;
 
         /// <summary>The currently rendered trail root.</summary>
         private ElementReference trailRoot;
@@ -100,7 +100,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
                     this.observedRootId = null;
                 }
 
-                await this.SetRequiredWidth(380);
+                await this.SetRequiredWidth(DetailsPanelSizing.MinimumWidth);
                 return;
             }
 
@@ -120,7 +120,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
 
             if (!this.isDisposed && this.module is not null)
             {
-                await this.module.InvokeVoidAsync("observeTrail", this.trailRoot, this.callbackReference);
+                await this.module.InvokeVoidAsync("observeTrail", this.trailRoot, this.callbackReference, DetailsPanelSizing.MinimumWidth, DetailsPanelSizing.MaximumWidth);
             }
         }
 
@@ -150,7 +150,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
                 return Task.CompletedTask;
             }
 
-            var boundedWidth = (int)Math.Clamp(Math.Ceiling(width), 380, 600);
+            var boundedWidth = (int)Math.Clamp(Math.Ceiling(width), DetailsPanelSizing.MinimumWidth, DetailsPanelSizing.MaximumWidth);
             if (this.requiredWidth == boundedWidth)
             {
                 return Task.CompletedTask;

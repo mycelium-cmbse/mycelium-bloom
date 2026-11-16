@@ -48,7 +48,7 @@ namespace Mycelium.Bloom.Components.Layout
         private WorkspaceShell workspaceShell;
 
         /// <summary>The content-based minimum for this workspace's Properties header.</summary>
-        private double propertiesMinimumWidth = 380;
+        private double propertiesMinimumWidth = DetailsPanelSizing.MinimumWidth;
 
         /// <summary>Applies presentation geometry without changing the user's preferred width.</summary>
         /// <param name="width">The measured minimum header width in CSS pixels.</param>
@@ -56,7 +56,7 @@ namespace Mycelium.Bloom.Components.Layout
         {
             if (double.IsFinite(width))
             {
-                this.propertiesMinimumWidth = Math.Clamp(Math.Ceiling(width), 380, 600);
+                this.propertiesMinimumWidth = Math.Clamp(Math.Ceiling(width), DetailsPanelSizing.MinimumWidth, DetailsPanelSizing.MaximumWidth);
             }
         }
 

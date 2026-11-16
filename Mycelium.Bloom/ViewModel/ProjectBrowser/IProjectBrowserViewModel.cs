@@ -52,7 +52,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         ProjectBrowserNodeViewModel SelectedNode { get; }
 
         /// <summary>Gets the canonical row inspected by Properties, independently of selection.</summary>
-        ProjectBrowserNodeViewModel InspectedNode { get; }
+        IProjectBrowserNodeViewModel InspectedNode { get; }
 
         /// <summary>Gets or sets whether this Browser is the active inspection presentation.</summary>
         bool IsInspectionActive { get; set; }

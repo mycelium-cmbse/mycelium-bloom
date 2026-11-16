@@ -55,7 +55,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
         /// <summary>Gets or sets the separately inspected row in this Browser.</summary>
         [Parameter]
-        public ProjectBrowserNodeViewModel InspectedNode { get; set; }
+        public IProjectBrowserNodeViewModel InspectedNode { get; set; }
 
         /// <summary>
         /// Gets or sets the immutable presentation that identifies visible canonical nodes.
