@@ -65,7 +65,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// <param name="cancellationToken">The token that cancels the request.</param>
         /// <returns>The people, or a not found error when no mocked organization has this identifier.</returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<IReadOnlyList<User>>> GetMembersAsync(Guid organizationId, CancellationToken cancellationToken)
+        public async Task<ErrorOr<IReadOnlyList<User>>> GetMembersAsync(Guid organizationId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -73,7 +73,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
             if (organization == null)
             {
-                return Task.FromResult<ErrorOr<IReadOnlyList<User>>>(OrganizationNotFound);
+                return OrganizationNotFound;
             }
 
             var members = organization.InvolvedUser.Select(membership => membership.User).OfType<User>();
@@ -81,7 +81,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
             var collaborators = canSeeCollaborators ? organization.Projects.SelectMany(project => project.Involves).Where(member => member.IsOutsideCollaborator).Select(member => member.User).OfType<User>() : [];
             IReadOnlyList<User> people = [.. members.Concat(collaborators).Distinct().Where(user => user.Status != ActivationStatus.Deleted)];
 
-            return Task.FromResult<ErrorOr<IReadOnlyList<User>>>(ErrorOrFactory.From(people));
+            return await ErrorOrFactory.FromAsync(people);
         }
     }
 }

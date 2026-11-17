@@ -56,7 +56,7 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
         /// The projects, or an <see cref="ErrorCodes.NotFound" /> error when no mocked organization has the identifier.
         /// </returns>
         /// <exception cref="OperationCanceledException">Thrown when the request is cancelled.</exception>
-        public Task<ErrorOr<IReadOnlyList<FunctionalProject>>> GetProjectsAsync(Guid organizationId, CancellationToken cancellationToken)
+        public async Task<ErrorOr<IReadOnlyList<FunctionalProject>>> GetProjectsAsync(Guid organizationId, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -64,12 +64,12 @@ namespace Mycelium.Bloom.Core.Organization.Placeholder
 
             if (organization == null)
             {
-                return Task.FromResult<ErrorOr<IReadOnlyList<FunctionalProject>>>(OrganizationNotFound);
+                return OrganizationNotFound;
             }
 
             IReadOnlyList<FunctionalProject> projects = [.. organization.Projects.OfType<FunctionalProject>()];
 
-            return Task.FromResult<ErrorOr<IReadOnlyList<FunctionalProject>>>(ErrorOrFactory.From(projects));
+            return await ErrorOrFactory.FromAsync(projects);
         }
     }
 }

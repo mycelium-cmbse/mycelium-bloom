@@ -73,6 +73,7 @@ namespace Mycelium.Bloom.Tests.Extensions
             using var projects = createProjects();
             using var otherProjects = createProjects();
             using var members = projectsScope.ServiceProvider.GetRequiredService<Func<IMembersViewModel>>()();
+            using var invitations = projectsScope.ServiceProvider.GetRequiredService<Func<IPendingInvitationsViewModel>>()();
 
             using (Assert.EnterMultipleScope())
             {
@@ -88,6 +89,8 @@ namespace Mycelium.Bloom.Tests.Extensions
                 Assert.That(projects, Is.TypeOf<ProjectsViewModel>());
                 Assert.That(provider.GetRequiredService<IOrganizationMemberService>(), Is.TypeOf<PlaceholderOrganizationMemberService>());
                 Assert.That(members, Is.TypeOf<MembersViewModel>());
+                Assert.That(provider.GetRequiredService<IOrganizationInvitationService>(), Is.TypeOf<PlaceholderOrganizationInvitationService>());
+                Assert.That(invitations, Is.TypeOf<PendingInvitationsViewModel>());
                 Assert.That(otherProjects, Is.Not.SameAs(projects));
                 Assert.That(options.PlaceholderRole, Is.EqualTo(OrganizationMembershipRole.Administrator));
             }
