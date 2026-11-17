@@ -40,8 +40,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.DetailsPanel
         [Parameter]
         public EventCallback<IElement> InspectRequested { get; set; }
 
+        /// <summary>Checks stable identity before presenting a reference as actionable.</summary>
+        /// <returns>Whether the target has a distinct stable identifier.</returns>
+        private bool CanInspect()
+        {
+            return !string.IsNullOrWhiteSpace(this.Link.Element?.ElementId)
+                   && !string.Equals(this.Link.Element.ElementId, this.SelectedElement?.ElementId, StringComparison.Ordinal);
+        }
+
         /// <summary>Dispatches the captured canonical reference.</summary>
         /// <returns>The navigation callback completion.</returns>
-        private Task Inspect() => this.InspectRequested.InvokeAsync(this.Link.Element);
+        private Task Inspect()
+        {
+            return this.CanInspect() ? this.InspectRequested.InvokeAsync(this.Link.Element) : Task.CompletedTask;
+        }
     }
 }

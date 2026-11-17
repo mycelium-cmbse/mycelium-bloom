@@ -245,6 +245,16 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             });
         }
 
+        /// <summary>Follows inspection only in the focused group’s active Browser, without activating tabs.</summary>
+        /// <param name="viewModel">The Browser instance being rendered.</param>
+        /// <returns>Whether this instance is the focused group's active Browser.</returns>
+        private bool IsInspectionBrowser(IProjectBrowserViewModel viewModel)
+        {
+            var group = this.WorkspaceEditorViewModel.FocusedGroup;
+            return group is not null && this.TryGetActiveProjectBrowser(group, out _, out var active)
+                   && ReferenceEquals(active, viewModel);
+        }
+
         /// <summary>
         /// Selects exactly one Project Browser according to focused, active, and workspace ordering.
         /// </summary>

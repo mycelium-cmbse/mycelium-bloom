@@ -21,6 +21,7 @@
                     RightPanelCollapsed="this.LayoutState.PropertiesCollapsed"
                     RightPanelResizable="true"
                     RightPanelWidth="this.LayoutState.PropertiesWidth"
+                    RightPanelMinimumWidth="this.propertiesMinimumWidth"
                     RightPanelWidthChanged="this.HandlePropertiesWidthChanged"
                     RightPanelFocusReturnId="@(this.propertiesToggleId)"
                     RightPanelResizeLabel="Resize Properties"
@@ -82,6 +83,7 @@
 
         <RightPanel>
             <DetailsPanel CloseRequested="this.ToggleDetailsPanel"
+                          MinimumWidthChanged="this.HandlePropertiesMinimumWidthChanged"
                           ShowInBrowserRequested="@(this.browserReveal.HasDelegate ? EventCallback.Factory.Create<SysML2.NET.Core.POCO.Root.Elements.IElement>(this, this.ShowInBrowser) : default)"
                           data-testid="workspace-details-panel" />
         </RightPanel>

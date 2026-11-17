@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.ViewModel.WorkspaceLayout
 {
+    using Mycelium.Bloom.Model;
+
     using ReactiveUI;
 
     /// <summary>Owns renderer-affine region preferences for one workspace layout lifetime.</summary>
@@ -18,7 +20,7 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceLayout
         private bool propertiesCollapsed;
 
         /// <summary>The preferred width retained independently of responsive geometry.</summary>
-        private double propertiesWidth = 380;
+        private double propertiesWidth = DetailsPanelSizing.MinimumWidth;
 
         /// <summary>Gets or sets whether Properties is folded without clearing selection.</summary>
         public bool PropertiesCollapsed

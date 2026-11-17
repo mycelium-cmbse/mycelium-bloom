@@ -1,0 +1,53 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="InspectionTrail.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using BlazorBlueprint.Primitives
+
+@if (this.IsVisible)
+{
+    var root = this.steps[0];
+    <nav @ref="this.trailRoot" class="mb-inspection-trail" aria-label="Inspection Trail">
+        <ol>
+            <li class="mb-inspection-trail__step">
+                <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Size="BlazorBlueprint.Components.ButtonSize.Small"
+                          Class="mb-inspection-trail__link" title="@root.DisplayName"
+                          Disabled="@(!root.IsAvailable)" OnClick="() => this.Navigate(0, root.ElementId)">
+                    <span>@root.DisplayName</span>
+                </BbButton>
+            </li>
+            @if (this.steps.Count > 2)
+            {
+                <li class="mb-inspection-trail__overflow">
+                    <LucideIcon Name="chevron-right" Size="12" aria-hidden="true" />
+                    <BbDropdownMenu @key="@(string.Join("|", this.steps.Select(step => step.ElementId)))">
+                        <BbDropdownMenuTrigger AsChild="false" type="button" Class="mb-inspection-trail__ellipsis"
+                                               aria-label="Show earlier inspected elements" title="Show earlier inspected elements">
+                            <LucideIcon Name="ellipsis" Size="14" aria-hidden="true" />
+                        </BbDropdownMenuTrigger>
+                        <BbDropdownMenuContent Side="PopoverSide.Bottom" Align="PopoverAlign.Start" MatchTriggerWidth="false">
+                            @for (var index = 1; index < this.steps.Count - 1; index++)
+                            {
+                                var stepIndex = index;
+                                var step = this.steps[index];
+                                <BbDropdownMenuItem Disabled="@(!step.IsAvailable)" CloseOnSelect="true"
+                                                    OnClick="_ => this.Navigate(stepIndex, step.ElementId)">
+                                    <ChildContent><span class="mb-inspection-trail__menu-label" title="@step.DisplayName">@step.DisplayName</span></ChildContent>
+                                </BbDropdownMenuItem>
+                            }
+                        </BbDropdownMenuContent>
+                    </BbDropdownMenu>
+                </li>
+            }
+            <li class="mb-inspection-trail__step mb-inspection-trail__step--current" aria-current="step">
+                <LucideIcon Name="chevron-right" Size="12" aria-hidden="true" />
+                <span title="@this.steps[^1].DisplayName">@this.steps[^1].DisplayName</span>
+            </li>
+        </ol>
+    </nav>
+}

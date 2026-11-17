@@ -256,3 +256,8 @@
     background: currentColor;
     mask: url("/icons/project-browser/message-square.svg") center / contain no-repeat;
 }
+
+.mb-project-browser-node__row--inspected {
+    box-shadow: inset var(--spacing-2) 0 var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}

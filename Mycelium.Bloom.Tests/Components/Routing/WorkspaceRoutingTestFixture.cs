@@ -457,11 +457,56 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             navigation.PropertyChanged -= handler;
         }
 
+        [Test]
+        public async Task VerifyInspectionQueryChangesPreserveWorkspaceAndBrowserInstances()
+        {
+            var selected = new Namespace { ElementId = "A" };
+            var inspected = new Namespace { ElementId = "B" };
+            this.elementIdResolver.Setup(resolver => resolver.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => ValueTask.FromResult<IElement>(id == "A" ? selected : inspected));
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A");
+            using var routes = this.Render<Mycelium.Bloom.Components.Routes>();
+            var layout = routes.FindComponent<WorkspaceLayout>().Instance;
+            var editor = routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel;
+            var panel = routes.FindComponent<DetailsPanelComponent>().Instance;
+            var browser = this.projectBrowserViewModels[0];
+            await routes.InvokeAsync(() => panel.UrlContext.Inspect(inspected));
+            await routes.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(inspected));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
+                    Assert.That(routes.FindComponent<EditorWorkspaceComponent>().Instance.ViewModel, Is.SameAs(editor));
+                    Assert.That(routes.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(panel));
+                }
+            });
+            browser.Verify(viewModel => viewModel.FocusElement(inspected), Times.Never);
+            browser.Verify(viewModel => viewModel.Dispose(), Times.Never);
+            await routes.Find("button[aria-label='Go Back']").ClickAsync();
+            await routes.WaitForAssertionAsync(() => Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(selected)));
+            navigation.NavigateTo("/workspace/dashboard?selectedElement=A&inspectedElement=B#target");
+            await routes.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(routes.FindComponents<Dashboard>(), Has.Count.EqualTo(1));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(panel.ViewModel.Presentation.Element, Is.SameAs(inspected));
+                    Assert.That(routes.FindComponent<WorkspaceLayout>().Instance, Is.SameAs(layout));
+                }
+            });
+        }
+
         private IProjectBrowserViewModel CreateProjectBrowserViewModel()
         {
             var rootNodes = new ReadOnlyObservableCollection<ProjectBrowserNodeViewModel>(
                 new ObservableCollection<ProjectBrowserNodeViewModel>());
             var viewModel = new Mock<IProjectBrowserViewModel>(MockBehavior.Strict);
+            viewModel.SetupProperty(browser => browser.IsInspectionActive);
+            viewModel.SetupGet(browser => browser.InspectedNode).Returns((ProjectBrowserNodeViewModel)null);
             viewModel.SetupGet(candidate => candidate.RootNodes).Returns(rootNodes);
             viewModel.SetupGet(candidate => candidate.AvailableElementTypes).Returns(EmptyElementTypes);
             viewModel.SetupProperty(candidate => candidate.FilterText, string.Empty);

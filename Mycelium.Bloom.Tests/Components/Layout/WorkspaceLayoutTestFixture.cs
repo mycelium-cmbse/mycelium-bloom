@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Reactive.Subjects;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -33,6 +34,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
@@ -94,6 +96,64 @@ namespace Mycelium.Bloom.Tests.Components.Layout
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
+        }
+
+        [Test]
+        public async Task VerifyQueuedContextUpdatesCannotOverwriteNewerHistoryEntry()
+        {
+            using var restorations = new Subject<WorkspaceUrlContextRestoration>();
+            using var requests = new Subject<string>();
+            var urls = new Mock<IWorkspaceUrlContextService>();
+            urls.SetupGet(service => service.Restorations).Returns(restorations);
+            urls.SetupGet(service => service.NavigationRequests).Returns(requests);
+            urls.Setup(service => service.GetDestinationUri(It.IsAny<string>())).Returns((string href) => href);
+            this.Services.AddScoped<Func<IWorkspaceUrlContextService>>(_ => () => urls.Object);
+            using var component = this.RenderLayout(CreateBody("Editor", "Modelling"));
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            var old = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "old" };
+            var current = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "current" };
+
+            await component.InvokeAsync(() =>
+            {
+                Task.Run(() =>
+                {
+                    restorations.OnNext(new WorkspaceUrlContextRestoration(old, null, false));
+                    requests.OnNext(navigation.BaseUri + "workspace/modeling?selectedElement=old");
+                }).GetAwaiter().GetResult();
+                navigation.NavigateTo("/workspace/modeling?selectedElement=current&inspectedElement=reference", new NavigationOptions { HistoryEntryState = "new entry" });
+                this.context.SelectedElement = current;
+            });
+
+            await component.InvokeAsync(() => { });
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.context.SelectedElement, Is.SameAs(current));
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=current&inspectedElement=reference"));
+                Assert.That(navigation.HistoryEntryState, Is.EqualTo("new entry"));
+            }
+        }
+
+        [Test]
+        public async Task VerifyInspectionHeaderMinimumPreservesPreferredWidthAndPanelLifetime()
+        {
+            using var component = this.RenderLayout(CreateBody("Editor content", "Modelling"));
+            var shell = component.FindComponent<WorkspaceShellComponent>().Instance;
+            var details = component.FindComponent<DetailsPanelComponent>().Instance;
+            Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(380));
+            await component.InvokeAsync(() => details.MinimumWidthChanged.InvokeAsync(485));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(485));
+                Assert.That(shell.RightPanelWidth, Is.EqualTo(380));
+            }
+            await component.InvokeAsync(() => details.MinimumWidthChanged.InvokeAsync(900));
+            Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(600));
+            await component.InvokeAsync(() => details.MinimumWidthChanged.InvokeAsync(380));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(shell.RightPanelMinimumWidth, Is.EqualTo(380));
+                Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(details));
+            }
         }
 
         [Test]
@@ -453,6 +513,271 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                     "width: calc(var(--workspace-shell-left-panel-collapsed-width) - (2 * var(--spacing-8)));"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
             }
+        }
+
+        [Test]
+        public async Task VerifyReferenceTrailAndLocationRestorationPreserveSelectionAndPanelLifetime()
+        {
+            var first = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A" };
+            var second = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "B/value" };
+            var third = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "C value" };
+            this.elementIdResolver.Setup(resolver => resolver.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => ValueTask.FromResult<SysML2.NET.Core.POCO.Root.Elements.IElement>(
+                    id == first.ElementId ? first : id == second.ElementId ? second : id == third.ElementId ? third : null));
+            var navigation = (BunitNavigationManager)this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&mode=review#target");
+            using var component = this.RenderLayout(CreateBody("Editor", "Modelling"));
+            var panel = component.FindComponent<DetailsPanelComponent>();
+            var viewModel = panel.Instance.ViewModel;
+            var urls = panel.Instance.UrlContext;
+            var initialCount = navigation.History.Count;
+            await component.InvokeAsync(() => urls.Inspect(new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A" }));
+            Assert.That(navigation.History, Has.Count.EqualTo(initialCount));
+            await component.InvokeAsync(() => urls.Inspect(second));
+            await component.WaitForAssertionAsync(() => Assert.That(viewModel.Presentation.Element, Is.SameAs(second)));
+            var secondUri = navigation.Uri;
+            var secondState = navigation.History.First().Options.HistoryEntryState;
+            Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.False);
+            await component.InvokeAsync(() => urls.Inspect(third));
+            await component.WaitForAssertionAsync(() => Assert.That(viewModel.Presentation.Element, Is.SameAs(third)));
+            var thirdUri = navigation.Uri;
+            var thirdState = navigation.History.First().Options.HistoryEntryState;
+            var count = navigation.History.Count;
+            await component.InvokeAsync(() => urls.Inspect(new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = third.ElementId }));
+            Assert.That(navigation.History, Has.Count.EqualTo(count));
+
+            // Reproduce the location and entry state delivered by native Back and Forward.
+            await component.InvokeAsync(() => navigation.NavigateTo(secondUri, new NavigationOptions { HistoryEntryState = secondState }));
+            await component.WaitForAssertionAsync(() => Assert.That(viewModel.Presentation.Element, Is.SameAs(second)));
+            await component.InvokeAsync(() => navigation.NavigateTo(thirdUri, new NavigationOptions { HistoryEntryState = thirdState }));
+            await component.WaitForAssertionAsync(() => Assert.That(viewModel.Presentation.Element, Is.SameAs(third)));
+            await panel.Find("button[aria-label='Go Back']").ClickAsync();
+            await component.WaitForAssertionAsync(() => Assert.That(viewModel.Presentation.Element, Is.SameAs(second)));
+            await panel.Find("button[aria-label='Go Back']").ClickAsync();
+            await component.WaitForAssertionAsync(() => Assert.That(viewModel.Presentation.Element, Is.SameAs(first)));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.context.SelectedElement, Is.SameAs(first));
+                Assert.That(this.context.InspectedElement, Is.Null);
+                Assert.That(panel.Instance.ViewModel, Is.SameAs(viewModel));
+                Assert.That(navigation.Uri, Does.Contain("selectedElement=A&mode=review").And.EndsWith("#target"));
+                Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
+                Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.True);
+                Assert.That(navigation.History.First().Options.ForceLoad, Is.False);
+            }
+            await component.InvokeAsync(() => urls.Inspect(second));
+            await component.InvokeAsync(() => urls.Inspect(new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A" }));
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(first));
+                    Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement"));
+                }
+            });
+            await component.InvokeAsync(() => urls.Inspect(second));
+            await component.InvokeAsync(() => this.context.SelectedElement = third);
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(third));
+                    Assert.That(navigation.Uri, Does.Contain("selectedElement=C%20value").And.Not.Contain("inspectedElement"));
+                }
+            });
+        }
+
+        [TestCase("A", false)]
+        [TestCase("A&inspectedElement=A", false)]
+        [TestCase("B", true)]
+        [TestCase("B&inspectedElement=B", true)]
+        [TestCase("B&inspectedElement=other", false)]
+        [TestCase("unknown", false)]
+        [TestCase("", false)]
+        [TestCase("%ZZ", false)]
+        [TestCase("inaccessible", false)]
+        public async Task VerifyDirectInspectionAndInvalidReferencePreserveSelection(string parameter, bool valid)
+        {
+            var selected = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A" };
+            var inspected = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "B" };
+            this.elementIdResolver.Setup(resolver => resolver.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => id == "inaccessible"
+                    ? ValueTask.FromException<SysML2.NET.Core.POCO.Root.Elements.IElement>(new InvalidOperationException("Unavailable"))
+                    : ValueTask.FromResult<SysML2.NET.Core.POCO.Root.Elements.IElement>(id == "A" ? selected : id == "B" ? inspected : null));
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&mode=review&inspectedElement=" + parameter + "#target");
+            using var component = this.RenderLayout(CreateBody("Editor", "Modelling"));
+            var panel = component.FindComponent<DetailsPanelComponent>();
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(panel.Instance.ViewModel.Presentation.Element, Is.SameAs(valid ? inspected : selected));
+                    Assert.That(this.context.InspectedElement, valid ? Is.SameAs(inspected) : Is.Null);
+                    Assert.That(navigation.Uri, Does.Contain("selectedElement=A").And.Contain("mode=review").And.EndsWith("#target"));
+                    Assert.That(QueryHelpers.ParseQuery(new Uri(navigation.Uri).Query).ContainsKey("inspectedElement"), Is.EqualTo(valid));
+                }
+            });
+            if (!valid)
+            {
+                var history = ((BunitNavigationManager)navigation).History.First();
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(history.Options.ReplaceHistoryEntry, Is.True);
+                    Assert.That(history.Options.ForceLoad, Is.False);
+                }
+            }
+
+            if (valid)
+            {
+                await panel.Find("button[aria-label='Go Back']").ClickAsync();
+                await component.WaitForAssertionAsync(() => Assert.That(panel.Instance.ViewModel.Presentation.Element, Is.SameAs(selected)));
+            }
+        }
+
+        [Test]
+        public async Task VerifyDirectLinkBackAndUriRestorationResetOnlyChangedElementTabs()
+        {
+            var selected = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A" };
+            var inspected = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "B" };
+            this.elementIdResolver.Setup(resolver => resolver.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => ValueTask.FromResult<SysML2.NET.Core.POCO.Root.Elements.IElement>(id == "A" ? selected : inspected));
+            var navigation = (BunitNavigationManager)this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/outside-workspace");
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=B&mode=review#target");
+            using var component = this.RenderLayout(CreateBody("Editor", "Modelling"));
+            var panel = component.FindComponent<DetailsPanelComponent>();
+            var instance = panel.Instance;
+            var viewModel = instance.ViewModel;
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
+                    Assert.That(panel.FindAll("button[aria-label='Go Back']"), Has.Count.EqualTo(1));
+                    AssertActiveTab("Properties");
+                }
+            });
+            await ChooseTab("Comments");
+            var count = navigation.History.Count;
+            await panel.Find("button[aria-label='Go Back']").ClickAsync();
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(navigation.Uri, Does.EndWith("/workspace/modeling?selectedElement=A&mode=review#target"));
+                    Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.True);
+                    Assert.That(navigation.History, Has.Count.EqualTo(count));
+                    Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
+                    AssertActiveTab("Properties");
+                }
+            });
+            Assert.That(this.JSInterop.Invocations.Any(invocation => invocation.Identifier == "history.back"), Is.False);
+            await ChooseTab("Attachments");
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=A&mode=other#fragment");
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement"));
+                    Assert.That(panel.FindAll("button[aria-label='Go Back']"), Is.Empty);
+                    AssertActiveTab("Attachments");
+                }
+            });
+
+            // Restore a distinct inspection into the already-mounted panel.
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=B&mode=other#fragment");
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
+                AssertActiveTab("Properties");
+            });
+            await ChooseTab("Relations");
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=B&mode=unrelated#new-fragment");
+            await component.WaitForAssertionAsync(() => AssertActiveTab("Relations"));
+            await component.InvokeAsync(viewModel.Refresh);
+            await component.WaitForAssertionAsync(() => AssertActiveTab("Relations"));
+
+            // Back and Forward deliver the earlier and later URI through LocationChanged.
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&mode=other#fragment");
+            await component.WaitForAssertionAsync(() =>
+            {
+                Assert.That(viewModel.Presentation.Element, Is.SameAs(selected));
+                AssertActiveTab("Properties");
+            });
+            await ChooseTab("Comments");
+            navigation.NavigateTo("/workspace/modeling?selectedElement=A&inspectedElement=B&mode=unrelated#new-fragment");
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(inspected));
+                    AssertActiveTab("Properties");
+                    Assert.That(this.context.SelectedElement, Is.SameAs(selected));
+                    Assert.That(component.FindComponent<DetailsPanelComponent>().Instance, Is.SameAs(instance));
+                    Assert.That(instance.ViewModel, Is.SameAs(viewModel));
+                }
+            });
+
+            Task ChooseTab(string tab) => panel.FindAll("[role='tab']").Single(element => element.TextContent == tab).ClickAsync();
+            void AssertActiveTab(string tab) => Assert.That(panel.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo(tab));
+        }
+
+        [Test]
+        public async Task VerifyDirectTrailRootNavigationPreservesSelectionAndResetsPropertiesTab()
+        {
+            var a = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "A", DeclaredName = "A" };
+            var d = new SysML2.NET.Core.POCO.Root.Namespaces.Namespace { ElementId = "D", DeclaredName = "D" };
+            this.elementIdResolver.Setup(resolver => resolver.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns((string id, CancellationToken _) => ValueTask.FromResult<SysML2.NET.Core.POCO.Root.Elements.IElement>(id == "A" ? a : d));
+            var navigation = (BunitNavigationManager)this.Services.GetRequiredService<NavigationManager>();
+            var direct = "/workspace/modeling?selectedElement=A&inspectedElement=D&mode=review#target";
+            navigation.NavigateTo(direct);
+            using var component = this.RenderLayout(CreateBody("Editor", "Modelling"));
+            var panel = component.FindComponent<DetailsPanelComponent>();
+            var viewModel = panel.Instance.ViewModel;
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.Find("nav[aria-label='Inspection Trail'] [aria-current='step']").TextContent.Trim(), Is.EqualTo("D"));
+                    Assert.That(panel.FindAll("nav[aria-label='Inspection Trail'] li"), Has.Count.EqualTo(2));
+                    Assert.That(panel.Find("nav[aria-label='Inspection Trail']").ParentElement.TagName, Is.EqualTo("HEADER"));
+                    Assert.That(panel.Find("header h2").ClassList, Does.Contain("sr-only"));
+                    Assert.That(panel.Find("header").NextElementSibling.ClassList, Does.Contain("mb-properties-tabs"));
+                    Assert.That(this.context.SelectedElement, Is.SameAs(a));
+                }
+            });
+            await panel.FindAll("[role='tab']").Single(tab => tab.TextContent == "Comments").ClickAsync();
+            await panel.Find("nav[aria-label='Inspection Trail'] button[title='A']").ClickAsync();
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.FindAll("nav[aria-label='Inspection Trail']"), Is.Empty);
+                    Assert.That(panel.Find("[role='tab'][data-state='active']").TextContent, Is.EqualTo("Properties"));
+                    Assert.That(navigation.Uri, Does.Not.Contain("inspectedElement").And.Contain("mode=review").And.EndsWith("#target"));
+                    Assert.That(navigation.History.First().Options.ReplaceHistoryEntry, Is.False);
+                    Assert.That(this.context.SelectedElement, Is.SameAs(a));
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(a));
+                    Assert.That(panel.Instance.ViewModel, Is.SameAs(viewModel));
+                }
+            });
+            navigation.NavigateTo(direct);
+            await component.WaitForAssertionAsync(() => Assert.That(panel.FindAll("nav[aria-label='Inspection Trail'] li"), Has.Count.EqualTo(2)));
+            await component.InvokeAsync(() => this.context.SelectedElement = d);
+            await component.WaitForAssertionAsync(() =>
+            {
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(panel.FindAll("nav[aria-label='Inspection Trail']"), Is.Empty);
+                    Assert.That(viewModel.Presentation.Element, Is.SameAs(d));
+                    Assert.That(navigation.Uri, Does.Contain("selectedElement=D").And.Not.Contain("inspectedElement"));
+                }
+            });
         }
 
         private IRenderedComponent<WorkspaceLayout> RenderLayout(RenderFragment body)

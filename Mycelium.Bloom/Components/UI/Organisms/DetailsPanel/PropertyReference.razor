@@ -7,7 +7,7 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@if (this.Link.Element is not null && !ReferenceEquals(this.Link.Element, this.SelectedElement))
+@if (this.CanInspect())
 {
     <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Link" Class="@this.Class"
               AriaLabel="@($"Inspect {this.Link.Role}: {this.Link.Label}")" OnClick="this.Inspect">

@@ -1,6 +1,30 @@
 const trees = new WeakMap();
 
 /**
+ * Scrolls only this Browser's viewport by the amount needed to expose the row.
+ * Descendants and the surrounding page do not participate in the visibility calculation.
+ * @param {HTMLElement|null} root The Browser tree whose viewport may scroll.
+ * @param {HTMLElement|null} item The occurrence whose own row must be visible.
+ * @returns {void}
+ */
+function revealRow(root, item) {
+    const viewport = root?.closest('.mb-project-browser__tree-viewport');
+    const bounds = item?.querySelector(':scope > .mb-project-browser-node__line > .mb-project-browser-node__row')?.getBoundingClientRect();
+    if (!viewport || !bounds) {
+        return;
+    }
+    // Restrict scrolling to this Browser. A treeitem includes its descendants,
+    // and scrollIntoView can also move the surrounding workspace or document.
+    const top = viewport.getBoundingClientRect().top + viewport.clientTop;
+    const bottom = top + viewport.clientHeight;
+    if (bounds.top < top) {
+        viewport.scrollTop += bounds.top - top;
+    } else if (bounds.bottom > bottom) {
+        viewport.scrollTop += bounds.bottom - bottom;
+    }
+}
+
+/**
  * Registers one tree's roving focus and delegated keyboard handlers, once per root.
  * Focus is local presentation state; activation delegates canonical selection to Blazor.
  * @param {HTMLElement|null} root The rendered tree owned by this Browser instance.
@@ -56,29 +80,6 @@ export function registerTree(root) {
     }
 
     /**
-     * Scrolls only this Browser's viewport by the amount needed to expose the row.
-     * Descendants and the surrounding page do not participate in the visibility calculation.
-     * @param {HTMLElement} item The occurrence whose own row must be visible.
-     * @returns {void}
-     */
-    function revealRow(item) {
-        const viewport = root.closest('.mb-project-browser__tree-viewport');
-        const bounds = row(item)?.getBoundingClientRect();
-        if (!viewport || !bounds) {
-            return;
-        }
-        // Restrict scrolling to this Browser. A treeitem includes its descendants,
-        // and scrollIntoView can also move the surrounding workspace or document.
-        const top = viewport.getBoundingClientRect().top + viewport.clientTop;
-        const bottom = top + viewport.clientHeight;
-        if (bounds.top < top) {
-            viewport.scrollTop += bounds.top - top;
-        } else if (bounds.bottom > bottom) {
-            viewport.scrollTop += bounds.bottom - bottom;
-        }
-    }
-
-    /**
      * Sets the single Tab entry point and records ancestors for recovery after removal.
      * This never changes canonical selection, even when DOM focus moves.
      * @param {HTMLElement|null|undefined} item The next rendered focus occurrence, if any.
@@ -99,7 +100,7 @@ export function registerTree(root) {
         }
         if (moveFocus) {
             item.focus({ preventScroll: true });
-            revealRow(item);
+            revealRow(root, item);
         }
     }
 
@@ -115,7 +116,7 @@ export function registerTree(root) {
         if (active && root.contains(active) && (focused || !selectionChanged)) {
             setActive(active);
             if (focused) {
-                revealRow(active);
+                revealRow(root, active);
             }
             return;
         }
@@ -135,7 +136,7 @@ export function registerTree(root) {
         const item = event.target.closest('[role="treeitem"]');
         if (item && root.contains(item)) {
             setActive(item);
-            revealRow(item);
+            revealRow(root, item);
         }
     }
 
@@ -272,4 +273,13 @@ export function registerTree(root) {
 export function disposeTree(root) {
     trees.get(root)?.();
     trees.delete(root);
+}
+
+/**
+ * Scrolls the inspected row within this Browser without changing the keyboard focus.
+ * @param {HTMLElement|null} root The Browser tree whose inspected row may scroll into view.
+ * @returns {void}
+ */
+export function scrollInspectionIntoView(root) {
+    revealRow(root, root?.querySelector('[data-inspected="true"]'));
 }

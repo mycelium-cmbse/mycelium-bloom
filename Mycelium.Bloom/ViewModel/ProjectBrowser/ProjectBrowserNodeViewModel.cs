@@ -18,7 +18,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     /// <summary>
     /// Represents a canonical model occurrence or a presentation-only kind header in the Browser tree.
     /// </summary>
-    public sealed class ProjectBrowserNodeViewModel : ReactiveObject
+    public sealed class ProjectBrowserNodeViewModel : ReactiveObject, IProjectBrowserNodeViewModel
     {
         /// <summary>
         /// A value indicating whether the node is expanded.

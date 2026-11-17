@@ -37,19 +37,22 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
             private set => this.RaiseAndSetIfChanged(ref this.presentation, value);
         }
 
+        /// <summary>Gets a value indicating whether Properties displays a distinct stable reference.</summary>
+        public bool IsInspecting => !string.IsNullOrWhiteSpace(this.selection.InspectedElement?.ElementId)
+                                   && !string.Equals(this.selection.InspectedElement.ElementId, this.selection.SelectedElement?.ElementId, StringComparison.Ordinal);
+
         /// <summary>Observes shared selection and initializes the presentation.</summary>
         /// <param name="selection">The circuit-owned selection authority.</param>
         public DetailsPanelViewModel(IElementSelectionService selection)
         {
             ArgumentNullException.ThrowIfNull(selection);
             this.selection = selection;
-            this.subscriptions.Add(selection.WhenAnyValue(context => context.SelectedElement)
-                .DistinctUntilChanged<IElement>(ReferenceEqualityComparer.Instance)
+            this.subscriptions.Add(selection.WhenAnyValue(context => context.SelectedElement, context => context.InspectedElement)
                 .Subscribe(_ => this.Refresh()));
         }
 
         /// <summary>
-        /// Selects the supplied canonical element while this panel's selection subscription is active.
+        /// Inspects a canonical reference without changing the main selection.
         /// </summary>
         /// <param name="element">The canonical SDK element to inspect.</param>
         /// <exception cref="ArgumentNullException">The supplied element is null.</exception>
@@ -57,9 +60,10 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             ArgumentNullException.ThrowIfNull(element);
 
-            if (!this.subscriptions.IsDisposed)
+            if (!this.subscriptions.IsDisposed && !string.IsNullOrWhiteSpace(element.ElementId))
             {
-                this.selection.SelectedElement = element;
+                this.selection.InspectedElement = string.Equals(element.ElementId, this.selection.SelectedElement?.ElementId, StringComparison.Ordinal)
+                    ? null : element;
             }
         }
 
@@ -70,6 +74,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             if (!this.subscriptions.IsDisposed)
             {
+                this.selection.InspectedElement = null;
                 this.selection.SelectedElement = null;
             }
         }
@@ -81,7 +86,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         {
             if (!this.subscriptions.IsDisposed)
             {
-                var element = this.selection.SelectedElement;
+                var element = this.selection.InspectedElement ?? this.selection.SelectedElement;
                 this.Presentation = element is null ? null : new DetailsPanelPresentation(element);
             }
         }
