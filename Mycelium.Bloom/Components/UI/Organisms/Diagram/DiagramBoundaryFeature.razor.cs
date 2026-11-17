@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Renders a reusable port or parameter and captures its selection intent.</summary>

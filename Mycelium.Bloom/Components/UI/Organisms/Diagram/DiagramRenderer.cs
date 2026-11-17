@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="GeneralDiagramRenderer.cs" company="Starion Group S.A.">
+// <copyright file="DiagramRenderer.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -24,10 +24,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using ReactiveUI;
 
     /// <summary>Adapts VM-owned presentation to disposable native models and reports native gestures back to the VM.</summary>
-    public sealed class GeneralDiagramRenderer : IDisposable
+    public sealed class DiagramRenderer : IDisposable
     {
         /// <summary>The tab-owned presentation borrowed by this mount.</summary>
-        private readonly IGeneralDiagramViewModel owner;
+        private readonly IDiagramViewModel owner;
 
         /// <summary>Owns observation of the tab's distinct zoom and pan state for this mount.</summary>
         private readonly CompositeDisposable viewportSubscriptions = new();
@@ -43,7 +43,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
         /// <summary>Mounts a validated projection without enabling model-editing behaviors.</summary>
         /// <param name="owner">The caller-owned ViewModel, which outlives ordinary renderer unmounts.</param>
-        public GeneralDiagramRenderer(IGeneralDiagramViewModel owner)
+        public DiagramRenderer(IDiagramViewModel owner)
         {
             ArgumentNullException.ThrowIfNull(owner);
             this.owner = owner;
@@ -54,8 +54,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Diagram.Options.AllowMultiSelection = false;
             this.Diagram.Options.Zoom.Minimum = DiagramViewport.MinimumZoom;
             this.Diagram.Options.Zoom.Maximum = DiagramViewport.MaximumZoom;
-            this.Diagram.RegisterComponent<GeneralDiagramNodeModel, DiagramNodeWidget>();
-            this.Diagram.RegisterComponent<GeneralDiagramLinkModel, DiagramEdge>();
+            this.Diagram.RegisterComponent<DiagramNodeModel, DiagramNodeWidget>();
+            this.Diagram.RegisterComponent<DiagramLinkModel, DiagramEdge>();
             this.CreateModels();
             this.viewportSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
                 .Select(viewport => viewport.Zoom)
@@ -95,18 +95,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Creates renderer models from occurrence identities already validated by the ViewModel.</summary>
         private void CreateModels()
         {
-            var nodes = new Dictionary<Guid, GeneralDiagramNodeModel>();
+            var nodes = new Dictionary<Guid, DiagramNodeModel>();
 
             foreach (var node in this.owner.Projection.Nodes)
             {
-                var model = new GeneralDiagramNodeModel(node, this.owner);
+                var model = new DiagramNodeModel(node, this.owner);
                 nodes.Add(node.Occurrence.Id, model);
                 this.Diagram.Nodes.Add(model);
             }
 
             foreach (var edge in this.owner.Projection.Edges)
             {
-                this.Diagram.Links.Add(new GeneralDiagramLinkModel(edge, nodes[edge.Source], nodes[edge.Target], this.owner));
+                this.Diagram.Links.Add(new DiagramLinkModel(edge, nodes[edge.Source], nodes[edge.Target], this.owner));
             }
         }
 
@@ -124,7 +124,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="args">The property whose presentation changed.</param>
         private void OwnerChanged(object sender, PropertyChangedEventArgs args)
         {
-            if (args.PropertyName == nameof(IGeneralDiagramViewModel.Projection))
+            if (args.PropertyName == nameof(IDiagramViewModel.Projection))
             {
                 this.Diagram.Batch(() =>
                 {

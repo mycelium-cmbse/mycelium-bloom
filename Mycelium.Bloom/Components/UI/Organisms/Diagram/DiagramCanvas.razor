@@ -1,5 +1,5 @@
 @* ------------------------------------------------------------------------------------------------
-<copyright file="GeneralDiagram.razor" company="Starion Group S.A.">
+<copyright file="DiagramCanvas.razor" company="Starion Group S.A.">
 
   Copyright 2026 Starion Group S.A.
   SPDX-License-Identifier: Apache-2.0
@@ -7,11 +7,11 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomReactiveComponentBase<IGeneralDiagramViewModel>
+@inherits BloomReactiveComponentBase<IDiagramViewModel>
 
-<section @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
+<section style="--diagram-boundary-label-maximum-width:@(DiagramLayoutMetrics.BoundaryLabelMaximumWidth)px" @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
          @onpointermove:stopPropagation="this.IsNested" @onpointerup:stopPropagation="this.IsNested" @onwheel:stopPropagation="this.IsNested"
-         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "General View")">
+         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "Diagram")">
     @if (!this.IsNested)
     {
         <div class="diagram-navigation">
@@ -37,7 +37,7 @@
         }
         @if (this.ViewModel.Projection.Nodes.IsEmpty)
         {
-            <p role="status">No elements in this General View.</p>
+            <p role="status">No elements in this diagram.</p>
         }
     </div>
 </section>

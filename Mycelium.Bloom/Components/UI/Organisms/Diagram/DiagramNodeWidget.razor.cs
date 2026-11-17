@@ -30,7 +30,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
         /// <summary>Gets or sets the native occurrence adapter.</summary>
         [Parameter, EditorRequired]
-        public GeneralDiagramNodeModel Node { get; set; }
+        public DiagramNodeModel Node { get; set; }
 
         /// <summary>Gets invariant occurrence dimensions without changing canonical geometry.</summary>
         private string Size => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"width:{this.Node.Size.Width}px;height:{this.Node.Size.Height}px");

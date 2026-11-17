@@ -33,14 +33,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Supplies relationship state before the reactive base attaches its initial observation.</summary>
         protected override void OnInitialized()
         {
-            this.ViewModel = ((GeneralDiagramLinkModel)this.Link).ViewModel;
+            this.ViewModel = ((DiagramLinkModel)this.Link).ViewModel;
             base.OnInitialized();
         }
 
         /// <summary>Borrows relationship state while the library continues to own native path geometry.</summary>
         protected override void OnParametersSet()
         {
-            this.ViewModel = ((GeneralDiagramLinkModel)this.Link).ViewModel;
+            this.ViewModel = ((DiagramLinkModel)this.Link).ViewModel;
             base.OnParametersSet();
         }
 
@@ -58,6 +58,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="value">The coordinate to format.</param>
         /// <returns>The invariant numeric coordinate text.</returns>
         private static string Number(double value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>Formats the descriptor's SVG viewport independently of the circuit culture.</summary>
+        /// <param name="marker">The validated marker geometry.</param>
+        /// <returns>The four invariant SVG viewport measurements.</returns>
+        private static string MarkerViewBox(DiagramMarker marker) =>
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{marker.ViewBox.X} {marker.ViewBox.Y} {marker.ViewBox.Width} {marker.ViewBox.Height}");
 
         /// <summary>Delegates relationship selection to its presentation owner.</summary>
         private void Select() => this.ViewModel.Select();
@@ -79,41 +85,23 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         {
             return builder =>
             {
-                if (marker == DiagramMarker.None)
+                if (marker.Path is null)
                 {
                     return;
                 }
 
                 builder.OpenElement(0, "path");
-                builder.AddAttribute(1, "d", marker switch
-                {
-                    DiagramMarker.FilledDiamond or DiagramMarker.HollowDiamond => "M0 0 L-8 -5 L-16 0 L-8 5 Z",
-                    DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "M0 0 L-12 -6 L-12 6 Z",
-                    DiagramMarker.CrossedArrow => "M-12 -5 L0 0 L-12 5 M-6 -5 L-6 5",
-                    _ => "M-12 -5 L0 0 L-12 5"
-                });
-                builder.AddAttribute(2, "fill", marker switch
-                {
-                    DiagramMarker.FilledDiamond => CurrentColor,
-                    DiagramMarker.HollowDiamond or DiagramMarker.Triangle or DiagramMarker.TypingTriangle or DiagramMarker.BarredTriangle => "var(--background)",
-                    _ => "none"
-                });
+                builder.AddAttribute(1, "d", marker.Path);
+                builder.AddAttribute(2, "fill", marker.Fill);
                 builder.AddAttribute(3, "stroke", CurrentColor);
                 builder.CloseElement();
 
-                if (marker == DiagramMarker.BarredTriangle)
+                if (marker.DetailPath is not null)
                 {
                     builder.OpenElement(4, "path");
-                    builder.AddAttribute(5, "d", "M-16 -6 L-16 6");
-                    builder.AddAttribute(6, "stroke", CurrentColor);
-                    builder.CloseElement();
-                }
-
-                if (marker == DiagramMarker.TypingTriangle)
-                {
-                    builder.OpenElement(7, "path");
-                    builder.AddAttribute(8, "d", "M-18 -4 a1.5 1.5 0 1 0 0.1 0 M-18 4 a1.5 1.5 0 1 0 0.1 0");
-                    builder.AddAttribute(9, "fill", CurrentColor);
+                    builder.AddAttribute(5, "d", marker.DetailPath);
+                    builder.AddAttribute(6, "fill", marker.DetailFill);
+                    builder.AddAttribute(7, "stroke", marker.DetailStroke);
                     builder.CloseElement();
                 }
             };

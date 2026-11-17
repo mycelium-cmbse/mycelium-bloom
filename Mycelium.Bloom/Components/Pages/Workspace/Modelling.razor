@@ -25,7 +25,7 @@
                      TabClosed="this.HandleTabClosed"
                      AriaLabel="Workspace editors">
         <TabLeadingContent Context="tab">
-            @if (GetEditorTabIconName(tab) is { Length: > 0 } iconName)
+            @if (this.GetEditorTabIconName(tab) is { Length: > 0 } iconName)
             {
                 <span data-testid="workspace-editor-tab-icon"
                       data-tab-id="@(tab.Id)"
@@ -42,7 +42,7 @@
 
         <AddTabControl Context="groupId">
             <ActionMenu Class="mb-editor-workspace__add-tab-menu"
-                        Items="@(CreateAddTabActions())"
+                        Items="@(this.CreateAddTabActions())"
                         TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
                         TriggerTitle="Add tab"
                         TriggerClass="mb-editor-workspace__add-tab"
@@ -64,7 +64,7 @@
         <EditorContent Context="tab">
             @if (this.diagrams.TryGetValue(tab.Id, out var diagram))
             {
-                <GeneralDiagram @key="tab.Id" ViewModel="diagram" />
+                <DynamicComponent @key="tab.Id" Type="diagram.Descriptor.ComponentType" Parameters="diagram.Parameters" />
             }
             else if (IsProjectBrowserTab(tab))
             {

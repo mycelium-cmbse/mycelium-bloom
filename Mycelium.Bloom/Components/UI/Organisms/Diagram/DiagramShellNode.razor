@@ -14,7 +14,7 @@
     <NestedView>
         @if (this.Presentation.NestedView is { } nested)
         {
-            <GeneralDiagram ViewModel="this.ViewModel.GetNestedView(nested)" IsNested="true" />
+            <DiagramCanvas ViewModel="this.ViewModel.GetNestedView(nested)" IsNested="true" />
         }
     </NestedView>
     <Compartments>
@@ -23,7 +23,7 @@
             @if (compartment.GraphicalView is { } graphical)
             {
                 <DiagramCompartment Presentation="compartment">
-                    <GraphicalView><GeneralDiagram ViewModel="this.ViewModel.GetNestedView(graphical)" IsNested="true" /></GraphicalView>
+                    <GraphicalView><DiagramCanvas ViewModel="this.ViewModel.GetNestedView(graphical)" IsNested="true" /></GraphicalView>
                 </DiagramCompartment>
             }
             else

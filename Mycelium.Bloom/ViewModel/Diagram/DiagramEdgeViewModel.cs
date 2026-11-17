@@ -29,7 +29,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Creates state for one relationship occurrence.</summary>
         /// <param name="presentation">The immutable projected relationship.</param>
         /// <param name="owner">The tab-owned action authority.</param>
-        internal DiagramEdgeViewModel(DiagramEdgePresentation presentation, IGeneralDiagramViewModel owner)
+        internal DiagramEdgeViewModel(DiagramEdgePresentation presentation, IDiagramViewModel owner)
             : base(presentation.Element, owner)
         {
             this.Presentation = presentation;

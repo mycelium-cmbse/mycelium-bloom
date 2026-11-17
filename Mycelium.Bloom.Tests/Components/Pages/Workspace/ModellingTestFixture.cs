@@ -28,6 +28,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging.Abstractions;
     using Microsoft.Extensions.Options;
 
@@ -66,6 +67,57 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ModellingTestFixture : BunitContext
     {
+        [Test]
+        public async Task VerifyRegisteredDiagramEditorOpensWithoutPageKindHandling()
+        {
+            var projection = new DiagramProjection([], []);
+            var viewModel = new Mock<IDiagramViewModel>(MockBehavior.Strict);
+            viewModel.SetupGet(value => value.Projection).Returns(projection);
+            viewModel.SetupGet(value => value.Viewport).Returns(new DiagramViewport());
+            viewModel.Setup(value => value.Dispose());
+            var factory = new Mock<Func<SysML2Element, IDiagramViewModel>>(MockBehavior.Strict);
+            factory.Setup(create => create(It.IsAny<SysML2Element>())).Returns(viewModel.Object);
+            this.Services.AddSingleton(new DiagramEditorDescriptor("open-registered", "Registered diagram", "registered-diagram", factory.Object,
+                typeof(Mycelium.Bloom.Components.UI.Organisms.Diagram.DiagramCanvas)));
+            var composition = this.RegisterWorkspaceServices(3);
+            using var navigation = composition.Navigation;
+            this.SetRendererInfo(new RendererInfo("Static", false));
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            var group = composition.Editor.Groups[2];
+            await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
+            var actions = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 4);
+            await actions.Single(item => item.TextContent.Trim() == "Registered diagram").ClickAsync();
+            var tab = group.ActiveTab;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(tab.ViewTypeKey, Is.EqualTo("registered-diagram"));
+                Assert.That(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.DiagramCanvas>().Instance.ViewModel, Is.SameAs(viewModel.Object));
+            }
+
+            factory.Verify(create => create(It.IsAny<SysML2Element>()), Times.Once);
+            await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{tab.Id}']").ClickAsync();
+            viewModel.Verify(value => value.Dispose(), Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyProductionMenuExcludesExample()
+        {
+            var composition = this.RegisterWorkspaceServices(3, development: false);
+            using var navigation = composition.Navigation;
+            using var component = this.RenderWorkspaceLayoutWithModelling();
+            var modelling = component.FindComponent<Modelling>();
+            var group = composition.Editor.Groups[2];
+            await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(this.portalHost.FindAll("[role='menuitem']").Any(item => item.TextContent.Trim() == "General View"), Is.True);
+                Assert.That(this.portalHost.FindAll("[role='menuitem']").Any(item => item.TextContent.Trim() == "General View example"), Is.False);
+            }
+        }
+
         [Test]
         public async Task VerifyExplicitSelectionFromIndependentBrowsersUnfoldsEvenForRepeatedObjects()
         {
@@ -144,15 +196,15 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
         public async Task VerifyGeneralViewUsesInjectedProjectionAndViewModelFactory()
         {
             var root = new Namespace { DeclaredName = "Selected" };
-            var projection = new GeneralViewProjection([], []);
+            var projection = new DiagramProjection([], []);
             var projector = new Mock<IGeneralViewProjector>(MockBehavior.Strict);
             projector.Setup(service => service.CreateForRoot(root)).Returns(projection);
-            var diagram = new Mock<IGeneralDiagramViewModel>(MockBehavior.Strict);
+            var diagram = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             diagram.SetupGet(viewModel => viewModel.Projection).Returns(projection);
             diagram.SetupGet(viewModel => viewModel.Viewport).Returns(new DiagramViewport());
             diagram.Setup(viewModel => viewModel.Dispose());
-            var factory = new Mock<Func<GeneralViewProjection, IGeneralDiagramViewModel>>(MockBehavior.Strict);
-            factory.Setup(create => create(It.Is<GeneralViewProjection>(value => ReferenceEquals(value, projection)))).Returns(diagram.Object);
+            var factory = new Mock<Func<DiagramProjection, IDiagramViewModel>>(MockBehavior.Strict);
+            factory.Setup(create => create(It.Is<DiagramProjection>(value => ReferenceEquals(value, projection)))).Returns(diagram.Object);
             var composition = this.RegisterWorkspaceServices(3, generalViewProjector: projector.Object, createDiagram: factory.Object);
             using var navigation = composition.Navigation;
             this.SetRendererInfo(new RendererInfo("Static", false));
@@ -164,9 +216,9 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
             await this.FindPortalledMenuItem("General View").ClickAsync();
 
-            Assert.That(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.GeneralDiagram>().Instance.ViewModel, Is.SameAs(diagram.Object));
+            Assert.That(component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.DiagramCanvas>().Instance.ViewModel, Is.SameAs(diagram.Object));
             projector.Verify(service => service.CreateForRoot(root), Times.Once);
-            factory.Verify(create => create(It.IsAny<GeneralViewProjection>()), Times.Once);
+            factory.Verify(create => create(It.IsAny<DiagramProjection>()), Times.Once);
             var tab = group.ActiveTab;
             await component.Find($"[data-testid='editor-workspace-tab-close'][data-tab-id='{tab.Id}']").ClickAsync();
             diagram.Verify(viewModel => viewModel.Dispose(), Times.Once);
@@ -187,10 +239,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
             await this.FindPortalledMenuItem("General View example").ClickAsync();
             var firstTab = group.ActiveTab;
-            var first = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.GeneralDiagram>().Instance.ViewModel;
+            Assert.That(firstTab.ViewTypeKey, Is.EqualTo("general-view-example"));
+            var first = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.DiagramCanvas>().Instance.ViewModel;
             await FindAddTabMenu(modelling, group.Id).QuerySelector("button").ClickAsync();
             await this.FindPortalledMenuItem("General View example").ClickAsync();
-            var second = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.GeneralDiagram>().Instance.ViewModel;
+            var second = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.Diagram.DiagramCanvas>().Instance.ViewModel;
             Assert.That(second, Is.Not.SameAs(first));
             var secondViewport = second.Viewport;
             first.ChangeZoom(200);
@@ -1614,7 +1667,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             List<ProjectBrowserNodeViewModel> ProjectBrowserNodes) RegisterWorkspaceServices(
             int maximumGroupCount,
             Func<ContextAwareService, IProjectBrowserViewModel> createProjectBrowserViewModel = null,
-            IGeneralViewProjector generalViewProjector = null, Func<GeneralViewProjection, IGeneralDiagramViewModel> createDiagram = null)
+            IGeneralViewProjector generalViewProjector = null, Func<DiagramProjection, IDiagramViewModel> createDiagram = null,
+            bool development = true)
         {
             var context = new ContextAwareService();
             var editorViewModel = new WorkspaceEditorViewModel(
@@ -1680,8 +1734,11 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             this.Services.AddScoped<Func<INavigationRailViewModel>>(_ => () => navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
+            var environment = new Mock<IHostEnvironment>(MockBehavior.Strict);
+            environment.SetupGet(value => value.EnvironmentName).Returns(development ? Environments.Development : Environments.Production);
+            this.Services.AddSingleton(environment.Object);
             this.Services.AddDiagramServices();
-            this.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/GeneralDiagram.razor.js").SetupVoid("ensureDiagramScript").SetVoidResult();
+            this.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js").SetupVoid("ensureDiagramAssets").SetVoidResult();
             this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
                 () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             var elementIdResolver = new Mock<IElementIdResolver>(MockBehavior.Strict);

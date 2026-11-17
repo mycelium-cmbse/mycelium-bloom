@@ -9,11 +9,9 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
-
     using Mycelium.Bloom.Model.Diagram;
 
     /// <summary>Renders keyword, SDK declaration and optional alias notation.</summary>

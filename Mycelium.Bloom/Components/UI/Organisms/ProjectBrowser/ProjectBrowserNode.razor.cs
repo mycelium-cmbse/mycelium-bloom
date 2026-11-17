@@ -133,17 +133,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// <returns>The established icon name, or null when the indicator should remain text.</returns>
         private static string GetIndicatorIcon(string indicator)
         {
-            return indicator switch
-            {
-                "Imported" => "arrow-down-to-line",
-                "Library" => "library",
-                "Standard library" => "badge-check",
-                "Metadata" => "tag",
-                "Variation" => "git-branch",
-                "Conjugated" => "rotate-cw",
-                "Parallel" => "columns-2",
-                _ => null
-            };
+            return Mycelium.Bloom.Core.Presentation.SemanticIconResolver.GetIndicatorIcon(indicator);
         }
 
         /// <summary>

@@ -30,10 +30,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <exception cref="InvalidOperationException">No registered component accepts the presentation.</exception>
         public Type GetComponentType(Type presentationType)
         {
-            var matches = this.registrations.Where(registration => registration.PresentationType.IsAssignableFrom(presentationType)).ToArray();
-
-            return matches.FirstOrDefault(candidate => !matches.Any(other => other.PresentationType != candidate.PresentationType
-                && candidate.PresentationType.IsAssignableFrom(other.PresentationType)))?.ComponentType
+            return TypeDispatch.Find(this.registrations, presentationType, registration => registration.PresentationType)?.ComponentType
                 ?? throw new InvalidOperationException("No diagram component accepts this presentation type.");
         }
     }

@@ -90,7 +90,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             services.AddSingleton<IElementSelectionService>(selection);
             using var provider = services.BuildServiceProvider();
             var scope = provider.CreateScope();
-            var factory = scope.ServiceProvider.GetRequiredService<Func<GeneralViewProjection, IGeneralDiagramViewModel>>();
+            var factory = scope.ServiceProvider.GetRequiredService<Func<DiagramProjection, IDiagramViewModel>>();
             var element = new PartUsage();
             var projection = DiagramTestFactory.Create([element]);
             using var first = factory(projection);

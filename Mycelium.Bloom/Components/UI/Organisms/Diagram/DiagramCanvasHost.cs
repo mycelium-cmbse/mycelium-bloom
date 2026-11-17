@@ -9,14 +9,14 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-    using Blazor.Diagrams.Components;
+    using NativeDiagramCanvas = Blazor.Diagrams.Components.DiagramCanvas;
 
     /// <summary>Orders library canvas initialization before its observer and interop-reference cleanup.</summary>
     /// <remarks>
-    /// This adapter must inherit DiagramCanvas to preserve the library's cascading graph, JS observer and asynchronous lifetime.
-    /// It cannot also inherit BloomReactiveComponentBase; the surrounding GeneralDiagram owns reactive tab binding instead.
+    /// This adapter must inherit the library canvas to preserve its cascading graph, JS observer and asynchronous lifetime.
+    /// It cannot also inherit BloomReactiveComponentBase; the surrounding DiagramCanvas owns reactive tab binding instead.
     /// </remarks>
-    public sealed class DiagramCanvasHost : DiagramCanvas, IAsyncDisposable
+    public sealed class DiagramCanvasHost : NativeDiagramCanvas, IAsyncDisposable
     {
         /// <summary>The library's in-flight first-render initialization.</summary>
         private Task initialization = Task.CompletedTask;

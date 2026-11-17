@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="GeneralDiagram.razor.cs" company="Starion Group S.A.">
+// <copyright file="DiagramCanvas.razor.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -16,13 +16,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Captures UI events and borrows caller-owned presentation through one disposable native adapter.</summary>
-    public sealed partial class GeneralDiagram : BloomReactiveComponentBase<IGeneralDiagramViewModel>
+    public sealed partial class DiagramCanvas : BloomReactiveComponentBase<IDiagramViewModel>
     {
         /// <summary>The adapter owned by this component's current interactive mount.</summary>
-        private GeneralDiagramRenderer renderer;
+        private DiagramRenderer renderer;
 
         /// <summary>The exact ViewModel borrowed by the adapter.</summary>
-        private IGeneralDiagramViewModel observed;
+        private IDiagramViewModel observed;
 
         /// <summary>Records availability of the native browser API before creating its canvas.</summary>
         private bool scriptReady;
@@ -48,8 +48,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             {
                 try
                 {
-                    await using var module = await this.ScriptRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/UI/Organisms/Diagram/GeneralDiagram.razor.js");
-                    await module.InvokeVoidAsync("ensureDiagramScript");
+                    await using var module = await this.ScriptRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+                    await module.InvokeVoidAsync("ensureDiagramAssets");
                     this.scriptReady = true;
                 }
                 catch (JSDisconnectedException)
@@ -87,7 +87,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             {
                 this.renderer?.Dispose();
                 this.observed = this.ViewModel;
-                this.renderer = new GeneralDiagramRenderer(this.ViewModel);
+                this.renderer = new DiagramRenderer(this.ViewModel);
             }
         }
 

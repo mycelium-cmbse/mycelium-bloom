@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using System.Collections.Immutable;
 
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Model.Enum;
 
     using SysML2.NET.Core.POCO.Core.Classifiers;
     using SysML2.NET.Core.POCO.Core.Features;
@@ -41,7 +42,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="projector">The registered general-view projection service.</param>
         /// <returns>The immutable projected view and its omission state.</returns>
         /// <exception cref="ArgumentNullException">The projector is null.</exception>
-        public static GeneralViewProjection Create(IGeneralViewProjector projector)
+        public static DiagramProjection Create(IGeneralViewProjector projector)
         {
             ArgumentNullException.ThrowIfNull(projector);
             var package = new Package { Id = Guid.NewGuid(), ElementId = "example-package", DeclaredName = "Vehicle" };
@@ -191,7 +192,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="placements">The authored example coordinates keyed by example element identity.</param>
         /// <param name="context">The borrowed canonical elements and projector used by the example layout.</param>
         /// <returns>The example occurrences retaining the original canonical references.</returns>
-        private static ImmutableArray<DiagramNodePresentation> LayoutNodes(GeneralViewProjection projection, Dictionary<string, (double X, double Y)> placements,
+        private static ImmutableArray<DiagramNodePresentation> LayoutNodes(DiagramProjection projection, Dictionary<string, (double X, double Y)> placements,
             ExampleLayoutContext context)
         {
             return projection.Nodes.Select(node => LayoutNode(node, placements[node.Occurrence.Element.ElementId], context)).ToImmutableArray();
@@ -226,7 +227,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 compartments = [shell.Compartments[0] with { Rows = shell.Compartments[0].Rows.Take(1).ToImmutableArray(), IsTruncated = true }];
             }
 
-            GeneralViewProjection nestedView = null;
+            DiagramProjection nestedView = null;
 
             if (ReferenceEquals(element, context.View))
             {

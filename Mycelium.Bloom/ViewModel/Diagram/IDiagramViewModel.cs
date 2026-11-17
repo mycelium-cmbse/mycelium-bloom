@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="IGeneralDiagramViewModel.cs" company="Starion Group S.A.">
+// <copyright file="IDiagramViewModel.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -16,11 +16,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Exposes tab-owned diagram presentation without transferring ownership to a renderer.</summary>
-    public interface IGeneralDiagramViewModel : INotifyPropertyChanged, IDisposable
+    public interface IDiagramViewModel : INotifyPropertyChanged, IDisposable
     {
 
         /// <summary>Gets the immutable notation projected from canonical model objects.</summary>
-        GeneralViewProjection Projection { get; }
+        DiagramProjection Projection { get; }
 
         /// <summary>Gets the coherent viewport retained independently of any mounted renderer.</summary>
         DiagramViewport Viewport { get; }
@@ -37,7 +37,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
         /// <summary>Replaces validated presentation from composition without editing canonical model data.</summary>
         /// <param name="projection">The new immutable snapshot, with stable identities for retained occurrences.</param>
-        void UpdateProjection(GeneralViewProjection projection);
+        void UpdateProjection(DiagramProjection projection);
 
         /// <summary>Selects an element represented by this view.</summary>
         /// <param name="element">The exact canonical object captured by the UI.</param>
@@ -66,6 +66,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="occurrenceId">The parent occurrence identity, independent of semantic identity.</param>
         /// <param name="projection">The child view's immutable notation.</param>
         /// <returns>The retained child state for this occurrence and projection.</returns>
-        IGeneralDiagramViewModel GetNestedView(Guid occurrenceId, GeneralViewProjection projection);
+        IDiagramViewModel GetNestedView(Guid occurrenceId, DiagramProjection projection);
     }
 }

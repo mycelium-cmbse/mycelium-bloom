@@ -20,9 +20,9 @@ namespace Mycelium.Bloom.Tests.Common
     {
         public static GeneralViewProjector CreateProjector() => new([new PackageDiagramNodeFactory(), new CommentDiagramNodeFactory(), new ShellDiagramNodeFactory()]);
 
-        public static GeneralViewProjection Create(IEnumerable<IElement> elements, string name = null, bool omitted = false) => CreateProjector().Create(elements, name, omitted);
+        public static DiagramProjection Create(IEnumerable<IElement> elements, string name = null, bool omitted = false) => CreateProjector().Create(elements, name, omitted);
 
-        public static GeneralViewProjection CreateForRoot(IElement root) => CreateProjector().CreateForRoot(root);
+        public static DiagramProjection CreateForRoot(IElement root) => CreateProjector().CreateForRoot(root);
 
         public static DiagramShellPresentation Node(IElement element, int index = 0) => (DiagramShellPresentation)CreateProjector().Node(element, index);
     }

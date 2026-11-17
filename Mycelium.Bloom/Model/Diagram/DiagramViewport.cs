@@ -9,7 +9,6 @@
 
 namespace Mycelium.Bloom.Model.Diagram
 {
-
     /// <summary>Captures one atomic, renderer-independent viewport snapshot.</summary>
     /// <param name="PanX">The horizontal canvas translation.</param>
     /// <param name="PanY">The vertical canvas translation.</param>

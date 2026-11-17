@@ -12,8 +12,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using System.Collections.Immutable;
 
     using Mycelium.Bloom.Extensions;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Diagram;
-    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
@@ -133,7 +133,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             var declaration = element is IDefinition or IUsage ? Declaration(element) : ReferenceName(element, source ?? element.owningNamespace);
 
-            return new(keyword, declaration, aliases, ProjectBrowserElementPresentation.For(element.GetType()).SymbolName, additionalKeywords);
+            return new(keyword, declaration, aliases, ElementTypePresentation.For(element.GetType()).SymbolName, additionalKeywords);
         }
 
         /// <summary>Classifies graphical keywords by canonical SDK interfaces in specificity order.</summary>
@@ -142,10 +142,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         public static string Keyword(IElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            var matches = Keywords.Where(entry => entry.Type.IsInstanceOfType(element)).ToArray();
-
-            return matches.FirstOrDefault(candidate => !matches.Any(other => other.Type != candidate.Type
-                && candidate.Type.IsAssignableFrom(other.Type))).Keyword;
+            return TypeDispatch.Find(Keywords, element.GetType(), entry => entry.Type).Keyword;
         }
 
         /// <summary>Formats an SDK declaration using a private cursor without changing canonical relationships.</summary>

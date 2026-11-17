@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="DiagramRendererModels.cs" company="Starion Group S.A.">
+// <copyright file="DiagramLinkModel.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -19,50 +19,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
-    /// <summary>Adapts one graphical occurrence and its boundaries to native renderer geometry.</summary>
-    public sealed class GeneralDiagramNodeModel : NodeModel
-    {
-        /// <summary>Gets the tab-owned reactive presentation borrowed by this native occurrence.</summary>
-        public DiagramNodeViewModel ViewModel { get; }
-
-        /// <summary>Gets the immutable notation borrowed by this native model.</summary>
-        public DiagramNodePresentation Presentation => this.ViewModel.Presentation;
-
-        /// <summary>Gets whether canonical shared selection refers to this exact semantic object.</summary>
-        public bool IsSelected => this.ViewModel.IsSelected;
-
-        /// <summary>Creates the native adapter over borrowed presentation and caller-owned state.</summary>
-        /// <param name="presentation">The immutable occurrence or relationship notation.</param>
-        /// <param name="owner">The caller-owned presentation authority.</param>
-        public GeneralDiagramNodeModel(DiagramNodePresentation presentation, IGeneralDiagramViewModel owner)
-            : base(presentation.Occurrence.Id.ToString(), new Point(presentation.Occurrence.X, presentation.Occurrence.Y))
-        {
-            this.ViewModel = owner.GetNodeViewModel(presentation.Occurrence.Id);
-            this.Size = new Size(presentation.Occurrence.Width, presentation.Occurrence.Height);
-            this.ControlledSize = true;
-
-            for (var index = 0; index < this.ViewModel.BoundaryFeatures.Length; index++)
-            {
-                var feature = this.ViewModel.BoundaryFeatures[index].Presentation;
-                var alignment = feature.Side switch
-                {
-                    BoundarySide.Left => PortAlignment.Left,
-                    BoundarySide.Top => PortAlignment.Top,
-                    BoundarySide.Bottom => PortAlignment.Bottom,
-                    _ => PortAlignment.Right
-                };
-                var offset = feature.Offset;
-                var x = feature.Side switch { BoundarySide.Left => 0, BoundarySide.Right => this.Size.Width, _ => this.Size.Width * offset };
-                var y = feature.Side switch { BoundarySide.Top => 0, BoundarySide.Bottom => this.Size.Height, _ => this.Size.Height * offset };
-                this.AddPort(new PortModel($"{this.Id}-boundary-{index}", this, alignment,
-                    new Point(this.Position.X + x - 6, this.Position.Y + y - 6), new Size(12, 12))
-                { Initialized = true });
-            }
-        }
-    }
-
     /// <summary>Adapts one graphical relationship to native anchors and bends.</summary>
-    public sealed class GeneralDiagramLinkModel : LinkModel
+    public sealed class DiagramLinkModel : LinkModel
     {
         /// <summary>Gets the tab-owned reactive relationship presentation borrowed by this native link.</summary>
         public DiagramEdgeViewModel ViewModel { get; }
@@ -81,7 +39,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="source">The native source occurrence.</param>
         /// <param name="target">The native target occurrence.</param>
         /// <param name="owner">The caller-owned presentation authority.</param>
-        public GeneralDiagramLinkModel(DiagramEdgePresentation presentation, NodeModel source, NodeModel target, IGeneralDiagramViewModel owner)
+        public DiagramLinkModel(DiagramEdgePresentation presentation, NodeModel source, NodeModel target, IDiagramViewModel owner)
             : base(presentation.Id.ToString(), CreateAnchor(source, presentation.SourceFeature), CreateAnchor(target, presentation.TargetFeature))
         {
             this.ViewModel = owner.GetEdgeViewModel(presentation.Id);
@@ -102,7 +60,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <returns>The native boundary anchor or shape intersection anchor.</returns>
         private static Anchor CreateAnchor(NodeModel node, IElement feature)
         {
-            var occurrence = (GeneralDiagramNodeModel)node;
+            var occurrence = (DiagramNodeModel)node;
 
             for (var index = 0; index < occurrence.ViewModel.BoundaryFeatures.Length; index++)
             {

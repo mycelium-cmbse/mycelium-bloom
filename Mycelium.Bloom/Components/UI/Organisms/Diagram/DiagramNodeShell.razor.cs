@@ -9,12 +9,11 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
-
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Model.Enum;
 
     /// <summary>Composes reusable graphical node slots in the BNF-defined order.</summary>
     public partial class DiagramNodeShell : BloomComponentBase

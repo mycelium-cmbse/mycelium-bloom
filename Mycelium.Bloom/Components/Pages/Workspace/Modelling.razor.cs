@@ -58,9 +58,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private static readonly EditorTypePresentation[] EditorTypes =
         [
-            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree),
-            new("open-general-view", "General View", "general-view", SymbolIconName.Document),
-            new("open-general-example", "General View example", "general-view-example", SymbolIconName.Document)
+            new(ProjectBrowserActionId, "Project Browser", ProjectBrowserViewTypeKey, SymbolIconName.Tree)
         ];
 
         /// <summary>
@@ -73,8 +71,8 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private readonly Dictionary<Guid, IProjectBrowserViewModel> projectBrowserViewModels = [];
 
-        /// <summary>The session state owned by each exact General View editor tab.</summary>
-        private readonly Dictionary<Guid, IGeneralDiagramViewModel> diagrams = [];
+        /// <summary>The session state owned by each exact diagram editor tab.</summary>
+        private readonly Dictionary<Guid, DiagramEditorSession> diagrams = [];
 
         /// <summary>
         /// The initial-only presentation weights supplied to the editor workspace.
@@ -95,13 +93,9 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         [Inject]
         private IElementSelectionService ElementSelection { get; set; }
 
-        /// <summary>Gets or sets the service projecting canonical General View content.</summary>
+        /// <summary>Gets or sets the registered editor actions and caller-owned factories.</summary>
         [Inject]
-        private IGeneralViewProjector GeneralViewProjector { get; set; }
-
-        /// <summary>Gets or sets the factory creating tab-owned diagram state.</summary>
-        [Inject]
-        private Func<GeneralViewProjection, IGeneralDiagramViewModel> GeneralDiagramViewModelFactory { get; set; }
+        private DiagramEditorRegistry DiagramEditors { get; set; }
 
         /// <summary>
         /// Gets or sets the factory that creates editor state owned by this routed page.
@@ -216,7 +210,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             foreach (var diagram in this.diagrams.Values)
             {
-                diagram.Dispose();
+                diagram.ViewModel.Dispose();
             }
 
             this.diagrams.Clear();
@@ -452,9 +446,10 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// Creates the generic add-tab actions from the workspace's current coherent rendering state.
         /// </summary>
         /// <returns>The actions available to every editor group.</returns>
-        private static ActionMenuItem[] CreateAddTabActions()
+        private ActionMenuItem[] CreateAddTabActions()
         {
-            return EditorTypes
+            return EditorTypes.Concat(this.DiagramEditors.Editors.Select(editor =>
+                new EditorTypePresentation(editor.ActionId, editor.Title, editor.ViewTypeKey, editor.Symbol)))
                 .Select(editorType => new ActionMenuItem
                 {
                     Id = editorType.ActionId,
@@ -473,17 +468,13 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         {
             ArgumentNullException.ThrowIfNull(item);
 
-            switch (item.Id)
+            if (this.DiagramEditors.FindAction(item.Id) is { } descriptor)
             {
-                case "open-general-example":
-                    this.OpenGeneralView(groupId, true);
-                    break;
-                case "open-general-view":
-                    this.OpenGeneralView(groupId);
-                    break;
-                case ProjectBrowserActionId:
-                    _ = this.OpenProjectBrowserTab(groupId);
-                    break;
+                this.OpenDiagram(groupId, descriptor);
+            }
+            else if (item.Id == ProjectBrowserActionId)
+            {
+                _ = this.OpenProjectBrowserTab(groupId);
             }
         }
 
@@ -497,7 +488,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
 
             if (this.diagrams.Remove(tab.Id, out var diagram))
             {
-                diagram.Dispose();
+                diagram.ViewModel.Dispose();
             }
 
             if (IsProjectBrowserTab(tab)
@@ -555,20 +546,30 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
             }
         }
 
-        /// <summary>
-        /// Opens a General View over canonical objects with independently owned session state.
-        /// </summary>
+        /// <summary>Opens a registered diagram kind with tab-owned presentation and component dispatch.</summary>
         /// <param name="groupId">The target editor group.</param>
-        /// <param name="example">Whether to open the explicit in-memory example instead of the selected model slice.</param>
-        private void OpenGeneralView(Guid groupId, bool example = false)
+        /// <param name="descriptor">The registered editor kind.</param>
+        private void OpenDiagram(Guid groupId, DiagramEditorDescriptor descriptor)
         {
-            var selected = this.ElementSelection.SelectedElement;
-            var root = selected ?? this.projectBrowserViewModels.Values.SelectMany(browser => browser.RootNodes).FirstOrDefault()?.SourceElement;
-            var projection = example ? GeneralViewExample.Create(this.GeneralViewProjector) : this.GeneralViewProjector.CreateForRoot(root);
+            var root = this.ElementSelection.SelectedElement
+                ?? this.projectBrowserViewModels.Values.SelectMany(browser => browser.RootNodes).FirstOrDefault()?.SourceElement;
+            var viewModel = descriptor.CreateViewModel(root);
+            var ownershipTransferred = false;
 
-            if (this.WorkspaceEditorViewModel.TryOpenTab(groupId, example ? "General View example" : "General View", "general-view", out var tab))
+            try
             {
-                this.diagrams.Add(tab.Id, this.GeneralDiagramViewModelFactory(projection));
+                if (this.WorkspaceEditorViewModel.TryOpenTab(groupId, descriptor.Title, descriptor.ViewTypeKey, out var tab))
+                {
+                    this.diagrams.Add(tab.Id, new DiagramEditorSession(descriptor, viewModel));
+                    ownershipTransferred = true;
+                }
+            }
+            finally
+            {
+                if (!ownershipTransferred)
+                {
+                    viewModel.Dispose();
+                }
             }
         }
 
@@ -618,7 +619,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         /// <param name="tab">The canonical editor tab.</param>
         /// <returns>The icon name, or an empty string when the tab type has no composition metadata.</returns>
-        private static string GetEditorTabIconName(EditorTabItem tab)
+        private string GetEditorTabIconName(EditorTabItem tab)
         {
             ArgumentNullException.ThrowIfNull(tab);
 
@@ -632,7 +633,7 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
                 tab.ViewTypeKey,
                 StringComparison.Ordinal));
 
-            return editorType?.Symbol.ToLucideName() ?? string.Empty;
+            return editorType?.Symbol.ToLucideName() ?? this.DiagramEditors.FindView(tab.ViewTypeKey)?.Symbol.ToLucideName() ?? string.Empty;
         }
 
         /// <summary>

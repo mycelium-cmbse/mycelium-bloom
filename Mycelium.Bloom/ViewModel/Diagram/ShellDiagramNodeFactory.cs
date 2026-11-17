@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using System.Collections.Immutable;
 
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Model.Enum;
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Root.Elements;

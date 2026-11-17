@@ -29,7 +29,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Creates state for a port or parameter occurrence.</summary>
         /// <param name="presentation">The projected boundary notation.</param>
         /// <param name="owner">The tab-owned action authority.</param>
-        public DiagramBoundaryViewModel(DiagramBoundaryPresentation presentation, IGeneralDiagramViewModel owner)
+        public DiagramBoundaryViewModel(DiagramBoundaryPresentation presentation, IDiagramViewModel owner)
             : base(presentation.Element, owner)
         {
             this.Presentation = presentation;

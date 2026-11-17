@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="GeneralDiagramViewModel.cs" company="Starion Group S.A.">
+// <copyright file="DiagramViewModel.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -19,13 +19,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Owns presentation and nested-view lifetimes for one tab, borrowing canonical objects and selection.</summary>
-    public class GeneralDiagramViewModel : BloomBaseViewModel, IGeneralDiagramViewModel
+    public class DiagramViewModel : BloomBaseViewModel, IDiagramViewModel
     {
         /// <summary>The circuit-owned selection authority.</summary>
         private readonly IElementSelectionService selection;
 
         /// <summary>Constructs nested state with the same caller-owned factory contract.</summary>
-        private readonly Func<GeneralViewProjection, IGeneralDiagramViewModel> createNestedView;
+        private readonly Func<DiagramProjection, IDiagramViewModel> createNestedView;
 
         /// <summary>The view's single subscription to canonical selection.</summary>
         private readonly IDisposable selectionSubscription;
@@ -43,10 +43,10 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         private IReadOnlyList<DiagramElementViewModel> selectedTargets = Array.Empty<DiagramElementViewModel>();
 
         /// <summary>The coherent current projection snapshot.</summary>
-        private GeneralViewProjection currentProjection;
+        private DiagramProjection currentProjection;
 
         /// <summary>The child state owned by each parent occurrence and immutable projection.</summary>
-        private readonly Dictionary<(Guid Occurrence, GeneralViewProjection Projection), IGeneralDiagramViewModel> nestedViews = new();
+        private readonly Dictionary<(Guid Occurrence, DiagramProjection Projection), IDiagramViewModel> nestedViews = new();
 
         /// <summary>The coherent retained viewport.</summary>
         private DiagramViewport viewport = new();
@@ -55,7 +55,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         private bool disposed;
 
         /// <summary>Gets the current immutable graphical projection.</summary>
-        public GeneralViewProjection Projection
+        public DiagramProjection Projection
         {
             get => this.currentProjection;
             private set => this.RaiseAndSetIfChanged(ref this.currentProjection, value);
@@ -72,13 +72,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="projection">The immutable view with occurrence-scoped graphical identities.</param>
         /// <param name="selection">The circuit-owned canonical selection service.</param>
         /// <param name="createNestedView">The optional factory for caller-owned nested views.</param>
-        public GeneralDiagramViewModel(GeneralViewProjection projection, IElementSelectionService selection,
-            Func<GeneralViewProjection, IGeneralDiagramViewModel> createNestedView = null)
+        public DiagramViewModel(DiagramProjection projection, IElementSelectionService selection,
+            Func<DiagramProjection, IDiagramViewModel> createNestedView = null)
         {
             ArgumentNullException.ThrowIfNull(projection);
             ArgumentNullException.ThrowIfNull(selection);
             this.selection = selection;
-            this.createNestedView = createNestedView ?? (child => new GeneralDiagramViewModel(child, selection));
+            this.createNestedView = createNestedView ?? (child => new DiagramViewModel(child, selection));
             this.UpdateProjection(projection);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
         }
@@ -95,11 +95,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
         /// <summary>Replaces validated graphical presentation while retaining compatible occurrence state.</summary>
         /// <param name="projection">The new immutable projection.</param>
-        public void UpdateProjection(GeneralViewProjection projection)
+        public void UpdateProjection(DiagramProjection projection)
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
             ArgumentNullException.ThrowIfNull(projection);
-            ValidateProjection(projection);
+            DiagramProjectionValidator.Validate(projection);
 
             if (Equals(this.Projection, projection))
             {
@@ -180,7 +180,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 return;
             }
 
-            var bounds = this.GetBounds();
+            var bounds = DiagramBoundsCalculator.Measure(this.Projection);
             var zoom = Math.Clamp(Math.Min(width / (bounds.Right - bounds.Left), height / (bounds.Bottom - bounds.Top)), DiagramViewport.MinimumZoom, 1);
             this.SetViewport((width - (bounds.Right - bounds.Left) * zoom) / 2 - bounds.Left * zoom,
                 (height - (bounds.Bottom - bounds.Top) * zoom) / 2 - bounds.Top * zoom, zoom);
@@ -190,7 +190,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="occurrenceId">The parent graphical identity.</param>
         /// <param name="projection">The immutable nested projection.</param>
         /// <returns>The retained caller-owned nested state.</returns>
-        public IGeneralDiagramViewModel GetNestedView(Guid occurrenceId, GeneralViewProjection projection)
+        public IDiagramViewModel GetNestedView(Guid occurrenceId, DiagramProjection projection)
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
             ArgumentNullException.ThrowIfNull(projection);
@@ -271,7 +271,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
         /// <summary>Reconciles node presentation identity independently of mounted native resources.</summary>
         /// <param name="projection">The validated incoming snapshot.</param>
-        private void UpdateNodes(GeneralViewProjection projection)
+        private void UpdateNodes(DiagramProjection projection)
         {
             var retained = new Dictionary<Guid, DiagramNodeViewModel>();
 
@@ -294,7 +294,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
         /// <summary>Reconciles relationship presentation while retaining unchanged graphical identities.</summary>
         /// <param name="projection">The validated incoming snapshot.</param>
-        private void UpdateEdges(GeneralViewProjection projection)
+        private void UpdateEdges(DiagramProjection projection)
         {
             var retained = new Dictionary<Guid, DiagramEdgeViewModel>();
 
@@ -317,7 +317,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
         /// <summary>Releases child subscriptions whose graphical occurrence, canonical parent or nested snapshot is no longer represented.</summary>
         /// <param name="projection">The incoming parent snapshot.</param>
-        private void ReleaseRemovedNestedViews(GeneralViewProjection projection)
+        private void ReleaseRemovedNestedViews(DiagramProjection projection)
         {
             var previousParents = this.Projection?.Nodes.ToDictionary(node => node.Occurrence.Id, node => node.Occurrence.Element);
             var retained = projection.Nodes.OfType<DiagramShellPresentation>().Where(node => previousParents is not null
@@ -332,29 +332,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
         }
 
-        /// <summary>Measures the retained content, including boundary labels and manual routing bends.</summary>
-        /// <returns>The padded model-space bounds used for navigation, without changing occurrence geometry.</returns>
-        private (double Left, double Top, double Right, double Bottom) GetBounds()
-        {
-            const double padding = 32;
-            var nodes = this.Projection.Nodes;
-            var left = nodes.Min(node => node.Occurrence.X - (!Boundaries(node).IsEmpty ? 220 : 0)) - padding;
-            var top = nodes.Min(node => node.Occurrence.Y - (!Boundaries(node).IsEmpty ? 40 : 0)) - padding;
-            var right = nodes.Max(node => node.Occurrence.X + node.Occurrence.Width + (!Boundaries(node).IsEmpty ? 220 : 0)) + padding;
-            var bottom = nodes.Max(node => node.Occurrence.Y + node.Occurrence.Height + (!Boundaries(node).IsEmpty ? 40 : 0)) + padding;
-            var bends = this.Projection.Edges.Where(edge => !edge.Bends.IsDefaultOrEmpty).SelectMany(edge => edge.Bends).ToArray();
-
-            if (bends.Length > 0)
-            {
-                left = Math.Min(left, bends.Min(point => point.X) - padding);
-                right = Math.Max(right, bends.Max(point => point.X) + padding);
-                top = Math.Min(top, bends.Min(point => point.Y) - padding);
-                bottom = Math.Max(bottom, bends.Max(point => point.Y) + padding);
-            }
-
-            return (left, top, right, bottom);
-        }
-
         /// <summary>Rejects a non-finite viewport value before it reaches the native renderer.</summary>
         /// <param name="value">The requested translation, zoom, or zoom percentage.</param>
         /// <returns>The unchanged finite value.</returns>
@@ -364,97 +341,5 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             return double.IsFinite(value) ? value : throw new ArgumentOutOfRangeException(nameof(value));
         }
 
-        /// <summary>Rejects invalid graphical contracts rather than silently dropping edges or producing invalid SVG.</summary>
-        /// <param name="projection">The presentation to validate independently of semantic ElementIds.</param>
-        /// <exception cref="ArgumentException">Graphical identities, endpoints, boundaries, or geometry are invalid.</exception>
-        private static void ValidateProjection(GeneralViewProjection projection)
-        {
-            if (projection.Nodes.IsDefault || projection.Edges.IsDefault)
-            {
-                throw new ArgumentException("Diagram collections must be initialized.", nameof(projection));
-            }
-
-            var ids = new HashSet<Guid>();
-
-            ValidateNodes(projection, ids);
-
-            var edgeIds = new HashSet<Guid>();
-
-            ValidateEdges(projection, edgeIds, ids);
-            ValidateEndpointFeatures(projection);
-        }
-
-        /// <summary>Rejects boundary associations that do not belong to the selected graphical endpoint.</summary>
-        /// <param name="projection">The presentation with already validated occurrence endpoints.</param>
-        private static void ValidateEndpointFeatures(GeneralViewProjection projection)
-        {
-            var nodes = projection.Nodes.ToDictionary(node => node.Occurrence.Id);
-
-            if (projection.Edges.Any(edge => !IsEndpointFeature(nodes[edge.Source], edge.SourceFeature)
-                || !IsEndpointFeature(nodes[edge.Target], edge.TargetFeature)))
-            {
-                throw new ArgumentException("A diagram edge feature must be the canonical endpoint element or one of its boundary features.", nameof(projection));
-            }
-        }
-
-        /// <summary>Gets boundary notation only for node types that support shell boundaries.</summary>
-        /// <param name="node">The typed node presentation.</param>
-        /// <returns>The shell's boundaries, or an empty collection for other node types.</returns>
-        private static ImmutableArray<DiagramBoundaryPresentation> Boundaries(DiagramNodePresentation node) => node is DiagramShellPresentation shell ? shell.Boundary : [];
-
-        /// <summary>Checks the canonical association without confusing equal semantic IDs across models.</summary>
-        /// <param name="node">The graphical endpoint occurrence.</param>
-        /// <param name="feature">The optional canonical element or boundary feature.</param>
-        /// <returns>Whether the association belongs to this exact occurrence.</returns>
-        private static bool IsEndpointFeature(DiagramNodePresentation node, IElement feature)
-        {
-            return feature is null || ReferenceEquals(node.Occurrence.Element, feature)
-                || Boundaries(node).Any(boundary => ReferenceEquals(boundary.Element, feature));
-        }
-
-        /// <summary>Checks that SVG dimensions and coordinates are finite and positive where required.</summary>
-        /// <param name="occurrence">The graphical occurrence geometry.</param>
-        /// <returns>Whether the occurrence can be rendered as finite SVG geometry.</returns>
-        private static bool HasValidGeometry(DiagramOccurrence occurrence)
-        {
-            return double.IsFinite(occurrence.X) && double.IsFinite(occurrence.Y)
-                && double.IsFinite(occurrence.Width) && double.IsFinite(occurrence.Height) && occurrence.Width > 0 && occurrence.Height > 0;
-        }
-
-        /// <summary>Rejects ambiguous occurrence identities, invalid geometry and malformed boundary placement.</summary>
-        /// <param name="projection">The immutable presentation being validated.</param>
-        /// <param name="ids">Receives unique graphical occurrence identities.</param>
-        private static void ValidateNodes(GeneralViewProjection projection, HashSet<Guid> ids)
-        {
-            foreach (var node in projection.Nodes)
-            {
-                var occurrence = node.Occurrence;
-
-                if (occurrence.Id == Guid.Empty || occurrence.Element is null || !ids.Add(occurrence.Id)
-                    || !HasValidGeometry(occurrence)
-                    || node is DiagramShellPresentation shell && (shell.Boundary.IsDefault || shell.Compartments.IsDefault
-                        || shell.Boundary.Any(feature => feature.Element is null || !double.IsFinite(feature.Offset) || feature.Offset < 0 || feature.Offset > 1)))
-                {
-                    throw new ArgumentException("Diagram occurrences require unique graphical identities and finite positive geometry with normalized boundaries.",
-                        nameof(projection));
-                }
-            }
-        }
-
-        /// <summary>Rejects missing endpoints, ambiguous edge identities and invalid polyline geometry.</summary>
-        /// <param name="projection">The immutable presentation being validated.</param>
-        /// <param name="edgeIds">Receives unique graphical edge identities.</param>
-        /// <param name="ids">The validated graphical node identities.</param>
-        private static void ValidateEdges(GeneralViewProjection projection, HashSet<Guid> edgeIds, HashSet<Guid> ids)
-        {
-            foreach (var edge in projection.Edges)
-            {
-                if (edge.Id == Guid.Empty || edge.Element is null || !edgeIds.Add(edge.Id) || !ids.Contains(edge.Source) || !ids.Contains(edge.Target)
-                    || !edge.Bends.IsDefaultOrEmpty && edge.Bends.Any(point => !double.IsFinite(point.X) || !double.IsFinite(point.Y)))
-                {
-                    throw new ArgumentException("Diagram edges require unique graphical identities, represented endpoints and finite bends.", nameof(projection));
-                }
-            }
-        }
     }
 }

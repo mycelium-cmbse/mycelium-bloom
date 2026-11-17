@@ -41,7 +41,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Creates presentation state for one graphical node occurrence.</summary>
         /// <param name="presentation">The immutable canonical projection.</param>
         /// <param name="owner">The tab-owned state authority.</param>
-        internal DiagramNodeViewModel(DiagramNodePresentation presentation, IGeneralDiagramViewModel owner)
+        internal DiagramNodeViewModel(DiagramNodePresentation presentation, IDiagramViewModel owner)
             : base(presentation.Occurrence.Element, owner)
         {
             this.Update(presentation);
@@ -50,7 +50,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Gets nested state retained by this exact parent occurrence.</summary>
         /// <param name="projection">The child view's immutable notation.</param>
         /// <returns>The tab-owned child state.</returns>
-        public IGeneralDiagramViewModel GetNestedView(GeneralViewProjection projection) => this.Owner.GetNestedView(this.Presentation.Occurrence.Id, projection);
+        public IDiagramViewModel GetNestedView(DiagramProjection projection) => this.Owner.GetNestedView(this.Presentation.Occurrence.Id, projection);
 
         /// <summary>Replaces only presentation data, retaining boundary state where the occurrence association is unchanged.</summary>
         /// <param name="value">The validated notation for this same occurrence and canonical object.</param>

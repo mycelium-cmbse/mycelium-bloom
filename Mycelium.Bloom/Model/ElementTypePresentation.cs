@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------------------------
-// <copyright file="ProjectBrowserElementPresentation.cs" company="Starion Group S.A.">
+// <copyright file="ElementTypePresentation.cs" company="Starion Group S.A.">
 //
 //   Copyright 2026 Starion Group S.A.
 //   SPDX-License-Identifier: Apache-2.0
@@ -7,8 +7,12 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.ViewModel.ProjectBrowser
+namespace Mycelium.Bloom.Model
 {
+    using System.Text.RegularExpressions;
+
+    using Mycelium.Bloom.Core.Presentation;
+
     using SysML2.NET.Core.POCO.Core.Classifiers;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Kernel.Associations;
@@ -17,6 +21,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Kernel.Functions;
     using SysML2.NET.Core.POCO.Kernel.Packages;
     using SysML2.NET.Core.POCO.Root.Annotations;
+    using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Actions;
     using SysML2.NET.Core.POCO.Systems.Allocations;
@@ -39,14 +44,14 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
     using SysML2.NET.Core.POCO.Systems.Views;
 
     /// <summary>
-    /// Describes semantic Browser labels without changing canonical model identity.
+    /// Describes shared semantic labels without changing canonical model identity.
     /// </summary>
     /// <param name="Kind">The human-readable model category.</param>
     /// <param name="Stereotype">The guillemet kind designator.</param>
     /// <param name="IconName">The existing exported tree icon, when available.</param>
     /// <param name="HasLeadingStereotype">Retained for existing consumers; Browser rows place the kind after the name and feature notation.</param>
     /// <param name="IsModelRoot">Whether this is the loaded model root.</param>
-    public sealed record ProjectBrowserElementPresentation(
+    public sealed record ElementTypePresentation(
         string Kind,
         string Stereotype = null,
         string IconName = null,
@@ -67,30 +72,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// Gets the established Lucide symbol when no exported Browser icon is available.
         /// </summary>
         /// <remarks>The inline kind label distinguishes definitions and usages sharing a symbol.</remarks>
-        public string SymbolName => this.Kind switch
-        {
-            "Attribute" or "Attribute definition" => "hash",
-            "Port definition" => "circle-dot",
-            "Item" => "box",
-            "Interface" or "Interface definition" => "plug",
-            "Connection" or "Connection definition" or "Binding connector" or "Association" => "link",
-            "Flow" or "Flow definition" or "Succession flow" => "move-right",
-            "Allocation" or "Allocation definition" => "git-merge",
-            "View definition" => "network",
-            "Metadata definition" => "tags",
-            "Enumeration definition" => "list",
-            "Verification case" or "Verification case definition" => "clipboard-check",
-            "Analysis case" or "Analysis case definition" => "chart-no-axes-combined",
-            "Satisfy requirement" => "list-checks",
-            "Requirement" or "Requirement definition" => "file-check",
-            "State" or "State definition" or "Exhibit state" => "circle-dot",
-            "Calculation" or "Calculation definition" => "calculator",
-            "Action" or "Action definition" or "Perform action" => "activity",
-            "Constraint" or "Constraint definition" or "Constraint assertion" => "square-equal",
-            "Feature" => "diamond",
-            "Namespace" => FolderIconName,
-            _ => "shapes"
-        };
+        public string SymbolName => SemanticIconResolver.GetElementSymbol(this.Kind);
 
         /// <summary>
         /// Maps SDK interfaces in specificity order, before broad feature fallbacks.
@@ -98,11 +80,11 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <param name="elementType">The SDK type or interface.</param>
         /// <param name="isModelRoot">Whether this is the loaded model root.</param>
         /// <returns>The semantic label and available icon.</returns>
-        public static ProjectBrowserElementPresentation For(Type elementType, bool isModelRoot = false)
+        public static ElementTypePresentation For(Type elementType, bool isModelRoot = false)
         {
             ArgumentNullException.ThrowIfNull(elementType);
 
-            ProjectBrowserElementPresentation presentation = elementType switch
+            ElementTypePresentation presentation = elementType switch
             {
                 _ when typeof(ILibraryPackage).IsAssignableFrom(elementType) => new("Library package", "«library package»", FolderIconName),
                 _ when typeof(IPackage).IsAssignableFrom(elementType) => new("Package", "«package»", FolderIconName),
@@ -116,7 +98,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 _ when typeof(IConnectionDefinition).IsAssignableFrom(elementType) => new("Connection definition", "«connection def»"),
                 _ when typeof(IConnectionUsage).IsAssignableFrom(elementType) => new("Connection", "«connection»"),
                 _ when typeof(IBindingConnector).IsAssignableFrom(elementType) => new("Binding connector", "«binding»"),
-                _ when typeof(IConnector).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
+                _ when typeof(IConnector).IsAssignableFrom(elementType) => new(GetKindName(elementType)),
                 _ when typeof(IAssociation).IsAssignableFrom(elementType) => new("Association", "«association»"),
                 _ when typeof(IViewUsage).IsAssignableFrom(elementType) => new("View", "«view»", "network"),
                 _ when typeof(IViewDefinition).IsAssignableFrom(elementType) => new("View definition", "«view def»"),
@@ -152,12 +134,12 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 _ when typeof(IFeatureChainExpression).IsAssignableFrom(elementType) => new("Feature chain", "«feature chain»"),
                 _ when typeof(IFeatureReferenceExpression).IsAssignableFrom(elementType) => new("Feature reference", "«feature reference»"),
                 _ when typeof(IOperatorExpression).IsAssignableFrom(elementType) => new("Operator expression", "«operator expression»"),
-                _ when typeof(IDefinition).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
-                _ when typeof(IUsage).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
-                _ when typeof(IClassifier).IsAssignableFrom(elementType) => new(ElementPresentation.GetKindName(elementType)),
+                _ when typeof(IDefinition).IsAssignableFrom(elementType) => new(GetKindName(elementType)),
+                _ when typeof(IUsage).IsAssignableFrom(elementType) => new(GetKindName(elementType)),
+                _ when typeof(IClassifier).IsAssignableFrom(elementType) => new(GetKindName(elementType)),
                 _ when typeof(IFeature).IsAssignableFrom(elementType) => new("Feature", "«feature»"),
                 _ when typeof(INamespace).IsAssignableFrom(elementType) => new("Namespace", "«namespace»", IconName: isModelRoot ? "network" : null),
-                _ => new(ElementPresentation.GetKindName(elementType))
+                _ => new(GetKindName(elementType))
             };
 
             var stereotype = presentation.Stereotype ?? $"«{presentation.Kind.ToLowerInvariant()}»";
@@ -168,5 +150,23 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
                 IsModelRoot = isModelRoot
             };
         }
+
+        /// <summary>
+        /// Labels an SDK metaclass without exposing its implementation identifier as prose.
+        /// </summary>
+        /// <param name="type">The SDK type being presented.</param>
+        /// <returns>A readable metaclass label or the neutral element role.</returns>
+        public static string GetKindName(System.Type type)
+        {
+            if (type.Assembly != typeof(IElement).Assembly)
+            {
+                return "Element";
+            }
+
+            var name = type.IsInterface ? type.Name[1..] : type.Name;
+            var words = Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ", RegexOptions.None, TimeSpan.FromMilliseconds(100));
+            return words.Length == 0 ? "Element" : words[..1] + words[1..].ToLowerInvariant();
+        }
+
     }
 }

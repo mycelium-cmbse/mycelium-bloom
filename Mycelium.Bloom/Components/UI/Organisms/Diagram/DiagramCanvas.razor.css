@@ -294,7 +294,7 @@
 
 .general-diagram ::deep .diagram-boundary-label {
     display: inline-block;
-    max-width: 200px;
+    max-width: var(--diagram-boundary-label-maximum-width);
     overflow: hidden;
     text-overflow: ellipsis;
 }

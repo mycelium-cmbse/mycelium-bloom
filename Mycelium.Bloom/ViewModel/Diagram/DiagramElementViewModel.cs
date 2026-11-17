@@ -30,12 +30,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         }
 
         /// <summary>Gets the tab-owned state and action authority borrowed by this presentation.</summary>
-        protected IGeneralDiagramViewModel Owner { get; }
+        protected IDiagramViewModel Owner { get; }
 
         /// <summary>Creates an occurrence-scoped presentation over borrowed canonical data.</summary>
         /// <param name="element">The canonical object, independent of its graphical occurrence identity.</param>
         /// <param name="owner">The tab-owned action authority.</param>
-        protected DiagramElementViewModel(IElement element, IGeneralDiagramViewModel owner)
+        protected DiagramElementViewModel(IElement element, IDiagramViewModel owner)
         {
             ArgumentNullException.ThrowIfNull(element);
             ArgumentNullException.ThrowIfNull(owner);
