@@ -1,0 +1,20 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramToolbox.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomReactiveComponentBase<Mycelium.Bloom.ViewModel.Diagram.IDiagramViewModel>
+
+<div @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-toolbox")" role="toolbar" aria-label="Diagram tools" aria-orientation="horizontal">
+    <button type="button" class="diagram-toolbox-tool" aria-label="Move" aria-pressed="@((this.ViewModel.ActiveTool == DiagramTool.Move).ToString().ToLowerInvariant())" title="Select / Move" @onclick="this.SelectMove">
+        <LucideIcon Name="mouse-pointer-2" Size="16" aria-hidden="true" focusable="false" />
+    </button>
+    <span class="diagram-toolbox-divider" aria-hidden="true"></span>
+    <button type="button" class="diagram-toolbox-tool" aria-label="Pan" aria-pressed="@((this.ViewModel.ActiveTool == DiagramTool.Pan).ToString().ToLowerInvariant())" title="Pan (hold Space for temporary navigation)" @onclick="this.SelectPan">
+        <LucideIcon Name="hand" Size="16" aria-hidden="true" focusable="false" />
+    </button>
+</div>

@@ -12,12 +12,32 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using System.ComponentModel;
 
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Model.Enum;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Exposes tab-owned diagram presentation without transferring ownership to a renderer.</summary>
     public interface IDiagramViewModel : INotifyPropertyChanged, IDisposable
     {
+        /// <summary>Gets this diagram's retained pointer mode.</summary>
+        DiagramTool ActiveTool { get; }
+
+        /// <summary>Gets whether lifecycle and local read-only policy permit graphical movement.</summary>
+        bool CanMoveNodes { get; }
+
+        /// <summary>Gets or sets whether presentation movement is prohibited locally.</summary>
+        bool IsReadOnly { get; set; }
+
+        /// <summary>Changes the retained pointer mode without changing selection.</summary>
+        /// <param name="tool">The supported pointer mode.</param>
+        void SetTool(DiagramTool tool);
+
+        /// <summary>Updates a permitted occurrence position without changing canonical data.</summary>
+        /// <param name="occurrenceId">The view-local occurrence identity.</param>
+        /// <param name="x">The finite horizontal model-space coordinate.</param>
+        /// <param name="y">The finite vertical model-space coordinate.</param>
+        /// <returns>Whether movement was accepted.</returns>
+        bool MoveNode(Guid occurrenceId, double x, double y);
 
         /// <summary>Gets the immutable notation projected from canonical model objects.</summary>
         DiagramProjection Projection { get; }

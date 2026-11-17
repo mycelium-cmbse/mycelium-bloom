@@ -18,5 +18,9 @@ namespace Mycelium.Bloom.Model.Diagram
     /// <param name="Y">The vertical model-space coordinate.</param>
     /// <param name="Width">The positive occurrence width.</param>
     /// <param name="Height">The positive occurrence height.</param>
-    public sealed record DiagramOccurrence(Guid Id, IElement Element, double X, double Y, double Width = 240, double Height = 160);
+    public sealed record DiagramOccurrence(Guid Id, IElement Element, double X, double Y, double Width = 240, double Height = 160)
+    {
+        /// <summary>Gets whether this occurrence permits graphical repositioning.</summary>
+        public bool IsMovable { get; init; } = true;
+    }
 }

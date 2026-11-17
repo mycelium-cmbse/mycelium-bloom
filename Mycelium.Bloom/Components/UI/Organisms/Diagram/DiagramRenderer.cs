@@ -16,6 +16,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Blazor.Diagrams;
     using Blazor.Diagrams.Core.Behaviors;
     using Blazor.Diagrams.Core.Geometry;
+    using Blazor.Diagrams.Core.Models;
     using Blazor.Diagrams.Options;
 
     using Mycelium.Bloom.Model.Diagram;
@@ -32,6 +33,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Owns observation of the tab's distinct zoom and pan state for this mount.</summary>
         private readonly CompositeDisposable viewportSubscriptions = new();
 
+        /// <summary>Owns geometry observation for the current projection.</summary>
+        private readonly CompositeDisposable nodeSubscriptions = new();
+
         /// <summary>Prevents replay while transferring viewport state in either direction.</summary>
         private bool synchronizingViewport;
 
@@ -41,6 +45,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets the native graph owned solely by this adapter.</summary>
         public BlazorDiagram Diagram { get; }
 
+        /// <summary>Gets mode routing and temporary gesture state owned by this mount.</summary>
+        public DiagramPointerBehavior Pointer { get; }
+
         /// <summary>Mounts a validated projection without enabling model-editing behaviors.</summary>
         /// <param name="owner">The caller-owned ViewModel, which outlives ordinary renderer unmounts.</param>
         public DiagramRenderer(IDiagramViewModel owner)
@@ -48,7 +55,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             ArgumentNullException.ThrowIfNull(owner);
             this.owner = owner;
             this.Diagram = new BlazorDiagram(new BlazorDiagramOptions(), registerDefaultBehaviors: false);
-            this.Diagram.RegisterBehavior(new PanBehavior(this.Diagram));
+            this.Pointer = new DiagramPointerBehavior(this.Diagram, owner);
+            this.Diagram.RegisterBehavior(this.Pointer);
+            this.Diagram.RegisterBehavior(new DragMovablesBehavior(this.Diagram));
             this.Diagram.RegisterBehavior(new ZoomBehavior(this.Diagram));
             this.Diagram.RegisterBehavior(new EventsBehavior(this.Diagram));
             this.Diagram.Options.AllowMultiSelection = false;
@@ -81,13 +90,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
             this.disposed = true;
             this.viewportSubscriptions.Dispose();
+            this.nodeSubscriptions.Dispose();
             this.owner.PropertyChanged -= this.OwnerChanged;
             this.Diagram.ContainerChanged -= this.InitializeViewport;
             this.Diagram.PanChanged -= this.ReportViewport;
             this.Diagram.ZoomChanged -= this.ReportViewport;
             this.Diagram.Links.Clear();
             this.Diagram.Nodes.Clear();
-            this.Diagram.UnregisterBehavior<PanBehavior>();
+            this.Diagram.UnregisterBehavior<DiagramPointerBehavior>();
+            this.Diagram.UnregisterBehavior<DragMovablesBehavior>();
             this.Diagram.UnregisterBehavior<ZoomBehavior>();
             this.Diagram.UnregisterBehavior<EventsBehavior>();
         }
@@ -102,11 +113,39 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 var model = new DiagramNodeModel(node, this.owner);
                 nodes.Add(node.Occurrence.Id, model);
                 this.Diagram.Nodes.Add(model);
+                model.Moving += this.ReportPosition;
+                this.nodeSubscriptions.Add(Disposable.Create(() => model.Moving -= this.ReportPosition));
+                this.nodeSubscriptions.Add(model.ViewModel.WhenAnyValue(value => value.Position).Subscribe(position => ApplyPosition(model, position)));
             }
 
             foreach (var edge in this.owner.Projection.Edges)
             {
                 this.Diagram.Links.Add(new DiagramLinkModel(edge, nodes[edge.Source], nodes[edge.Target], this.owner));
+            }
+        }
+
+        /// <summary>Reports native movement to the tab owner or restores prohibited geometry.</summary>
+        /// <param name="moving">The native occurrence whose geometry changed.</param>
+        private void ReportPosition(NodeModel moving)
+        {
+            var node = (DiagramNodeModel)moving;
+
+            if (this.owner.MoveNode(node.Presentation.Occurrence.Id, node.Position.X, node.Position.Y))
+            {
+                return;
+            }
+
+            ApplyPosition(node, node.ViewModel.Position);
+        }
+
+        /// <summary>Applies retained geometry without replaying equal native movement notifications.</summary>
+        /// <param name="node">The mounted graphical occurrence.</param>
+        /// <param name="position">The tab-owned model-space position.</param>
+        private static void ApplyPosition(DiagramNodeModel node, DiagramPoint position)
+        {
+            if (!(node.Position.X, node.Position.Y).Equals((position.X, position.Y)))
+            {
+                node.SetPosition(position.X, position.Y);
             }
         }
 
@@ -126,6 +165,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         {
             if (args.PropertyName == nameof(IDiagramViewModel.Projection))
             {
+                this.Pointer.Cancel();
+                this.nodeSubscriptions.Clear();
                 this.Diagram.Batch(() =>
                 {
                     this.Diagram.Links.Clear();
@@ -133,6 +174,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                     this.CreateModels();
                 });
                 this.InitializeViewport();
+            }
+            else if (args.PropertyName is nameof(IDiagramViewModel.ActiveTool) or nameof(IDiagramViewModel.CanMoveNodes))
+            {
+                this.Pointer.Cancel();
             }
         }
 

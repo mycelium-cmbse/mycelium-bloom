@@ -545,7 +545,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 renderer.Diagram.SetZoom(2);
                 Assert.That(element.OwnedRelationship, Is.EqualTo(relationships));
                 Assert.That(DiagramNotation.Declaration(element), Is.EqualTo(declaration));
-                Assert.That(renderer.Diagram.GetBehavior<Blazor.Diagrams.Core.Behaviors.DragMovablesBehavior>(), Is.Null);
+                Assert.That(renderer.Diagram.GetBehavior<Blazor.Diagrams.Core.Behaviors.DragMovablesBehavior>(), Is.Not.Null);
                 Assert.That(renderer.Diagram.GetBehavior<Blazor.Diagrams.Core.Behaviors.KeyboardShortcutsBehavior>(), Is.Null);
             }
         }

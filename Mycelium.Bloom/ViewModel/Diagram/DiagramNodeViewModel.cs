@@ -21,8 +21,18 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>The current immutable notation snapshot.</summary>
         private DiagramNodePresentation presentation;
 
+        /// <summary>The occurrence-local position retained across renderer mounts.</summary>
+        private DiagramPoint position;
+
         /// <summary>The boundary presentations scoped to this occurrence.</summary>
         private ImmutableArray<DiagramBoundaryViewModel> boundaryFeatures = [];
+
+        /// <summary>Gets the current graphical position independently of canonical model data.</summary>
+        public DiagramPoint Position
+        {
+            get => this.position;
+            private set => this.RaiseAndSetIfChanged(ref this.position, value);
+        }
 
         /// <summary>Gets the current notation, including geometry, without changing canonical objects.</summary>
         public DiagramNodePresentation Presentation
@@ -45,7 +55,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             : base(presentation.Occurrence.Element, owner)
         {
             this.Update(presentation);
+            this.Position = new DiagramPoint(presentation.Occurrence.X, presentation.Occurrence.Y);
         }
+
+        /// <summary>Applies graphical coordinates validated by the tab owner.</summary>
+        /// <param name="value">The accepted finite model-space position.</param>
+        internal void SetPosition(DiagramPoint value) => this.Position = value;
 
         /// <summary>Gets nested state retained by this exact parent occurrence.</summary>
         /// <param name="projection">The child view's immutable notation.</param>
@@ -79,6 +94,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             if (!this.boundaryFeatures.SequenceEqual(updated))
             {
                 this.BoundaryFeatures = updated;
+            }
+
+            if (this.Presentation is { } previous && !(previous.Occurrence.X, previous.Occurrence.Y).Equals((value.Occurrence.X, value.Occurrence.Y)))
+            {
+                this.Position = new DiagramPoint(value.Occurrence.X, value.Occurrence.Y);
             }
 
             this.Presentation = value;

@@ -76,3 +76,135 @@ export function ensureDiagramStyles() {
 export async function ensureDiagramAssets() {
     await Promise.all([ensureDiagramScript(), ensureDiagramStyles()]);
 }
+
+/**
+ * Adds browser-owned capture, Space navigation and cancellation to one native canvas.
+ * Geometry and zoom remain owned by the native diagram behaviors and tab presentation.
+ * @param {HTMLElement} canvas The mounted native canvas element.
+ * @param {object} reference The mount-owned .NET interaction callback reference.
+ * @returns {{dispose: function(): void}} The listener and pointer-capture lifetime.
+ */
+export function attachDiagramInteraction(canvas, reference) {
+    let disposed = false;
+    let space = false;
+    let pointer = null;
+    let captureTarget = null;
+    let start = null;
+    let suppressClick = false;
+    const listeners = new canvas.ownerDocument.defaultView.AbortController();
+    const options = { capture: true, signal: listeners.signal };
+    const owns = event => event.target.closest?.('.diagram-canvas') === canvas;
+    const invoke = async (method, ...args) => {
+        if (!disposed) {
+            try {
+                await reference.invokeMethodAsync(method, ...args);
+            } catch (error) {
+                if (!disposed) {
+                    throw error;
+                }
+            }
+        }
+    };
+    const release = () => {
+        const captured = pointer;
+        const target = captureTarget;
+        pointer = null;
+        captureTarget = null;
+        start = null;
+        delete canvas.dataset.dragging;
+        if (captured !== null && target?.hasPointerCapture(captured)) {
+            target.releasePointerCapture(captured);
+        }
+    };
+    const cancel = async () => {
+        space = false;
+        suppressClick = true;
+        delete canvas.dataset.temporaryPan;
+        release();
+        await invoke('CancelInteraction');
+    };
+    canvas.addEventListener('keydown', async event => {
+        if (!owns(event) || event.target.closest('input, textarea, select, [contenteditable=true]')) {
+            return;
+        }
+        if (event.code === 'Space') {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (!space) {
+                space = true;
+                canvas.dataset.temporaryPan = '';
+                await invoke('SetTemporaryPan', true);
+            }
+        } else if (event.key === 'Escape') {
+            await cancel();
+        }
+    }, options);
+    document.addEventListener('keyup', async event => {
+        if (event.code === 'Space' && space) {
+            space = false;
+            delete canvas.dataset.temporaryPan;
+            await invoke('SetTemporaryPan', false);
+        }
+    }, options);
+    canvas.addEventListener('pointerdown', event => {
+        if (!owns(event)) {
+            return;
+        }
+        if (pointer !== null || !event.isPrimary || ![0, 1].includes(event.button)) {
+            event.stopImmediatePropagation();
+            return;
+        }
+        canvas.focus({ preventScroll: true });
+        suppressClick = space || event.button === 1 || canvas.closest('.general-diagram')?.dataset.tool === 'pan';
+        pointer = event.pointerId;
+        captureTarget = event.target;
+        start = { x: event.clientX, y: event.clientY };
+        captureTarget.setPointerCapture(pointer);
+        canvas.dataset.dragging = '';
+        if (event.button === 1) {
+            event.preventDefault();
+        }
+    }, options);
+    canvas.addEventListener('pointermove', event => {
+        if (event.pointerId === pointer && start && (event.clientX !== start.x || event.clientY !== start.y)) {
+            suppressClick = true;
+        }
+    }, options);
+    canvas.addEventListener('pointerup', event => {
+        if (event.pointerId === pointer) {
+            release();
+        }
+    }, options);
+    canvas.addEventListener('click', event => {
+        if (owns(event) && suppressClick) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            suppressClick = false;
+        }
+    }, options);
+    canvas.addEventListener('pointercancel', async event => {
+        if (event.pointerId === pointer) {
+            await cancel();
+        }
+    }, options);
+    canvas.addEventListener('lostpointercapture', async event => {
+        if (event.pointerId === pointer) {
+            await cancel();
+        }
+    }, options);
+    canvas.addEventListener('focusout', async event => {
+        if ((space || pointer !== null) && !canvas.contains(event.relatedTarget)) {
+            await cancel();
+        }
+    }, options);
+    window.addEventListener('blur', cancel, { signal: listeners.signal });
+    return {
+        dispose() {
+            disposed = true;
+            listeners.abort();
+            space = false;
+            delete canvas.dataset.temporaryPan;
+            release();
+        }
+    };
+}

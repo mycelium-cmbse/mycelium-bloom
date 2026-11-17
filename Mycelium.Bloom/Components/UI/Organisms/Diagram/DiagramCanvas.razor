@@ -11,10 +11,11 @@
 
 <section style="--diagram-boundary-label-maximum-width:@(DiagramLayoutMetrics.BoundaryLabelMaximumWidth)px" @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
          @onpointermove:stopPropagation="this.IsNested" @onpointerup:stopPropagation="this.IsNested" @onwheel:stopPropagation="this.IsNested"
-         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "Diagram")">
+         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" data-tool="@this.ViewModel.ActiveTool.ToString().ToLowerInvariant()" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "Diagram")">
     @if (!this.IsNested)
     {
         <div class="diagram-navigation">
+            <DiagramToolbox ViewModel="this.ViewModel" />
             <ZoomControls MinimumZoom="@(DiagramViewport.MinimumZoom * 100)" MaximumZoom="@(DiagramViewport.MaximumZoom * 100)" Zoom="@(this.ViewModel.Viewport.Zoom * 100)" ZoomChanged="this.ChangeZoom" OnResetZoom="this.ResetZoom" OnFitToView="this.FitToView" Compact="true" />
         </div>
     }
@@ -27,7 +28,7 @@
             @if (this.renderer is not null)
             {
                 <CascadingValue Value="this.renderer.Diagram" IsFixed="true" @key="this.renderer">
-                    <DiagramCanvasHost />
+                    <DiagramCanvasHost Interaction="this.renderer.Pointer" />
                 </CascadingValue>
             }
         </div>

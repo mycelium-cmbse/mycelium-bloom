@@ -1,0 +1,48 @@
+.diagram-toolbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    padding: var(--spacing-8);
+    border-radius: var(--radius-8);
+    color: var(--muted-foreground);
+}
+
+.diagram-toolbox-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: var(--spacing-28);
+    height: var(--spacing-28);
+    padding: var(--spacing-6);
+    border: 0;
+    border-radius: var(--radius-6);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.diagram-toolbox-tool[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+.diagram-toolbox-tool:hover:enabled {
+    background: var(--accent-strong);
+}
+
+.diagram-toolbox-tool:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+.diagram-toolbox-tool:disabled {
+    color: var(--placeholder);
+    cursor: default;
+}
+
+.diagram-toolbox-divider {
+    width: 1px;
+    height: var(--spacing-20);
+    background: var(--border);
+}
