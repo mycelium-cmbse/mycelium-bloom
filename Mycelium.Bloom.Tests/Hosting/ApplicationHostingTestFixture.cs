@@ -94,6 +94,7 @@ namespace Mycelium.Bloom.Tests.Hosting
                 Assert.That(stylesheets[3], Does.Match(@"^css/tokens(?:\.[\w-]+)?\.css$"));
                 Assert.That(stylesheets[4], Does.Match(@"^css/app(?:\.[\w-]+)?\.css$"));
                 Assert.That(stylesheets[5], Does.Match(@"^Mycelium\.Bloom(?:\.[\w-]+)?\.styles\.css$"));
+                Assert.That(stylesheets, Does.Not.Contain("_content/Z.Blazor.Diagrams/style.min.css"));
             }
         }
 

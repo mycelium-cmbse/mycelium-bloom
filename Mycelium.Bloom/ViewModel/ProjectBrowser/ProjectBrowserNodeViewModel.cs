@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using Mycelium.Bloom.Model;
+
     using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Root.Elements;
@@ -78,7 +80,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         /// <summary>
         /// Gets the semantic kind, supported stereotype and icon for the row.
         /// </summary>
-        public ProjectBrowserElementPresentation Presentation { get; }
+        public ElementTypePresentation Presentation { get; }
 
         /// <summary>
         /// Gets a UI-provided fallback label, when this node represents an unnamed model root.
@@ -140,7 +142,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
             this.ElementId = metadata.ElementId;
             this.QualifiedName = metadata.QualifiedName;
             this.ElementType = metadata.SourceElement.GetType();
-            this.Presentation = ProjectBrowserElementPresentation.For(this.ElementType, metadata.IsModelRoot);
+            this.Presentation = ElementTypePresentation.For(this.ElementType, metadata.IsModelRoot);
             this.Children = children;
             this.SourceElement = metadata.SourceElement;
             this.OccurrenceMembership = membership ?? this.SourceElement.owningMembership;

@@ -1,0 +1,39 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramShellNode.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<DiagramNodeShell Kind="this.Presentation.Kind">
+    <Name><DiagramNameCompartment Presentation="this.Presentation.Name" /></Name>
+    <NestedView>
+        @if (this.Presentation.NestedView is { } nested)
+        {
+            <DiagramCanvas ViewModel="this.ViewModel.GetNestedView(nested)" IsNested="true" />
+        }
+    </NestedView>
+    <Compartments>
+        @foreach (var compartment in this.Presentation.Compartments)
+        {
+            @if (compartment.GraphicalView is { } graphical)
+            {
+                <DiagramCompartment Presentation="compartment">
+                    <GraphicalView><DiagramCanvas ViewModel="this.ViewModel.GetNestedView(graphical)" IsNested="true" /></GraphicalView>
+                </DiagramCompartment>
+            }
+            else
+            {
+                <DiagramCompartment Presentation="compartment" />
+            }
+        }
+    </Compartments>
+    <LeftBoundary>@this.BoundaryFeatures(BoundarySide.Left)</LeftBoundary>
+    <RightBoundary>@this.BoundaryFeatures(BoundarySide.Right)</RightBoundary>
+    <TopBoundary>@this.BoundaryFeatures(BoundarySide.Top)</TopBoundary>
+    <BottomBoundary>@this.BoundaryFeatures(BoundarySide.Bottom)</BottomBoundary>
+</DiagramNodeShell>

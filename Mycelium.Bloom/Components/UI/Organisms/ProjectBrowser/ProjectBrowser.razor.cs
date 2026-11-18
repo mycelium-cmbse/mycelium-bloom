@@ -20,6 +20,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
@@ -339,7 +340,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             ArgumentNullException.ThrowIfNull(elementType);
 
-            var presentation = ProjectBrowserElementPresentation.For(elementType);
+            var presentation = ElementTypePresentation.For(elementType);
             return presentation.Stereotype ?? presentation.Kind;
         }
 

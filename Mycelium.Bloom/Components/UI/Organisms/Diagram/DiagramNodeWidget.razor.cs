@@ -1,0 +1,68 @@
+// ------------------------------------------------------------------------------------------------
+// <copyright file="DiagramNodeWidget.razor.cs" company="Starion Group S.A.">
+//
+//   Copyright 2026 Starion Group S.A.
+//   SPDX-License-Identifier: Apache-2.0
+//
+// </copyright>
+// ------------------------------------------------------------------------------------------------
+
+namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
+{
+    using Microsoft.AspNetCore.Components;
+
+    using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram;
+
+    /// <summary>Adapts a native occurrence to the shared node components and captures selection.</summary>
+    public partial class DiagramNodeWidget : BloomReactiveComponentBase<DiagramNodeViewModel>
+    {
+        /// <summary>The immutable presentation used by the cached component parameters.</summary>
+        private DiagramNodePresentation renderedPresentation;
+
+        /// <summary>The native DynamicComponent parameters for the current presentation.</summary>
+        private IDictionary<string, object> componentParameters;
+
+        /// <summary>Gets or sets the registered presentation-to-component map.</summary>
+        [Inject]
+        private DiagramNodeComponentRegistry Components { get; set; }
+
+        /// <summary>Gets or sets the native occurrence adapter.</summary>
+        [Parameter, EditorRequired]
+        public DiagramNodeModel Node { get; set; }
+
+        /// <summary>Gets invariant occurrence dimensions without changing canonical geometry.</summary>
+        private string Size => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"width:{this.Node.Size.Width}px;height:{this.Node.Size.Height}px");
+
+        /// <summary>Supplies occurrence state before the reactive base attaches its initial observation.</summary>
+        protected override void OnInitialized()
+        {
+            this.ViewModel = this.Node.ViewModel;
+            base.OnInitialized();
+        }
+
+        /// <summary>Borrows occurrence state from the native adapter without subscribing to native refresh events.</summary>
+        protected override void OnParametersSet()
+        {
+            this.ViewModel = this.Node.ViewModel;
+            base.OnParametersSet();
+        }
+
+        /// <summary>Reuses framework parameters until the immutable presentation changes.</summary>
+        /// <returns>The parameters for the typed notation component.</returns>
+        private IDictionary<string, object> GetComponentParameters()
+        {
+            if (!ReferenceEquals(this.renderedPresentation, this.ViewModel.Presentation))
+            {
+                this.renderedPresentation = this.ViewModel.Presentation;
+                this.componentParameters = new Dictionary<string, object> { ["Presentation"] = this.renderedPresentation };
+            }
+
+            return this.componentParameters;
+        }
+
+        /// <summary>Delegates occurrence selection to its presentation owner.</summary>
+        private void Select() => this.ViewModel.Select();
+    }
+}

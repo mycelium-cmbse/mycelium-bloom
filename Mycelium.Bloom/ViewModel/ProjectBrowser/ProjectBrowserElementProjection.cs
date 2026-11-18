@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.ViewModel.ProjectBrowser
 {
+    using Mycelium.Bloom.Model;
+
     using SysML2.NET.Core.POCO.Core.Classifiers;
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Core.Types;
@@ -145,7 +147,7 @@ namespace Mycelium.Bloom.ViewModel.ProjectBrowser
         public static string GetDisplayName(IElement element, bool isModelRoot, out string uiDisplayLabel)
         {
             ArgumentNullException.ThrowIfNull(element);
-            var presentation = ProjectBrowserElementPresentation.For(element.GetType(), isModelRoot);
+            var presentation = ElementTypePresentation.For(element.GetType(), isModelRoot);
             var name = ElementPresentation.GetDisplayName(element, presentation, out var isFallbackLabel);
             uiDisplayLabel = isModelRoot && isFallbackLabel ? name : null;
             return name;

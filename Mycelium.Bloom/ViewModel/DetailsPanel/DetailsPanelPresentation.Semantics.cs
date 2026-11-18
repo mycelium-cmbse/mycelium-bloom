@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.ViewModel.DetailsPanel
 {
     using Mycelium.Bloom.Extensions;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Core.Features;
@@ -47,7 +48,7 @@ namespace Mycelium.Bloom.ViewModel.DetailsPanel
         public IReadOnlyList<PropertySectionPresentation> ContentSections { get; }
 
         /// <summary>Gets the established semantic kind, shared with Browser classification.</summary>
-        public string Kind => ProjectBrowserElementPresentation.For(this.Element.GetType()).Stereotype;
+        public string Kind => ElementTypePresentation.For(this.Element.GetType()).Stereotype;
 
         /// <summary>Gets compact type and value information for the selection summary.</summary>
         public string Summary { get; private set; }

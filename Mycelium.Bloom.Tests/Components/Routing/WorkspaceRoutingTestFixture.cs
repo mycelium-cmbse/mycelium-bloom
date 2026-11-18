@@ -35,6 +35,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
+    using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -85,6 +86,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
 
             this.Services.AddSingleton<IContextAwareService>(this.context);
             this.Services.AddSingleton<IElementSelectionService>(this.context);
+            this.Services.AddSingleton(new DiagramEditorRegistry([]));
             this.Services.AddScoped<System.Func<IDetailsPanelViewModel>>(provider =>
                 () => ActivatorUtilities.CreateInstance<DetailsPanelViewModel>(provider));
             this.Services.AddSingleton(this.elementIdResolver.Object);

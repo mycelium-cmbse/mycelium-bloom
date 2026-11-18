@@ -10,9 +10,9 @@
 namespace Mycelium.Bloom.ViewModel
 {
     using System.Globalization;
-    using System.Text.RegularExpressions;
 
     using Mycelium.Bloom.Extensions;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Core.Types;
@@ -35,7 +35,7 @@ namespace Mycelium.Bloom.ViewModel
         public static string GetDisplayName(IElement element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            return GetDisplayName(element, ProjectBrowserElementPresentation.For(element.GetType()), out _);
+            return GetDisplayName(element, ElementTypePresentation.For(element.GetType()), out _);
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace Mycelium.Bloom.ViewModel
         /// <param name="presentation">The semantic presentation for the element.</param>
         /// <param name="isFallbackLabel">Whether the result is a UI-provided fallback rather than an SDK name.</param>
         /// <returns>An SDK name, semantic role, or explicit incomplete-name state.</returns>
-        public static string GetDisplayName(IElement element, ProjectBrowserElementPresentation presentation, out bool isFallbackLabel)
+        public static string GetDisplayName(IElement element, ElementTypePresentation presentation, out bool isFallbackLabel)
         {
             ArgumentNullException.ThrowIfNull(element);
             ArgumentNullException.ThrowIfNull(presentation);
@@ -91,17 +91,7 @@ namespace Mycelium.Bloom.ViewModel
         /// </summary>
         /// <param name="type">The SDK type being presented.</param>
         /// <returns>A readable metaclass label or the neutral element role.</returns>
-        public static string GetKindName(System.Type type)
-        {
-            if (type.Assembly != typeof(IElement).Assembly)
-            {
-                return "Element";
-            }
-
-            var name = type.IsInterface ? type.Name[1..] : type.Name;
-            var words = Regex.Replace(name, "(?<=[a-z])(?=[A-Z])", " ", RegexOptions.None, TimeSpan.FromMilliseconds(100));
-            return words.Length == 0 ? "Element" : words[..1] + words[1..].ToLowerInvariant();
-        }
+        public static string GetKindName(System.Type type) => ElementTypePresentation.GetKindName(type);
 
         /// <summary>
         /// Formats literal, unbounded and safely serializable expression multiplicity bounds without evaluation.

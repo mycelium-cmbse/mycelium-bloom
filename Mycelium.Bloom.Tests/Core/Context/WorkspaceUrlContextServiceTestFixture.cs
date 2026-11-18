@@ -47,6 +47,7 @@ namespace Mycelium.Bloom.Tests.Core.Context
         private static readonly string[] ContradictoryTrailIds = ["B", "A", "D"];
         private static readonly string[] SelectedRootIds = ["A"];
         private static readonly string[] PendingCanonicalizationElementIds = ["A", "B", "C"];
+        private static readonly string[] InMemoryInspectionIds = ["overlap", "reference"];
 
         /// <summary>
         /// Disposes the bUnit context after each test.
@@ -55,6 +56,250 @@ namespace Mycelium.Bloom.Tests.Core.Context
         public Task TearDown()
         {
             return this.DisposeAsync().AsTask();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task VerifyCompetingCanceledAndRepeatedNavigationRequiresCurrentOwnership(bool availableInDefaultModel)
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var first = new Namespace { ElementId = "in-memory-first" };
+            var second = new Namespace { ElementId = "in-memory-second" };
+            var loadedFirst = availableInDefaultModel ? new Namespace { ElementId = first.ElementId } : null;
+            var loadedSecond = availableInDefaultModel ? new Namespace { ElementId = second.ElementId } : null;
+            var resolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            resolver.Setup(value => value.ResolveAsync(first.ElementId, It.IsAny<CancellationToken>())).ReturnsAsync(loadedFirst);
+            resolver.Setup(value => value.ResolveAsync(second.ElementId, It.IsAny<CancellationToken>())).ReturnsAsync(loadedSecond);
+            var selection = new ContextAwareService();
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            using var restorations = service.Restorations.Subscribe(restoration => selection.SelectedElement = restoration.SelectedElement);
+            var requests = new List<(string Uri, string State)>();
+            using var subscription = service.NavigationRequests.Subscribe(uri =>
+            {
+                var state = service.PrepareNavigationRequest(uri);
+                requests.Add((uri, state));
+                navigation.NavigateTo(uri, new NavigationOptions { HistoryEntryState = state });
+            });
+
+            using (navigation.RegisterLocationChangingHandler(context =>
+            {
+                if (context.TargetLocation.Contains(first.ElementId, StringComparison.Ordinal))
+                {
+                    context.PreventNavigation();
+                }
+
+                return ValueTask.CompletedTask;
+            }))
+            {
+                selection.SelectedElement = first;
+                Assert.That(navigation.Uri, Does.Not.Contain(first.ElementId));
+                selection.SelectedElement = second;
+                var owned = await service.Restorations.FirstAsync().ToTask();
+                Assert.That(owned.SelectedElement, Is.SameAs(second));
+            }
+
+            Assert.That(requests, Has.Count.EqualTo(2));
+            var canceled = requests[0];
+            var consumed = requests[1];
+            navigation.NavigateTo(canceled.Uri, new NavigationOptions { HistoryEntryState = canceled.State });
+            var externalFirst = await service.Restorations.FirstAsync().ToTask();
+            Assert.That(externalFirst.SelectedElement, availableInDefaultModel ? Is.SameAs(loadedFirst) : Is.Null);
+            navigation.NavigateTo(consumed.Uri, new NavigationOptions { HistoryEntryState = consumed.State });
+            var externalSecond = await service.Restorations.FirstAsync().ToTask();
+            Assert.That(externalSecond.SelectedElement, availableInDefaultModel ? Is.SameAs(loadedSecond) : Is.Null);
+            navigation.NavigateTo(canceled.Uri);
+            var repeated = await service.Restorations.FirstAsync().ToTask();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(repeated.SelectedElement, availableInDefaultModel ? Is.SameAs(loadedFirst) : Is.Null);
+                resolver.Verify(value => value.ResolveAsync(first.ElementId, It.IsAny<CancellationToken>()), Times.Exactly(2));
+                resolver.Verify(value => value.ResolveAsync(second.ElementId, It.IsAny<CancellationToken>()), Times.Once);
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task VerifyInspectionNavigationPreservesCanonicalSelectionUntilExternalRestoration(bool availableInDefaultModel)
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var selected = new Namespace { ElementId = "overlap" };
+            var loaded = availableInDefaultModel ? new Namespace { ElementId = "overlap" } : null;
+            var reference = new Namespace { ElementId = "reference" };
+            var selection = new ContextAwareService();
+            var resolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            resolver.Setup(value => value.ResolveAsync("overlap", It.IsAny<CancellationToken>())).ReturnsAsync(loaded);
+            resolver.Setup(value => value.ResolveAsync("reference", It.IsAny<CancellationToken>())).ReturnsAsync(reference);
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            using var restorations = service.Restorations.Subscribe(restoration =>
+            {
+                selection.SelectedElement = restoration.SelectedElement;
+                selection.InspectedElement = restoration.InspectedElement;
+            });
+            using var requests = service.NavigationRequests.Subscribe(uri => navigation.NavigateTo(uri,
+                new NavigationOptions { ReplaceHistoryEntry = true, HistoryEntryState = service.PrepareNavigationRequest(uri) }));
+            selection.SelectedElement = selected;
+            service.Inspect(reference);
+            var inspected = await service.Restorations.FirstAsync().ToTask();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(selected));
+                Assert.That(inspected.SelectedElement, Is.SameAs(selected));
+                Assert.That(inspected.InspectedElement, Is.SameAs(reference));
+                Assert.That(inspected.InspectionTrail.Select(step => step.ElementId), Is.EqualTo(InMemoryInspectionIds));
+            }
+
+            service.ClearInspection();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(selected));
+                Assert.That(selection.InspectedElement, Is.Null);
+            }
+
+            navigation.NavigateTo("/workspace/modeling?mode=external&selectedElement=overlap");
+            var external = await service.Restorations.FirstAsync().ToTask();
+            Assert.That(external.SelectedElement, availableInDefaultModel ? Is.SameAs(loaded) : Is.Null);
+            resolver.Verify(value => value.ResolveAsync("overlap", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyReviewExternalNavigationMatchingQueuedUriUsesCanonicalResolver()
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var selected = new Namespace { ElementId = "overlap" };
+            var resolved = new Namespace { ElementId = "overlap" };
+            var selection = new ContextAwareService();
+            var resolver = CreateResolver("overlap", resolved);
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            string queuedUri = null;
+            using var requests = service.NavigationRequests.Subscribe(uri => queuedUri = uri);
+            selection.SelectedElement = selected;
+            navigation.NavigateTo(queuedUri);
+            var restoration = await service.Restorations.FirstAsync().ToTask();
+            Assert.That(restoration.SelectedElement, Is.SameAs(resolved));
+            resolver.Verify(value => value.ResolveAsync("overlap", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyCancelledSelectionNavigationCannotAuthorizeLaterExternalNavigation()
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var selected = new Namespace { ElementId = "overlap" };
+            var resolved = new Namespace { ElementId = "overlap" };
+            var selection = new ContextAwareService();
+            var resolver = CreateResolver("overlap", resolved);
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            string queuedUri = null;
+            using var requests = service.NavigationRequests.Subscribe(uri => queuedUri = uri);
+            selection.SelectedElement = selected;
+            service.PrepareNavigationRequest(queuedUri);
+            // A cancelled application navigation never applies its history state to the browser.
+            navigation.NavigateTo(queuedUri);
+            var restoration = await service.Restorations.FirstAsync().ToTask();
+            Assert.That(restoration.SelectedElement, Is.SameAs(resolved));
+            resolver.Verify(value => value.ResolveAsync("overlap", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyConsumedSelectionRoundTripDoesNotBypassResolverAfterModelChange()
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var selected = new Namespace { ElementId = "overlap" };
+            var loaded = new Namespace { ElementId = "overlap" };
+            var selection = new ContextAwareService();
+            var resolver = CreateResolver("overlap", loaded);
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            string requestedUri = null;
+            using var requests = service.NavigationRequests.Subscribe(uri => requestedUri = uri);
+            selection.SelectedElement = selected;
+            navigation.NavigateTo(requestedUri, new NavigationOptions { HistoryEntryState = service.PrepareNavigationRequest(requestedUri) });
+            var roundTrip = await service.Restorations.FirstAsync().ToTask();
+            navigation.NavigateTo("/workspace/modeling?mode=history");
+            selection.SelectedElement = loaded;
+            navigation.NavigateTo(requestedUri);
+            var restored = await service.Restorations.FirstAsync().ToTask();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(roundTrip.SelectedElement, Is.SameAs(selected));
+                Assert.That(restored.SelectedElement, Is.SameAs(loaded));
+            }
+            resolver.Verify(value => value.ResolveAsync("overlap", It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
+        public async Task VerifyDisposalCancelsPendingRestorationWithoutPublishingItsResult()
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var started = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var completion = new TaskCompletionSource<IElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var resolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            resolver.Setup(value => value.ResolveAsync("pending", It.IsAny<CancellationToken>()))
+                .Returns((string _, CancellationToken token) =>
+                {
+                    started.SetResult(token);
+                    return new ValueTask<IElement>(completion.Task);
+                });
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, new ContextAwareService(), NullLogger<WorkspaceUrlContextService>.Instance);
+            var published = new List<IElement>();
+            using var subscription = service.Restorations.Select(value => value.SelectedElement).Subscribe(published.Add);
+            navigation.NavigateTo("/workspace/modeling?selectedElement=pending");
+            var cancellation = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            service.Dispose();
+            completion.SetResult(new Namespace { ElementId = "pending" });
+            await completion.Task;
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(cancellation.IsCancellationRequested, Is.True);
+                Assert.That(published, Is.EqualTo(new IElement[] { null }));
+            }
+        }
+
+        [Test]
+        public async Task VerifySelfGeneratedUrlPreservesSelectedObjectOutsideDefaultModel()
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var selection = new ContextAwareService();
+            var resolver = new Mock<IElementIdResolver>(MockBehavior.Strict);
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            var selected = new Namespace { ElementId = "session-example" };
+            string requestedUri = null;
+            using var requests = service.NavigationRequests.Subscribe(uri => requestedUri = uri);
+            selection.SelectedElement = selected;
+            Assert.That(requestedUri, Is.Not.Null);
+            navigation.NavigateTo(requestedUri, new NavigationOptions { HistoryEntryState = service.PrepareNavigationRequest(requestedUri) });
+            var restoration = await service.Restorations.FirstAsync().ToTask();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(restoration.SelectedElement, Is.SameAs(selected));
+                Assert.That(restoration.ShouldFocusSelectedElement, Is.False);
+            }
+            resolver.Verify(value => value.ResolveAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Test]
+        public async Task VerifyExternalSameIdNavigationStillUsesModelResolver()
+        {
+            var navigation = this.Services.GetRequiredService<NavigationManager>();
+            navigation.NavigateTo("/workspace/modeling");
+            var selected = new Namespace { ElementId = "overlap" };
+            var resolved = new Namespace { ElementId = "overlap" };
+            var selection = new ContextAwareService();
+            var resolver = CreateResolver("overlap", resolved);
+            using var service = new WorkspaceUrlContextService(navigation, resolver.Object, selection, NullLogger<WorkspaceUrlContextService>.Instance);
+            using var requests = service.NavigationRequests.Subscribe(_ => { });
+            selection.SelectedElement = selected;
+            navigation.NavigateTo("/workspace/modeling?mode=external&selectedElement=overlap");
+            var restoration = await service.Restorations.FirstAsync().ToTask();
+            Assert.That(restoration.SelectedElement, Is.SameAs(resolved));
+            resolver.Verify(value => value.ResolveAsync("overlap", It.IsAny<CancellationToken>()), Times.Once);
         }
 
         /// <summary>
@@ -195,11 +440,11 @@ namespace Mycelium.Bloom.Tests.Core.Context
                 .ToTask();
 
             context.SelectedElement = first;
-            navigation.NavigateTo(requests[0]);
+            navigation.NavigateTo(requests[0], new NavigationOptions { HistoryEntryState = service.PrepareNavigationRequest(requests[0]) });
             var restoredApplicationLocation = await applicationLocationRestoration;
             context.SelectedElement = equivalentFirst;
             context.SelectedElement = second;
-            navigation.NavigateTo(requests[1]);
+            navigation.NavigateTo(requests[1], new NavigationOptions { HistoryEntryState = service.PrepareNavigationRequest(requests[1]) });
             context.SelectedElement = null;
 
             var addedUri = navigation.ToAbsoluteUri(requests[0]);

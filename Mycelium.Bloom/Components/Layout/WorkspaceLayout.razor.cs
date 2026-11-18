@@ -300,7 +300,11 @@ namespace Mycelium.Bloom.Components.Layout
                     && sourceUri == this.NavigationManager.Uri && sourceEntryState == this.NavigationManager.HistoryEntryState
                     && !string.Equals(uri, this.NavigationManager.Uri, StringComparison.Ordinal))
                 {
-                    this.NavigationManager.NavigateTo(uri, forceLoad: false, replace: true);
+                    this.NavigationManager.NavigateTo(uri, new NavigationOptions
+                    {
+                        ReplaceHistoryEntry = true,
+                        HistoryEntryState = this.UrlContextService.PrepareNavigationRequest(uri)
+                    });
                 }
             });
         }

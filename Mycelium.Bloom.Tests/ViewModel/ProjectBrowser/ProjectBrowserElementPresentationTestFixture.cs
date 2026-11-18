@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -59,7 +60,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         [TestCase(typeof(OperatorExpression), "Operator expression", "«operator expression»", null)]
         public void VerifyFor(Type type, string kind, string stereotype, string icon)
         {
-            var presentation = ProjectBrowserElementPresentation.For(type);
+            var presentation = ElementTypePresentation.For(type);
 
             using (Assert.EnterMultipleScope())
             {
@@ -74,7 +75,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.ProjectBrowser
         public void VerifyForUnknownImplementation()
         {
             var element = Mock.Of<IElement>();
-            var presentation = ProjectBrowserElementPresentation.For(element.GetType());
+            var presentation = ElementTypePresentation.For(element.GetType());
 
             using (Assert.EnterMultipleScope())
             {

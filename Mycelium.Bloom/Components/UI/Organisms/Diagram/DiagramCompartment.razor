@@ -1,0 +1,29 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramCompartment.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<section @attributes="this.AdditionalAttributes" role="group" class="@this.BuildRootCssClass("diagram-compartment")" aria-label="@this.Presentation.Title">
+    <div class="diagram-compartment-title"><em>@this.Presentation.Title</em></div>
+    @if (this.GraphicalView is not null)
+    {
+        @this.GraphicalView
+    }
+    else
+    {
+        @foreach (var row in this.Presentation.Rows)
+        {
+            <div class="diagram-row">@row</div>
+        }
+        @if (this.Presentation.IsTruncated)
+        {
+            <div aria-label="More members">…</div>
+        }
+    }
+</section>

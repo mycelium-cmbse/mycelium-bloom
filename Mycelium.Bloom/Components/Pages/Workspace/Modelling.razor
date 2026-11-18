@@ -15,6 +15,8 @@
 
 <PageTitle>Mycelium - Bloom</PageTitle>
 
+@using Mycelium.Bloom.Components.UI.Organisms.Diagram
+
 <div class="mb-main-workspace" data-testid="main-workspace">
     <h1 class="sr-only">Modelling</h1>
 
@@ -23,7 +25,7 @@
                      TabClosed="this.HandleTabClosed"
                      AriaLabel="Workspace editors">
         <TabLeadingContent Context="tab">
-            @if (GetEditorTabIconName(tab) is { Length: > 0 } iconName)
+            @if (this.GetEditorTabIconName(tab) is { Length: > 0 } iconName)
             {
                 <span data-testid="workspace-editor-tab-icon"
                       data-tab-id="@(tab.Id)"
@@ -40,7 +42,7 @@
 
         <AddTabControl Context="groupId">
             <ActionMenu Class="mb-editor-workspace__add-tab-menu"
-                        Items="@(CreateAddTabActions())"
+                        Items="@(this.CreateAddTabActions())"
                         TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
                         TriggerTitle="Add tab"
                         TriggerClass="mb-editor-workspace__add-tab"
@@ -60,7 +62,11 @@
         </AddTabControl>
 
         <EditorContent Context="tab">
-            @if (IsProjectBrowserTab(tab))
+            @if (this.diagrams.TryGetValue(tab.Id, out var diagram))
+            {
+                <DynamicComponent @key="tab.Id" Type="diagram.Descriptor.ComponentType" Parameters="diagram.Parameters" />
+            }
+            else if (IsProjectBrowserTab(tab))
             {
                 @if (this.TryGetProjectBrowserViewModel(tab, out var projectBrowserViewModel))
                 {

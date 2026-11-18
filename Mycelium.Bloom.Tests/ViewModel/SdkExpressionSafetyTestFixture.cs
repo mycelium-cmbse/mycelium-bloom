@@ -20,6 +20,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
     using Microsoft.Extensions.Logging.Abstractions;
 
+    using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
@@ -146,7 +147,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
             Assert.That(sdkTypes.Count(type => type.IsInterface), Is.EqualTo(175));
             foreach (var type in sdkTypes.Where(type => type.IsInterface))
             {
-                Assert.That(ProjectBrowserElementPresentation.For(type).Kind, Is.Not.Empty, type.Name);
+                Assert.That(ElementTypePresentation.For(type).Kind, Is.Not.Empty, type.Name);
             }
 
             var concrete = sdkTypes.Where(type => type.IsClass && !type.IsAbstract).ToArray();
@@ -165,7 +166,7 @@ namespace Mycelium.Bloom.Tests.ViewModel
 
                 if (type.Name != "Element")
                 {
-                    Assert.That(ProjectBrowserElementPresentation.For(type).Kind, Is.Not.EqualTo("Element"), type.Name);
+                    Assert.That(ElementTypePresentation.For(type).Kind, Is.Not.EqualTo("Element"), type.Name);
                 }
             }
 
