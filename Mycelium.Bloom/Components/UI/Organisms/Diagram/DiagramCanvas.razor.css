@@ -16,20 +16,15 @@
     overflow: hidden;
 }
 
-.general-diagram[data-tool="pan"] ::deep .diagram-canvas,
-.general-diagram[data-tool="pan"] ::deep .diagram-occurrence,
-.general-diagram[data-tool="pan"] ::deep .mb-diagram-node-select,
-.general-diagram[data-tool="pan"] ::deep .diagram-edge,
-.general-diagram ::deep .diagram-canvas[data-temporary-pan] {
-    cursor: grab;
+.general-diagram[data-tool-cursor] ::deep .diagram-canvas,
+.general-diagram[data-tool-cursor] ::deep .diagram-occurrence,
+.general-diagram[data-tool-cursor] ::deep .mb-diagram-node-select,
+.general-diagram[data-tool-cursor] ::deep .diagram-edge {
+    cursor: var(--diagram-tool-cursor);
 }
 
-.general-diagram ::deep .diagram-canvas[data-dragging] {
-    cursor: grabbing;
-}
-
-.general-diagram[data-tool="pan"] ::deep .general-diagram--nested,
-.general-diagram ::deep .diagram-canvas[data-temporary-pan] .diagram-canvas {
+.general-diagram[data-capture-nested-input] ::deep .general-diagram--nested,
+.general-diagram[data-capture-nested-input] ::deep .general-diagram--nested * {
     pointer-events: none;
 }
 

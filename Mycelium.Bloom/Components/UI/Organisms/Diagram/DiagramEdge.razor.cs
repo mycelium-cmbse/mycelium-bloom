@@ -12,6 +12,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Blazor.Diagrams.Core.Models.Base;
 
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
@@ -26,6 +27,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets or sets the native link adapted from caller-owned presentation.</summary>
         [Parameter, EditorRequired]
         public BaseLinkModel Link { get; set; }
+
+        /// <summary>Gets or sets the owning canvas's shared keyboard and pointer routing.</summary>
+        [CascadingParameter]
+        private DiagramPointerBehavior Pointer { get; set; }
 
         /// <summary>Gets the combined relationship name exposed to assistive technology.</summary>
         private string AccessibleName => this.GetAccessibleName();
@@ -66,15 +71,20 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{marker.ViewBox.X} {marker.ViewBox.Y} {marker.ViewBox.Width} {marker.ViewBox.Height}");
 
         /// <summary>Delegates relationship selection to its presentation owner.</summary>
-        private void Select() => this.ViewModel.Select();
+        /// <param name="args">The browser click, including keyboard-activated buttons.</param>
+        private void Select(MouseEventArgs args) => this.ViewModel.Select(args.Detail > 0);
 
         /// <summary>Captures supported keyboard activation for relationship selection.</summary>
         /// <param name="args">The keyboard event captured by the UI.</param>
-        private void KeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args)
+        private void KeyDown(KeyboardEventArgs args)
         {
-            if (args.Key is "Enter" or " ")
+            if (args.Key == "Enter" && !args.Repeat)
             {
-                this.Select();
+                this.ViewModel.Select();
+            }
+            else
+            {
+                this.Pointer?.PrepareSpaceActivation(args, this.ViewModel);
             }
         }
 

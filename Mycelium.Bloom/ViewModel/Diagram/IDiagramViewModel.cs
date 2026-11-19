@@ -12,7 +12,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using System.ComponentModel;
 
     using Mycelium.Bloom.Model.Diagram;
-    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.Diagram.Tools;
 
     using SysML2.NET.Core.POCO.Root.Elements;
 
@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     public interface IDiagramViewModel : INotifyPropertyChanged, IDisposable
     {
         /// <summary>Gets this diagram's retained pointer mode.</summary>
-        DiagramTool ActiveTool { get; }
+        DiagramToolState Tools { get; }
 
         /// <summary>Gets whether lifecycle and local read-only policy permit graphical movement.</summary>
         bool CanMoveNodes { get; }
@@ -28,9 +28,6 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Gets or sets whether presentation movement is prohibited locally.</summary>
         bool IsReadOnly { get; set; }
 
-        /// <summary>Changes the retained pointer mode without changing selection.</summary>
-        /// <param name="tool">The supported pointer mode.</param>
-        void SetTool(DiagramTool tool);
 
         /// <summary>Updates a permitted occurrence position without changing canonical data.</summary>
         /// <param name="occurrenceId">The view-local occurrence identity.</param>

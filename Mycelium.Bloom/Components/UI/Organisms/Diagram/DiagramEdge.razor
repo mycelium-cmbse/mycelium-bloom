@@ -19,7 +19,8 @@
     var end = result.FullPath.GetPointAtLength(Math.Max(0, result.FullPath.Length - 24));
     var markerId = ((DiagramLinkModel)this.Link).MarkerPrefix;
     <g @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-edge", this.ViewModel.IsSelected ? "diagram-edge--selected" : null)" data-kind="@edge.Kind" data-element-id="@edge.Element.ElementId" role="button" tabindex="0"
-       aria-label="@this.AccessibleName" @onclick="this.Select" @onkeydown="this.KeyDown">
+       aria-label="@this.AccessibleName" @onclick="this.Select" @onkeydown="this.KeyDown"
+       @onblur="() => this.Pointer?.CancelSpaceActivation(this.ViewModel)">
         <defs>
             <marker id="@(markerId + "-start")" viewBox="@MarkerViewBox(edge.SourceMarker)" refX="0" refY="0"
                     markerWidth="@Number(edge.SourceMarker.ViewBox.Width)" markerHeight="@Number(edge.SourceMarker.ViewBox.Height)"

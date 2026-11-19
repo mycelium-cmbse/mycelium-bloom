@@ -211,7 +211,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
             var owner = this.viewModel;
-            owner.SetupGet(value => value.Projection).Returns(new DiagramProjection([], []));
+            using var toolOwner = new DiagramViewModel(new DiagramProjection([], []), new ContextAwareService());
+            owner.SetupGet(value => value.Projection).Returns(toolOwner.Projection);
+            owner.SetupGet(value => value.Tools).Returns(toolOwner.Tools);
             owner.SetupGet(value => value.Viewport).Returns(new DiagramViewport(IsInitialized: true));
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner.Object));
             var controls = component.FindComponent<ZoomControls>();

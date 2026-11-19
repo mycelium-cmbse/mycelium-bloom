@@ -25,6 +25,7 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram.Tools;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -165,6 +166,14 @@ namespace Mycelium.Bloom.Extensions
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramPackagePresentation), typeof(DiagramPackageNode)));
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramCommentPresentation), typeof(DiagramCommentNode)));
                 services.TryAddSingleton<DiagramNodeComponentRegistry>();
+                services.TryAddSingleton<DiagramToolCatalogue>();
+                services.TryAddSingleton(DiagramToolDefaults.Layout);
+
+                foreach (var tool in DiagramToolDefaults.Definitions)
+                {
+                    services.AddSingleton(tool);
+                }
+
                 services.TryAddScoped<Func<DiagramProjection, IDiagramViewModel>>(serviceProvider =>
                     projection => ActivatorUtilities.CreateInstance<DiagramViewModel>(serviceProvider, projection));
 

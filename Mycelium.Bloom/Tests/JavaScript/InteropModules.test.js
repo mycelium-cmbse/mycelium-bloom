@@ -1327,136 +1327,82 @@ test("diagram modules do not load native styles before a canvas requests them", 
     assert.equal(document.querySelectorAll("script").length, 0);
 });
 
-async function createDiagramInteraction() {
-    const { attachDiagramInteraction } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
-    const section = document.createElement("section");
-    section.className = "general-diagram";
-    section.dataset.tool = "move";
-    section.innerHTML = '<div class="diagram-canvas" tabindex="-1"><button>Node</button><input /></div>';
-    document.body.append(section);
-    const canvas = section.querySelector(".diagram-canvas");
-    const captures = new Set();
-    for (const target of [canvas, ...canvas.querySelectorAll('*')]) {
-        target.setPointerCapture = id => captures.add(id);
-        target.hasPointerCapture = id => captures.has(id);
+async function createDiagramCapture(parent = document.body) {
+    const { attachDiagramPointerCapture } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    const canvas = document.createElement("div");
+    canvas.className = "diagram-canvas";
+    canvas.tabIndex = -1;
+    canvas.innerHTML = "<button>Node</button>";
+    parent.append(canvas);
+    const child = canvas.querySelector("button");
+    const captures = new Map();
+    for (const target of [canvas, child]) {
+        target.setPointerCapture = id => captures.set(id, target);
+        target.hasPointerCapture = id => captures.get(id) === target;
         target.releasePointerCapture = id => captures.delete(id);
     }
-    const calls = [];
-    const handle = attachDiagramInteraction(canvas, { invokeMethodAsync: async (...args) => calls.push(args) });
+    const handle = attachDiagramPointerCapture(canvas);
     const pointer = (type, target = canvas, overrides = {}) => {
         const event = new window.Event(type, { bubbles: true, cancelable: true });
-        for (const [key, value] of Object.entries({ pointerId: 1, button: 0, clientX: 10, clientY: 20, isPrimary: true, ...overrides })) {
+        for (const [key, value] of Object.entries({ pointerId: 1, button: 0, isPrimary: true, ...overrides })) {
             Object.defineProperty(event, key, { value });
         }
         target.dispatchEvent(event);
         return event;
     };
-    return { section, canvas, calls, captures, handle, pointer };
+    return { canvas, child, captures, handle, pointer };
 }
 
-test("diagram Space navigation ignores typing, restores on keyup and does not invoke node activation", async () => {
-    const { canvas, calls, handle, pointer } = await createDiagramInteraction();
-    const button = canvas.querySelector("button");
-    const input = canvas.querySelector("input");
-    const space = () => new window.KeyboardEvent("keydown", { code: "Space", bubbles: true, cancelable: true });
-    input.dispatchEvent(space());
-    assert.deepEqual(calls, []);
-    const key = space();
-    button.dispatchEvent(key);
-    button.dispatchEvent(space());
-    assert.equal(key.defaultPrevented, true);
-    assert.equal(canvas.hasAttribute("data-temporary-pan"), true);
-    assert.deepEqual(calls, [["SetTemporaryPan", true]]);
-    pointer("pointerdown", button);
-    pointer("pointermove", canvas, { clientX: 40 });
-    pointer("pointerup");
-    assert.equal(pointer("click", button).defaultPrevented, true);
-    document.dispatchEvent(new window.KeyboardEvent("keyup", { code: "Space", bubbles: true }));
-    assert.equal(canvas.hasAttribute("data-temporary-pan"), false);
-    assert.deepEqual(calls, [["SetTemporaryPan", true], ["SetTemporaryPan", false]]);
+test("diagram captures the native hit target and allows normal activation", async () => {
+    const { child, captures, handle, pointer } = await createDiagramCapture();
+    assert.equal(pointer("pointerdown", child).defaultPrevented, false);
+    assert.equal(captures.get(1), child);
+    child.releasePointerCapture(1);
+    pointer("lostpointercapture", child);
+    assert.equal(pointer("click", child).defaultPrevented, false);
+    assert.equal(captures.size, 0);
     handle.dispose();
 });
 
-test("diagram capture cancels on pointer cancellation and disposal removes all listeners", async () => {
-    const { canvas, calls, captures, handle, pointer } = await createDiagramInteraction();
-    pointer("pointerdown", canvas.querySelector("button"));
-    assert.deepEqual([...captures], [1]);
-    pointer("pointercancel");
+test("diagram capture prevents middle-button autoscroll and ignores unsupported presses", async () => {
+    const { canvas, child, captures, handle, pointer } = await createDiagramCapture();
+    assert.equal(pointer("pointerdown", child, { button: 1 }).defaultPrevented, true);
+    assert.equal(document.activeElement, canvas);
+    assert.equal(handle.hasFocus(), true);
+    assert.equal(captures.get(1), child);
+    handle.release();
+    handle.release();
+    assert.equal(pointer("pointerdown", child, { button: 2 }).defaultPrevented, false);
+    pointer("pointerdown", child, { isPrimary: false });
     assert.equal(captures.size, 0);
-    assert.deepEqual(calls, [["CancelInteraction"]]);
-    pointer("pointerdown");
     handle.dispose();
-    handle.dispose();
-    assert.equal(captures.size, 0);
-    assert.equal(canvas.hasAttribute("data-dragging"), false);
-    pointer("pointercancel");
+});
+
+test("diagram capture follows browser focus and releases native resources on blur and disposal", async () => {
+    const { canvas, child, captures, handle, pointer } = await createDiagramCapture();
+    canvas.focus();
+    child.focus();
+    assert.equal(handle.hasFocus(), true);
+    pointer("pointerdown", child);
+    assert.equal(captures.get(1), child);
     window.dispatchEvent(new window.Event("blur"));
-    canvas.dispatchEvent(new window.KeyboardEvent("keydown", { code: "Space", bubbles: true }));
-    assert.deepEqual(calls, [["CancelInteraction"]]);
-});
-
-test("diagram Hand and middle navigation suppress clicks and lost capture resets navigation", async () => {
-    const { section, canvas, calls, captures, handle, pointer } = await createDiagramInteraction();
-    section.dataset.tool = "pan";
-    pointer("pointerdown");
-    pointer("pointerup");
-    assert.equal(pointer("click").defaultPrevented, true);
-    section.dataset.tool = "move";
-    assert.equal(pointer("pointerdown", canvas, { button: 1 }).defaultPrevented, true);
-    pointer("lostpointercapture");
+    assert.equal(handle.hasFocus(), false);
     assert.equal(captures.size, 0);
-    assert.deepEqual(calls, [["CancelInteraction"]]);
-    pointer("pointerdown", canvas, { isPrimary: false });
-    assert.equal(captures.size, 0);
-    pointer("pointerdown", canvas, { button: 2 });
-    assert.equal(captures.size, 0);
-    canvas.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    assert.deepEqual(calls, [["CancelInteraction"], ["CancelInteraction"]]);
+    pointer("pointerdown", child);
     handle.dispose();
-});
-
-test("independent diagram keyboard and focus lifetimes do not change another mount", async () => {
-    const first = await createDiagramInteraction();
-    const second = await createDiagramInteraction();
-    first.canvas.dispatchEvent(new window.KeyboardEvent("keydown", { code: "Space", bubbles: true }));
-    assert.equal(first.canvas.hasAttribute("data-temporary-pan"), true);
-    assert.equal(second.canvas.hasAttribute("data-temporary-pan"), false);
-    first.canvas.dispatchEvent(new window.FocusEvent("focusout", { relatedTarget: document.body }));
-    assert.equal(first.canvas.hasAttribute("data-temporary-pan"), false);
-    assert.deepEqual(first.calls, [["SetTemporaryPan", true], ["CancelInteraction"]]);
-    assert.deepEqual(second.calls, []);
-    first.handle.dispose();
-    second.handle.dispose();
-});
-
-test("focusing a diagram child during pointer-down does not cancel native dragging", async () => {
-    const { canvas, captures, calls, handle, pointer } = await createDiagramInteraction();
-    pointer("pointerdown");
-    const child = canvas.querySelector("button");
-    canvas.dispatchEvent(new window.FocusEvent("blur", { relatedTarget: child }));
-    canvas.dispatchEvent(new window.FocusEvent("focusout", { relatedTarget: child }));
-    assert.deepEqual(calls, []);
-    assert.deepEqual([...captures], [1]);
-    pointer("pointerup");
-    assert.equal(captures.size, 0);
-    window.dispatchEvent(new window.Event("blur"));
-    assert.deepEqual(calls, [["CancelInteraction"]]);
     handle.dispose();
+    pointer("pointerdown", child);
+    assert.equal(captures.size, 0);
 });
 
-test("diagram capture preserves the original boundary or relationship click target", async () => {
-    const { canvas, captures, handle, pointer } = await createDiagramInteraction();
-    const button = canvas.querySelector('button');
-    let capturedTarget = null;
-    button.setPointerCapture = id => {
-        captures.add(id);
-        capturedTarget = button;
-    };
-    canvas.setPointerCapture = () => assert.fail('Capturing the canvas would redirect child activation');
-    pointer('pointerdown', button);
-    assert.equal(capturedTarget, button);
-    pointer('pointerup', button);
-    assert.equal(captures.size, 0);
-    assert.equal(pointer('click', button).defaultPrevented, false);
-    handle.dispose();
+test("nested native capture is attached only to the originating canvas", async () => {
+    const outer = await createDiagramCapture();
+    const inner = await createDiagramCapture(outer.canvas);
+    inner.pointer("pointerdown", inner.child);
+    assert.equal(outer.captures.size, 0);
+    assert.equal(inner.captures.get(1), inner.child);
+    outer.handle.dispose();
+    assert.equal(inner.captures.get(1), inner.child);
+    inner.handle.dispose();
+    assert.equal(inner.captures.size, 0);
 });

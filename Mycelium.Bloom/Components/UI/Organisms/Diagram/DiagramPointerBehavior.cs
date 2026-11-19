@@ -9,45 +9,148 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
+    using System.ComponentModel;
+
     using Blazor.Diagrams.Core;
     using Blazor.Diagrams.Core.Behaviors;
     using Blazor.Diagrams.Core.Events;
-    using Blazor.Diagrams.Core.Geometry;
     using Blazor.Diagrams.Core.Models.Base;
 
-    using Mycelium.Bloom.Model.Enum;
-    using Mycelium.Bloom.ViewModel.Diagram;
+    using Microsoft.AspNetCore.Components;
 
-    /// <summary>Routes mode-aware navigation and selection while native behavior owns node dragging.</summary>
+    using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram.Tools;
+
+    using BrowserKeyboardEventArgs = Microsoft.AspNetCore.Components.Web.KeyboardEventArgs;
+
+    /// <summary>Routes native input to the tool runtimes for one mounted diagram.</summary>
     public sealed class DiagramPointerBehavior : Behavior
     {
-        /// <summary>The tab-owned mode and policy authority.</summary>
-        private readonly IDiagramViewModel owner;
+        /// <summary>The tool selection owned by the tab.</summary>
+        private readonly DiagramToolState tools;
 
-        /// <summary>The pointer owned by this mount's current gesture.</summary>
-        private long? pointerId;
+        /// <summary>The native context shared by the mounted runtimes.</summary>
+        private readonly DiagramToolContext context;
 
-        /// <summary>The last screen-space pan coordinate.</summary>
-        private Point panPoint;
+        /// <summary>Runtimes created on first use and released with the renderer.</summary>
+        private readonly Dictionary<DiagramToolDefinition, IDiagramTool> runtimes = new();
 
-        /// <summary>Prevents late browser callbacks from reinstalling native behavior.</summary>
+        /// <summary>The currently activated runtime.</summary>
+        private IDiagramTool current;
+
+        /// <summary>The starting event of the accepted pointer gesture.</summary>
+        private PointerEventArgs pointerStart;
+
+        /// <summary>Whether the physical Space key remains held.</summary>
+        private bool spaceHeld;
+
+        /// <summary>The focused selection target eligible for activation when Space is released.</summary>
+        private DiagramElementViewModel spaceActivationTarget;
+
+        /// <summary>Prevents stale events from changing tab state after this mount is disposed.</summary>
         private bool disposed;
 
-        /// <summary>Gets or sets whether the browser holds temporary navigation.</summary>
-        public bool TemporaryPan { get; set; }
+        /// <summary>Notifies the canvas of runtime presentation changes.</summary>
+        public event Action Changed;
 
-        /// <summary>Installs mode routing before the library's movable behavior.</summary>
+        /// <summary>Gets the runtime cursor for the canvas.</summary>
+        public string Cursor => this.current?.Cursor(this.pointerStart is not null);
+
+        /// <summary>Gets the runtime preview for the native diagram layer.</summary>
+        public RenderFragment Preview => this.current?.Preview;
+
+        /// <summary>Gets whether a gesture or temporary tool owns input.</summary>
+        public bool IsInteracting => this.pointerStart is not null || this.tools.Temporary is not null;
+
+        /// <summary>Installs routing ahead of the native movable behavior.</summary>
         /// <param name="diagram">The mounted native graph.</param>
         /// <param name="owner">The tab-owned presentation authority.</param>
         public DiagramPointerBehavior(Diagram diagram, IDiagramViewModel owner) : base(diagram)
         {
-            this.owner = owner;
+            this.tools = owner.Tools;
+            this.context = new DiagramToolContext(diagram, owner, model => model switch
+            {
+                DiagramNodeModel node => node.ViewModel,
+                DiagramLinkModel link => link.ViewModel,
+                _ => null
+            });
+            this.tools.BlocksPointerSelection = false;
+            this.tools.PropertyChanged += this.ToolChanged;
             diagram.PointerDown += this.PointerDown;
             diagram.PointerMove += this.PointerMove;
             diagram.PointerUp += this.PointerUp;
+            this.ApplyTool();
         }
 
-        /// <summary>Ends navigation and resets private native drag state.</summary>
+        /// <summary>Records a focused selection target without activating it on Space keydown.</summary>
+        /// <param name="args">The key press captured by the focusable element before it bubbles to the canvas.</param>
+        /// <param name="target">The element that can be activated by a Space tap.</param>
+        public void PrepareSpaceActivation(BrowserKeyboardEventArgs args, DiagramElementViewModel target)
+        {
+            if (!this.disposed && !this.spaceHeld && this.pointerStart is null
+                && args is { Code: "Space", Repeat: false, AltKey: false, CtrlKey: false, MetaKey: false, ShiftKey: false })
+            {
+                this.spaceActivationTarget = target;
+            }
+        }
+
+        /// <summary>Discards a pending activation when its focused element loses focus.</summary>
+        /// <param name="target">The element that lost focus.</param>
+        public void CancelSpaceActivation(DiagramElementViewModel target)
+        {
+            if (ReferenceEquals(this.spaceActivationTarget, target))
+            {
+                this.spaceActivationTarget = null;
+            }
+        }
+
+        /// <summary>Routes keyboard input from the focused canvas.</summary>
+        /// <param name="key">The browser key.</param>
+        /// <param name="code">The physical key code.</param>
+        /// <param name="pressed">Whether the key was pressed or released.</param>
+        /// <param name="modified">Whether a shortcut modifier is held.</param>
+        public void KeyChanged(string key, string code, bool pressed, bool modified = false)
+        {
+            if (this.disposed)
+            {
+                return;
+            }
+
+            if (code == "Space" && (!modified || !pressed))
+            {
+                this.ChangeSpace(pressed);
+                return;
+            }
+
+            if (pressed && key == "Escape")
+            {
+                this.Cancel();
+                return;
+            }
+
+            if (!pressed || modified || !this.TryActivateShortcut(key))
+            {
+                this.current?.KeyChanged(key, pressed);
+                this.Changed?.Invoke();
+            }
+        }
+
+        /// <summary>Cancels the specific pointer whose browser gesture was interrupted.</summary>
+        /// <param name="pointer">The interrupted pointer.</param>
+        /// <returns>Whether the interrupted pointer belonged to this dispatcher.</returns>
+        public bool CancelPointer(long pointer)
+        {
+            if (pointer != this.pointerStart?.PointerId)
+            {
+                return false;
+            }
+
+            this.Cancel();
+            return true;
+        }
+
+        /// <summary>Cancels interaction and restores the retained tool.</summary>
         public void Cancel()
         {
             if (this.disposed)
@@ -55,79 +158,199 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 return;
             }
 
-            this.pointerId = null;
-            this.panPoint = null;
-            this.Diagram.UnregisterBehavior<DragMovablesBehavior>();
-            this.Diagram.RegisterBehavior(new DragMovablesBehavior(this.Diagram));
+            var start = this.pointerStart;
+            this.pointerStart = null;
+            this.spaceHeld = false;
+            this.spaceActivationTarget = null;
+
+            if (start is not null)
+            {
+                this.tools.BlocksPointerSelection = true;
+            }
+
+            this.current?.Cancel(start);
+            this.tools.Temporary = null;
+            this.Changed?.Invoke();
         }
 
-        /// <summary>Detaches this mount's pointer routing.</summary>
+        /// <summary>Detaches input and disposes all runtime instances owned by this mount.</summary>
         public override void Dispose()
         {
+            if (this.disposed)
+            {
+                return;
+            }
+
+            this.Cancel();
             this.disposed = true;
-            this.pointerId = null;
-            this.panPoint = null;
+            this.tools.PropertyChanged -= this.ToolChanged;
             this.Diagram.PointerDown -= this.PointerDown;
             this.Diagram.PointerMove -= this.PointerMove;
             this.Diagram.PointerUp -= this.PointerUp;
+            this.current?.Deactivate();
+
+            foreach (var runtime in this.runtimes.Values)
+            {
+                runtime.Dispose();
+            }
+
+            this.runtimes.Clear();
+            this.current = null;
         }
 
-        /// <summary>Starts navigation or prepares one permitted native movable.</summary>
-        /// <param name="model">The native hit-test result.</param>
-        /// <param name="args">The pointer coordinates and buttons.</param>
+        /// <summary>Applies the temporary navigation override and completes an unconsumed Space tap.</summary>
+        /// <param name="pressed">Whether Space is held.</param>
+        private void ChangeSpace(bool pressed)
+        {
+            var activation = !pressed && this.spaceHeld ? this.spaceActivationTarget : null;
+            this.spaceHeld = pressed;
+
+            if (!pressed)
+            {
+                this.spaceActivationTarget = null;
+            }
+
+            if (this.pointerStart is null)
+            {
+                this.tools.Temporary = pressed ? this.tools.Navigation : null;
+                activation?.Select();
+            }
+        }
+
+        /// <summary>Activates an enabled tool whose layout shortcut matches the pressed key.</summary>
+        /// <param name="key">The unmodified browser key.</param>
+        /// <returns>Whether a toolbox shortcut was handled.</returns>
+        private bool TryActivateShortcut(string key)
+        {
+            var shortcut = this.tools.Toolbox.FirstOrDefault(entry =>
+                string.Equals(entry.Item.Shortcut ?? entry.Tool.DefaultShortcut, key, StringComparison.OrdinalIgnoreCase));
+
+            return shortcut.Tool is not null && this.tools.TryActivate(shortcut.Tool.Id);
+        }
+
+        /// <summary>Accepts one primary gesture before the native drag listener runs.</summary>
+        /// <param name="model">The native hit model.</param>
+        /// <param name="args">The native pointer event.</param>
         private void PointerDown(Model model, PointerEventArgs args)
         {
-            if (this.pointerId.HasValue)
+            if (this.pointerStart is not null)
             {
+                this.Cancel();
+            }
+
+            if (!args.IsPrimary || args.Button is not (0 or 1))
+            {
+                this.tools.BlocksPointerSelection = true;
                 return;
             }
 
-            foreach (var node in this.Diagram.Nodes)
+            this.spaceActivationTarget = null;
+
+            if (args.Button == 1)
             {
-                node.Locked = true;
+                this.tools.Temporary = this.tools.Navigation;
+
+                if (this.tools.Temporary is null)
+                {
+                    return;
+                }
             }
 
-            if (args.Button is not (0 or 1))
-            {
-                return;
-            }
-
-            this.pointerId = args.PointerId;
-
-            if (args.Button == 1 || this.TemporaryPan || this.owner.ActiveTool == DiagramTool.Pan || model is null)
-            {
-                this.panPoint = new Point(args.ClientX, args.ClientY);
-            }
-            else if (model is DiagramNodeModel node)
-            {
-                this.Diagram.SelectModel(node, true);
-                node.Locked = !this.owner.CanMoveNodes || !node.Presentation.Occurrence.IsMovable;
-                this.owner.Select(node.Presentation.Occurrence.Element);
-            }
+            this.pointerStart = args;
+            this.tools.BlocksPointerSelection = args.Button == 1 || this.tools.Effective?.AllowsSelection != true;
+            this.current?.PointerDown(model, args);
+            this.Changed?.Invoke();
         }
 
-        /// <summary>Translates the native viewport in screen space.</summary>
-        /// <param name="model">The current hit-test result.</param>
-        /// <param name="args">The pointer coordinates.</param>
+        /// <summary>Routes motion and hover input to the active runtime.</summary>
+        /// <param name="model">The native hit model.</param>
+        /// <param name="args">The native pointer event.</param>
         private void PointerMove(Model model, PointerEventArgs args)
         {
-            if (this.pointerId == args.PointerId && this.panPoint is { } previous)
+            if (this.pointerStart is { } start)
             {
-                this.panPoint = new Point(args.ClientX, args.ClientY);
-                this.Diagram.UpdatePan(args.ClientX - previous.X, args.ClientY - previous.Y);
+                if (start.PointerId != args.PointerId)
+                {
+                    this.Cancel();
+                    return;
+                }
+
+                // Compare browser position samples before native zoom or geometry calculation.
+                var origin = (start.ClientX, start.ClientY);
+
+                if (!origin.Equals((args.ClientX, args.ClientY)))
+                {
+                    this.tools.BlocksPointerSelection = true;
+                }
+            }
+
+            var preview = this.Preview;
+            var cursor = this.Cursor;
+            this.current?.PointerMove(model, args);
+
+            if (preview is not null || this.Preview is not null || cursor != this.Cursor)
+            {
+                this.Changed?.Invoke();
             }
         }
 
-        /// <summary>Ends the matching navigation gesture.</summary>
-        /// <param name="model">The final hit-test result.</param>
-        /// <param name="args">The pointer identity.</param>
+        /// <summary>Finishes a gesture and restores the retained tool unless Space remains held.</summary>
+        /// <param name="model">The native hit model.</param>
+        /// <param name="args">The native pointer event.</param>
         private void PointerUp(Model model, PointerEventArgs args)
         {
-            if (this.pointerId == args.PointerId)
+            if (this.pointerStart is null)
             {
-                this.pointerId = null;
-                this.panPoint = null;
+                return;
             }
+
+            if (this.pointerStart.PointerId != args.PointerId)
+            {
+                this.Cancel();
+                return;
+            }
+
+            this.pointerStart = null;
+            this.current?.PointerUp(model, args);
+            this.tools.Temporary = this.spaceHeld ? this.tools.Navigation : null;
+            this.Changed?.Invoke();
+        }
+
+        /// <summary>Updates the mounted runtime when the retained or temporary tool changes.</summary>
+        /// <param name="sender">The tab-owned tool state.</param>
+        /// <param name="args">The changed state property.</param>
+        private void ToolChanged(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(DiagramToolState.Active))
+            {
+                this.Cancel();
+                this.ApplyTool();
+            }
+            else if (args.PropertyName == nameof(DiagramToolState.Temporary))
+            {
+                this.ApplyTool();
+            }
+        }
+
+        /// <summary>Activates the effective tool, creating its runtime on first use.</summary>
+        private void ApplyTool()
+        {
+            IDiagramTool next = null;
+
+            if (this.tools.Effective is { } definition && !this.runtimes.TryGetValue(definition, out next))
+            {
+                next = definition.CreateRuntime(this.context, definition.Parameters);
+                this.runtimes.Add(definition, next);
+            }
+
+            if (!ReferenceEquals(this.current, next))
+            {
+                this.current?.Deactivate();
+                this.current = next;
+                this.current?.Activate();
+            }
+
+            this.Changed?.Invoke();
         }
     }
 }

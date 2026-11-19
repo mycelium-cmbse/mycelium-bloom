@@ -59,7 +59,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Diagram.RegisterBehavior(this.Pointer);
             this.Diagram.RegisterBehavior(new DragMovablesBehavior(this.Diagram));
             this.Diagram.RegisterBehavior(new ZoomBehavior(this.Diagram));
-            this.Diagram.RegisterBehavior(new EventsBehavior(this.Diagram));
             this.Diagram.Options.AllowMultiSelection = false;
             this.Diagram.Options.Zoom.Minimum = DiagramViewport.MinimumZoom;
             this.Diagram.Options.Zoom.Maximum = DiagramViewport.MaximumZoom;
@@ -95,12 +94,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Diagram.ContainerChanged -= this.InitializeViewport;
             this.Diagram.PanChanged -= this.ReportViewport;
             this.Diagram.ZoomChanged -= this.ReportViewport;
+            this.Diagram.UnregisterBehavior<DiagramPointerBehavior>();
             this.Diagram.Links.Clear();
             this.Diagram.Nodes.Clear();
-            this.Diagram.UnregisterBehavior<DiagramPointerBehavior>();
             this.Diagram.UnregisterBehavior<DragMovablesBehavior>();
             this.Diagram.UnregisterBehavior<ZoomBehavior>();
-            this.Diagram.UnregisterBehavior<EventsBehavior>();
         }
 
         /// <summary>Creates renderer models from occurrence identities already validated by the ViewModel.</summary>
@@ -175,7 +173,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 });
                 this.InitializeViewport();
             }
-            else if (args.PropertyName is nameof(IDiagramViewModel.ActiveTool) or nameof(IDiagramViewModel.CanMoveNodes))
+            else if (args.PropertyName == nameof(IDiagramViewModel.CanMoveNodes))
             {
                 this.Pointer.Cancel();
             }

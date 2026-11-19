@@ -9,9 +9,11 @@
 
 @inherits BloomReactiveComponentBase<IDiagramViewModel>
 
-<section style="--diagram-boundary-label-maximum-width:@(DiagramLayoutMetrics.BoundaryLabelMaximumWidth)px" @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
+<section style="@this.CanvasStyle" @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
          @onpointermove:stopPropagation="this.IsNested" @onpointerup:stopPropagation="this.IsNested" @onwheel:stopPropagation="this.IsNested"
-         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" data-tool="@this.ViewModel.ActiveTool.ToString().ToLowerInvariant()" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "Diagram")">
+         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" data-tool="@this.ViewModel.Tools.Active?.Id" data-temporary-pan="@(this.ViewModel.Tools.Temporary is null ? null : "true")"
+         data-capture-nested-input="@(this.ViewModel.Tools.Effective?.CapturesNestedInput == true ? "true" : null)"
+         data-tool-cursor="@this.renderer?.Pointer.Cursor" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "Diagram")">
     @if (!this.IsNested)
     {
         <div class="diagram-navigation">
@@ -24,11 +26,16 @@
         {
             <div class="diagram-view-frame">«view» @name</div>
         }
-        <div class="general-diagram-canvas">
+        <div class="general-diagram-canvas" @onkeydown="this.KeyDown" @onkeyup="this.KeyUp" @onfocusout="this.FocusOut"
+             @onpointercancel="this.PointerCancelled" @onlostpointercapture="this.PointerCancelled"
+             @onkeydown:stopPropagation="this.IsNested" @onkeyup:stopPropagation="this.IsNested" @onfocusout:stopPropagation="this.IsNested"
+             @onpointercancel:stopPropagation="this.IsNested" @onlostpointercapture:stopPropagation="this.IsNested">
             @if (this.renderer is not null)
             {
                 <CascadingValue Value="this.renderer.Diagram" IsFixed="true" @key="this.renderer">
-                    <DiagramCanvasHost Interaction="this.renderer.Pointer" />
+                    <CascadingValue Value="this.renderer.Pointer" IsFixed="true">
+                        <DiagramCanvasHost AdditionalSvg="this.renderer.Pointer.Preview" @ref="this.host" />
+                    </CascadingValue>
                 </CascadingValue>
             }
         </div>

@@ -36,7 +36,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         {
             this.ViewModel = owner.GetNodeViewModel(presentation.Occurrence.Id);
             this.Position = new Point(this.ViewModel.Position.X, this.ViewModel.Position.Y);
-            this.Locked = true;
+            this.Locked = !presentation.Occurrence.IsMovable;
             this.Size = new Size(presentation.Occurrence.Width, presentation.Occurrence.Height);
             this.ControlledSize = true;
 

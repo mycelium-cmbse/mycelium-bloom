@@ -10,12 +10,14 @@
 namespace Mycelium.Bloom.ViewModel.Diagram
 {
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using System.Reactive.Linq;
 
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.Diagram.Tools;
     using Mycelium.SDK;
 
     using ReactiveUI;
@@ -58,8 +60,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Prevents operations from extending a closed tab's lifetime.</summary>
         private bool disposed;
 
-        /// <summary>The retained pointer mode for this tab.</summary>
-        private DiagramTool activeTool;
+        /// <summary>Revalidates the active tool when editing permission changes.</summary>
+        private readonly IDisposable toolPolicySubscription;
 
         /// <summary>The local presentation movement restriction.</summary>
         private bool isReadOnly;
@@ -67,12 +69,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Derives movement permission from lifecycle and local read-only state.</summary>
         private readonly ObservableAsPropertyHelper<bool> canMoveNodes;
 
-        /// <summary>Gets the retained pointer mode.</summary>
-        public DiagramTool ActiveTool
-        {
-            get => this.activeTool;
-            private set => this.RaiseAndSetIfChanged(ref this.activeTool, value);
-        }
+        /// <inheritdoc />
+        public DiagramToolState Tools { get; }
 
         /// <summary>Gets or sets the local presentation movement restriction.</summary>
         public bool IsReadOnly
@@ -103,19 +101,28 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="selection">The circuit-owned canonical selection service.</param>
         /// <param name="createNestedView">The optional factory for caller-owned nested views.</param>
         /// <param name="context">The optional lifecycle authority; unavailable lifecycle policy prohibits movement.</param>
+        /// <param name="catalogue">The registered tools, or the built-in catalogue for standalone diagrams.</param>
+        /// <param name="layout">The diagram toolbox layout, or the standard layout.</param>
         public DiagramViewModel(DiagramProjection projection, IElementSelectionService selection,
-            Func<DiagramProjection, IDiagramViewModel> createNestedView = null, IContextAwareService context = null)
+            Func<DiagramProjection, IDiagramViewModel> createNestedView = null, IContextAwareService context = null,
+            DiagramToolCatalogue catalogue = null, DiagramToolLayout layout = null)
         {
             ArgumentNullException.ThrowIfNull(projection);
             ArgumentNullException.ThrowIfNull(selection);
             this.selection = selection;
-            this.createNestedView = createNestedView ?? (child => new DiagramViewModel(child, selection));
+            catalogue ??= new DiagramToolCatalogue(DiagramToolDefaults.Definitions);
+            layout ??= DiagramToolDefaults.Layout;
+            this.createNestedView = createNestedView ?? (child => new DiagramViewModel(child, selection, context: context, catalogue: catalogue, layout: layout));
             this.UpdateProjection(projection);
             var lifecycle = context ?? selection as IContextAwareService;
             var editableLifecycle = lifecycle is null ? Observable.Return(false) : lifecycle.WhenAnyValue(value => value.LifecycleState)
                 .Select(value => value is ProjectLifecycleKind.Preparation or ProjectLifecycleKind.Open);
             this.canMoveNodes = editableLifecycle.CombineLatest(this.WhenAnyValue(value => value.IsReadOnly), (editable, readOnly) => editable && !readOnly)
                 .ToProperty(this, value => value.CanMoveNodes);
+            this.Tools = new DiagramToolState(catalogue, layout, () => this.CanMoveNodes);
+            this.Tools.ForProjection(projection);
+            this.toolPolicySubscription = this.WhenAnyValue(view => view.CanMoveNodes).Skip(1).Subscribe(_ => this.Tools.EnsureEnabled());
+            this.Tools.PropertyChanged += this.ToolsChanged;
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
         }
 
@@ -163,6 +170,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             this.ApplySelection(this.selection.SelectedElement);
             this.ReleaseRemovedNestedViews(projection);
+            this.Tools?.ForProjection(projection);
             this.Projection = projection;
         }
 
@@ -172,24 +180,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
 
-            if (this.ActiveTool == DiagramTool.Move && element is not null && this.selectionTargets.ContainsKey(element))
+            if (this.Tools.Effective?.AllowsSelection == true && element is not null && this.selectionTargets.ContainsKey(element))
             {
                 this.selection.SelectedElement = element;
-            }
-        }
-
-        /// <summary>Changes the retained tool without changing semantic selection.</summary>
-        /// <param name="tool">The supported pointer mode.</param>
-        public void SetTool(DiagramTool tool)
-        {
-            if (!Enum.IsDefined(tool))
-            {
-                throw new ArgumentOutOfRangeException(nameof(tool));
-            }
-
-            if (!this.disposed)
-            {
-                this.ActiveTool = tool;
             }
         }
 
@@ -200,7 +193,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <returns>Whether this live diagram accepted movement.</returns>
         public bool MoveNode(Guid occurrenceId, double x, double y)
         {
-            if (this.disposed || !this.CanMoveNodes || this.ActiveTool != DiagramTool.Move || !double.IsFinite(x) || !double.IsFinite(y)
+            if (this.disposed || !this.CanMoveNodes || !double.IsFinite(x) || !double.IsFinite(y)
                 || !this.nodeStates.TryGetValue(occurrenceId, out var node) || !node.Presentation.Occurrence.IsMovable)
             {
                 return false;
@@ -299,6 +292,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             this.disposed = true;
             this.selectionSubscription.Dispose();
+            this.Tools.PropertyChanged -= this.ToolsChanged;
+            this.Tools.Close();
+            this.toolPolicySubscription.Dispose();
             this.canMoveNodes.Dispose();
 
             foreach (var nested in this.nestedViews.Values)
@@ -311,6 +307,17 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.selectedTargets = Array.Empty<DiagramElementViewModel>();
             this.nodeStates.Clear();
             this.edgeStates.Clear();
+        }
+
+        /// <summary>Notifies reactive diagram components when the retained tool changes.</summary>
+        /// <param name="sender">The tool state owned by the tab.</param>
+        /// <param name="args">The changed tool state property.</param>
+        private void ToolsChanged(object sender, PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName == nameof(DiagramToolState.Active))
+            {
+                this.RaisePropertyChanged(nameof(this.Tools));
+            }
         }
 
         /// <summary>Updates only previous and current selection decorations, including repeated occurrences.</summary>

@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
@@ -18,6 +19,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     /// <summary>Adapts a native occurrence to the shared node components and captures selection.</summary>
     public partial class DiagramNodeWidget : BloomReactiveComponentBase<DiagramNodeViewModel>
     {
+        /// <summary>Gets or sets the owning canvas's shared keyboard and pointer routing.</summary>
+        [CascadingParameter]
+        private DiagramPointerBehavior Pointer { get; set; }
+
         /// <summary>The immutable presentation used by the cached component parameters.</summary>
         private DiagramNodePresentation renderedPresentation;
 
@@ -63,6 +68,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         }
 
         /// <summary>Delegates occurrence selection to its presentation owner.</summary>
-        private void Select() => this.ViewModel.Select();
+        /// <param name="args">The browser click, including keyboard-activated buttons.</param>
+        private void Select(MouseEventArgs args) => this.ViewModel.Select(args.Detail > 0);
     }
 }

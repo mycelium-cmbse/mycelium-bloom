@@ -13,7 +13,9 @@
      data-occurrence-id="@this.Node.Id" data-element-id="@this.ViewModel.Presentation.Occurrence.Element.ElementId"
      @onclick="this.Select" @onclick:stopPropagation="true" role="group" aria-label="@this.ViewModel.Presentation.Name.Declaration">
     <button type="button" class="mb-diagram-node-select" aria-label="@this.ViewModel.Presentation.Name.Declaration"
-            aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true"></button>
+            aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true"
+            @onkeydown="args => this.Pointer?.PrepareSpaceActivation(args, this.ViewModel)" @onkeyup:preventDefault="@(this.Pointer is not null)"
+            @onblur="() => this.Pointer?.CancelSpaceActivation(this.ViewModel)"></button>
     <CascadingValue Value="this.ViewModel">
         <DynamicComponent Type="@this.Components.GetComponentType(this.ViewModel.Presentation.GetType())" Parameters="@this.GetComponentParameters()" />
     </CascadingValue>

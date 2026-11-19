@@ -44,7 +44,17 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         }
 
         /// <summary>Delegates selection to the tab and its canonical selection contract.</summary>
-        public void Select() => this.Owner.Select(this.Element);
+        public void Select() => this.Select(false);
+
+        /// <summary>Routes selection through the diagram's current input policy.</summary>
+        /// <param name="pointer">Whether selection originated from a DOM pointer click.</param>
+        public void Select(bool pointer)
+        {
+            if (!pointer || this.Owner.Tools?.BlocksPointerSelection != true)
+            {
+                this.Owner.Select(this.Element);
+            }
+        }
 
         /// <summary>Applies a selection decoration calculated by the tab's single selection subscription.</summary>
         /// <param name="selected">Whether the canonical object is selected.</param>
