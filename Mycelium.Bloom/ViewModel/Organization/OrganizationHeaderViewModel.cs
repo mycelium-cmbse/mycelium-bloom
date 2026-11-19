@@ -30,7 +30,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// The entries of the account menu, which do not depend on the organization.
         /// </summary>
         private static readonly ActionMenuItem[] AccountItems =
-            [new() { Id = OrganizationRoutes.AccountPath, Label = "Your profile" }];
+            [new() { Id = OrganizationRoutes.AccountPath, Label = "Your profile", Icon = "user" }];
 
         /// <summary>
         /// The pages of an organization, in the order of the menu.
@@ -57,8 +57,6 @@ namespace Mycelium.Bloom.ViewModel.Organization
         {
             ArgumentNullException.ThrowIfNull(context);
 
-            this.SelectItemCommand = ReactiveCommand.Create<ActionMenuItem, string>(item => item.Id);
-
             this.presentation = context
                 .WhenAnyValue(model => model.IsLoading, model => model.Location, model => model.Account, model => model.Organization,
                     model => model.Capabilities)
@@ -67,18 +65,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
                     scheduler: ImmediateSequencer.Instance);
 
             this.Disposables.Add(this.presentation);
-            this.Disposables.Add(this.SelectItemCommand);
         }
 
         /// <summary>
         /// Gets what the header displays. It follows the organization context.
         /// </summary>
         public OrganizationHeaderPresentation Presentation => this.presentation.Value;
-
-        /// <summary>
-        /// Gets the command that turns the selection of a menu entry into the route to navigate to.
-        /// </summary>
-        public ReactiveCommand<ActionMenuItem, string> SelectItemCommand { get; }
 
         /// <summary>
         /// Derives the presentation of the header from the properties of the organization context. Nothing is
@@ -103,8 +95,7 @@ namespace Mycelium.Bloom.ViewModel.Organization
             var accountPresentation = new OrganizationHeaderPresentation
             {
                 Kind = location.Kind,
-                AccountName = account.Name,
-                AccountEmail = account.Email,
+                Account = account,
                 AccountItems = AccountItems
             };
 

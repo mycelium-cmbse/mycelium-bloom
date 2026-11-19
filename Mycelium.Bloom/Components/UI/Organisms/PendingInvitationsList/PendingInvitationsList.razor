@@ -9,53 +9,52 @@
 
 @inherits BloomReactiveComponentBase<IPendingInvitationsViewModel>
 
-@if (this.ViewModel.IsBusy || this.ViewModel.Errors.Count > 0 || this.ViewModel.Rows.Count > 0)
-{
-    <section class="@(this.BuildRootCssClass("mb-pending-invitations"))"
-             aria-labelledby="pending-invitations-title"
-             @attributes="this.AdditionalAttributes">
-        <h2 id="pending-invitations-title" class="mb-pending-invitations__title">
-            Pending invitations
-            @if (!this.ViewModel.IsBusy && this.ViewModel.Errors.Count == 0)
-            {
-                <span class="mb-pending-invitations__count">@(this.ViewModel.Rows.Count)</span>
-            }
-        </h2>
+<section class="@(this.BuildRootCssClass("mb-pending-invitations"))"
+         aria-labelledby="pending-invitations-title"
+         @attributes="this.AdditionalAttributes">
+    <h2 id="pending-invitations-title" class="mb-pending-invitations__title">
+        Pending invitations
+        @if (!this.ViewModel.IsBusy && this.ViewModel.Errors.Count == 0)
+        {
+            <span class="mb-pending-invitations__count">@(this.ViewModel.Rows.Count)</span>
+        }
+    </h2>
 
-        @if (this.ViewModel.Errors.Count > 0)
+    @if (this.ViewModel.Errors.Count > 0)
+    {
+        @foreach (var error in this.ViewModel.Errors)
         {
-            @foreach (var error in this.ViewModel.Errors)
+            <BbAlert Variant="AlertVariant.Danger" role="alert">
+                <BbAlertDescription>@(error.Description)</BbAlertDescription>
+            </BbAlert>
+        }
+    }
+    else if (this.ViewModel.IsBusy)
+    {
+        <div class="mb-pending-invitations__loading" role="status" aria-live="polite" aria-busy="true">
+            <BbSkeleton Width="100%" Height="100%" />
+            <span class="sr-only">Loading</span>
+        </div>
+    }
+    else if (this.ViewModel.Rows.Count == 0)
+    {
+        <BbEmpty Size="EmptySize.Small" Description="No pending invitations" Class="mb-pending-invitations__empty" />
+    }
+    else
+    {
+        <BbItemGroup Class="mb-pending-invitations__list">
+            @foreach (var row in this.ViewModel.Rows)
             {
-                <p class="mb-pending-invitations__error" role="alert">@(error.Description)</p>
+                <BbItem Variant="ItemVariant.Outline" Class="mb-pending-invitations__row">
+                    <BbItemMedia Variant="ItemMediaVariant.Icon" Class="mb-pending-invitations__icon">
+                        <LucideIcon Name="mail" Size="16" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                    </BbItemMedia>
+                    <BbItemContent Class="mb-pending-invitations__text">
+                        <BbItemTitle Class="mb-pending-invitations__identity">@(row.InvitedIdentity)</BbItemTitle>
+                        <BbItemDescription Class="mb-pending-invitations__details">@(row.Details)</BbItemDescription>
+                    </BbItemContent>
+                </BbItem>
             }
-        }
-        else if (this.ViewModel.IsBusy)
-        {
-            <div class="mb-pending-invitations__loading" role="status" aria-live="polite" aria-busy="true">
-                <BbSkeleton Width="100%" Height="100%" />
-                <span class="sr-only">Loading</span>
-            </div>
-        }
-        else
-        {
-            <ul class="mb-pending-invitations__list">
-                @foreach (var row in this.ViewModel.Rows)
-                {
-                    <li class="mb-pending-invitations__row">
-                        <LucideIcon Name="mail"
-                                    Size="16"
-                                    StrokeWidth="1.75"
-                                    Class="mb-pending-invitations__icon"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                    focusable="false" />
-                        <div class="mb-pending-invitations__text">
-                            <span class="mb-pending-invitations__identity">@(row.InvitedIdentity)</span>
-                            <span class="mb-pending-invitations__details">@(row.Details)</span>
-                        </div>
-                    </li>
-                }
-            </ul>
-        }
-    </section>
-}
+        </BbItemGroup>
+    }
+</section>

@@ -14,6 +14,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.PendingInvitationsList
     using System.Linq;
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Components;
+
     using Bunit;
 
     using ErrorOr;
@@ -46,12 +48,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.PendingInvitationsList
             await this.context.DisposeAsync();
         }
 
-        [TestCase(true, false, 0, 1, 0, 0, 1)]
-        [TestCase(true, true, 0, 0, 0, 1, 1)]
-        [TestCase(false, true, 0, 0, 0, 1, 1)]
-        [TestCase(false, false, 2, 0, 2, 0, 1)]
-        [TestCase(false, false, 0, 0, 0, 0, 0)]
-        public void VerifyTheListFlipsOnBusyErrorsAndRows(bool isBusy, bool failed, int rowCount, int skeletons, int rows, int alerts, int headings)
+        [TestCase(true, false, 0, 1, 0, 0, 0)]
+        [TestCase(true, true, 0, 0, 0, 1, 0)]
+        [TestCase(false, true, 0, 0, 0, 1, 0)]
+        [TestCase(false, false, 2, 0, 2, 0, 0)]
+        [TestCase(false, false, 0, 0, 0, 0, 1)]
+        public void VerifyTheListFlipsOnBusyErrorsAndRows(bool isBusy, bool failed, int rowCount, int skeletons, int rows, int alerts, int empties)
         {
             var now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
             var invitation = new InvitationSummary("a.nowak@example.org", OrganizationMembershipRole.Member, new User { Id = Guid.NewGuid(), Name = "Jean Dupont", Email = "j.dupont@example.org" }, now.UtcDateTime, now.UtcDateTime.AddDays(5));
@@ -65,9 +67,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.PendingInvitationsList
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(cut.FindAll("[role=status]"), Has.Count.EqualTo(skeletons));
-                Assert.That(cut.FindAll("li"), Has.Count.EqualTo(rows));
-                Assert.That(cut.FindAll("[role=alert]").Select(alert => alert.TextContent), Is.EqualTo(Enumerable.Repeat("The organization does not exist.", alerts)));
-                Assert.That(cut.FindAll("h2"), Has.Count.EqualTo(headings));
+                Assert.That(cut.FindComponents<BbItem>(), Has.Count.EqualTo(rows));
+                Assert.That(cut.FindAll("[role=alert]").Select(alert => alert.TextContent.Trim()), Is.EqualTo(Enumerable.Repeat("The organization does not exist.", alerts)));
+                Assert.That(cut.FindComponents<BbEmpty>(), Has.Count.EqualTo(empties));
             }
         }
     }

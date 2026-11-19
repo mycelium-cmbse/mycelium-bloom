@@ -150,3 +150,53 @@ button.mb-crumbs__crumb:hover {
     outline: var(--border-width-default) solid var(--ring);
     outline-offset: 0;
 }
+
+.mb-account-menu {
+    width: var(--spacing-260);
+}
+
+.mb-account-menu__head {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-10);
+    padding: var(--spacing-10);
+}
+
+.mb-account-menu__avatar {
+    flex: none;
+    width: var(--spacing-32);
+    height: var(--spacing-32);
+}
+
+.mb-account-menu__initials {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font: var(--typography-typography-ui-semibold-11);
+}
+
+.mb-account-menu__identity {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    min-width: 0;
+}
+
+.mb-account-menu__name {
+    overflow: hidden;
+    color: var(--foreground);
+    font: var(--typography-typography-ui-semibold-13);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-account-menu__email {
+    overflow: hidden;
+    color: var(--muted-foreground);
+    font: var(--typography-typography-ui-regular-11);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-account-menu__separator {
+    background: var(--border);
+}

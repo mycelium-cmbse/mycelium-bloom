@@ -24,47 +24,49 @@
     height: var(--spacing-56);
 }
 
-.mb-pending-invitations__list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-8);
-    margin: 0;
-    padding: 0;
-    list-style: none;
+.mb-pending-invitations ::deep .mb-pending-invitations__empty {
+    padding: var(--spacing-16);
+    border: var(--border-width-default) solid var(--border-subtle);
+    border-radius: var(--radius-8);
+    color: var(--muted-foreground);
+    font: var(--typography-typography-ui-regular-13);
 }
 
-.mb-pending-invitations__row {
-    display: flex;
-    align-items: center;
+.mb-pending-invitations ::deep .mb-pending-invitations__list {
+    gap: var(--spacing-8);
+}
+
+.mb-pending-invitations ::deep .mb-pending-invitations__row {
+    flex-wrap: nowrap;
     gap: var(--spacing-12);
     min-width: 0;
     padding: var(--spacing-13) var(--spacing-15);
-    border: var(--border-width-default) solid var(--border-subtle);
+    border-color: var(--border-subtle);
     border-radius: var(--radius-8);
     background: var(--background);
 }
 
 .mb-pending-invitations ::deep .mb-pending-invitations__icon {
-    flex: none;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: none;
     color: var(--collaborator-c12);
 }
 
-.mb-pending-invitations__text {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
+.mb-pending-invitations ::deep .mb-pending-invitations__text {
     gap: var(--spacing-2);
     min-width: 0;
 }
 
-.mb-pending-invitations__identity {
+.mb-pending-invitations ::deep .mb-pending-invitations__identity {
     color: var(--foreground-strong);
     font-size: var(--text-13);
     font-weight: var(--font-weight-heading-md);
     line-height: var(--spacing-16);
 }
 
-.mb-pending-invitations__details {
+.mb-pending-invitations ::deep .mb-pending-invitations__details {
     overflow: hidden;
     color: var(--collaborator-c12);
     font-size: var(--text-12);
@@ -72,10 +74,4 @@
     line-height: var(--spacing-15);
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.mb-pending-invitations__error {
-    margin: 0;
-    color: var(--foreground);
-    font: var(--typography-typography-body-md), sans-serif;
 }
