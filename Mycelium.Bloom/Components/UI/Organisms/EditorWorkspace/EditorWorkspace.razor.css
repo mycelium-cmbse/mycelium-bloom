@@ -122,13 +122,13 @@
 
 .mb-editor-workspace__tab-drop-marker--before {
     left: 0;
-    border-left: 1px solid var(--primary);
+    border-left: var(--border-width-default) solid var(--primary);
     transform-origin: left center;
 }
 
 .mb-editor-workspace__tab-drop-marker--end {
     right: 0;
-    border-right: 1px solid var(--primary);
+    border-right: var(--border-width-default) solid var(--primary);
     transform-origin: right center;
 }
 
@@ -141,7 +141,7 @@
 .mb-editor-workspace__tab-item--dragging {
     z-index: 3;
     box-shadow:
-        inset 0 0 0 1px var(--primary),
+        inset 0 0 0 var(--border-width-default) var(--primary),
         var(--shadow-popover);
     opacity: 0.55;
 }
@@ -376,7 +376,7 @@
     display: grid;
     place-items: center;
     padding: 0;
-    border-left: 1px solid var(--primary);
+    border-left: var(--border-width-default) solid var(--primary);
     background: color-mix(in srgb, var(--accent) 72%, transparent);
     color: var(--primary);
     opacity: 0;
@@ -397,7 +397,7 @@
     border-left-color: var(--primary);
     background-color: color-mix(in srgb, var(--accent) 88%, transparent);
     box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--primary) 48%, transparent),
+        inset 0 0 0 var(--border-width-default) color-mix(in srgb, var(--primary) 48%, transparent),
         var(--shadow-popover);
     opacity: 1;
 }
@@ -409,7 +409,7 @@
     place-items: center;
     width: var(--editor-workspace-tab-split-preview-icon-size);
     height: var(--editor-workspace-tab-split-preview-icon-size);
-    border: 1px solid var(--primary);
+    border: var(--border-width-default) solid var(--primary);
     border-radius: var(--radius-6);
     background: color-mix(in srgb, var(--accent) 72%, var(--card));
     box-shadow: var(--shadow-popover);
@@ -458,7 +458,7 @@
 }
 
 .mb-editor-workspace__splitter-line {
-    width: 1px;
+    width: var(--border-width-default);
     height: 100%;
     background: var(--border-subtle);
     pointer-events: none;
@@ -519,7 +519,7 @@
     box-sizing: border-box;
     width: var(--editor-workspace-split-add-visible-size);
     height: var(--editor-workspace-split-add-visible-size);
-    border: 1px solid var(--border-subtle);
+    border: var(--border-width-default) solid var(--border-subtle);
     border-radius: var(--radius-6);
     background: var(--card);
     content: "";
@@ -564,7 +564,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 1px;
+    width: var(--border-width-default);
     background: var(--border-subtle);
     content: "";
     pointer-events: none;
@@ -589,7 +589,7 @@
     flex: 0 0 auto;
     min-height: var(--spacing-28);
     padding: var(--spacing-4) var(--spacing-8);
-    border: 1px solid transparent;
+    border: var(--border-width-default) solid transparent;
     border-radius: var(--radius-6);
     background: transparent;
     color: var(--muted-foreground);
@@ -603,7 +603,7 @@
 .mb-editor-workspace__compact-button--active {
     background: var(--accent);
     color: var(--primary);
-    box-shadow: inset 0 0 0 1px var(--primary);
+    box-shadow: inset 0 0 0 var(--border-width-default) var(--primary);
 }
 
 @container mb-editor-workspace (max-width: 45rem) {
@@ -613,7 +613,7 @@
         gap: var(--spacing-4);
         min-width: 0;
         padding: var(--spacing-4) var(--spacing-8);
-        border-bottom: 1px solid var(--border-subtle);
+        border-bottom: var(--border-width-default) solid var(--border-subtle);
         background: var(--card);
         overflow-x: auto;
     }

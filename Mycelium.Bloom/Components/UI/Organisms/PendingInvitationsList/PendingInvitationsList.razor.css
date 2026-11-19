@@ -39,7 +39,7 @@
     gap: var(--spacing-12);
     min-width: 0;
     padding: var(--spacing-13) var(--spacing-15);
-    border: 1px solid var(--border-subtle);
+    border: var(--border-width-default) solid var(--border-subtle);
     border-radius: var(--radius-8);
     background: var(--background);
 }

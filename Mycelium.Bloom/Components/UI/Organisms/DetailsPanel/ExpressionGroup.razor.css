@@ -11,7 +11,7 @@
     left: calc(-1 * var(--spacing-4));
     top: var(--spacing-20);
     width: var(--spacing-4);
-    border-top: 1px solid var(--border-subtle);
+    border-top: var(--border-width-default) solid var(--border-subtle);
     pointer-events: none;
 }
 
@@ -160,13 +160,13 @@
 .value-group__identity {
     margin-top: var(--spacing-12);
     padding-top: var(--spacing-8);
-    border-top: 1px solid var(--border-subtle);
+    border-top: var(--border-width-default) solid var(--border-subtle);
 }
 
 .value-group__children {
     margin-left: var(--spacing-12);
     padding-left: var(--spacing-4);
-    border-left: 1px solid var(--border-subtle);
+    border-left: var(--border-width-default) solid var(--border-subtle);
     min-width: 0;
 }
 

@@ -11,7 +11,7 @@
     min-width: 0;
     min-height: var(--status-bar-min-height);
     padding: 0 var(--spacing-12);
-    border-top: 1px solid var(--border-subtle);
+    border-top: var(--border-width-default) solid var(--border-subtle);
     background: var(--card);
     color: var(--muted-foreground);
 }

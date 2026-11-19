@@ -11,7 +11,7 @@
     padding: clamp(var(--spacing-24), 6vw, var(--spacing-64));
     color: var(--foreground);
     background: var(--card);
-    border: 1px solid var(--border-subtle);
+    border: var(--border-width-default) solid var(--border-subtle);
     border-radius: var(--radius-12);
     box-shadow: var(--shadow-sm);
 }
@@ -35,7 +35,7 @@
     margin-top: var(--spacing-24);
     margin-bottom: 0;
     padding-top: var(--spacing-16);
-    border-top: 1px solid var(--border-subtle);
+    border-top: var(--border-width-default) solid var(--border-subtle);
     color: var(--muted-foreground);
 }
 

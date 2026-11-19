@@ -18,8 +18,8 @@
 
 .diagram-view-frame {
     align-self: flex-start;
-    border-right: 1px solid var(--border-subtle);
-    border-bottom: 1px solid var(--border-subtle);
+    border-right: var(--border-width-default) solid var(--border-subtle);
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
     padding: var(--spacing-4) var(--spacing-8);
     font-size: var(--text-12);
 }
@@ -45,7 +45,7 @@
 .general-diagram ::deep .mb-diagram-node {
     height: 100%;
     box-sizing: border-box;
-    border: 1px solid var(--foreground-muted);
+    border: var(--border-width-default) solid var(--foreground-muted);
     background: var(--sysml-structure-surface);
     position: relative;
 }
@@ -75,7 +75,7 @@
 }
 
 .general-diagram ::deep .diagram-compartment {
-    border-top: 1px solid var(--border-subtle);
+    border-top: var(--border-width-default) solid var(--border-subtle);
     padding: var(--spacing-6) var(--spacing-8);
     font-size: var(--text-11);
 }
@@ -113,7 +113,7 @@
     align-items: center;
     width: 12px;
     height: 12px;
-    border: 1px solid currentColor;
+    border: var(--border-width-default) solid currentColor;
     background: var(--card);
     color: var(--foreground);
 }
@@ -142,7 +142,7 @@
 }
 
 .general-diagram ::deep .diagram-package-tab {
-    border: 1px solid var(--foreground-muted);
+    border: var(--border-width-default) solid var(--foreground-muted);
     background: var(--card);
     padding: var(--spacing-4);
     width: fit-content;
@@ -155,7 +155,7 @@
 }
 
 .general-diagram ::deep .diagram-package-body {
-    border: 1px solid var(--foreground-muted);
+    border: var(--border-width-default) solid var(--foreground-muted);
     background: var(--card);
     flex: 1;
     min-height: 0;
@@ -163,7 +163,7 @@
 }
 
 .general-diagram ::deep .diagram-comment {
-    border: 1px solid var(--foreground-muted);
+    border: var(--border-width-default) solid var(--foreground-muted);
     background: var(--card);
     height: 100%;
     box-sizing: border-box;
@@ -218,7 +218,7 @@
     display: flex;
     justify-content: flex-end;
     padding: var(--spacing-4) var(--spacing-8);
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
 }
 
 .general-diagram--nested {
@@ -237,8 +237,8 @@
     top: 0;
     width: 16px;
     height: 16px;
-    border-left: 1px solid var(--foreground-muted);
-    border-bottom: 1px solid var(--foreground-muted);
+    border-left: var(--border-width-default) solid var(--foreground-muted);
+    border-bottom: var(--border-width-default) solid var(--foreground-muted);
 }
 
 .general-diagram ::deep .mb-diagram-node-select:focus-visible {
@@ -273,7 +273,7 @@
 }
 
 .diagram-view-contents--framed {
-    border: 1px solid var(--border-subtle);
+    border: var(--border-width-default) solid var(--border-subtle);
 }
 
 /* The native occurrence rectangle stays authoritative; content scrolls inside it. */

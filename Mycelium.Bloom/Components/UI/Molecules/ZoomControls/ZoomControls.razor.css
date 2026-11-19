@@ -13,7 +13,7 @@
     min-width: 0;
     min-height: var(--zoom-controls-min-height);
     padding: var(--zoom-controls-inset);
-    border: 1px solid var(--border-subtle);
+    border: var(--border-width-default) solid var(--border-subtle);
     border-radius: var(--radius-6);
     background: var(--card);
     color: var(--foreground);

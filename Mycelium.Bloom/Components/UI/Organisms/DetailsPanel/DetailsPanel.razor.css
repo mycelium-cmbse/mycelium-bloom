@@ -17,8 +17,8 @@
     align-items: center;
     gap: var(--spacing-8);
     flex: 0 0 calc(var(--spacing-44) + var(--spacing-2));
-    padding: var(--spacing-12) var(--spacing-14) calc(var(--spacing-12) - 1px);
-    border-bottom: 1px solid var(--border);
+    padding: var(--spacing-12) var(--spacing-14) calc(var(--spacing-12) - var(--border-width-default));
+    border-bottom: var(--border-width-default) solid var(--border);
 }
 
 .mb-details-panel__icon { color: var(--primary); }
@@ -68,7 +68,7 @@
     overflow-x: auto;
     background: transparent;
     border-radius: 0;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
 }
 
 .mb-details-panel ::deep .mb-properties-tabs__trigger {
@@ -113,7 +113,7 @@
     align-items: center;
     flex: 0 0 var(--spacing-56);
     padding: 0 var(--spacing-14);
-    border-top: 1px solid var(--border-subtle);
+    border-top: var(--border-width-default) solid var(--border-subtle);
 }
 
 .mb-details-panel__footer ::deep button {
@@ -148,7 +148,7 @@
 
 /* Preserve the inspection control's spacing without a visible divider. */
 .mb-details-panel__header:has(.mb-properties-back) {
-    padding-block: var(--spacing-7) calc(var(--spacing-7) - 1px);
+    padding-block: var(--spacing-7) calc(var(--spacing-7) - var(--border-width-default));
 }
 
 .mb-details-panel__header:has(.mb-properties-back) .mb-details-panel__leading {

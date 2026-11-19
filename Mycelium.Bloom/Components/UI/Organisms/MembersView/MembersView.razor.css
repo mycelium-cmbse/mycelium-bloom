@@ -142,7 +142,7 @@
 
 .mb-members-view ::deep .mb-members-view__table div:has(> table) {
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: var(--border-width-default) solid var(--border);
     border-radius: var(--radius-8);
     background: var(--card);
     box-shadow: var(--shadow-md);

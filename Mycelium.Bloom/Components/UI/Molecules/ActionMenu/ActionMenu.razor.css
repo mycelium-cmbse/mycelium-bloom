@@ -15,7 +15,7 @@
     min-height: var(--spacing-28);
     gap: var(--spacing-8);
     padding: 0.375rem 0.5rem;
-    border: 1px solid transparent;
+    border: var(--border-width-default) solid transparent;
     border-radius: var(--radius-6);
     background: transparent;
     color: var(--foreground);
