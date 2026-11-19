@@ -9,21 +9,13 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-    using Microsoft.AspNetCore.Components;
-    using Microsoft.AspNetCore.Components.Web;
-
-    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Renders a reusable port or parameter and captures its selection intent.</summary>
-    public partial class DiagramBoundaryFeature : BloomReactiveComponentBase<DiagramBoundaryViewModel>
+    public partial class DiagramBoundaryFeature : SelectableDiagramWidgetBase<DiagramBoundaryViewModel>
     {
-        /// <summary>Gets or sets the owning canvas's shared keyboard and pointer routing.</summary>
-        [CascadingParameter]
-        private DiagramPointerBehavior Pointer { get; set; }
-
         /// <summary>Gets the current boundary notation from its occurrence-owned reactive state.</summary>
         private DiagramBoundaryPresentation Presentation => this.ViewModel.Presentation;
 
@@ -44,9 +36,5 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             (_, "InOut") => "↔",
             _ => ""
         };
-
-        /// <summary>Captures selection intent and delegates it to the boundary presentation owner.</summary>
-        /// <param name="args">The browser click, including keyboard-activated buttons.</param>
-        private void Select(MouseEventArgs args) => this.ViewModel.Select(args.Detail > 0);
     }
 }

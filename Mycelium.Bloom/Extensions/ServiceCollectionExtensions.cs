@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Extensions
     using Microsoft.Extensions.DependencyInjection.Extensions;
 
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
@@ -166,12 +167,18 @@ namespace Mycelium.Bloom.Extensions
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramPackagePresentation), typeof(DiagramPackageNode)));
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramCommentPresentation), typeof(DiagramCommentNode)));
                 services.TryAddSingleton<DiagramNodeComponentRegistry>();
-                services.TryAddSingleton<DiagramToolCatalogue>();
+                services.TryAddSingleton<IDiagramToolCatalogue, DiagramToolCatalogue>();
+                services.TryAddSingleton<DiagramToolRuntimeProvider>();
                 services.TryAddSingleton(DiagramToolDefaults.Layout);
 
                 foreach (var tool in DiagramToolDefaults.Definitions)
                 {
                     services.AddSingleton(tool);
+                }
+
+                foreach (var runtime in DiagramToolRuntimeProvider.BuiltInRegistrations)
+                {
+                    services.AddSingleton(runtime);
                 }
 
                 services.TryAddScoped<Func<DiagramProjection, IDiagramViewModel>>(serviceProvider =>

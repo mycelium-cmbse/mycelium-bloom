@@ -25,12 +25,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <summary>Gets the built-in tool registrations shared by DI and directly constructed diagrams.</summary>
         public static ImmutableArray<DiagramToolDefinition> Definitions { get; } =
         [
-            new(Move, "Move", "mouse-pointer-2", (context, _) => new MoveDiagramTool(context))
+            new(Move, "Move", "mouse-pointer-2")
             {
                 AllowsSelection = true,
                 Tooltip = "Select / Move"
             },
-            new(Pan, "Pan", "hand", (context, _) => new PanDiagramTool(context))
+            new(Pan, "Pan", "hand")
             {
                 CapturesNestedInput = true,
                 Tooltip = "Pan (hold Space for temporary navigation)"

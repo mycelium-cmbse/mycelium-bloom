@@ -12,14 +12,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Blazor.Diagrams.Core.Models.Base;
 
     using Microsoft.AspNetCore.Components;
-    using Microsoft.AspNetCore.Components.Web;
 
-    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Renders shared relationship paths, markers and labels and captures selection intent.</summary>
-    public partial class DiagramEdge : BloomReactiveComponentBase<DiagramEdgeViewModel>
+    public partial class DiagramEdge : SelectableDiagramWidgetBase<DiagramEdgeViewModel>
     {
         /// <summary>The SVG paint that follows the relationship's inherited color.</summary>
         private const string CurrentColor = "currentColor";
@@ -27,10 +25,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets or sets the native link adapted from caller-owned presentation.</summary>
         [Parameter, EditorRequired]
         public BaseLinkModel Link { get; set; }
-
-        /// <summary>Gets or sets the owning canvas's shared keyboard and pointer routing.</summary>
-        [CascadingParameter]
-        private DiagramPointerBehavior Pointer { get; set; }
 
         /// <summary>Gets the combined relationship name exposed to assistive technology.</summary>
         private string AccessibleName => this.GetAccessibleName();
@@ -69,24 +63,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <returns>The four invariant SVG viewport measurements.</returns>
         private static string MarkerViewBox(DiagramMarker marker) =>
             string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{marker.ViewBox.X} {marker.ViewBox.Y} {marker.ViewBox.Width} {marker.ViewBox.Height}");
-
-        /// <summary>Delegates relationship selection to its presentation owner.</summary>
-        /// <param name="args">The browser click, including keyboard-activated buttons.</param>
-        private void Select(MouseEventArgs args) => this.ViewModel.Select(args.Detail > 0);
-
-        /// <summary>Captures supported keyboard activation for relationship selection.</summary>
-        /// <param name="args">The keyboard event captured by the UI.</param>
-        private void KeyDown(KeyboardEventArgs args)
-        {
-            if (args.Key == "Enter" && !args.Repeat)
-            {
-                this.ViewModel.Select();
-            }
-            else
-            {
-                this.Pointer?.PrepareSpaceActivation(args, this.ViewModel);
-            }
-        }
 
         /// <summary>Builds the SVG endpoint symbol requested by shared notation.</summary>
         /// <param name="marker">The endpoint symbol to draw.</param>

@@ -14,7 +14,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
     using Mycelium.Bloom.Model.Diagram;
 
     /// <summary>Resolves registered tool definitions for a diagram projection.</summary>
-    public sealed class DiagramToolCatalogue
+    public sealed class DiagramToolCatalogue : IDiagramToolCatalogue
     {
         /// <summary>The immutable registration order.</summary>
         private readonly ImmutableArray<DiagramToolDefinition> definitions;
@@ -29,6 +29,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
                 || this.definitions.Select(definition => definition.Id).Distinct(StringComparer.Ordinal).Count() != this.definitions.Length)
             {
                 throw new ArgumentException("Diagram tool IDs must be non-empty and unique.", nameof(definitions));
+            }
+
+            if (this.definitions.Any(definition => definition.ParameterType is { } type && !typeof(IDiagramToolParameters).IsAssignableFrom(type)))
+            {
+                throw new ArgumentException("Diagram tool parameter types must implement IDiagramToolParameters.", nameof(definitions));
             }
         }
 

@@ -11,8 +11,8 @@
 
 <section style="@this.CanvasStyle" @onclick:stopPropagation="this.IsNested" @onpointerdown:stopPropagation="this.IsNested"
          @onpointermove:stopPropagation="this.IsNested" @onpointerup:stopPropagation="this.IsNested" @onwheel:stopPropagation="this.IsNested"
-         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" data-tool="@this.ViewModel.Tools.Active?.Id" data-temporary-pan="@(this.ViewModel.Tools.Temporary is null ? null : "true")"
-         data-capture-nested-input="@(this.ViewModel.Tools.Effective?.CapturesNestedInput == true ? "true" : null)"
+         @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("general-diagram", this.IsNested ? "general-diagram--nested" : null)" data-tool="@this.ViewModel.Tools.Active?.Tool.Id" data-temporary-pan="@(this.ViewModel.Tools.Temporary is null ? null : "true")"
+         data-capture-nested-input="@(this.ViewModel.Tools.Effective?.Tool.CapturesNestedInput == true ? "true" : null)"
          data-tool-cursor="@this.renderer?.Pointer.Cursor" role="group" aria-label="@(this.ViewModel.Projection.ViewName ?? "Diagram")">
     @if (!this.IsNested)
     {

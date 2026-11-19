@@ -10,91 +10,140 @@
 namespace Mycelium.Bloom.ViewModel.Diagram.Tools
 {
     using System.Collections.Immutable;
+    using System.Reactive.Linq;
 
     using Mycelium.Bloom.Model.Diagram;
 
     using ReactiveUI;
 
-    /// <summary>Owns one tab's tool choice and its temporary navigation policy.</summary>
-    public sealed class DiagramToolState : ReactiveObject
+    /// <summary>Owns one tab's tool choice and the observable presentation of its navigation override.</summary>
+    public sealed class DiagramToolState : ReactiveObject, IDisposable
     {
         /// <summary>The source of compatible tools for the current projection.</summary>
-        private readonly DiagramToolCatalogue catalogue;
+        private readonly IDiagramToolCatalogue catalogue;
 
         /// <summary>The injected arrangement of toolbox controls.</summary>
         private readonly DiagramToolLayout layout;
 
-        /// <summary>Reads the live tab editing policy.</summary>
-        private readonly Func<bool> canEdit;
+        /// <summary>The tab-owned subscription to editing permission.</summary>
+        private readonly IDisposable policySubscription;
 
-        /// <summary>The retained tool over canvas remounts.</summary>
-        private DiagramToolDefinition active;
+        /// <summary>Derives the visible effective placement from the retained choice and the mount's override.</summary>
+        private readonly ObservableAsPropertyHelper<DiagramToolPlacement> effective;
 
-        /// <summary>The temporary tool selected by the mounted dispatcher.</summary>
-        private DiagramToolDefinition temporary;
+        /// <summary>The current applicable definitions.</summary>
+        private ImmutableArray<DiagramToolDefinition> available = [];
+
+        /// <summary>The current applicable placements in layout order.</summary>
+        private ImmutableArray<DiagramToolPlacement> toolbox = [];
+
+        /// <summary>The retained choice over canvas remounts.</summary>
+        private DiagramToolPlacement active;
+
+        /// <summary>The temporary navigation placement set by the mounted dispatcher.</summary>
+        private DiagramToolPlacement temporary;
+
+        /// <summary>The current editing policy.</summary>
+        private bool canEdit;
 
         /// <summary>Prevents activation after the owning tab closes.</summary>
         private bool closed;
 
         /// <summary>Gets the registered tools applicable to the current projection.</summary>
-        public ImmutableArray<DiagramToolDefinition> Available { get; private set; } = [];
+        public ImmutableArray<DiagramToolDefinition> Available
+        {
+            get => this.available;
+            private set => this.RaiseAndSetIfChanged(ref this.available, value);
+        }
 
         /// <summary>Gets the supported toolbox placements in layout order.</summary>
-        public ImmutableArray<(DiagramToolDefinition Tool, DiagramToolLayout.Item Item)> Toolbox { get; private set; } = [];
+        public ImmutableArray<DiagramToolPlacement> Toolbox
+        {
+            get => this.toolbox;
+            private set => this.RaiseAndSetIfChanged(ref this.toolbox, value);
+        }
 
-        /// <summary>Gets the retained tool choice.</summary>
-        public DiagramToolDefinition Active
+        /// <summary>Gets the retained tool placement.</summary>
+        public DiagramToolPlacement Active
         {
             get => this.active;
             private set => this.RaiseAndSetIfChanged(ref this.active, value);
         }
 
-        /// <summary>Gets the runtime override for temporary navigation.</summary>
-        public DiagramToolDefinition Temporary
+        /// <summary>Gets the temporary placement requested by the mounted dispatcher.</summary>
+        public DiagramToolPlacement Temporary
         {
             get => this.temporary;
             internal set => this.RaiseAndSetIfChanged(ref this.temporary, value);
         }
 
-        /// <summary>Gets the tool currently handling interaction.</summary>
-        public DiagramToolDefinition Effective => this.Temporary ?? this.Active;
+        /// <summary>Gets the placement currently handling interaction.</summary>
+        public DiagramToolPlacement Effective => this.effective.Value;
 
-        /// <summary>Gets or sets whether the originating pointer press prevents a subsequent DOM click from selecting.</summary>
-        internal bool BlocksPointerSelection { get; set; }
+        /// <summary>Gets whether editing tools are currently permitted by the tab.</summary>
+        public bool CanEdit
+        {
+            get => this.canEdit;
+            private set => this.RaiseAndSetIfChanged(ref this.canEdit, value);
+        }
 
         /// <summary>Gets the configured temporary navigation tool when it is enabled.</summary>
-        internal DiagramToolDefinition Navigation => this.Available.FirstOrDefault(tool => tool.Id == this.layout.NavigationToolId && this.CanActivate(tool));
+        internal DiagramToolPlacement Navigation
+        {
+            get
+            {
+                var placement = this.FindPlacement(this.layout.NavigationToolId);
+
+                if (placement is not null)
+                {
+                    return placement;
+                }
+
+                var tool = this.Available.FirstOrDefault(candidate =>
+                    candidate.Id == this.layout.NavigationToolId && candidate.SupportsParameters(null) && this.IsEnabled(candidate));
+
+                return tool is null ? null : new DiagramToolPlacement(tool, new DiagramToolLayout.Item(tool.Id), -1);
+            }
+        }
 
         /// <summary>Creates tab-owned tool state over the available catalogue and layout.</summary>
         /// <param name="catalogue">The DI-registered tool catalogue.</param>
         /// <param name="layout">The fixed or caller-provided toolbox layout.</param>
-        /// <param name="canEdit">The live tab editing policy.</param>
-        public DiagramToolState(DiagramToolCatalogue catalogue, DiagramToolLayout layout, Func<bool> canEdit)
+        /// <param name="editingPolicy">The observable live tab editing permission.</param>
+        public DiagramToolState(IDiagramToolCatalogue catalogue, DiagramToolLayout layout, IObservable<bool> editingPolicy)
         {
             this.catalogue = catalogue;
             this.layout = layout;
-            this.canEdit = canEdit;
+            this.effective = this.WhenAnyValue(state => state.Active, state => state.Temporary, (retained, navigation) => navigation ?? retained)
+                .ToProperty(this, state => state.Effective);
+            this.policySubscription = editingPolicy.DistinctUntilChanged().Subscribe(canEdit =>
+            {
+                this.CanEdit = canEdit;
+                this.EnsureEnabled();
+            });
         }
 
-        /// <summary>Returns whether a compatible tool can run under the current tab policy.</summary>
-        /// <param name="tool">An available registered definition.</param>
-        /// <returns>Whether the tool can be activated.</returns>
-        public bool CanActivate(DiagramToolDefinition tool) => !this.closed && tool is not null && this.Available.Contains(tool)
-            && (!tool.RequiresEditableDiagram || this.canEdit());
+        /// <summary>Returns whether this exact toolbox placement can be activated.</summary>
+        /// <param name="placement">A placement from the toolbox.</param>
+        /// <returns>Whether the placement remains available and enabled.</returns>
+        public bool CanActivate(DiagramToolPlacement placement) => placement is not null && this.Toolbox.Contains(placement) && this.IsEnabled(placement.Tool);
 
-        /// <summary>Activates the specified tool when supported and enabled.</summary>
+        /// <summary>Activates the first enabled placement for the specified tool ID in layout order.</summary>
         /// <param name="id">The registration's stable ID.</param>
-        /// <returns>Whether activation was allowed.</returns>
-        public bool TryActivate(string id)
-        {
-            var tool = this.Available.FirstOrDefault(candidate => candidate.Id == id);
+        /// <returns>Whether an enabled placement was found.</returns>
+        public bool TryActivate(string id) => this.TryActivate(this.FindPlacement(id));
 
-            if (!this.CanActivate(tool))
+        /// <summary>Activates the specified placement when supported and enabled.</summary>
+        /// <param name="placement">The exact toolbox entry to activate.</param>
+        /// <returns>Whether activation was allowed.</returns>
+        public bool TryActivate(DiagramToolPlacement placement)
+        {
+            if (!this.CanActivate(placement))
             {
                 return false;
             }
 
-            this.Active = tool;
+            this.Active = placement;
             return true;
         }
 
@@ -102,28 +151,53 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <param name="projection">The validated projection for this tab.</param>
         internal void ForProjection(DiagramProjection projection)
         {
-            this.Available = this.catalogue.For(projection);
-            this.Toolbox = this.layout.Items
-                .Select(item => (Tool: this.Available.FirstOrDefault(tool => tool.Id == item.ToolId), Item: item))
-                .Where(entry => entry.Tool is not null).ToImmutableArray();
+            var definitions = this.catalogue.For(projection);
+
+            if (this.Available.SequenceEqual(definitions))
+            {
+                return;
+            }
+
+            this.Available = definitions;
+            this.Toolbox = this.layout.Items.Select((item, index) => new DiagramToolPlacement(
+                    definitions.FirstOrDefault(tool => tool.Id == item.ToolId), item, index))
+                .Where(entry => entry.Tool?.SupportsParameters(entry.Item.Parameters) == true)
+                .ToImmutableArray();
             this.EnsureEnabled();
         }
 
-        /// <summary>Releases the tool selection when its owning tab closes.</summary>
-        internal void Close()
+        /// <summary>Releases the policy subscription and the tool selection when the owning tab closes.</summary>
+        public void Dispose()
         {
+            if (this.closed)
+            {
+                return;
+            }
+
             this.closed = true;
+            this.policySubscription.Dispose();
+            this.CanEdit = false;
             this.Active = null;
             this.Temporary = null;
+            this.effective.Dispose();
         }
 
-        /// <summary>Falls back to an available tool when the current tool becomes disabled.</summary>
-        internal void EnsureEnabled()
+        /// <summary>Checks whether the tool's editing requirement is met.</summary>
+        /// <param name="tool">The tool metadata.</param>
+        /// <returns>Whether the tab currently permits the tool.</returns>
+        private bool IsEnabled(DiagramToolDefinition tool) => !this.closed && (!tool.RequiresEditableDiagram || this.CanEdit);
+
+        /// <summary>Finds the first enabled placement for one tool ID.</summary>
+        /// <param name="id">The registration's stable ID.</param>
+        /// <returns>The enabled placement, or null when unavailable.</returns>
+        private DiagramToolPlacement FindPlacement(string id) => this.Toolbox.FirstOrDefault(entry => entry.Tool.Id == id && this.IsEnabled(entry.Tool));
+
+        /// <summary>Falls back to an enabled placement when the current one becomes unavailable.</summary>
+        private void EnsureEnabled()
         {
             if (!this.CanActivate(this.Active))
             {
-                this.Active = this.Available.FirstOrDefault(tool => tool.Id == this.layout.DefaultToolId && this.CanActivate(tool))
-                    ?? this.Available.FirstOrDefault(this.CanActivate);
+                this.Active = this.FindPlacement(this.layout.DefaultToolId) ?? this.Toolbox.FirstOrDefault(entry => this.IsEnabled(entry.Tool));
             }
         }
     }

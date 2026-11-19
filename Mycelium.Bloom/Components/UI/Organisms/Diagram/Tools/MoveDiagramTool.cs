@@ -7,11 +7,13 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.ViewModel.Diagram.Tools
+namespace Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools
 {
     using Blazor.Diagrams.Core.Events;
     using Blazor.Diagrams.Core.Models;
     using Blazor.Diagrams.Core.Models.Base;
+
+    using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Selects canonical occurrences and gives the native drag behavior a permitted target.</summary>
     /// <param name="context">The native diagram and its owner.</param>

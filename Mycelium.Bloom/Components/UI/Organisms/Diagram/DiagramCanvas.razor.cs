@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
@@ -45,6 +46,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets or sets the runtime that loads diagram support for this interactive view.</summary>
         [Inject]
         private IJSRuntime ScriptRuntime { get; set; }
+
+        /// <summary>Gets or sets the registered factories for renderer-owned tool runtimes.</summary>
+        [Inject]
+        private DiagramToolRuntimeProvider ToolRuntimes { get; set; }
 
         /// <summary>Loads native script support before parameter binding can create a native canvas.</summary>
         /// <returns>Completion of interactive script initialization.</returns>
@@ -95,7 +100,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             {
                 this.ReleaseRenderer();
                 this.observed = this.ViewModel;
-                this.renderer = new DiagramRenderer(this.ViewModel);
+                this.renderer = new DiagramRenderer(this.ViewModel, this.ToolRuntimes);
                 this.renderer.Pointer.Changed += this.ToolPresentationChanged;
             }
         }

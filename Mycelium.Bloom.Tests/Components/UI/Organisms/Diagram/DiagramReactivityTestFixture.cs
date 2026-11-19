@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using System.Threading.Tasks;
 
     using Blazor.Diagrams.Components;
+    using Blazor.Diagrams.Components.Renderers;
     using Blazor.Diagrams.Core.Geometry;
 
     using Bunit;
@@ -134,6 +135,37 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             await boundary.InvokeAsync(() => boundary.Instance.ViewModel.Select());
             await boundary.WaitForAssertionAsync(() => Assert.That(boundary.Find("button").GetAttribute("aria-pressed"), Is.EqualTo("true")));
             Assert.That(parent.RenderCount - parentRenders, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task VerifyNativeBoundaryPointerAndKeyboardActivateExactlyOnce()
+        {
+            var selection = new CountingSelectionService();
+            var owner = this.CreateOwner(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var port = component.FindComponents<PortRenderer>()[0];
+            var boundaryWidget = port.FindComponent<DiagramBoundaryFeature>();
+            var boundary = boundaryWidget.Instance.ViewModel.Element;
+            var nativeSurface = port.Find("[data-port-id]");
+            var pointer = new PointerEventArgs { PointerId = 1, Button = 0, IsPrimary = true, PointerType = "mouse" };
+
+            await nativeSurface.TriggerEventAsync("onpointerdown", pointer);
+            await nativeSurface.TriggerEventAsync("onpointerup", pointer);
+            await boundaryWidget.Find("button").ClickAsync(new MouseEventArgs { Detail = 1 });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(boundary));
+                Assert.That(selection.SelectionWrites, Is.EqualTo(1));
+            }
+
+            await boundaryWidget.Find("button").ClickAsync(new MouseEventArgs { Detail = 0 });
+            Assert.That(selection.SelectionWrites, Is.EqualTo(2));
+
+            await component.Find("button[aria-label=Pan]").ClickAsync();
+            await nativeSurface.TriggerEventAsync("onpointerdown", pointer);
+            await nativeSurface.TriggerEventAsync("onpointerup", pointer);
+            Assert.That(selection.SelectionWrites, Is.EqualTo(2));
         }
 
         [Test]
@@ -427,10 +459,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
             public int ActiveSubscriptions { get; set; }
 
+            public int SelectionWrites { get; private set; }
+
             public IElement SelectedElement
             {
                 get => this.selectedElement;
-                set => this.RaiseAndSetIfChanged(ref this.selectedElement, value);
+                set
+                {
+                    this.SelectionWrites++;
+                    this.RaiseAndSetIfChanged(ref this.selectedElement, value);
+                }
             }
 
         }

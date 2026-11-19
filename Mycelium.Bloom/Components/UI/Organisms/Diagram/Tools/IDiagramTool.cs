@@ -7,7 +7,7 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.ViewModel.Diagram.Tools
+namespace Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools
 {
     using Blazor.Diagrams.Core.Events;
     using Blazor.Diagrams.Core.Models.Base;

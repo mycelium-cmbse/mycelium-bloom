@@ -9,7 +9,8 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-    using System.ComponentModel;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
 
     using Blazor.Diagrams.Core;
     using Blazor.Diagrams.Core.Behaviors;
@@ -18,9 +19,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
+
+    using ReactiveUI;
 
     using BrowserKeyboardEventArgs = Microsoft.AspNetCore.Components.Web.KeyboardEventArgs;
 
@@ -34,7 +37,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         private readonly DiagramToolContext context;
 
         /// <summary>Runtimes created on first use and released with the renderer.</summary>
-        private readonly Dictionary<DiagramToolDefinition, IDiagramTool> runtimes = new();
+        private readonly Dictionary<DiagramToolPlacement, IDiagramTool> runtimes = new();
+
+        /// <summary>Resolves runtime factories without owning their instances.</summary>
+        private readonly DiagramToolRuntimeProvider runtimeProvider;
+
+        /// <summary>Owns observation of tab state for this mount.</summary>
+        private readonly CompositeDisposable toolSubscriptions = new();
 
         /// <summary>The currently activated runtime.</summary>
         private IDiagramTool current;
@@ -66,21 +75,29 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Installs routing ahead of the native movable behavior.</summary>
         /// <param name="diagram">The mounted native graph.</param>
         /// <param name="owner">The tab-owned presentation authority.</param>
-        public DiagramPointerBehavior(Diagram diagram, IDiagramViewModel owner) : base(diagram)
+        /// <param name="runtimeProvider">The registry of renderer runtime factories.</param>
+        public DiagramPointerBehavior(Diagram diagram, IDiagramViewModel owner, DiagramToolRuntimeProvider runtimeProvider) : base(diagram)
         {
             this.tools = owner.Tools;
+            this.runtimeProvider = runtimeProvider;
             this.context = new DiagramToolContext(diagram, owner, model => model switch
             {
                 DiagramNodeModel node => node.ViewModel,
                 DiagramLinkModel link => link.ViewModel,
+                DiagramBoundaryPortModel port => port.ViewModel,
                 _ => null
             });
-            this.tools.BlocksPointerSelection = false;
-            this.tools.PropertyChanged += this.ToolChanged;
+            this.toolSubscriptions.Add(this.tools.WhenAnyValue(state => state.Active).Skip(1).Subscribe(_ =>
+            {
+                this.Cancel();
+                this.ApplyTool();
+            }));
+            this.toolSubscriptions.Add(this.tools.WhenAnyValue(state => state.Temporary).Subscribe(_ => this.ApplyTool()));
+            this.toolSubscriptions.Add(this.tools.WhenAnyValue(state => state.CanEdit).Skip(1)
+                .Where(_ => this.IsInteracting && this.tools.CanActivate(this.tools.Active)).Subscribe(_ => this.Cancel()));
             diagram.PointerDown += this.PointerDown;
             diagram.PointerMove += this.PointerMove;
             diagram.PointerUp += this.PointerUp;
-            this.ApplyTool();
         }
 
         /// <summary>Records a focused selection target without activating it on Space keydown.</summary>
@@ -163,11 +180,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.spaceHeld = false;
             this.spaceActivationTarget = null;
 
-            if (start is not null)
-            {
-                this.tools.BlocksPointerSelection = true;
-            }
-
             this.current?.Cancel(start);
             this.tools.Temporary = null;
             this.Changed?.Invoke();
@@ -181,9 +193,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 return;
             }
 
+            this.toolSubscriptions.Dispose();
             this.Cancel();
             this.disposed = true;
-            this.tools.PropertyChanged -= this.ToolChanged;
             this.Diagram.PointerDown -= this.PointerDown;
             this.Diagram.PointerMove -= this.PointerMove;
             this.Diagram.PointerUp -= this.PointerUp;
@@ -222,10 +234,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <returns>Whether a toolbox shortcut was handled.</returns>
         private bool TryActivateShortcut(string key)
         {
-            var shortcut = this.tools.Toolbox.FirstOrDefault(entry =>
-                string.Equals(entry.Item.Shortcut ?? entry.Tool.DefaultShortcut, key, StringComparison.OrdinalIgnoreCase));
+            var shortcut = this.tools.Toolbox.FirstOrDefault(entry => this.tools.CanActivate(entry)
+                && string.Equals(entry.Item.Shortcut ?? entry.Tool.DefaultShortcut, key, StringComparison.OrdinalIgnoreCase));
 
-            return shortcut.Tool is not null && this.tools.TryActivate(shortcut.Tool.Id);
+            return this.tools.TryActivate(shortcut);
         }
 
         /// <summary>Accepts one primary gesture before the native drag listener runs.</summary>
@@ -240,7 +252,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
             if (!args.IsPrimary || args.Button is not (0 or 1))
             {
-                this.tools.BlocksPointerSelection = true;
                 return;
             }
 
@@ -257,7 +268,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
 
             this.pointerStart = args;
-            this.tools.BlocksPointerSelection = args.Button == 1 || this.tools.Effective?.AllowsSelection != true;
             this.current?.PointerDown(model, args);
             this.Changed?.Invoke();
         }
@@ -267,21 +277,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="args">The native pointer event.</param>
         private void PointerMove(Model model, PointerEventArgs args)
         {
-            if (this.pointerStart is { } start)
+            if (this.pointerStart is { } start && start.PointerId != args.PointerId)
             {
-                if (start.PointerId != args.PointerId)
-                {
-                    this.Cancel();
-                    return;
-                }
-
-                // Compare browser position samples before native zoom or geometry calculation.
-                var origin = (start.ClientX, start.ClientY);
-
-                if (!origin.Equals((args.ClientX, args.ClientY)))
-                {
-                    this.tools.BlocksPointerSelection = true;
-                }
+                this.Cancel();
+                return;
             }
 
             var preview = this.Preview;
@@ -316,31 +315,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Changed?.Invoke();
         }
 
-        /// <summary>Updates the mounted runtime when the retained or temporary tool changes.</summary>
-        /// <param name="sender">The tab-owned tool state.</param>
-        /// <param name="args">The changed state property.</param>
-        private void ToolChanged(object sender, PropertyChangedEventArgs args)
-        {
-            if (args.PropertyName == nameof(DiagramToolState.Active))
-            {
-                this.Cancel();
-                this.ApplyTool();
-            }
-            else if (args.PropertyName == nameof(DiagramToolState.Temporary))
-            {
-                this.ApplyTool();
-            }
-        }
-
         /// <summary>Activates the effective tool, creating its runtime on first use.</summary>
         private void ApplyTool()
         {
             IDiagramTool next = null;
 
-            if (this.tools.Effective is { } definition && !this.runtimes.TryGetValue(definition, out next))
+            if (this.tools.Effective is { } placement && !this.runtimes.TryGetValue(placement, out next))
             {
-                next = definition.CreateRuntime(this.context, definition.Parameters);
-                this.runtimes.Add(definition, next);
+                next = this.runtimeProvider.Create(placement, this.context);
+                this.runtimes.Add(placement, next);
             }
 
             if (!ReferenceEquals(this.current, next))

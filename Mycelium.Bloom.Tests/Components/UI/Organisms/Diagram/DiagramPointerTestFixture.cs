@@ -12,21 +12,31 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reactive.Disposables;
+    using System.Reactive.Linq;
+    using System.Reactive.Subjects;
+    using System.Reflection;
 
     using Blazor.Diagrams;
     using Blazor.Diagrams.Core.Events;
     using Blazor.Diagrams.Core.Geometry;
 
+    using Microsoft.Extensions.DependencyInjection;
+
     using Moq;
 
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
     using Mycelium.SDK;
+
+    using ReactiveUI;
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Systems.Parts;
@@ -118,7 +128,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 Assert.That(owner.Viewport.PanY, Is.EqualTo(40));
                 Assert.That(node.Position, Is.EqualTo(original));
                 Assert.That(selection.SelectedElement, Is.SameAs(target));
-                Assert.That(owner.Tools.Active.Id, Is.EqualTo(temporary || middle ? DiagramToolDefaults.Move : DiagramToolDefaults.Pan));
+                Assert.That(owner.Tools.Active.Tool.Id, Is.EqualTo(temporary || middle ? DiagramToolDefaults.Move : DiagramToolDefaults.Pan));
             }
         }
 
@@ -173,9 +183,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             }
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void VerifyCancellationOrPolicyChangeStopsNativeDrag(bool policyChange)
+        [TestCase("cancel")]
+        [TestCase("lifecycle")]
+        [TestCase("read-only")]
+        public void VerifyCancellationOrPolicyChangeStopsNativeDrag(string interruption)
         {
             using var selection = new ContextAwareService();
             using var owner = new DiagramViewModel(DiagramTestFactory.Create([new PartUsage()]), selection);
@@ -184,9 +195,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var original = node.Position;
             renderer.Diagram.TriggerPointerDown(node, Pointer(0, 0));
 
-            if (policyChange)
+            if (interruption == "lifecycle")
             {
                 selection.LifecycleState = ProjectLifecycleKind.Review;
+            }
+            else if (interruption == "read-only")
+            {
+                owner.IsReadOnly = true;
             }
             else
             {
@@ -262,13 +277,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var remount = new DiagramRenderer(first);
             remount.Pointer.KeyChanged(" ", "Space", true);
             pointer.Cancel();
-            Assert.That(first.Tools.Temporary?.Id, Is.EqualTo(DiagramToolDefaults.Pan));
+            Assert.That(first.Tools.Temporary?.Tool.Id, Is.EqualTo(DiagramToolDefaults.Pan));
             remount.Pointer.KeyChanged(" ", "Space", false);
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(first.Tools.Active.Id, Is.EqualTo(DiagramToolDefaults.Pan));
-                Assert.That(second.Tools.Active.Id, Is.EqualTo(DiagramToolDefaults.Move));
+                Assert.That(first.Tools.Active.Tool.Id, Is.EqualTo(DiagramToolDefaults.Pan));
+                Assert.That(second.Tools.Active.Tool.Id, Is.EqualTo(DiagramToolDefaults.Move));
                 Assert.That(remount.Diagram.Nodes[0].Position, Is.EqualTo(new Point(90, 120)));
                 Assert.That(second.GetNodeViewModel(projection.Nodes[0].Occurrence.Id).Position, Is.EqualTo(new DiagramPoint(projection.Nodes[0].Occurrence.X, projection.Nodes[0].Occurrence.Y)));
                 Assert.That(first.Viewport, Is.SameAs(retained));
@@ -280,7 +295,13 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             var events = new List<string>();
             var parameters = new ConnectionParameters("reference");
-            var definition = new DiagramToolDefinition("connect", "Connect", "link", (toolContext, options) =>
+            var definition = new DiagramToolDefinition("connect", "Connect", "link")
+            {
+                ParameterType = typeof(ConnectionParameters),
+                DefaultShortcut = "r",
+                RequiresEditableDiagram = true
+            };
+            var runtime = new DiagramToolRuntimeRegistration(definition.Id, (toolContext, options) =>
             {
                 using (Assert.EnterMultipleScope())
                 {
@@ -289,19 +310,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 }
 
                 return new RecordingTool(events);
-            })
-            {
-                Parameters = parameters,
-                DefaultShortcut = "r",
-                RequiresEditableDiagram = true
-            };
-            var layout = DiagramToolDefaults.Layout with { Items = DiagramToolDefaults.Layout.Items.Add(new(definition.Id)) };
-            var catalogue = new DiagramToolCatalogue(DiagramToolDefaults.Definitions.Add(definition));
+            });
+            var layout = DiagramToolDefaults.Layout with { Items = DiagramToolDefaults.Layout.Items.Add(new(definition.Id, Parameters: parameters)) };
+            var registrations = new ServiceCollection();
+            registrations.AddDiagramServices();
+            registrations.AddSingleton(definition);
+            registrations.AddSingleton(runtime);
+            using var services = registrations.BuildServiceProvider();
+            var catalogue = services.GetRequiredService<IDiagramToolCatalogue>();
+            var runtimeProvider = services.GetRequiredService<DiagramToolRuntimeProvider>();
             using var selection = new ContextAwareService();
             using var owner = new DiagramViewModel(DiagramTestFactory.Create([new PartUsage()]) with { Kind = "general-view" },
                 selection, catalogue: catalogue, layout: layout);
 
-            using (var renderer = new DiagramRenderer(owner))
+            using (var renderer = new DiagramRenderer(owner, runtimeProvider))
             {
                 Assert.That(events, Is.Empty);
                 renderer.Pointer.KeyChanged("r", "KeyR", true);
@@ -326,10 +348,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             {
                 Assert.That(events, Is.EqualTo((string[])["activate", "down", "move", "up", "Enter", "down", "cancel",
                     "cancel", "deactivate", "activate", "cancel", "deactivate", "dispose"]));
-                Assert.That(owner.Tools.Active, Is.SameAs(definition));
+                Assert.That(owner.Tools.Active.Tool, Is.SameAs(definition));
             }
 
-            using var remounted = new DiagramRenderer(owner);
+            using var remounted = new DiagramRenderer(owner, runtimeProvider);
             Assert.That(events[^1], Is.EqualTo("activate"));
         }
 
@@ -356,30 +378,137 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         }
 
         [Test]
-        public void VerifyPointerDragDoesNotReplayASelectionClick()
+        public void VerifyParameterizedPlacementsCreateDistinctRuntimesAndUseFirstEnabledShortcut()
         {
+            var definition = new DiagramToolDefinition("connect", "Connect", "link") { ParameterType = typeof(ConnectionParameters) };
+            var reference = new ConnectionParameters("reference");
+            var binding = new ConnectionParameters("binding");
+            var layout = DiagramToolDefaults.Layout with
+            {
+                Items = [.. DiagramToolDefaults.Layout.Items, new(definition.Id, Shortcut: "c", Parameters: reference),
+                    new(definition.Id, Shortcut: "c", Parameters: binding), new(definition.Id), new(definition.Id, Parameters: new OtherParameters())]
+            };
+            var firstEvents = new List<string>();
+            var secondEvents = new List<string>();
+            var created = new List<IDiagramToolParameters>();
+            var runtime = new DiagramToolRuntimeRegistration(definition.Id, (_, parameters) =>
+            {
+                created.Add(parameters);
+                return new RecordingTool(ReferenceEquals(parameters, reference) ? firstEvents : secondEvents);
+            });
+            var catalogue = new DiagramToolCatalogue(DiagramToolDefaults.Definitions.Add(definition));
+            var registrations = new ServiceCollection();
+            registrations.AddDiagramServices();
+            registrations.AddSingleton(runtime);
+            using var services = registrations.BuildServiceProvider();
+            var provider = services.GetRequiredService<DiagramToolRuntimeProvider>();
             using var selection = new ContextAwareService();
-            var dragged = new PartUsage();
-            var other = new PartUsage();
-            var projection = DiagramTestFactory.Create([dragged, other]);
-            using var owner = new DiagramViewModel(projection, selection);
-            using var renderer = new DiagramRenderer(owner);
-            var first = renderer.Diagram.Nodes[0];
-            var otherNode = owner.GetNodeViewModel(projection.Nodes[1].Occurrence.Id);
+            using var owner = new DiagramViewModel(new DiagramProjection([], []), selection, catalogue: catalogue, layout: layout);
+            var placements = owner.Tools.Toolbox.Where(placement => placement.Tool == definition).ToArray();
+            Assert.That(placements, Has.Length.EqualTo(2));
 
-            renderer.Diagram.TriggerPointerDown(first, Pointer(10, 20));
-            renderer.Diagram.TriggerPointerMove(null, Pointer(30, 40));
-            renderer.Diagram.TriggerPointerUp(null, Pointer(30, 40));
-            otherNode.Select(true);
-            Assert.That(selection.SelectedElement, Is.SameAs(dragged));
+            using (var renderer = new DiagramRenderer(owner, provider))
+            {
+                renderer.Pointer.KeyChanged("c", "KeyC", true);
+                Assert.That(owner.Tools.Active, Is.SameAs(placements[0]));
+                owner.Tools.TryActivate(placements[1]);
+                renderer.Diagram.TriggerPointerDown(null, Pointer(2, 4));
+                renderer.Pointer.KeyChanged("c", "KeyC", true);
+                Assert.That(owner.Tools.Active, Is.SameAs(placements[0]));
+            }
 
-            renderer.Diagram.TriggerPointerDown(renderer.Diagram.Nodes[1], Pointer(10, 20));
-            renderer.Diagram.TriggerPointerUp(null, Pointer(10, 20));
-            otherNode.Select(true);
-            Assert.That(selection.SelectedElement, Is.SameAs(other));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(created, Is.EqualTo(new[] { reference, binding }));
+                Assert.That(firstEvents, Is.EqualTo((string[])["activate", "cancel", "deactivate", "activate", "cancel", "deactivate", "dispose"]));
+                Assert.That(secondEvents, Is.EqualTo((string[])["activate", "down", "cancel", "deactivate", "dispose"]));
+            }
         }
 
+        [Test]
+        public void VerifyToolStatePublishesApplicabilityAndEffectivePlacementAndDisposesPolicyOnce()
+        {
+            var definition = new DiagramToolDefinition("connect", "Connect", "link") { DiagramKinds = ["sample"], RequiresEditableDiagram = true };
+            var catalogue = new DiagramToolCatalogue(DiagramToolDefaults.Definitions.Add(definition));
+            var layout = DiagramToolDefaults.Layout with { Items = DiagramToolDefaults.Layout.Items.Add(new(definition.Id)) };
+            using var policy = new BehaviorSubject<bool>(true);
+            var disposed = 0;
+            var editingPolicy = Observable.Create<bool>(observer =>
+                new CompositeDisposable(policy.Subscribe(observer), Disposable.Create(() => disposed++)));
+            using var selection = new ContextAwareService();
+            using var owner = new DiagramViewModel(new DiagramProjection([], []), selection, catalogue: catalogue, layout: layout);
+            var definitions = new List<int>();
+            var toolbox = new List<int>();
+            var effective = new List<string>();
+            using var definitionsSubscription = owner.Tools.WhenAnyValue(state => state.Available).Subscribe(value => definitions.Add(value.Length));
+            using var toolboxSubscription = owner.Tools.WhenAnyValue(state => state.Toolbox).Subscribe(value => toolbox.Add(value.Length));
+            using var effectiveSubscription = owner.Tools.WhenAnyValue(state => state.Effective).Subscribe(value => effective.Add(value?.Tool.Id));
+            using var renderer = new DiagramRenderer(owner);
+
+            owner.UpdateProjection(owner.Projection with { Kind = "sample" });
+            owner.UpdateProjection(owner.Projection with { Kind = "other" });
+            owner.Tools.TryActivate(DiagramToolDefaults.Pan);
+            owner.Tools.TryActivate(DiagramToolDefaults.Move);
+            renderer.Pointer.KeyChanged(" ", "Space", true);
+            renderer.Pointer.KeyChanged(" ", "Space", false);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(definitions, Is.EqualTo((int[])[2, 3, 2]));
+                Assert.That(toolbox, Is.EqualTo((int[])[2, 3, 2]));
+                Assert.That(effective, Is.EqualTo((string[])["move", "pan", "move", "pan", "move"]));
+            }
+
+            var state = new DiagramToolState(catalogue, layout, editingPolicy);
+            try
+            {
+                Assert.That(state.CanEdit, Is.True);
+                policy.OnNext(false);
+                Assert.That(state.CanEdit, Is.False);
+            }
+            finally
+            {
+                state.Dispose();
+            }
+
+            policy.OnNext(true);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(disposed, Is.EqualTo(1));
+                Assert.That(state.CanEdit, Is.False);
+            }
+        }
+
+        [Test]
+        public void VerifyDiagramContractsDoNotReferenceRendererTypes()
+        {
+            const BindingFlags members = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+            var types = typeof(DiagramToolDefinition).Assembly.GetTypes();
+            Type[] modelTypes = [typeof(DiagramToolDefinition), typeof(DiagramToolLayout), typeof(DiagramToolLayout.Item), typeof(IDiagramToolParameters)];
+            var viewModelTypes = types.Where(type => type.Namespace?.StartsWith("Mycelium.Bloom.ViewModel.Diagram", StringComparison.Ordinal) == true);
+            var modelDependencies = modelTypes.SelectMany(type => type.GetFields(members)).Select(field => field.FieldType).SelectMany(ReferencedTypes);
+            var viewModelDependencies = viewModelTypes.SelectMany(type => type.GetFields(members)).Select(field => field.FieldType).SelectMany(ReferencedTypes);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(modelDependencies, Has.None.Matches<Type>(type => type.Namespace?.StartsWith("Mycelium.Bloom.ViewModel", StringComparison.Ordinal) == true
+                    || IsRendererType(type)));
+                Assert.That(viewModelDependencies, Has.None.Matches<Type>(IsRendererType));
+                Assert.That(typeof(IDiagramTool).Namespace, Is.EqualTo("Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools"));
+            }
+        }
+
+        private static IEnumerable<Type> ReferencedTypes(Type type) => type.IsGenericType
+            ? type.GetGenericArguments().SelectMany(ReferencedTypes).Prepend(type)
+            : [type];
+
+        private static bool IsRendererType(Type type) => type.Namespace?.StartsWith("Blazor.Diagrams", StringComparison.Ordinal) == true
+            || type.Namespace?.StartsWith("Mycelium.Bloom.Components", StringComparison.Ordinal) == true;
+
         private sealed record ConnectionParameters(string Kind) : IDiagramToolParameters;
+
+        private sealed record OtherParameters : IDiagramToolParameters;
 
         private sealed class RecordingTool(List<string> events) : IDiagramTool
         {

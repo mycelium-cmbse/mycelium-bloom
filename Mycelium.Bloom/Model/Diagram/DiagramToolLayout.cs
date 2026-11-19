@@ -21,6 +21,7 @@ namespace Mycelium.Bloom.Model.Diagram
         /// <param name="ToolId">The registered tool to present.</param>
         /// <param name="Group">Adjacent tools with different groups get a visual separator.</param>
         /// <param name="Shortcut">The shortcut override for this placement, when supplied.</param>
-        public sealed record Item(string ToolId, string Group = null, string Shortcut = null);
+        /// <param name="Parameters">The immutable tool configuration for this placement.</param>
+        public sealed record Item(string ToolId, string Group = null, string Shortcut = null, IDiagramToolParameters Parameters = null);
     }
 }

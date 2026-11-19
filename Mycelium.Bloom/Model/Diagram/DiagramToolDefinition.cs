@@ -11,14 +11,11 @@ namespace Mycelium.Bloom.Model.Diagram
 {
     using System.Collections.Immutable;
 
-    using Mycelium.Bloom.ViewModel.Diagram.Tools;
-
     /// <summary>Describes one registered diagram tool independently of its placement and runtime lifetime.</summary>
     /// <param name="Id">The stable identifier used by layouts.</param>
     /// <param name="Label">The accessible display label.</param>
     /// <param name="Icon">The existing icon identifier.</param>
-    /// <param name="CreateRuntime">Creates a tool for a mounted diagram using its context and this definition's parameters.</param>
-    public sealed record DiagramToolDefinition(string Id, string Label, string Icon, Func<DiagramToolContext, IDiagramToolParameters, IDiagramTool> CreateRuntime)
+    public sealed record DiagramToolDefinition(string Id, string Label, string Icon)
     {
         /// <summary>Gets the default unmodified key, when supplied.</summary>
         public string DefaultShortcut { get; init; }
@@ -29,8 +26,8 @@ namespace Mycelium.Bloom.Model.Diagram
         /// <summary>Gets the capabilities required from the projection.</summary>
         public ImmutableArray<string> RequiredCapabilities { get; init; } = [];
 
-        /// <summary>Gets the immutable parameters passed to this registration's runtime factory.</summary>
-        public IDiagramToolParameters Parameters { get; init; }
+        /// <summary>Gets the required immutable parameter contract, or null for a parameterless tool.</summary>
+        public Type ParameterType { get; init; }
 
         /// <summary>Gets whether the tool requires an editable diagram to be enabled.</summary>
         public bool RequiresEditableDiagram { get; init; }
@@ -43,5 +40,11 @@ namespace Mycelium.Bloom.Model.Diagram
 
         /// <summary>Gets the optional tooltip displayed in addition to the accessible label.</summary>
         public string Tooltip { get; init; }
+
+        /// <summary>Checks whether a layout entry supplies the required parameter type.</summary>
+        /// <param name="parameters">The immutable configuration for one placement.</param>
+        /// <returns>Whether the tool can accept the supplied parameter shape.</returns>
+        internal bool SupportsParameters(IDiagramToolParameters parameters) =>
+            this.ParameterType is null ? parameters is null : this.ParameterType.IsInstanceOfType(parameters);
     }
 }

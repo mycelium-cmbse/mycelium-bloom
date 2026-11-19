@@ -104,6 +104,10 @@
     overflow-wrap: anywhere;
 }
 
+.general-diagram ::deep .diagram-boundary-port {
+    display: contents;
+}
+
 .general-diagram ::deep .diagram-boundary {
     position: absolute;
     border: 0;

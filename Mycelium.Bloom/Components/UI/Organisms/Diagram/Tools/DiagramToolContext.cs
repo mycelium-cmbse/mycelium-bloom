@@ -7,9 +7,11 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.ViewModel.Diagram.Tools
+namespace Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools
 {
     using Blazor.Diagrams.Core.Models.Base;
+
+    using Mycelium.Bloom.ViewModel.Diagram;
 
     using NativeDiagram = Blazor.Diagrams.Core.Diagram;
 

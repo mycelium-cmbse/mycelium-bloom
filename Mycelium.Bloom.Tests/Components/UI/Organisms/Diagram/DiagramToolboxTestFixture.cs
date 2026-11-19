@@ -14,6 +14,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using System.Threading.Tasks;
 
     using Blazor.Diagrams;
+    using Blazor.Diagrams.Components.Renderers;
     using Blazor.Diagrams.Core.Geometry;
 
     using Bunit;
@@ -30,6 +31,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
+
 
     using SysML2.NET.Core.POCO.Core.Features;
     using SysML2.NET.Core.POCO.Systems.Parts;
@@ -101,14 +103,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(owner.Tools.Active.Id, Is.EqualTo(DiagramToolDefaults.Pan));
-                Assert.That(other.Tools.Active.Id, Is.EqualTo(DiagramToolDefaults.Move));
+                Assert.That(owner.Tools.Active.Tool.Id, Is.EqualTo(DiagramToolDefaults.Pan));
+                Assert.That(other.Tools.Active.Tool.Id, Is.EqualTo(DiagramToolDefaults.Move));
                 Assert.That(component.Find("button[aria-label=Pan]").GetAttribute("aria-pressed"), Is.EqualTo("true"));
                 Assert.That(component.Find("button[aria-label=Move]").GetAttribute("aria-pressed"), Is.EqualTo("false"));
             }
 
             component.Find("button[aria-label=Move]").Click();
-            Assert.That(owner.Tools.Active.Id, Is.EqualTo(DiagramToolDefaults.Move));
+            Assert.That(owner.Tools.Active.Tool.Id, Is.EqualTo(DiagramToolDefaults.Move));
         }
 
         [TestCase(false, 1)]
@@ -165,7 +167,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public void VerifyToolboxRendersRegisteredLayoutAndDisablesEditingInReadOnlyViews()
         {
-            var custom = new DiagramToolDefinition("connect", "Connect", "link", (_, _) => null)
+            var custom = new DiagramToolDefinition("connect", "Connect", "link")
             {
                 DiagramKinds = ["sample"],
                 RequiredCapabilities = ["relationships"],
@@ -178,7 +180,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             registrations.AddDiagramServices();
             registrations.AddSingleton(custom);
             using var provider = registrations.BuildServiceProvider();
-            var catalogue = provider.GetRequiredService<DiagramToolCatalogue>();
+            var catalogue = provider.GetRequiredService<IDiagramToolCatalogue>();
             var unsupported = new DiagramProjection([], []) { Kind = "sample" };
             var supported = unsupported with { Capabilities = unsupported.Capabilities.Add("relationships") };
             using (Assert.EnterMultipleScope())
@@ -200,7 +202,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             }
 
             component.Find("button[aria-label=Connect]").Click();
-            Assert.That(owner.Tools.Active, Is.SameAs(custom));
+            Assert.That(owner.Tools.Active.Tool, Is.SameAs(custom));
             owner.IsReadOnly = true;
 
             component.WaitForAssertion(() =>
@@ -212,6 +214,88 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                     Assert.That(owner.Tools.TryActivate(custom.Id), Is.False);
                 }
             });
+
+            owner.UpdateProjection(unsupported);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button[aria-label=Connect]"), Is.Empty));
+        }
+
+        [Test]
+        public async Task VerifyPointerDragDoesNotReplayASelectionClick()
+        {
+            using var selection = new ContextAwareService();
+            var (owner, selected, _) = this.CreateSelectionDiagram(selection);
+            var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var native = component.FindComponent<CascadingValue<BlazorDiagram>>().Instance.Value;
+            var buttons = component.FindAll(".mb-diagram-node-select");
+            var first = native.Nodes.Single(node => ReferenceEquals(((DiagramNodeModel)node).ViewModel.Element, selected));
+            var other = buttons.Single(button => button.GetAttribute("aria-label")?.Contains("target", System.StringComparison.Ordinal) == true);
+
+            await component.InvokeAsync(() =>
+            {
+                native.TriggerPointerDown(first, NativePointer(10, 20));
+                native.TriggerPointerMove(null, NativePointer(30, 40));
+                native.TriggerPointerUp(null, NativePointer(30, 40));
+            });
+            await other.ClickAsync(new MouseEventArgs { Detail = 1 });
+            Assert.That(selection.SelectedElement, Is.SameAs(selected));
+
+            await other.ClickAsync(new MouseEventArgs { Detail = 0 });
+            Assert.That(selection.SelectedElement, Is.SameAs(owner.Projection.Nodes.Single(node => ((PartUsage)node.Occurrence.Element).DeclaredName == "target").Occurrence.Element));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task VerifyFocusedBoundarySpacePreservesPropertiesDuringPan(bool drag)
+        {
+            using var selection = new ContextAwareService();
+            using var properties = new DetailsPanelViewModel(selection);
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var owner = new DiagramViewModel(projection, selection);
+            this.owners.Add(owner);
+            var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var native = component.FindComponent<CascadingValue<BlazorDiagram>>().Instance.Value;
+            var parent = native.Nodes.OfType<DiagramNodeModel>().First(node => node.Ports.Any(port => port.Links.Count > 0));
+            var port = parent.Ports.First(value => value.Links.Count > 0);
+            var initial = parent.ViewModel.Element;
+            owner.Select(initial);
+            var originalProperties = properties.Presentation;
+            var portWidget = component.FindComponents<PortRenderer>().Single(widget => ReferenceEquals(widget.Instance.Port, port));
+            var feature = portWidget.FindComponent<DiagramBoundaryFeature>().Instance.ViewModel.Element;
+            var boundary = portWidget.Find("button");
+            var canvas = component.Find(".general-diagram-canvas");
+            var space = new KeyboardEventArgs { Code = "Space", Key = " " };
+            await boundary.KeyDownAsync(space);
+            await canvas.KeyDownAsync(space);
+            Assert.That(selection.SelectedElement, Is.SameAs(initial));
+
+            if (drag)
+            {
+                await component.InvokeAsync(() =>
+                {
+                    native.TriggerPointerDown(port, NativePointer(30, 40));
+                    native.TriggerPointerMove(null, NativePointer(50, 55));
+                    native.TriggerPointerUp(port, NativePointer(50, 55));
+                });
+            }
+
+            await canvas.KeyUpAsync(space);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(drag ? initial : feature));
+                Assert.That(properties.Presentation.Element, Is.SameAs(selection.SelectedElement));
+                if (drag)
+                {
+                    Assert.That(properties.Presentation, Is.SameAs(originalProperties));
+                }
+            }
+
+            await component.InvokeAsync(() =>
+            {
+                owner.Select(initial);
+                native.TriggerPointerDown(port, NativePointer(30, 40));
+                native.TriggerPointerUp(port, NativePointer(30, 40));
+            });
+            Assert.That(properties.Presentation.Element, Is.SameAs(feature));
         }
 
         [TestCase("onpointercancel")]
@@ -254,7 +338,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(owner.Tools.Active.Id, Is.EqualTo(DiagramToolDefaults.Move));
+                Assert.That(owner.Tools.Active.Tool.Id, Is.EqualTo(DiagramToolDefaults.Move));
                 Assert.That(owner.Tools.Temporary, Is.Null);
                 Assert.That(component.Find("section[data-tool=move]").HasAttribute("data-temporary-pan"), Is.False);
                 Assert.That(selection.SelectedElement, Is.SameAs(selected));
@@ -285,7 +369,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             {
                 Assert.That(selection.SelectedElement, Is.SameAs(selected));
                 Assert.That(properties.Presentation, Is.SameAs(originalProperties));
-                Assert.That(owner.Tools.Temporary?.Id, Is.EqualTo(DiagramToolDefaults.Pan));
+                Assert.That(owner.Tools.Temporary?.Tool.Id, Is.EqualTo(DiagramToolDefaults.Pan));
             }
 
             if (drag)

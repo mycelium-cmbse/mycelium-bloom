@@ -7,16 +7,17 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomReactiveComponentBase<DiagramNodeViewModel>
+@inherits SelectableDiagramWidgetBase<DiagramNodeViewModel>
 
 <div @attributes="this.AdditionalAttributes" class="@this.BuildRootCssClass("diagram-occurrence", this.ViewModel.IsSelected ? "diagram-occurrence--selected" : null)" style="@this.Size"
      data-occurrence-id="@this.Node.Id" data-element-id="@this.ViewModel.Presentation.Occurrence.Element.ElementId"
-     @onclick="this.Select" @onclick:stopPropagation="true" role="group" aria-label="@this.ViewModel.Presentation.Name.Declaration">
-    <button type="button" class="mb-diagram-node-select" aria-label="@this.ViewModel.Presentation.Name.Declaration"
-            aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true"
-            @onkeydown="args => this.Pointer?.PrepareSpaceActivation(args, this.ViewModel)" @onkeyup:preventDefault="@(this.Pointer is not null)"
-            @onblur="() => this.Pointer?.CancelSpaceActivation(this.ViewModel)"></button>
-    <CascadingValue Value="this.ViewModel">
-        <DynamicComponent Type="@this.Components.GetComponentType(this.ViewModel.Presentation.GetType())" Parameters="@this.GetComponentParameters()" />
+     role="group" aria-label="@this.ViewModel.Presentation.Name.Declaration">
+    @this.SelectableSurface("button",
+        [new("type", "button"), new("class", "mb-diagram-node-select"), new("aria-label", this.ViewModel.Presentation.Name.Declaration),
+            new("aria-pressed", this.ViewModel.IsSelected.ToString().ToLowerInvariant())], forwardAdditionalAttributes: false)
+    <CascadingValue Value="this.Node">
+        <CascadingValue Value="this.ViewModel">
+            <DynamicComponent Type="@this.Components.GetComponentType(this.ViewModel.Presentation.GetType())" Parameters="@this.GetComponentParameters()" />
+        </CascadingValue>
     </CascadingValue>
 </div>

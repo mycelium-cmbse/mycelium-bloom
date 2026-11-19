@@ -9,7 +9,6 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-    using System.ComponentModel;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
 
@@ -19,6 +18,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Blazor.Diagrams.Core.Models;
     using Blazor.Diagrams.Options;
 
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
@@ -30,8 +30,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>The tab-owned presentation borrowed by this mount.</summary>
         private readonly IDiagramViewModel owner;
 
-        /// <summary>Owns observation of the tab's distinct zoom and pan state for this mount.</summary>
-        private readonly CompositeDisposable viewportSubscriptions = new();
+        /// <summary>Owns observation of the tab's viewport and projection for this mount.</summary>
+        private readonly CompositeDisposable tabSubscriptions = new();
 
         /// <summary>Owns geometry observation for the current projection.</summary>
         private readonly CompositeDisposable nodeSubscriptions = new();
@@ -50,12 +50,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
         /// <summary>Mounts a validated projection without enabling model-editing behaviors.</summary>
         /// <param name="owner">The caller-owned ViewModel, which outlives ordinary renderer unmounts.</param>
-        public DiagramRenderer(IDiagramViewModel owner)
+        /// <param name="runtimeProvider">The registry of runtime factories, or the built-ins for a standalone renderer.</param>
+        public DiagramRenderer(IDiagramViewModel owner, DiagramToolRuntimeProvider runtimeProvider = null)
         {
             ArgumentNullException.ThrowIfNull(owner);
             this.owner = owner;
             this.Diagram = new BlazorDiagram(new BlazorDiagramOptions(), registerDefaultBehaviors: false);
-            this.Pointer = new DiagramPointerBehavior(this.Diagram, owner);
+            this.Pointer = new DiagramPointerBehavior(this.Diagram, owner, runtimeProvider ?? new DiagramToolRuntimeProvider(DiagramToolRuntimeProvider.BuiltInRegistrations));
             this.Diagram.RegisterBehavior(this.Pointer);
             this.Diagram.RegisterBehavior(new DragMovablesBehavior(this.Diagram));
             this.Diagram.RegisterBehavior(new ZoomBehavior(this.Diagram));
@@ -65,15 +66,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Diagram.RegisterComponent<DiagramNodeModel, DiagramNodeWidget>();
             this.Diagram.RegisterComponent<DiagramLinkModel, DiagramEdge>();
             this.CreateModels();
-            this.viewportSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
+            this.tabSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
                 .Select(viewport => viewport.Zoom)
                 .DistinctUntilChanged()
                 .Subscribe(zoom => this.ApplyViewport(() => this.Diagram.SetZoom(zoom))));
-            this.viewportSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
+            this.tabSubscriptions.Add(this.owner.WhenAnyValue(view => view.Viewport)
                 .Select(viewport => new Point(viewport.PanX, viewport.PanY))
                 .DistinctUntilChanged()
                 .Subscribe(pan => this.ApplyViewport(() => this.Diagram.SetPan(pan.X, pan.Y))));
-            this.owner.PropertyChanged += this.OwnerChanged;
+            this.tabSubscriptions.Add(this.owner.WhenAnyValue(view => view.Projection).Skip(1).Subscribe(_ => this.RefreshProjection()));
             this.Diagram.ContainerChanged += this.InitializeViewport;
             this.Diagram.PanChanged += this.ReportViewport;
             this.Diagram.ZoomChanged += this.ReportViewport;
@@ -88,9 +89,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
 
             this.disposed = true;
-            this.viewportSubscriptions.Dispose();
+            this.tabSubscriptions.Dispose();
             this.nodeSubscriptions.Dispose();
-            this.owner.PropertyChanged -= this.OwnerChanged;
             this.Diagram.ContainerChanged -= this.InitializeViewport;
             this.Diagram.PanChanged -= this.ReportViewport;
             this.Diagram.ZoomChanged -= this.ReportViewport;
@@ -156,27 +156,18 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
         }
 
-        /// <summary>Applies changes raised by the tab-owned ViewModel.</summary>
-        /// <param name="sender">The presentation owner that raised the change.</param>
-        /// <param name="args">The property whose presentation changed.</param>
-        private void OwnerChanged(object sender, PropertyChangedEventArgs args)
+        /// <summary>Replaces native models when the tab publishes a new projection.</summary>
+        private void RefreshProjection()
         {
-            if (args.PropertyName == nameof(IDiagramViewModel.Projection))
+            this.Pointer.Cancel();
+            this.nodeSubscriptions.Clear();
+            this.Diagram.Batch(() =>
             {
-                this.Pointer.Cancel();
-                this.nodeSubscriptions.Clear();
-                this.Diagram.Batch(() =>
-                {
-                    this.Diagram.Links.Clear();
-                    this.Diagram.Nodes.Clear();
-                    this.CreateModels();
-                });
-                this.InitializeViewport();
-            }
-            else if (args.PropertyName == nameof(IDiagramViewModel.CanMoveNodes))
-            {
-                this.Pointer.Cancel();
-            }
+                this.Diagram.Links.Clear();
+                this.Diagram.Nodes.Clear();
+                this.CreateModels();
+            });
+            this.InitializeViewport();
         }
 
         /// <summary>Applies a distinct VM-owned viewport value without replaying native gesture notifications.</summary>
