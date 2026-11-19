@@ -15,6 +15,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
     using System.Linq;
     using System.Threading.Tasks;
 
+    using BlazorBlueprint.Components;
+
     using Bunit;
     using Bunit.TestDoubles;
 
@@ -32,8 +34,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
     using Mycelium.SDK.POCO;
 
     using Organization = Mycelium.SDK.POCO.Organization;
-
-    using PageHeaderComponent = Mycelium.Bloom.Components.UI.Molecules.PageHeader.PageHeader;
 
     [TestFixture]
     public sealed class OrganizationContextViewTestFixture
@@ -88,18 +88,17 @@ namespace Mycelium.Bloom.Tests.Components.UI.Molecules.OrganizationContextView
             var second = new Organization { Id = Guid.NewGuid(), Name = "Payload Lab" };
             RenderFragment page = builder =>
             {
-                builder.OpenComponent<PageHeaderComponent>(0);
-                builder.AddAttribute(1, nameof(PageHeaderComponent.Title), "Projects");
+                builder.OpenComponent<BbSeparator>(0);
                 builder.CloseComponent();
             };
             this.viewModel.SetupGet(model => model.Organization).Returns(first);
             var cut = this.context.Render<OrganizationContextView>(parameters => parameters.Add(view => view.ChildContent, page));
-            var pageOfFirst = cut.FindComponent<PageHeaderComponent>().Instance;
+            var pageOfFirst = cut.FindComponent<BbSeparator>().Instance;
 
             this.viewModel.SetupGet(model => model.Organization).Returns(second);
             this.viewModel.Raise(model => model.PropertyChanged += null, new PropertyChangedEventArgs(nameof(IOrganizationContextViewModel.Organization)));
 
-            cut.WaitForAssertion(() => Assert.That(cut.FindComponent<PageHeaderComponent>().Instance, Is.Not.SameAs(pageOfFirst)));
+            cut.WaitForAssertion(() => Assert.That(cut.FindComponent<BbSeparator>().Instance, Is.Not.SameAs(pageOfFirst)));
         }
 
         [TestCase(ErrorType.NotFound, false, true)]

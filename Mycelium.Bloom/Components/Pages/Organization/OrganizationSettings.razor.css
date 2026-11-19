@@ -1,0 +1,7 @@
+.mb-organization-settings__title {
+    margin: 0;
+    color: var(--foreground);
+    font-size: var(--text-28);
+    font-weight: var(--font-weight-heading-md);
+    line-height: var(--spacing-34);
+}
