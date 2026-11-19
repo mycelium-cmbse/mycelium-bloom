@@ -54,8 +54,5 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <param name="key">The keyboard key.</param>
         /// <param name="pressed">Whether the key was pressed or released.</param>
         void KeyChanged(string key, bool pressed) { }
-
-        /// <summary>Releases this runtime's mounted resources.</summary>
-        void IDisposable.Dispose() { }
     }
 }

@@ -53,5 +53,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <summary>Releases the gesture without changing the retained viewport.</summary>
         /// <param name="pointerStart">The dispatcher-owned starting event for the interrupted gesture, if any.</param>
         public void Cancel(PointerEventArgs pointerStart) => this.previous = null;
+
+        /// <summary>Releases the last pointer position without changing the retained viewport.</summary>
+        public void Dispose() => this.previous = null;
     }
 }

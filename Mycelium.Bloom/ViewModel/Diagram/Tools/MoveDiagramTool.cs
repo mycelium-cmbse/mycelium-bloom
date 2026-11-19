@@ -60,12 +60,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         public void PointerUp(Model model, PointerEventArgs args)
         {
             this.background.PointerUp(model, args);
-
-            if (this.dragTarget is { } target)
-            {
-                this.dragTarget = null;
-                context.Diagram.UnselectModel(target);
-            }
+            this.ReleaseDragTarget();
         }
 
         /// <summary>Completes the native behavior through its public pointer-up event when a browser gesture is interrupted.</summary>
@@ -78,6 +73,23 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
             if (target is not null && pointerStart is not null)
             {
                 context.Diagram.TriggerPointerUp(target, pointerStart);
+            }
+        }
+
+        /// <summary>Disposes background navigation and releases any remaining native drag selection after dispatcher cancellation.</summary>
+        public void Dispose()
+        {
+            this.background.Dispose();
+            this.ReleaseDragTarget();
+        }
+
+        /// <summary>Clears the tool's native drag selection.</summary>
+        private void ReleaseDragTarget()
+        {
+            if (this.dragTarget is { } target)
+            {
+                this.dragTarget = null;
+                context.Diagram.UnselectModel(target);
             }
         }
     }
