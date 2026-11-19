@@ -47,7 +47,7 @@
 }
 
 .mb-members-view ::deep .mb-members-view__search {
-    flex: 0 1 var(--spacing-317);
+    flex: 0 1 var(--search-width);
     min-width: 0;
     height: var(--spacing-32);
     border-color: var(--border-subtle);

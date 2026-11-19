@@ -46,7 +46,7 @@
 }
 
 .mb-projects-view ::deep .mb-projects-view__search {
-    flex: 0 1 var(--spacing-317);
+    flex: 0 1 var(--search-width);
     min-width: 0;
     height: var(--spacing-32);
     background: var(--card);
