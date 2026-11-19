@@ -1,11 +1,14 @@
-.mb-organization-header ::deep .mb-app-header {
-    min-height: var(--spacing-48);
+.mb-organization-header {
+    display: flex;
+    align-items: center;
     gap: var(--spacing-8);
+    width: 100%;
+    min-width: 0;
+    min-height: var(--spacing-48);
     padding-inline: var(--spacing-16);
-}
-
-.mb-organization-header ::deep .mb-app-header__user {
-    margin-inline-start: auto;
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    background: var(--card);
+    color: var(--foreground);
 }
 
 .mb-organization-header__brand {
@@ -28,4 +31,23 @@
 
 .mb-organization-header ::deep .mb-crumbs__crumb {
     height: auto;
+}
+
+.mb-organization-header ::deep .mb-organization-header__account {
+    width: auto;
+    height: auto;
+    margin-inline-start: auto;
+    padding: 0;
+    border-radius: var(--radius-full);
+}
+
+.mb-organization-header ::deep .mb-organization-header__avatar {
+    width: var(--spacing-24);
+    height: var(--spacing-24);
+}
+
+.mb-organization-header ::deep .mb-organization-header__initials {
+    background: var(--sysml-connections-header);
+    color: var(--primary-foreground);
+    font: var(--typography-typography-ui-semibold-10);
 }
