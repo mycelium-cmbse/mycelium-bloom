@@ -74,6 +74,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var viewModel = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             viewModel.SetupGet(value => value.Projection).Returns(projection);
             viewModel.SetupGet(value => value.Viewport).Returns(new DiagramViewport());
+            using var toolOwner = new DiagramViewModel(projection, Mock.Of<IElementSelectionService>());
+            viewModel.SetupGet(value => value.Tools).Returns(toolOwner.Tools);
             viewModel.Setup(value => value.Dispose());
             var factory = new Mock<Func<SysML2Element, IDiagramViewModel>>(MockBehavior.Strict);
             factory.Setup(create => create(It.IsAny<SysML2Element>())).Returns(viewModel.Object);
@@ -202,6 +204,8 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var diagram = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             diagram.SetupGet(viewModel => viewModel.Projection).Returns(projection);
             diagram.SetupGet(viewModel => viewModel.Viewport).Returns(new DiagramViewport());
+            using var toolOwner = new DiagramViewModel(projection, Mock.Of<IElementSelectionService>());
+            diagram.SetupGet(viewModel => viewModel.Tools).Returns(toolOwner.Tools);
             diagram.Setup(viewModel => viewModel.Dispose());
             var factory = new Mock<Func<DiagramProjection, IDiagramViewModel>>(MockBehavior.Strict);
             factory.Setup(create => create(It.Is<DiagramProjection>(value => ReferenceEquals(value, projection)))).Returns(diagram.Object);

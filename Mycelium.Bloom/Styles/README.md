@@ -90,7 +90,7 @@ The small Blueprint radius bridge references official numeric radius variables.
 
 ## Typography and application styling
 
-Version 1.1.0 preserves typography tracking separately from composite fonts.
+The package exposes typography tracking separately from composite fonts.
 Use `--typography-typography-display-lg-letter-spacing` for display headings,
 `--typography-typography-label-sm-letter-spacing` for compact labels and
 `--typography-typography-label-xs-letter-spacing` for uppercase section labels.
@@ -106,8 +106,10 @@ display-xl line height. Organization navigation uses the body-md-medium weight
 mapping without resetting its 13px size. Focus outlines retain 1px geometry and
 use the published 4px radius.
 
-Bloom-specific borders and motion remain component-owned. They are not part of
-the package's DTCG contract and do not require a local token system.
+Version 1.2.0 adds layout widths for account menus, list search, authentication
+and invitation cards, and organization content. The package provides semantic
+aliases for search width, authentication card width and the default 1px border.
+Component-specific border styles and motion remain in scoped CSS.
 
 ## Validation
 

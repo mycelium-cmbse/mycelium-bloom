@@ -76,3 +76,62 @@ export function ensureDiagramStyles() {
 export async function ensureDiagramAssets() {
     await Promise.all([ensureDiagramScript(), ensureDiagramStyles()]);
 }
+
+/**
+ * Attaches native pointer capture to one canvas.
+ * @param {HTMLElement} canvas The mounted native canvas.
+ * @returns {object} The browser-owned capture and listener lifetime.
+ */
+export function attachDiagramPointerCapture(canvas) {
+    const view = canvas.ownerDocument.defaultView;
+    const listeners = new view.AbortController();
+    const options = { capture: true, signal: listeners.signal };
+    let capture;
+
+    const release = () => {
+        const captured = capture;
+        capture = undefined;
+        if (captured?.target.hasPointerCapture(captured.id)) {
+            captured.target.releasePointerCapture(captured.id);
+        }
+    };
+
+    canvas.addEventListener('pointerdown', event => {
+        if (event.target.closest('.diagram-canvas') !== canvas || !event.isPrimary || (event.button !== 0 && event.button !== 1)) {
+            return;
+        }
+
+        if (event.button === 1) {
+            event.preventDefault();
+            canvas.focus({ preventScroll: true });
+        }
+
+        release();
+        event.target.setPointerCapture(event.pointerId);
+        capture = { target: event.target, id: event.pointerId };
+    }, options);
+
+    canvas.addEventListener('lostpointercapture', event => {
+        if (capture?.target === event.target && capture.id === event.pointerId) {
+            capture = undefined;
+        }
+    }, options);
+
+    const hasFocus = () => canvas.ownerDocument.activeElement?.closest('.diagram-canvas') === canvas;
+
+    view.addEventListener('blur', () => {
+        release();
+        if (hasFocus()) {
+            canvas.ownerDocument.activeElement.blur();
+        }
+    }, { signal: listeners.signal });
+
+    return {
+        hasFocus,
+        release,
+        dispose() {
+            listeners.abort();
+            release();
+        }
+    };
+}

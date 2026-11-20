@@ -17,5 +17,12 @@ namespace Mycelium.Bloom.Model.Diagram
     /// <param name="ViewName">The optional name displayed in the view frame.</param>
     /// <param name="HasOmittedContent">Whether requested content was unavailable or omitted.</param>
     public sealed record DiagramProjection(ImmutableArray<DiagramNodePresentation> Nodes, ImmutableArray<DiagramEdgePresentation> Edges,
-        string ViewName = null, bool HasOmittedContent = false);
+        string ViewName = null, bool HasOmittedContent = false)
+    {
+        /// <summary>Gets the stable diagram kind used for tool applicability.</summary>
+        public string Kind { get; init; }
+
+        /// <summary>Gets the capabilities available in this diagram.</summary>
+        public ImmutableHashSet<string> Capabilities { get; init; } = ImmutableHashSet<string>.Empty;
+    }
 }

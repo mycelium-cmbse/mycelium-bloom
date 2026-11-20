@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
+    using Microsoft.JSInterop;
+
     using NativeDiagramCanvas = Blazor.Diagrams.Components.DiagramCanvas;
 
     /// <summary>Orders library canvas initialization before its observer and interop-reference cleanup.</summary>
@@ -27,6 +29,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Prevents another render from starting after cleanup begins.</summary>
         private bool disposed;
 
+        /// <summary>The browser helper owned by this mounted native canvas.</summary>
+        private IJSObjectReference interactionModule;
+
+        /// <summary>The browser listener lifetime owned by this mount.</summary>
+        private IJSObjectReference interactionHandle;
+
         /// <summary>Tracks the library's initial bounds query and observer registration.</summary>
         /// <param name="firstRender">Whether this is the initial interactive render.</param>
         /// <returns>Completion of library canvas initialization.</returns>
@@ -39,7 +47,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
             if (firstRender)
             {
-                this.initialization = base.OnAfterRenderAsync(true);
+                this.initialization = this.InitializeAsync();
                 await this.initialization;
             }
             else
@@ -51,6 +59,58 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Releases the library resources after any pending registration completes.</summary>
         /// <returns>The idempotent cleanup operation.</returns>
         public new ValueTask DisposeAsync() => new(this.disposal ??= this.DisposeCoreAsync());
+
+        /// <summary>Checks whether browser focus remains inside the mounted diagram.</summary>
+        /// <returns>Whether a diagram element owns browser focus.</returns>
+        public async ValueTask<bool> HasFocusAsync()
+        {
+            try
+            {
+                return this.interactionHandle is not null && await this.interactionHandle.InvokeAsync<bool>("hasFocus");
+            }
+            catch (JSDisconnectedException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Releases browser capture after .NET cancels interaction.</summary>
+        /// <returns>Completion of browser-owned capture cleanup.</returns>
+        public async ValueTask ReleasePointerCaptureAsync()
+        {
+            try
+            {
+                if (this.interactionHandle is not null)
+                {
+                    await this.interactionHandle.InvokeVoidAsync("release");
+                }
+            }
+            catch (JSDisconnectedException)
+            {
+                // The disconnected browser already owns any remaining cleanup.
+            }
+        }
+        /// <summary>Initializes native geometry before attaching browser pointer-lifetime support.</summary>
+        /// <returns>Completion of all mount-owned browser registration.</returns>
+        private async Task InitializeAsync()
+        {
+            await base.OnAfterRenderAsync(true);
+
+            if (this.disposed)
+            {
+                return;
+            }
+
+            try
+            {
+                this.interactionModule = await this.JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+                this.interactionHandle = await this.interactionModule.InvokeAsync<IJSObjectReference>("attachDiagramPointerCapture", this.elementReference);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Browser references are unavailable after the circuit disconnects.
+            }
+        }
 
         /// <summary>Awaits initial registration before disposing the library reference.</summary>
         /// <returns>Completion of registration and owned library cleanup.</returns>
@@ -64,7 +124,27 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
             finally
             {
-                await base.DisposeAsync();
+                try
+                {
+                    if (this.interactionHandle is not null)
+                    {
+                        await this.interactionHandle.InvokeVoidAsync("dispose");
+                        await this.interactionHandle.DisposeAsync();
+                    }
+
+                    if (this.interactionModule is not null)
+                    {
+                        await this.interactionModule.DisposeAsync();
+                    }
+                }
+                catch (JSDisconnectedException)
+                {
+                    // A disconnected circuit has already released browser listeners.
+                }
+                finally
+                {
+                    await base.DisposeAsync();
+                }
             }
         }
     }

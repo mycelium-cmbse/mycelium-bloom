@@ -7,10 +7,12 @@
 </copyright>
 ------------------------------------------------------------------------------------------------ *@
 
-@inherits BloomReactiveComponentBase<DiagramBoundaryViewModel>
+@inherits SelectableDiagramWidgetBase<DiagramBoundaryViewModel>
 
-<button @attributes="this.AdditionalAttributes" type="button" class="@this.BuildRootCssClass("diagram-boundary", $"diagram-boundary--{this.Presentation.Side.ToString().ToLowerInvariant()}")"
-        style="@this.GetPosition()" title="@this.Presentation.Label" aria-label="@this.Presentation.Label" aria-pressed="@this.ViewModel.IsSelected.ToString().ToLowerInvariant()" @onclick="this.Select" @onclick:stopPropagation="true">
+@this.SelectableSurface("button",
+    [new("type", "button"), new("class", this.BuildRootCssClass("diagram-boundary", $"diagram-boundary--{this.Presentation.Side.ToString().ToLowerInvariant()}")),
+        new("style", this.GetPosition()), new("title", this.Presentation.Label), new("aria-label", this.Presentation.Label),
+        new("aria-pressed", this.ViewModel.IsSelected.ToString().ToLowerInvariant())], @<text>
     <span class="diagram-boundary-square" aria-hidden="true">@this.GetGlyph()</span>
     <span class="diagram-boundary-label">@this.Presentation.Label</span>
-</button>
+    </text>)

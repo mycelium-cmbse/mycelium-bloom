@@ -19,6 +19,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
     using Bunit;
 
+    using Microsoft.AspNetCore.Components.Web;
+
     using Moq;
 
     using Mycelium.Bloom.Components.UI.Molecules.ZoomControls;
@@ -181,7 +183,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             {
                 Assert.That(component.Find("button").GetAttribute("aria-label"), Is.EqualTo("powerIn : PowerPort"));
                 Assert.That(component.Find("button").TextContent, Does.Contain("powerIn : PowerPort"));
-                component.Find("button").Click();
+                component.Find("button").Click(new MouseEventArgs { Detail = 0 });
                 this.viewModel.Verify(value => value.Select(element), Times.Once);
             }
         }
@@ -197,7 +199,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var element = owner.Projection.Nodes[0].Occurrence.Element;
             var node = component.FindComponents<DiagramNodeWidget>()[0];
-            node.Find("button").Click();
+            node.Find("button").Click(new MouseEventArgs { Detail = 0 });
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selection.SelectedElement, Is.SameAs(element));
@@ -211,7 +213,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
             var owner = this.viewModel;
-            owner.SetupGet(value => value.Projection).Returns(new DiagramProjection([], []));
+            using var toolOwner = new DiagramViewModel(new DiagramProjection([], []), new ContextAwareService());
+            owner.SetupGet(value => value.Projection).Returns(toolOwner.Projection);
+            owner.SetupGet(value => value.Tools).Returns(toolOwner.Tools);
             owner.SetupGet(value => value.Viewport).Returns(new DiagramViewport(IsInitialized: true));
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner.Object));
             var controls = component.FindComponent<ZoomControls>();
