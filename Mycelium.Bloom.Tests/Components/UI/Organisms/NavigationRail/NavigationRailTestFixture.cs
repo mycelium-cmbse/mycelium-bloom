@@ -853,7 +853,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.NavigationRail
                 Assert.That(style, Does.Contain("--navigation-rail-divider-width: var(--spacing-24);"));
                 Assert.That(style, Does.Contain("padding: 16px 6px;"));
                 Assert.That(style, Does.Match(@"(?s)\.mb-navigation-rail__section-marker--named\s*\{[^}]*font: var\(--typography-typography-label-xs\), sans-serif;[^}]*height: calc\(\s*1lh \+ var\(--spacing-12\) \+ var\(--spacing-4\)\s*\);"));
-                Assert.That(style, Does.Contain("border-right: 1px solid var(--border-subtle);"));
+                Assert.That(style, Does.Contain("border-right: var(--border-width-default) solid var(--border-subtle);"));
                 Assert.That(style, Does.Contain("background: var(--accent);"));
                 Assert.That(style, Does.Contain("overflow-y: auto;"));
                 Assert.That(style, Does.Contain("scrollbar-width: thin;"));

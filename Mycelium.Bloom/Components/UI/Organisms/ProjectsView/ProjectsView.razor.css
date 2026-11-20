@@ -46,7 +46,7 @@
 }
 
 .mb-projects-view ::deep .mb-projects-view__search {
-    flex: 0 1 var(--spacing-317);
+    flex: 0 1 var(--search-width);
     min-width: 0;
     height: var(--spacing-32);
     background: var(--card);
@@ -125,7 +125,7 @@
 
 .mb-projects-view ::deep .mb-projects-view__table div:has(> table) {
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: var(--border-width-default) solid var(--border);
     border-radius: var(--radius-8);
     background: var(--card);
     box-shadow: var(--shadow-md);

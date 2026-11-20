@@ -1,6 +1,6 @@
 # Shared theme consumption
 
-Bloom consumes `Mycelium.Design.Bloom` 1.1.0 from the configured NuGet feed.
+Bloom consumes `Mycelium.Design.Bloom` 1.2.0 from the configured NuGet feed.
 [mycelium-design](https://github.com/mycelium-cmbse/mycelium-design) owns DTCG
 validation, transformation and publication. Bloom owns component CSS, Blueprint
 bridges and application Tailwind compilation. No token workspace or Node/npm is

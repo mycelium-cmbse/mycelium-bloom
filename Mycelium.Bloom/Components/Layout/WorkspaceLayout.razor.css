@@ -28,7 +28,7 @@
     left: 0;
     display: none;
     padding: var(--spacing-12) var(--spacing-16);
-    border-top: 1px solid var(--destructive);
+    border-top: var(--border-width-default) solid var(--destructive);
     background: var(--destructive-subtle);
     box-shadow: var(--shadow-modal);
     color: var(--destructive);

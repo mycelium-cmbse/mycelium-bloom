@@ -19,7 +19,7 @@
 
 .mb-organization-header__brand:focus-visible,
 .mb-organization-header__segment:focus-visible {
-    outline: 1px solid var(--ring);
+    outline: var(--border-width-default) solid var(--ring);
     outline-offset: var(--spacing-4);
     border-radius: var(--radius-4);
 }
