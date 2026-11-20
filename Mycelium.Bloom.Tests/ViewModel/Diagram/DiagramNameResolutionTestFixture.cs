@@ -30,7 +30,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     public sealed class DiagramNameResolutionTestFixture
     {
         [Test]
-        public void VerifyBundledModelProjectionReportsUnavailableNamesWithoutMutatingCanonicalElements()
+        public void VerifyBundledModelProjectionResolvesNamesWithoutMutatingCanonicalElements()
         {
             var environment = new Mock<IHostEnvironment>(MockBehavior.Strict);
             environment.SetupGet(value => value.ContentRootPath).Returns(TestRepository.GetDirectoryPath("Mycelium.Bloom"));
@@ -47,7 +47,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes, Has.Length.EqualTo(2));
-                Assert.That(presentation.Name.Declaration, Is.EqualTo("Notation unavailable (incomplete model)"));
+                Assert.That(presentation.Name.Declaration, Is.EqualTo("Quantities"));
                 Assert.That(package.OwnedRelationship, Is.EqualTo(relationships));
                 Assert.That(package.owningNamespace, Is.SameAs(model));
             }
