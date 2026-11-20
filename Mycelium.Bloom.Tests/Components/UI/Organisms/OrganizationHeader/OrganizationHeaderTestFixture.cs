@@ -9,28 +9,32 @@
 
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
 {
+    using System;
+    using System.Linq;
     using System.Threading.Tasks;
+
+    using BlazorBlueprint.Components;
+    using BlazorBlueprint.Primitives.Services;
 
     using Bunit;
 
-    using Microsoft.AspNetCore.Components;
     using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
 
-    using Mycelium.Bloom.Components.UI.Molecules.UserMenu;
     using Mycelium.Bloom.Components.UI.Organisms.OrganizationHeader;
     using Mycelium.Bloom.Model;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.Organization;
-
-    using ReactiveUI;
+    using Mycelium.SDK.POCO;
 
     [TestFixture]
     public sealed class OrganizationHeaderTestFixture
     {
         private BunitContext context;
+
+        private IRenderedComponent<BbPortalHost> portalHost;
 
         private Mock<IOrganizationHeaderViewModel> viewModel;
 
@@ -40,7 +44,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
         public void SetUp()
         {
             this.context = new BunitContext();
-            BlueprintTestSetup.Configure(this.context);
 
             this.organizationPresentation = new OrganizationHeaderPresentation
             {
@@ -49,20 +52,20 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
                 OrganizationPath = "/organizations/orbital-systems",
                 SectionLabel = "Members",
                 SectionIcon = "users",
-                SectionItems = [new ActionMenuItem { Id = "/organizations/orbital-systems/projects", Label = "Projects" }],
-                AccountName = "Sample Account",
-                AccountEmail = "sample@example.org",
+                SectionItems = [new ActionMenuItem { Id = "/organizations/orbital-systems/projects", Label = "Projects", IsSelected = true }],
+                Account = new User { Id = Guid.NewGuid(), Name = "Sample Account", Email = "sample@example.org" },
                 AccountItems = [new ActionMenuItem { Id = "/account", Label = "Your profile" }]
             };
 
             this.viewModel = new Mock<IOrganizationHeaderViewModel>();
-            this.viewModel.SetupGet(model => model.SelectItemCommand).Returns(ReactiveCommand.Create<ActionMenuItem, string>(item => item.Id));
             this.context.Services.AddSingleton(this.viewModel.Object);
+            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this.context);
         }
 
         [TearDown]
         public async Task TearDown()
         {
+            this.portalHost.Dispose();
             await this.context.DisposeAsync();
         }
 
@@ -82,20 +85,26 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.OrganizationHeader
             {
                 Assert.That(component.FindAll("a[href='/organizations/orbital-systems']"), Has.Count.EqualTo(hasOrganizationLink ? 1 : 0));
                 Assert.That(component.FindAll("button[aria-label='Organization section']"), Has.Count.EqualTo(hasSectionMenu ? 1 : 0));
-                Assert.That(component.FindComponents<UserMenu>(), Has.Count.EqualTo(hasAccountMenu ? 1 : 0));
+                Assert.That(component.FindAll("button[aria-label='Account menu']"), Has.Count.EqualTo(hasAccountMenu ? 1 : 0));
                 Assert.That(component.FindAll("a[href='/account']"), Has.Count.EqualTo(1));
             }
         }
 
-        [Test]
-        public async Task VerifySelectingAnAccountEntryNavigatesToItsRoute()
+        [TestCase("Account menu", "/account", "sample@example.org")]
+        [TestCase("Organization section", "/organizations/orbital-systems/projects", "Current page")]
+        public async Task VerifyOpeningAMenuListsItsEntries(string trigger, string href, string text)
         {
             this.viewModel.SetupGet(model => model.Presentation).Returns(this.organizationPresentation);
             var component = this.context.Render<OrganizationHeader>();
 
-            await component.InvokeAsync(() => component.FindComponent<UserMenu>().Instance.ItemSelected.InvokeAsync(this.organizationPresentation.AccountItems[0]));
+            await component.Find($"button[aria-label='{trigger}']").ClickAsync();
+            var entries = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 1);
 
-            Assert.That(this.context.Services.GetRequiredService<NavigationManager>().Uri, Does.EndWith("/account"));
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(entries.Single().GetAttribute("href"), Is.EqualTo(href));
+                Assert.That(this.portalHost.Markup, Does.Contain(text));
+            }
         }
     }
 }

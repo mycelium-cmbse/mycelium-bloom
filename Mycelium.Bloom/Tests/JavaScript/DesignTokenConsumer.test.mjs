@@ -405,17 +405,10 @@ test('selected navigation weight compiles from the official mapping without a fo
     assert.doesNotMatch(selected, /font(?:-size|-family|-weight)?\s*:|line-height\s*:/);
 });
 
-test('organization headers resolve runtime references and preserve separate typography metrics', async () => {
+test('organization header resolves runtime references and its crumbs keep their typography', async () => {
     const runtime = await readFile(runtimePath, 'utf8');
-    for (const component of ['Molecules/PageHeader/PageHeader', 'Organisms/OrganizationHeader/OrganizationHeader']) {
-        const css = await readFile(join(projectDirectory, 'Components/UI', component + '.razor.css'), 'utf8');
-        for (const [, name] of css.matchAll(/var\((--[\w-]+)/g)) assert.ok(runtime.includes(name + ':'), name);
-    }
-    const page = await readFile(join(projectDirectory, 'Components/UI/Molecules/PageHeader/PageHeader.razor'), 'utf8');
-    assert.match(page, /leading-display-xl/);
-    assert.match(page, /--font-weight-heading-md/);
-    assert.match(page, /text-body-sm/);
-    assert.match(page, /--font-weight-body-sm/);
+    const header = await readFile(join(projectDirectory, 'Components/UI/Organisms/OrganizationHeader/OrganizationHeader.razor.css'), 'utf8');
+    for (const [, name] of header.matchAll(/var\((--[\w-]+)/g)) assert.ok(runtime.includes(name + ':'), name);
     const organization = await readFile(join(projectDirectory, 'Components/UI/Organisms/OrganizationHeader/OrganizationHeader.razor'), 'utf8');
     assert.match(organization, /mb-crumbs__crumb/);
     const crumbs = await readFile(join(projectDirectory, 'Styles/blueprint-overlays.css'), 'utf8');

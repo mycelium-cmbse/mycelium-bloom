@@ -13,10 +13,8 @@ namespace Mycelium.Bloom.ViewModel.Organization
 
     using Mycelium.Bloom.Model;
 
-    using ReactiveUI;
-
     /// <summary>
-    /// Defines the reactive state and the operations of the header of the account and organization pages.
+    /// Defines the reactive state of the header of the account and organization pages.
     /// </summary>
     public interface IOrganizationHeaderViewModel : INotifyPropertyChanged
     {
@@ -24,10 +22,5 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// Gets what the header displays. It follows the organization context and never shows a stale organization.
         /// </summary>
         OrganizationHeaderPresentation Presentation { get; }
-
-        /// <summary>
-        /// Gets the command that turns the selection of a menu entry into the route to navigate to.
-        /// </summary>
-        ReactiveCommand<ActionMenuItem, string> SelectItemCommand { get; }
     }
 }

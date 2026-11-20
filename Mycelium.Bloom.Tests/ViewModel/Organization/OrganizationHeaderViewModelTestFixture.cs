@@ -67,8 +67,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(presentation.SectionItems.Single(item => item.IsSelected).Label, Is.EqualTo("Members"));
                 Assert.That(presentation.SectionItems.Select(item => item.Id), Has.All.StartWith("/organizations/orbital-systems"));
                 Assert.That(presentation.HasAccount, Is.True);
-                Assert.That(presentation.AccountName, Is.EqualTo("Sample Account"));
+                Assert.That(presentation.Account, Is.SameAs(this.account));
                 Assert.That(presentation.AccountItems.Single().Id, Is.EqualTo(OrganizationRoutes.AccountPath));
+                Assert.That(presentation.AccountItems.Single().Icon, Is.EqualTo("user"));
             }
         }
 
@@ -135,17 +136,6 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
                 Assert.That(announced, Is.GreaterThan(0));
                 Assert.That(viewModel.Presentation.SectionLabel, Is.EqualTo("Projects"));
             }
-        }
-
-        [Test]
-        public async Task VerifySelectingAnEntryYieldsItsRoute()
-        {
-            using var viewModel = new OrganizationHeaderViewModel(this.context.Object);
-            var item = viewModel.Presentation.SectionItems.First(candidate => candidate.Label == "Projects");
-
-            var target = await viewModel.SelectItemCommand.Execute(item);
-
-            Assert.That(target, Is.EqualTo("/organizations/orbital-systems/projects"));
         }
 
         private void SetContext(bool isLoading, OrganizationLocation location, User currentAccount, Organization currentOrganization,

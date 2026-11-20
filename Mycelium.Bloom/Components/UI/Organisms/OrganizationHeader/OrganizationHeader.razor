@@ -59,32 +59,54 @@
             </BbBreadcrumbItem>
         </BbBreadcrumbList></BbBreadcrumb>;
 
-    RenderFragment user =
-        @<UserMenu DisplayName="@(this.ViewModel.Presentation.AccountName)"
-                   Subtitle="@(this.ViewModel.Presentation.AccountEmail)"
-                   Items="@(this.ViewModel.Presentation.AccountItems)"
-                   ItemSelected="this.HandleItemSelectedAsync"
-                   Compact="true" />;
-
     RenderFragment navigation = this.ViewModel.Presentation.Kind switch
     {
         OrganizationLocationKind.Organization => organizationSegments,
         OrganizationLocationKind.Account => accountSegment,
         _ => null
     };
+
+    var account = this.ViewModel.Presentation.Account;
+    var initials = account?.GetInitials();
 }
 
-<div class="mb-organization-header">
-    <AppHeader Compact="true"
-               AriaLabel="Bloom application header"
-               NavigationAriaLabel="Page navigation"
-               NavigationContent="@(navigation)"
-               UserContent="@(this.ViewModel.Presentation.HasAccount ? user : null)">
-        <BrandContent>
-            <a class="mb-organization-header__brand" href="@(OrganizationRoutes.AccountPath)">
-                <span class="mb-organization-header__mark"><BrandMark /></span>
-                <span class="sr-only">Mycelium Bloom</span>
-            </a>
-        </BrandContent>
-    </AppHeader>
-</div>
+<header class="mb-organization-header" aria-label="Bloom application header">
+    <a class="mb-organization-header__brand" href="@(OrganizationRoutes.AccountPath)">
+        <span class="mb-organization-header__mark"><BrandMark /></span>
+        <span class="sr-only">Mycelium Bloom</span>
+    </a>
+
+    @(navigation)
+
+    @if (this.ViewModel.Presentation.HasAccount)
+    {
+        <BbDropdownMenu>
+            <BbDropdownMenuTrigger AsChild="true">
+                <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Class="mb-organization-header__account" aria-label="Account menu" title="@(account.Name)">
+                    <BbAvatar Size="AvatarSize.Small" Class="mb-organization-header__avatar" aria-hidden="true">
+                        <BbAvatarFallback Class="mb-organization-header__initials">@(initials)</BbAvatarFallback>
+                    </BbAvatar>
+                </BbButton>
+            </BbDropdownMenuTrigger>
+            <BbDropdownMenuContent Class="mb-menu mb-account-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.End" Offset="6">
+                <BbDropdownMenuLabel Class="mb-account-menu__head">
+                    <BbAvatar Size="AvatarSize.Small" Class="mb-account-menu__avatar" aria-hidden="true">
+                        <BbAvatarFallback Class="mb-account-menu__initials">@(initials)</BbAvatarFallback>
+                    </BbAvatar>
+                    <span class="mb-account-menu__identity">
+                        <span class="mb-account-menu__name">@(account.Name)</span>
+                        <span class="mb-account-menu__email">@(account.Email)</span>
+                    </span>
+                </BbDropdownMenuLabel>
+                <BbDropdownMenuSeparator Class="mb-account-menu__separator" />
+                @foreach (var item in this.ViewModel.Presentation.AccountItems)
+                {
+                    <BbDropdownMenuItem Href="@(item.Id)">
+                        <LucideIcon Name="@(item.Icon)" Size="14" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                        @(item.Label)
+                    </BbDropdownMenuItem>
+                }
+            </BbDropdownMenuContent>
+        </BbDropdownMenu>
+    }
+</header>

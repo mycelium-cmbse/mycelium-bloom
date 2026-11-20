@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Model
 {
     using Mycelium.Bloom.Model.Enum;
+    using Mycelium.SDK.POCO;
 
     /// <summary>
     /// Describes what the header of the account and organization pages displays. The default value displays nothing.
@@ -57,14 +58,10 @@ namespace Mycelium.Bloom.Model
         public IReadOnlyList<ActionMenuItem> SectionItems { get; init; } = [];
 
         /// <summary>
-        /// Gets the display name of the current account, or an empty string.
+        /// Gets the current account, whose avatar, name and email address the account menu shows, or
+        /// <see langword="null" /> while the context is not resolved.
         /// </summary>
-        public string AccountName { get; init; } = string.Empty;
-
-        /// <summary>
-        /// Gets the email address of the current account, or an empty string.
-        /// </summary>
-        public string AccountEmail { get; init; } = string.Empty;
+        public User Account { get; init; }
 
         /// <summary>
         /// Gets the entries of the account menu.
