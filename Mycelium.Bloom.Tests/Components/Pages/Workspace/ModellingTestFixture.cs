@@ -49,6 +49,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.ViewModel.Workspace;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
@@ -1731,6 +1732,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 });
 
             this.Services.AddScoped<Func<IWorkspaceEditorViewModel>>(_ => () => editorViewModel);
+            this.Services.AddScoped<Func<IWorkspaceBreadcrumbViewModel>>(_ => () => new Mock<IWorkspaceBreadcrumbViewModel>().Object);
             this.Services.AddScoped<Func<INavigationRailViewModel>>(_ => () => navigationViewModel);
             this.Services.AddSingleton<IContextAwareService>(context);
             this.Services.AddSingleton<IElementSelectionService>(context);
