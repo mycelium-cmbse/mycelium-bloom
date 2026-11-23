@@ -27,7 +27,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         private readonly SerialDisposable observation = new();
 
         /// <summary>The tool state currently observed by this component.</summary>
-        private DiagramToolState observed;
+        private IDiagramToolState observed;
 
         /// <summary>Gets or sets the caller-owned diagram presentation.</summary>
         [Parameter, EditorRequired]

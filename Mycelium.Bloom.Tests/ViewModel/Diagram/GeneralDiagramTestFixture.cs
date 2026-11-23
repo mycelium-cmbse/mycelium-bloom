@@ -47,6 +47,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     [TestFixture]
     public sealed class GeneralDiagramTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         [Test]
         public void VerifyReviewOwnedDefinitionDoesNotSilentlyLoseNamespaceMembership()
         {
@@ -129,8 +134,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         public void VerifyReviewFitIncludesAllTwoHundredNodesAtNativeZoom()
         {
             var projection = DiagramTestFactory.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid() }));
-            using var owner = new DiagramViewModel(projection, new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
             using (Assert.EnterMultipleScope())
             {
@@ -152,7 +157,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var invalid = source ? edge with { SourceFeature = foreign } : edge with { TargetFeature = foreign };
             Assert.Throws<ArgumentException>(() =>
             {
-                using var owner = new DiagramViewModel(projection with { Edges = [invalid] }, new ContextAwareService());
+                using var owner = this.diagrams.CreateViewModel(projection with { Edges = [invalid] }, new ContextAwareService());
             });
         }
 
@@ -213,8 +218,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyExplicitZoomWinsOverPendingInitialFit()
         {
-            using var owner = new DiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             owner.ChangeZoom(200);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
             using (Assert.EnterMultipleScope())
@@ -264,9 +269,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyViewportPreservesAdjacentValuesWithoutRedundantNativeNotifications()
         {
-            using var owner = new DiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
             owner.SetViewport(12, 34, 1.5);
-            using var renderer = new DiagramRenderer(owner);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var panNotifications = 0;
             var zoomNotifications = 0;
             renderer.Diagram.PanChanged += () => panNotifications++;
@@ -310,8 +315,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyNativeViewportGesturesAreReportedWithoutReplayingNativeSetters()
         {
-            using var owner = new DiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var panNotifications = 0;
             var zoomNotifications = 0;
             renderer.Diagram.PanChanged += () => panNotifications++;
@@ -331,8 +336,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [Test]
         public void VerifyNativeGesturesAndControlsShareLiveViewportAndDetachOnUnmount()
         {
-            using var owner = new DiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
-            var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), new ContextAwareService());
+            var renderer = this.diagrams.CreateRenderer(owner);
             renderer.Diagram.SetPan(12, 34);
             renderer.Diagram.SetZoom(1.5);
             using (Assert.EnterMultipleScope())
@@ -364,8 +369,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             };
             BrowserAcceptanceModelTestFactory.Own<FeatureMembership>(part, port);
             var projection = DiagramTestFactory.CreateForRoot(part);
-            using var owner = new DiagramViewModel(projection, new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(projection.Nodes, Has.Length.EqualTo(2));
@@ -390,8 +395,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                     Id = Guid.NewGuid()
                 }
             };
-            using var owner = new DiagramViewModel(projection with { Nodes = projection.Nodes.Add(repeated) }, new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection with { Nodes = projection.Nodes.Add(repeated) }, new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var ports = renderer.Diagram.Nodes.SelectMany(node => node.Ports).ToArray();
             using (Assert.EnterMultipleScope())
             {
@@ -416,17 +421,17 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             {
                 Assert.Throws<ArgumentException>(() =>
                 {
-                    using var invalidOwner = new DiagramViewModel(projection with { Edges = [edge with { Target = Guid.NewGuid() }] },
+                    using var invalidOwner = this.diagrams.CreateViewModel(projection with { Edges = [edge with { Target = Guid.NewGuid() }] },
                     new ContextAwareService());
                 });
                 Assert.Throws<ArgumentException>(() =>
                 {
-                    using var invalidOwner = new DiagramViewModel(projection with { Edges = [edge with { Bends = [new DiagramPoint(double.NaN, 0)] }] },
+                    using var invalidOwner = this.diagrams.CreateViewModel(projection with { Edges = [edge with { Bends = [new DiagramPoint(double.NaN, 0)] }] },
                         new ContextAwareService());
                 });
                 Assert.Throws<ArgumentException>(() =>
                 {
-                    using var invalidOwner = new DiagramViewModel(projection with { Nodes = [invalidBoundary], Edges = [] },
+                    using var invalidOwner = this.diagrams.CreateViewModel(projection with { Nodes = [invalidBoundary], Edges = [] },
                     new ContextAwareService());
                 });
             }
@@ -441,8 +446,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             {
                 Edges = projection.Edges.SetItem(0, projection.Edges[0] with { Bends = [bend] })
             };
-            using var owner = new DiagramViewModel(projection, new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
             using (Assert.EnterMultipleScope())
             {
@@ -469,10 +474,10 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(projection.Edges.Where(edge => edge.Kind is DiagramRelationshipKind.CompositeMembership or DiagramRelationshipKind.NoncompositeMembership)
                     .Any(edge => edge.Source == edge.Target), Is.False);
                 Assert.That(projection.Nodes.Any(node => node.Occurrence.Element is ConnectionDefinition), Is.True);
-                using var first = new DiagramViewModel(projection, new ContextAwareService());
-                using var second = new DiagramViewModel(projection, new ContextAwareService());
-                using var firstRenderer = new DiagramRenderer(first);
-                using var secondRenderer = new DiagramRenderer(second);
+                using var first = this.diagrams.CreateViewModel(projection, new ContextAwareService());
+                using var second = this.diagrams.CreateViewModel(projection, new ContextAwareService());
+                using var firstRenderer = this.diagrams.CreateRenderer(first);
+                using var secondRenderer = this.diagrams.CreateRenderer(second);
                 Assert.That(firstRenderer.Diagram.Links.OfType<DiagramLinkModel>().Select(link => link.MarkerPrefix)
                     .Intersect(secondRenderer.Diagram.Links.OfType<DiagramLinkModel>().Select(link => link.MarkerPrefix)), Is.Empty);
             }
@@ -533,8 +538,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                     X = 1800
                 }
             };
-            using var owner = new DiagramViewModel(projection with { Nodes = projection.Nodes.Add(repeated) }, new ContextAwareService());
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection with { Nodes = projection.Nodes.Add(repeated) }, new ContextAwareService());
+            using var renderer = this.diagrams.CreateRenderer(owner);
             owner.Select(element);
             var occurrences = renderer.Diagram.Nodes.OfType<DiagramNodeModel>().Where(node => ReferenceEquals(node.Presentation.Occurrence.Element, element)).ToArray();
             using (Assert.EnterMultipleScope())
@@ -555,7 +560,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var nested = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.NestedView is not null).NestedView;
-            var owner = new DiagramViewModel(projection, new ContextAwareService());
+            var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
             var child = owner.GetNestedView(Guid.Empty, nested);
             child.ChangeZoom(200);
             using (Assert.EnterMultipleScope())
@@ -577,7 +582,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 };
                 Assert.Throws<ArgumentException>(() =>
                 {
-                    using var invalidOwner = new DiagramViewModel(projection with { Nodes = [invalid] }, new ContextAwareService());
+                    using var invalidOwner = this.diagrams.CreateViewModel(projection with { Nodes = [invalid] }, new ContextAwareService());
                 });
             }
         }
@@ -839,8 +844,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 DeclaredName = "second"
             };
             var selection = new ContextAwareService();
-            using var left = new DiagramViewModel(DiagramTestFactory.Create([first]), selection);
-            using var right = new DiagramViewModel(DiagramTestFactory.Create([second]), selection);
+            using var left = this.diagrams.CreateViewModel(DiagramTestFactory.Create([first]), selection);
+            using var right = this.diagrams.CreateViewModel(DiagramTestFactory.Create([second]), selection);
             left.Select(first);
             right.Select(first);
             using (Assert.EnterMultipleScope())
@@ -858,8 +863,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         public void VerifyRendererRemountPreservesViewportAndReleasesGraph()
         {
             var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
-            using var owner = new DiagramViewModel(projection, new ContextAwareService());
-            var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
+            var renderer = this.diagrams.CreateRenderer(owner);
             renderer.Diagram.SetPan(12, 34);
             renderer.Diagram.SetZoom(1.5);
             renderer.Dispose();
@@ -867,7 +872,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             {
                 Assert.That(renderer.Diagram.Nodes, Is.Empty);
                 Assert.That(renderer.Diagram.Links, Is.Empty);
-                using var remount = new DiagramRenderer(owner);
+                using var remount = this.diagrams.CreateRenderer(owner);
                 Assert.That(remount.Diagram.Pan, Is.EqualTo(new Point(12, 34)));
                 Assert.That(remount.Diagram.Zoom, Is.EqualTo(1.5));
                 Assert.That(remount.Diagram.Nodes, Has.Count.EqualTo(projection.Nodes.Length));

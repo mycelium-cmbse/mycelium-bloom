@@ -15,10 +15,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Shares one native port identity between hit testing and link geometry.</summary>
-    internal sealed class DiagramBoundaryPortModel : PortModel
+    internal sealed class DiagramBoundaryPortModel : PortModel, IDiagramBoundaryPortModel
     {
         /// <summary>Gets the occurrence-owned boundary presentation represented by this port.</summary>
-        internal DiagramBoundaryViewModel ViewModel { get; }
+        public DiagramBoundaryViewModel ViewModel { get; }
 
         /// <summary>Adapts a boundary feature whose position and size have already been calculated.</summary>
         /// <param name="id">The native port identifier.</param>

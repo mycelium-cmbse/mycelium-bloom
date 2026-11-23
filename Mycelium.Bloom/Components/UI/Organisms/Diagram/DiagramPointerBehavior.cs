@@ -28,10 +28,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using BrowserKeyboardEventArgs = Microsoft.AspNetCore.Components.Web.KeyboardEventArgs;
 
     /// <summary>Routes native input to the tool runtimes for one mounted diagram.</summary>
-    public sealed class DiagramPointerBehavior : Behavior
+    public sealed class DiagramPointerBehavior : Behavior, IDiagramPointerBehavior
     {
         /// <summary>The tool selection owned by the tab.</summary>
-        private readonly DiagramToolState tools;
+        private readonly IDiagramToolState tools;
 
         /// <summary>The native context shared by the mounted runtimes.</summary>
         private readonly DiagramToolContext context;
@@ -40,7 +40,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         private readonly Dictionary<DiagramToolPlacement, IDiagramTool> runtimes = new();
 
         /// <summary>Resolves runtime factories without owning their instances.</summary>
-        private readonly DiagramToolRuntimeProvider runtimeProvider;
+        private readonly IDiagramToolRuntimeProvider runtimeProvider;
 
         /// <summary>Owns observation of tab state for this mount.</summary>
         private readonly CompositeDisposable toolSubscriptions = new();
@@ -76,15 +76,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="diagram">The mounted native graph.</param>
         /// <param name="owner">The tab-owned presentation authority.</param>
         /// <param name="runtimeProvider">The registry of renderer runtime factories.</param>
-        public DiagramPointerBehavior(Diagram diagram, IDiagramViewModel owner, DiagramToolRuntimeProvider runtimeProvider) : base(diagram)
+        public DiagramPointerBehavior(Diagram diagram, IDiagramViewModel owner, IDiagramToolRuntimeProvider runtimeProvider) : base(diagram)
         {
+            ArgumentNullException.ThrowIfNull(owner);
+            ArgumentNullException.ThrowIfNull(runtimeProvider);
             this.tools = owner.Tools;
             this.runtimeProvider = runtimeProvider;
             this.context = new DiagramToolContext(diagram, owner, model => model switch
             {
                 DiagramNodeModel node => node.ViewModel,
                 DiagramLinkModel link => link.ViewModel,
-                DiagramBoundaryPortModel port => port.ViewModel,
+                IDiagramBoundaryPortModel port => port.ViewModel,
                 _ => null
             });
             this.toolSubscriptions.Add(this.tools.WhenAnyValue(state => state.Active).Skip(1).Subscribe(_ =>

@@ -18,14 +18,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Blazor.Diagrams.Core.Models;
     using Blazor.Diagrams.Options;
 
-    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     using ReactiveUI;
 
     /// <summary>Adapts VM-owned presentation to disposable native models and reports native gestures back to the VM.</summary>
-    public sealed class DiagramRenderer : IDisposable
+    public sealed class DiagramRenderer : IDiagramRenderer
     {
         /// <summary>The tab-owned presentation borrowed by this mount.</summary>
         private readonly IDiagramViewModel owner;
@@ -46,18 +45,20 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         public BlazorDiagram Diagram { get; }
 
         /// <summary>Gets mode routing and temporary gesture state owned by this mount.</summary>
-        public DiagramPointerBehavior Pointer { get; }
+        public IDiagramPointerBehavior Pointer { get; }
 
         /// <summary>Mounts a validated projection without enabling model-editing behaviors.</summary>
         /// <param name="owner">The caller-owned ViewModel, which outlives ordinary renderer unmounts.</param>
-        /// <param name="runtimeProvider">The registry of runtime factories, or the built-ins for a standalone renderer.</param>
-        public DiagramRenderer(IDiagramViewModel owner, DiagramToolRuntimeProvider runtimeProvider = null)
+        /// <param name="createPointer">The registered factory returning the native behavior subclass required by Blazor.Diagrams registration.</param>
+        public DiagramRenderer(IDiagramViewModel owner, Func<BlazorDiagram, IDiagramViewModel, DiagramPointerBehavior> createPointer)
         {
             ArgumentNullException.ThrowIfNull(owner);
+            ArgumentNullException.ThrowIfNull(createPointer);
             this.owner = owner;
             this.Diagram = new BlazorDiagram(new BlazorDiagramOptions(), registerDefaultBehaviors: false);
-            this.Pointer = new DiagramPointerBehavior(this.Diagram, owner, runtimeProvider ?? new DiagramToolRuntimeProvider(DiagramToolRuntimeProvider.BuiltInRegistrations));
-            this.Diagram.RegisterBehavior(this.Pointer);
+            var pointer = createPointer(this.Diagram, owner);
+            this.Pointer = pointer;
+            this.Diagram.RegisterBehavior(pointer);
             this.Diagram.RegisterBehavior(new DragMovablesBehavior(this.Diagram));
             this.Diagram.RegisterBehavior(new ZoomBehavior(this.Diagram));
             this.Diagram.Options.AllowMultiSelection = false;

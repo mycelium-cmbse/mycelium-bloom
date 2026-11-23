@@ -31,6 +31,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     [TestFixture]
     public sealed class DiagramCanvasHostTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         [Test]
         public async Task VerifyRendererDisposalReleasesNativeResourcesDuringPendingInitialization()
         {
@@ -41,7 +46,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             context.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js").SetupVoid("ensureDiagramAssets").SetVoidResult();
             var bounds = context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
             var element = new PartUsage();
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([element]), new ContextAwareService());
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([element]), new ContextAwareService());
             var component = context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var native = component.FindComponent<CascadingValue<BlazorDiagram>>().Instance.Value;
             Assert.That(native.Nodes, Has.Count.EqualTo(1));
@@ -75,7 +80,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var module = context.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
             var load = module.SetupVoid("ensureDiagramAssets");
             context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
-            using var owner = new DiagramViewModel(new DiagramProjection([], []), new ContextAwareService());
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([], []), new ContextAwareService());
             var component = context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             Assert.That(component.FindComponents<DiagramCanvasHost>(), Is.Empty);
             await component.InvokeAsync(() => component.Render(parameters => parameters.Add(value => value.IsNested, true)));
@@ -107,7 +112,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js").SetupVoid("ensureDiagramAssets").SetVoidResult();
             var bounds = context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
-            using var owner = new DiagramViewModel(new DiagramProjection([], []), new ContextAwareService());
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([], []), new ContextAwareService());
             var component = context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var canvas = component.FindComponent<DiagramCanvasHost>();
 

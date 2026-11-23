@@ -11,6 +11,8 @@ namespace Mycelium.Bloom.Extensions
 {
     using System.Net;
 
+    using Blazor.Diagrams;
+
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.HttpOverrides;
     using Microsoft.Extensions.Configuration;
@@ -168,18 +170,36 @@ namespace Mycelium.Bloom.Extensions
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramCommentPresentation), typeof(DiagramCommentNode)));
                 services.TryAddSingleton<DiagramNodeComponentRegistry>();
                 services.TryAddSingleton<IDiagramToolCatalogue, DiagramToolCatalogue>();
-                services.TryAddSingleton<DiagramToolRuntimeProvider>();
+                services.TryAddSingleton<IDiagramToolRuntimeProvider, DiagramToolRuntimeProvider>();
                 services.TryAddSingleton(DiagramToolDefaults.Layout);
-
-                foreach (var tool in DiagramToolDefaults.Definitions)
+                services.AddSingleton(new DiagramToolDefinition(DiagramToolDefaults.Move, "Move", "mouse-pointer-2")
                 {
-                    services.AddSingleton(tool);
-                }
-
-                foreach (var runtime in DiagramToolRuntimeProvider.BuiltInRegistrations)
+                    AllowsSelection = true,
+                    Tooltip = "Select / Move"
+                });
+                services.AddSingleton(new DiagramToolDefinition(DiagramToolDefaults.Pan, "Pan", "hand")
                 {
-                    services.AddSingleton(runtime);
-                }
+                    CapturesNestedInput = true,
+                    Tooltip = "Pan (hold Space for temporary navigation)"
+                });
+                services.AddSingleton(new DiagramToolRuntimeRegistration(DiagramToolDefaults.Move, (context, _) => new MoveDiagramTool(context)));
+                services.AddSingleton(new DiagramToolRuntimeRegistration(DiagramToolDefaults.Pan, (context, _) => new PanDiagramTool(context)));
+                services.TryAddSingleton<Func<IObservable<bool>, IDiagramToolState>>(serviceProvider =>
+                {
+                    var catalogue = serviceProvider.GetRequiredService<IDiagramToolCatalogue>();
+                    var layout = serviceProvider.GetRequiredService<DiagramToolLayout>();
+                    return editingPolicy => new DiagramToolState(catalogue, layout, editingPolicy);
+                });
+                services.TryAddSingleton<Func<BlazorDiagram, IDiagramViewModel, DiagramPointerBehavior>>(serviceProvider =>
+                {
+                    var runtimes = serviceProvider.GetRequiredService<IDiagramToolRuntimeProvider>();
+                    return (diagram, owner) => new DiagramPointerBehavior(diagram, owner, runtimes);
+                });
+                services.TryAddSingleton<Func<IDiagramViewModel, IDiagramRenderer>>(serviceProvider =>
+                {
+                    var createPointer = serviceProvider.GetRequiredService<Func<BlazorDiagram, IDiagramViewModel, DiagramPointerBehavior>>();
+                    return owner => new DiagramRenderer(owner, createPointer);
+                });
 
                 services.TryAddScoped<Func<DiagramProjection, IDiagramViewModel>>(serviceProvider =>
                     projection => ActivatorUtilities.CreateInstance<DiagramViewModel>(serviceProvider, projection));

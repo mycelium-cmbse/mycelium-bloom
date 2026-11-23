@@ -20,6 +20,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using Bunit;
 
     using Microsoft.AspNetCore.Components.Web;
+    using Microsoft.Extensions.DependencyInjection;
 
     using Moq;
 
@@ -39,6 +40,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     [TestFixture]
     public sealed class GeneralDiagramComponentTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         private BunitContext context;
 
         private Mock<IDiagramViewModel> viewModel;
@@ -74,6 +80,43 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         }
 
         [Test]
+        public async Task VerifyCanvasUsesRegisteredRendererAndPointerContracts()
+        {
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([], []), new ContextAwareService());
+            var pointer = new Mock<IDiagramPointerBehavior>(MockBehavior.Strict);
+            pointer.SetupGet(value => value.Cursor).Returns("crosshair");
+            pointer.SetupGet(value => value.Preview).Returns((Microsoft.AspNetCore.Components.RenderFragment)null);
+            var renderer = new Mock<IDiagramRenderer>(MockBehavior.Strict);
+            renderer.SetupGet(value => value.Diagram).Returns(new Blazor.Diagrams.BlazorDiagram());
+            renderer.SetupGet(value => value.Pointer).Returns(pointer.Object);
+            renderer.Setup(value => value.Dispose());
+            var factory = new Mock<Func<IDiagramViewModel, IDiagramRenderer>>(MockBehavior.Strict);
+            factory.Setup(create => create(owner)).Returns(renderer.Object);
+            var componentContext = new BunitContext();
+
+            try
+            {
+                componentContext.Services.AddDiagramServices();
+                componentContext.Services.AddSingleton(factory.Object);
+                componentContext.SetRendererInfo(new Microsoft.AspNetCore.Components.RendererInfo("Server", true));
+                componentContext.JSInterop.SetupModule("./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js").SetupVoid("ensureDiagramAssets").SetVoidResult();
+                componentContext.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
+                componentContext.JSInterop.Mode = JSRuntimeMode.Loose;
+
+                var component = componentContext.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+                Assert.That(component.Find(".general-diagram").GetAttribute("data-tool-cursor"), Is.EqualTo("crosshair"));
+            }
+            finally
+            {
+                await componentContext.DisposeAsync();
+            }
+
+            factory.Verify(create => create(owner), Times.Once);
+            renderer.Verify(value => value.Dispose(), Times.Once);
+            Assert.DoesNotThrow(() => owner.ChangeZoom(175));
+        }
+
+        [Test]
         public void VerifyCustomMarkerViewportContainsItsGeometry()
         {
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
@@ -84,7 +127,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var marker = new DiagramMarker("M0 0 L-60 -12 L-60 12 Z", "currentColor") { ViewBox = (-64, -16, 65, 32) };
             var edge = projection.Edges[0];
             projection = projection with { Edges = [edge with { Notation = edge.Notation with { SourceMarker = marker } }] };
-            var owner = new DiagramViewModel(projection, new ContextAwareService());
+            var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
             this.ownedViewModels.Add(owner);
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var viewport = component.FindComponent<DiagramEdge>().Find("marker").GetAttribute("viewBox").Split(' ')
@@ -104,7 +147,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
             var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
-            var owner = new DiagramViewModel(projection, new ContextAwareService());
+            var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
             this.ownedViewModels.Add(owner);
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var package = component.FindComponent<DiagramPackageNode>();
@@ -140,7 +183,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             var initialization = this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true);
             var selection = new ContextAwareService();
-            var owner = new DiagramViewModel(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid() }]), selection);
+            var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([new PartUsage { Id = Guid.NewGuid() }]), selection);
             this.ownedViewModels.Add(owner);
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var canvas = component.FindComponent<DiagramCanvasHost>().Instance;
@@ -194,7 +237,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             this.context.JSInterop.Mode = JSRuntimeMode.Loose;
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
             var selection = new ContextAwareService();
-            var owner = new DiagramViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
             this.ownedViewModels.Add(owner);
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var element = owner.Projection.Nodes[0].Occurrence.Element;
@@ -213,7 +256,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
             var owner = this.viewModel;
-            using var toolOwner = new DiagramViewModel(new DiagramProjection([], []), new ContextAwareService());
+            using var toolOwner = this.diagrams.CreateViewModel(new DiagramProjection([], []), new ContextAwareService());
             owner.SetupGet(value => value.Projection).Returns(toolOwner.Projection);
             owner.SetupGet(value => value.Tools).Returns(toolOwner.Tools);
             owner.SetupGet(value => value.Viewport).Returns(new DiagramViewport(IsInitialized: true));

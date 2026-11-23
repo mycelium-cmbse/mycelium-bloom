@@ -17,7 +17,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
     using ReactiveUI;
 
     /// <summary>Owns one tab's tool choice and the observable presentation of its navigation override.</summary>
-    public sealed class DiagramToolState : ReactiveObject, IDisposable
+    public sealed class DiagramToolState : ReactiveObject, IDiagramToolState
     {
         /// <summary>The source of compatible tools for the current projection.</summary>
         private readonly IDiagramToolCatalogue catalogue;
@@ -31,50 +31,35 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <summary>Derives the visible effective placement from the retained choice and the mount's override.</summary>
         private readonly ObservableAsPropertyHelper<DiagramToolPlacement> effective;
 
-        /// <summary>The current applicable definitions.</summary>
-        private ImmutableArray<DiagramToolDefinition> available = [];
-
-        /// <summary>The current applicable placements in layout order.</summary>
-        private ImmutableArray<DiagramToolPlacement> toolbox = [];
-
-        /// <summary>The retained choice over canvas remounts.</summary>
-        private DiagramToolPlacement active;
-
-        /// <summary>The temporary navigation placement set by the mounted dispatcher.</summary>
-        private DiagramToolPlacement temporary;
-
-        /// <summary>The current editing policy.</summary>
-        private bool canEdit;
-
         /// <summary>Prevents activation after the owning tab closes.</summary>
         private bool closed;
 
         /// <summary>Gets the registered tools applicable to the current projection.</summary>
         public ImmutableArray<DiagramToolDefinition> Available
         {
-            get => this.available;
-            private set => this.RaiseAndSetIfChanged(ref this.available, value);
-        }
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        } = [];
 
         /// <summary>Gets the supported toolbox placements in layout order.</summary>
         public ImmutableArray<DiagramToolPlacement> Toolbox
         {
-            get => this.toolbox;
-            private set => this.RaiseAndSetIfChanged(ref this.toolbox, value);
-        }
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        } = [];
 
         /// <summary>Gets the retained tool placement.</summary>
         public DiagramToolPlacement Active
         {
-            get => this.active;
-            private set => this.RaiseAndSetIfChanged(ref this.active, value);
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
         }
 
         /// <summary>Gets the temporary placement requested by the mounted dispatcher.</summary>
         public DiagramToolPlacement Temporary
         {
-            get => this.temporary;
-            internal set => this.RaiseAndSetIfChanged(ref this.temporary, value);
+            get;
+            set => this.RaiseAndSetIfChanged(ref field, value);
         }
 
         /// <summary>Gets the placement currently handling interaction.</summary>
@@ -83,28 +68,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <summary>Gets whether editing tools are currently permitted by the tab.</summary>
         public bool CanEdit
         {
-            get => this.canEdit;
-            private set => this.RaiseAndSetIfChanged(ref this.canEdit, value);
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
         }
 
         /// <summary>Gets the configured temporary navigation tool when it is enabled.</summary>
-        internal DiagramToolPlacement Navigation
-        {
-            get
-            {
-                var placement = this.FindPlacement(this.layout.NavigationToolId);
-
-                if (placement is not null)
-                {
-                    return placement;
-                }
-
-                var tool = this.Available.FirstOrDefault(candidate =>
-                    candidate.Id == this.layout.NavigationToolId && candidate.SupportsParameters(null) && this.IsEnabled(candidate));
-
-                return tool is null ? null : new DiagramToolPlacement(tool, new DiagramToolLayout.Item(tool.Id), -1);
-            }
-        }
+        public DiagramToolPlacement Navigation => this.FindNavigationPlacement();
 
         /// <summary>Creates tab-owned tool state over the available catalogue and layout.</summary>
         /// <param name="catalogue">The DI-registered tool catalogue.</param>
@@ -112,6 +81,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
         /// <param name="editingPolicy">The observable live tab editing permission.</param>
         public DiagramToolState(IDiagramToolCatalogue catalogue, DiagramToolLayout layout, IObservable<bool> editingPolicy)
         {
+            ArgumentNullException.ThrowIfNull(catalogue);
+            ArgumentNullException.ThrowIfNull(layout);
+            ArgumentNullException.ThrowIfNull(editingPolicy);
             this.catalogue = catalogue;
             this.layout = layout;
             this.effective = this.WhenAnyValue(state => state.Active, state => state.Temporary, (retained, navigation) => navigation ?? retained)
@@ -149,7 +121,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
 
         /// <summary>Updates applicability and ordered controls for a replacement projection.</summary>
         /// <param name="projection">The validated projection for this tab.</param>
-        internal void ForProjection(DiagramProjection projection)
+        public void ForProjection(DiagramProjection projection)
         {
             var definitions = this.catalogue.For(projection);
 
@@ -180,6 +152,23 @@ namespace Mycelium.Bloom.ViewModel.Diagram.Tools
             this.Active = null;
             this.Temporary = null;
             this.effective.Dispose();
+        }
+
+        /// <summary>Finds enabled navigation in the layout or the applicable catalogue.</summary>
+        /// <returns>The configured navigation placement, or null when unavailable.</returns>
+        private DiagramToolPlacement FindNavigationPlacement()
+        {
+            var placement = this.FindPlacement(this.layout.NavigationToolId);
+
+            if (placement is not null)
+            {
+                return placement;
+            }
+
+            var tool = this.Available.FirstOrDefault(candidate =>
+                candidate.Id == this.layout.NavigationToolId && candidate.SupportsParameters(null) && this.IsEnabled(candidate));
+
+            return tool is null ? null : new DiagramToolPlacement(tool, new DiagramToolLayout.Item(tool.Id), -1);
         }
 
         /// <summary>Checks whether the tool's editing requirement is met.</summary>

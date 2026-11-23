@@ -23,7 +23,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     {
         /// <summary>Gets or sets the diagram mount that owns keyboard gestures.</summary>
         [CascadingParameter]
-        private DiagramPointerBehavior Pointer { get; set; }
+        private IDiagramPointerBehavior Pointer { get; set; }
 
         /// <summary>Renders one selectable surface with the shared keyboard event bindings.</summary>
         /// <param name="element">The element tag, either a native button or a focusable SVG element.</param>

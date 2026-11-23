@@ -86,8 +86,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         public void VerifyViewModelFactoryPreservesScopedSelectionAndCallerOwnership()
         {
             var selection = new ContextAwareService();
-            var services = new ServiceCollection().AddDiagramServices();
-            services.AddSingleton<IElementSelectionService>(selection);
+            var services = DiagramTestServices.CreateCollection(selection);
             using var provider = services.BuildServiceProvider();
             var scope = provider.CreateScope();
             var factory = scope.ServiceProvider.GetRequiredService<Func<DiagramProjection, IDiagramViewModel>>();

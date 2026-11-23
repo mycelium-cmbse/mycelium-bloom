@@ -39,6 +39,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     [TestFixture]
     public sealed class DiagramToolboxTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         private BunitContext context;
 
         private List<DiagramViewModel> owners;
@@ -191,7 +196,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             }
 
             using var selection = new ContextAwareService();
-            using var owner = new DiagramViewModel(supported, selection, catalogue: catalogue, layout: layout);
+            using var owner = this.diagrams.CreateViewModel(supported, selection, catalogue: catalogue, layout: layout);
             var component = this.context.Render<DiagramToolbox>(parameters => parameters.Add(value => value.ViewModel, owner));
 
             using (Assert.EnterMultipleScope())
@@ -250,7 +255,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var selection = new ContextAwareService();
             using var properties = new DetailsPanelViewModel(selection);
             var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
-            var owner = new DiagramViewModel(projection, selection);
+            var owner = this.diagrams.CreateViewModel(projection, selection);
             this.owners.Add(owner);
             var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
             var native = component.FindComponent<CascadingValue<BlazorDiagram>>().Instance.Value;
@@ -438,7 +443,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var source = new PartUsage { DeclaredName = "source" };
             var target = new PartUsage { DeclaredName = "target" };
             var relationship = new Redefinition { RedefiningFeature = source, RedefinedFeature = target };
-            var owner = new DiagramViewModel(DiagramTestFactory.Create([source, target, relationship]), selection);
+            var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([source, target, relationship]), selection);
             this.owners.Add(owner);
             owner.Select(source);
             return (owner, source, relationship);
@@ -448,7 +453,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
         private DiagramViewModel CreateOwner()
         {
-            var owner = new DiagramViewModel(new DiagramProjection([], []), new ContextAwareService());
+            var owner = this.diagrams.CreateViewModel(new DiagramProjection([], []), new ContextAwareService());
             this.owners.Add(owner);
             return owner;
         }

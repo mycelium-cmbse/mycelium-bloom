@@ -44,13 +44,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     [TestFixture]
     public sealed class DiagramPointerTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         [Test]
         public void VerifyRejectedProjectionDoesNotObserveCircuitLifecycle()
         {
             var context = new Mock<IContextAwareService>(MockBehavior.Strict);
             context.SetupGet(value => value.LifecycleState).Returns(ProjectLifecycleKind.Open);
 
-            Assert.That(() => new DiagramViewModel(new DiagramProjection(default, []), context.Object), Throws.TypeOf<ArgumentException>());
+            Assert.That(() => this.diagrams.CreateViewModel(new DiagramProjection(default, []), context.Object), Throws.TypeOf<ArgumentException>());
 
             context.VerifyGet(value => value.LifecycleState, Times.Never);
         }
@@ -63,9 +68,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var target = new PartUsage();
             var edge = new Redefinition { RedefiningFeature = source, RedefinedFeature = target };
             var projection = DiagramTestFactory.Create([source, target, edge]);
-            using var owner = new DiagramViewModel(projection, selection);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
             Point moved;
-            using (var renderer = new DiagramRenderer(owner))
+            using (var renderer = this.diagrams.CreateRenderer(owner))
             {
                 renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
                 owner.ChangeZoom(200);
@@ -90,7 +95,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 }
             }
 
-            using var remounted = new DiagramRenderer(owner);
+            using var remounted = this.diagrams.CreateRenderer(owner);
             Assert.That(remounted.Diagram.Nodes[0].Position, Is.EqualTo(moved));
         }
 
@@ -102,11 +107,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var selection = new ContextAwareService();
             var source = new PartUsage();
             var target = new PartUsage();
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([source, target]), selection);
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([source, target]), selection);
             owner.Select(target);
             owner.SetViewport(0, 0, 2);
             owner.Tools.TryActivate(temporary || middle ? DiagramToolDefaults.Move : DiagramToolDefaults.Pan);
-            using var renderer = new DiagramRenderer(owner);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             if (temporary)
             {
                 renderer.Pointer.KeyChanged(" ", "Space", true);
@@ -142,9 +147,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var selection = new ContextAwareService();
             selection.LifecycleState = lifecycle;
             var element = new PartUsage();
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([element]), selection);
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([element]), selection);
             owner.IsReadOnly = readOnly;
-            using var renderer = new DiagramRenderer(owner);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var node = renderer.Diagram.Nodes[0];
             var original = node.Position;
             renderer.Diagram.TriggerPointerDown(node, Pointer(0, 0));
@@ -165,8 +170,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var selection = new ContextAwareService();
             var projection = DiagramTestFactory.Create([new PartUsage()]);
             var pinned = projection.Nodes[0] with { Occurrence = projection.Nodes[0].Occurrence with { IsMovable = false } };
-            using var owner = new DiagramViewModel(projection with { Nodes = [pinned] }, selection);
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(projection with { Nodes = [pinned] }, selection);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var native = renderer.Diagram.Nodes[0];
             var original = native.Position;
             renderer.Diagram.TriggerPointerDown(native, Pointer(10, 20));
@@ -189,8 +194,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifyCancellationOrPolicyChangeStopsNativeDrag(string interruption)
         {
             using var selection = new ContextAwareService();
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([new PartUsage()]), selection);
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([new PartUsage()]), selection);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var node = renderer.Diagram.Nodes[0];
             var original = node.Position;
             renderer.Diagram.TriggerPointerDown(node, Pointer(0, 0));
@@ -218,8 +223,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifyDispatcherReleasesOnlyItsPointerAndCompletesNativeDragOnce(bool dispose)
         {
             using var selection = new ContextAwareService();
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([new PartUsage()]), selection);
-            var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([new PartUsage()]), selection);
+            var renderer = this.diagrams.CreateRenderer(owner);
             var node = renderer.Diagram.Nodes[0];
             var original = node.Position;
             var start = Pointer(12, 34);
@@ -257,14 +262,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             using var selection = new ContextAwareService();
             var projection = DiagramTestFactory.Create([new PartUsage()]);
-            using var first = new DiagramViewModel(projection, selection);
-            using var second = new DiagramViewModel(projection, selection);
+            using var first = this.diagrams.CreateViewModel(projection, selection);
+            using var second = this.diagrams.CreateViewModel(projection, selection);
             first.MoveNode(projection.Nodes[0].Occurrence.Id, 90, 120);
             first.Tools.TryActivate(DiagramToolDefaults.Pan);
             DiagramViewport retained;
             BlazorDiagram diagram;
-            DiagramPointerBehavior pointer;
-            using (var renderer = new DiagramRenderer(first))
+            IDiagramPointerBehavior pointer;
+            using (var renderer = this.diagrams.CreateRenderer(first))
             {
                 retained = first.Viewport;
                 diagram = renderer.Diagram;
@@ -274,7 +279,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             pointer.Cancel();
             diagram.TriggerPointerDown(null, Pointer(0, 0));
             diagram.TriggerPointerMove(null, Pointer(40, 50));
-            using var remount = new DiagramRenderer(first);
+            using var remount = this.diagrams.CreateRenderer(first);
             remount.Pointer.KeyChanged(" ", "Space", true);
             pointer.Cancel();
             Assert.That(first.Tools.Temporary?.Tool.Id, Is.EqualTo(DiagramToolDefaults.Pan));
@@ -318,12 +323,12 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             registrations.AddSingleton(runtime);
             using var services = registrations.BuildServiceProvider();
             var catalogue = services.GetRequiredService<IDiagramToolCatalogue>();
-            var runtimeProvider = services.GetRequiredService<DiagramToolRuntimeProvider>();
+            var runtimeProvider = services.GetRequiredService<IDiagramToolRuntimeProvider>();
             using var selection = new ContextAwareService();
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([new PartUsage()]) with { Kind = "general-view" },
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([new PartUsage()]) with { Kind = "general-view" },
                 selection, catalogue: catalogue, layout: layout);
 
-            using (var renderer = new DiagramRenderer(owner, runtimeProvider))
+            using (var renderer = this.diagrams.CreateRenderer(owner, runtimeProvider))
             {
                 Assert.That(events, Is.Empty);
                 renderer.Pointer.KeyChanged("r", "KeyR", true);
@@ -351,7 +356,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 Assert.That(owner.Tools.Active.Tool, Is.SameAs(definition));
             }
 
-            using var remounted = new DiagramRenderer(owner, runtimeProvider);
+            using var remounted = this.diagrams.CreateRenderer(owner, runtimeProvider);
             Assert.That(events[^1], Is.EqualTo("activate"));
         }
 
@@ -362,8 +367,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             var source = new PartUsage();
             var target = new PartUsage();
             var relationship = new Redefinition { RedefiningFeature = source, RedefinedFeature = target };
-            using var owner = new DiagramViewModel(DiagramTestFactory.Create([source, target, relationship]), selection);
-            using var renderer = new DiagramRenderer(owner);
+            using var owner = this.diagrams.CreateViewModel(DiagramTestFactory.Create([source, target, relationship]), selection);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var link = renderer.Diagram.Links[0];
 
             renderer.Diagram.TriggerPointerDown(link, Pointer(2, 4));
@@ -396,18 +401,18 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 created.Add(parameters);
                 return new RecordingTool(ReferenceEquals(parameters, reference) ? firstEvents : secondEvents);
             });
-            var catalogue = new DiagramToolCatalogue(DiagramToolDefaults.Definitions.Add(definition));
+            var catalogue = DiagramTestServices.CreateCatalogue(definition);
             var registrations = new ServiceCollection();
             registrations.AddDiagramServices();
             registrations.AddSingleton(runtime);
             using var services = registrations.BuildServiceProvider();
-            var provider = services.GetRequiredService<DiagramToolRuntimeProvider>();
+            var provider = services.GetRequiredService<IDiagramToolRuntimeProvider>();
             using var selection = new ContextAwareService();
-            using var owner = new DiagramViewModel(new DiagramProjection([], []), selection, catalogue: catalogue, layout: layout);
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([], []), selection, catalogue: catalogue, layout: layout);
             var placements = owner.Tools.Toolbox.Where(placement => placement.Tool == definition).ToArray();
             Assert.That(placements, Has.Length.EqualTo(2));
 
-            using (var renderer = new DiagramRenderer(owner, provider))
+            using (var renderer = this.diagrams.CreateRenderer(owner, provider))
             {
                 renderer.Pointer.KeyChanged("c", "KeyC", true);
                 Assert.That(owner.Tools.Active, Is.SameAs(placements[0]));
@@ -429,21 +434,21 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifyToolStatePublishesApplicabilityAndEffectivePlacementAndDisposesPolicyOnce()
         {
             var definition = new DiagramToolDefinition("connect", "Connect", "link") { DiagramKinds = ["sample"], RequiresEditableDiagram = true };
-            var catalogue = new DiagramToolCatalogue(DiagramToolDefaults.Definitions.Add(definition));
+            var catalogue = DiagramTestServices.CreateCatalogue(definition);
             var layout = DiagramToolDefaults.Layout with { Items = DiagramToolDefaults.Layout.Items.Add(new(definition.Id)) };
             using var policy = new BehaviorSubject<bool>(true);
             var disposed = 0;
             var editingPolicy = Observable.Create<bool>(observer =>
                 new CompositeDisposable(policy.Subscribe(observer), Disposable.Create(() => disposed++)));
             using var selection = new ContextAwareService();
-            using var owner = new DiagramViewModel(new DiagramProjection([], []), selection, catalogue: catalogue, layout: layout);
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([], []), selection, catalogue: catalogue, layout: layout);
             var definitions = new List<int>();
             var toolbox = new List<int>();
             var effective = new List<string>();
             using var definitionsSubscription = owner.Tools.WhenAnyValue(state => state.Available).Subscribe(value => definitions.Add(value.Length));
             using var toolboxSubscription = owner.Tools.WhenAnyValue(state => state.Toolbox).Subscribe(value => toolbox.Add(value.Length));
             using var effectiveSubscription = owner.Tools.WhenAnyValue(state => state.Effective).Subscribe(value => effective.Add(value?.Tool.Id));
-            using var renderer = new DiagramRenderer(owner);
+            using var renderer = this.diagrams.CreateRenderer(owner);
 
             owner.UpdateProjection(owner.Projection with { Kind = "sample" });
             owner.UpdateProjection(owner.Projection with { Kind = "other" });

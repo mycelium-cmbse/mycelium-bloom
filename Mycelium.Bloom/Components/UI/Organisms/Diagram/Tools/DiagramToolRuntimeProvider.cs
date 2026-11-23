@@ -14,15 +14,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
 
     /// <summary>Resolves renderer-owned runtime instances from their tool IDs.</summary>
-    public sealed class DiagramToolRuntimeProvider
+    public sealed class DiagramToolRuntimeProvider : IDiagramToolRuntimeProvider
     {
-        /// <summary>Gets built-in runtime registrations for DI and standalone renderer construction.</summary>
-        internal static ImmutableArray<DiagramToolRuntimeRegistration> BuiltInRegistrations { get; } =
-        [
-            new(DiagramToolDefaults.Move, (context, _) => new MoveDiagramTool(context)),
-            new(DiagramToolDefaults.Pan, (context, _) => new PanDiagramTool(context))
-        ];
-
         /// <summary>Maps stable identifiers to their registered factories.</summary>
         private readonly ImmutableDictionary<string, DiagramToolRuntimeRegistration> registrations;
 
@@ -30,6 +23,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools
         /// <param name="registrations">The runtime factories registered in DI.</param>
         public DiagramToolRuntimeProvider(IEnumerable<DiagramToolRuntimeRegistration> registrations)
         {
+            ArgumentNullException.ThrowIfNull(registrations);
             this.registrations = registrations.ToImmutableDictionary(registration => registration.ToolId, StringComparer.Ordinal);
         }
 

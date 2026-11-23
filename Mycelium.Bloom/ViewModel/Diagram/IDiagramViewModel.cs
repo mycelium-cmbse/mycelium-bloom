@@ -20,7 +20,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     public interface IDiagramViewModel : INotifyPropertyChanged, IDisposable
     {
         /// <summary>Gets this diagram's retained pointer mode.</summary>
-        DiagramToolState Tools { get; }
+        IDiagramToolState Tools { get; }
 
         /// <summary>Gets whether lifecycle and local read-only policy permit graphical movement.</summary>
         bool CanMoveNodes { get; }

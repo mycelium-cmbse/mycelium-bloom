@@ -14,7 +14,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     using Microsoft.JSInterop;
 
     using Mycelium.Bloom.Components.UI.Common;
-    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
@@ -22,7 +21,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     public sealed partial class DiagramCanvas : BloomReactiveComponentBase<IDiagramViewModel>
     {
         /// <summary>The adapter owned by this component's current interactive mount.</summary>
-        private DiagramRenderer renderer;
+        private IDiagramRenderer renderer;
 
         /// <summary>The mounted native canvas with browser-only pointer resources.</summary>
         private DiagramCanvasHost host;
@@ -47,9 +46,9 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         [Inject]
         private IJSRuntime ScriptRuntime { get; set; }
 
-        /// <summary>Gets or sets the registered factories for renderer-owned tool runtimes.</summary>
+        /// <summary>Gets or sets the registered factory for caller-owned renderer mounts.</summary>
         [Inject]
-        private DiagramToolRuntimeProvider ToolRuntimes { get; set; }
+        private Func<IDiagramViewModel, IDiagramRenderer> CreateRenderer { get; set; }
 
         /// <summary>Loads native script support before parameter binding can create a native canvas.</summary>
         /// <returns>Completion of interactive script initialization.</returns>
@@ -100,7 +99,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             {
                 this.ReleaseRenderer();
                 this.observed = this.ViewModel;
-                this.renderer = new DiagramRenderer(this.ViewModel, this.ToolRuntimes);
+                this.renderer = this.CreateRenderer(this.ViewModel);
                 this.renderer.Pointer.Changed += this.ToolPresentationChanged;
             }
         }

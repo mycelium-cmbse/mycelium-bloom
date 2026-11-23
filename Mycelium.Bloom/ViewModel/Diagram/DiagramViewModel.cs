@@ -65,8 +65,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Derives movement permission from lifecycle and local read-only state.</summary>
         private readonly ObservableAsPropertyHelper<bool> canMoveNodes;
 
-        /// <inheritdoc />
-        public DiagramToolState Tools { get; }
+        /// <summary>Gets the tool state owned by this tab and borrowed by its mounted views.</summary>
+        public IDiagramToolState Tools { get; }
 
         /// <summary>Gets or sets the local presentation movement restriction.</summary>
         public bool IsReadOnly
@@ -95,27 +95,26 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Creates tab state over validated presentation and observes shared selection.</summary>
         /// <param name="projection">The immutable view with occurrence-scoped graphical identities.</param>
         /// <param name="selection">The circuit-owned canonical selection service.</param>
-        /// <param name="createNestedView">The optional factory for caller-owned nested views.</param>
-        /// <param name="context">The optional lifecycle authority; unavailable lifecycle policy prohibits movement.</param>
-        /// <param name="catalogue">The registered tools, or the built-in catalogue for standalone diagrams.</param>
-        /// <param name="layout">The diagram toolbox layout, or the standard layout.</param>
+        /// <param name="createNestedView">The registered factory for caller-owned nested views.</param>
+        /// <param name="context">The circuit-owned lifecycle authority.</param>
+        /// <param name="createTools">The registered factory for tab-owned tool state.</param>
         public DiagramViewModel(DiagramProjection projection, IElementSelectionService selection,
-            Func<DiagramProjection, IDiagramViewModel> createNestedView = null, IContextAwareService context = null,
-            IDiagramToolCatalogue catalogue = null, DiagramToolLayout layout = null)
+            Func<DiagramProjection, IDiagramViewModel> createNestedView, IContextAwareService context,
+            Func<IObservable<bool>, IDiagramToolState> createTools)
         {
             ArgumentNullException.ThrowIfNull(projection);
             ArgumentNullException.ThrowIfNull(selection);
+            ArgumentNullException.ThrowIfNull(createNestedView);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(createTools);
             this.selection = selection;
-            catalogue ??= new DiagramToolCatalogue(DiagramToolDefaults.Definitions);
-            layout ??= DiagramToolDefaults.Layout;
-            this.createNestedView = createNestedView ?? (child => new DiagramViewModel(child, selection, context: context, catalogue: catalogue, layout: layout));
+            this.createNestedView = createNestedView;
             this.UpdateProjection(projection);
-            var lifecycle = context ?? selection as IContextAwareService;
-            var editableLifecycle = lifecycle is null ? Observable.Return(false) : lifecycle.WhenAnyValue(value => value.LifecycleState)
+            var editableLifecycle = context.WhenAnyValue(value => value.LifecycleState)
                 .Select(value => value is ProjectLifecycleKind.Preparation or ProjectLifecycleKind.Open);
             this.canMoveNodes = editableLifecycle.CombineLatest(this.WhenAnyValue(value => value.IsReadOnly), (editable, readOnly) => editable && !readOnly)
                 .ToProperty(this, value => value.CanMoveNodes);
-            this.Tools = new DiagramToolState(catalogue, layout, this.WhenAnyValue(view => view.CanMoveNodes));
+            this.Tools = createTools(this.WhenAnyValue(view => view.CanMoveNodes));
             this.Tools.ForProjection(projection);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
         }
