@@ -9,6 +9,8 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
+    using Blazor.Diagrams.Components.Renderers;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
@@ -27,16 +29,27 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         [CascadingParameter]
         public DiagramNodeViewModel ViewModel { get; set; }
 
+        /// <summary>Gets or sets the native port identities for this occurrence.</summary>
+        [CascadingParameter]
+        public DiagramNodeModel Node { get; set; }
+
         /// <summary>Renders only the features assigned to one node-shell boundary slot.</summary>
         /// <param name="side">The slot's graphical boundary.</param>
         /// <returns>The boundary components capturing their canonical selection intent.</returns>
         private RenderFragment BoundaryFeatures(BoundarySide side) => builder =>
         {
-            foreach (var feature in this.ViewModel.BoundaryFeatures.Where(feature => feature.Presentation.Side == side))
+            foreach (var port in this.Node.Ports.OfType<DiagramBoundaryPortModel>().Where(port => port.ViewModel.Presentation.Side == side))
             {
-                builder.OpenComponent<DiagramBoundaryFeature>(0);
-                builder.SetKey(feature);
-                builder.AddAttribute(1, nameof(DiagramBoundaryFeature.ViewModel), feature);
+                builder.OpenComponent<PortRenderer>(0);
+                builder.SetKey(port);
+                builder.AddAttribute(1, nameof(PortRenderer.Port), port);
+                builder.AddAttribute(2, nameof(PortRenderer.Class), "diagram-boundary-port");
+                builder.AddAttribute(3, nameof(PortRenderer.ChildContent), (RenderFragment)(content =>
+                {
+                    content.OpenComponent<DiagramBoundaryFeature>(0);
+                    content.AddComponentParameter(1, nameof(DiagramBoundaryFeature.ViewModel), port.ViewModel);
+                    content.CloseComponent();
+                }));
                 builder.CloseComponent();
             }
         };

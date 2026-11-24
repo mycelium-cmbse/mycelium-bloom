@@ -10,9 +10,14 @@
 namespace Mycelium.Bloom.ViewModel.Diagram
 {
     using System.Collections.Immutable;
+    using System.Reactive.Linq;
 
+    using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.Model.Enum;
+    using Mycelium.Bloom.ViewModel.Diagram.Tools;
+    using Mycelium.SDK;
 
     using ReactiveUI;
 
@@ -54,6 +59,25 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Prevents operations from extending a closed tab's lifetime.</summary>
         private bool disposed;
 
+        /// <summary>The local presentation movement restriction.</summary>
+        private bool isReadOnly;
+
+        /// <summary>Derives movement permission from lifecycle and local read-only state.</summary>
+        private readonly ObservableAsPropertyHelper<bool> canMoveNodes;
+
+        /// <summary>Gets the tool state owned by this tab and borrowed by its mounted views.</summary>
+        public IDiagramToolState Tools { get; }
+
+        /// <summary>Gets or sets the local presentation movement restriction.</summary>
+        public bool IsReadOnly
+        {
+            get => this.isReadOnly;
+            set => this.RaiseAndSetIfChanged(ref this.isReadOnly, value);
+        }
+
+        /// <summary>Gets whether the live diagram permits graphical node movement.</summary>
+        public bool CanMoveNodes => !this.disposed && this.canMoveNodes.Value;
+
         /// <summary>Gets the current immutable graphical projection.</summary>
         public DiagramProjection Projection
         {
@@ -71,15 +95,27 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Creates tab state over validated presentation and observes shared selection.</summary>
         /// <param name="projection">The immutable view with occurrence-scoped graphical identities.</param>
         /// <param name="selection">The circuit-owned canonical selection service.</param>
-        /// <param name="createNestedView">The optional factory for caller-owned nested views.</param>
+        /// <param name="createNestedView">The registered factory for caller-owned nested views.</param>
+        /// <param name="context">The circuit-owned lifecycle authority.</param>
+        /// <param name="createTools">The registered factory for tab-owned tool state.</param>
         public DiagramViewModel(DiagramProjection projection, IElementSelectionService selection,
-            Func<DiagramProjection, IDiagramViewModel> createNestedView = null)
+            Func<DiagramProjection, IDiagramViewModel> createNestedView, IContextAwareService context,
+            Func<IObservable<bool>, IDiagramToolState> createTools)
         {
             ArgumentNullException.ThrowIfNull(projection);
             ArgumentNullException.ThrowIfNull(selection);
+            ArgumentNullException.ThrowIfNull(createNestedView);
+            ArgumentNullException.ThrowIfNull(context);
+            ArgumentNullException.ThrowIfNull(createTools);
             this.selection = selection;
-            this.createNestedView = createNestedView ?? (child => new DiagramViewModel(child, selection));
+            this.createNestedView = createNestedView;
             this.UpdateProjection(projection);
+            var editableLifecycle = context.WhenAnyValue(value => value.LifecycleState)
+                .Select(value => value is ProjectLifecycleKind.Preparation or ProjectLifecycleKind.Open);
+            this.canMoveNodes = editableLifecycle.CombineLatest(this.WhenAnyValue(value => value.IsReadOnly), (editable, readOnly) => editable && !readOnly)
+                .ToProperty(this, value => value.CanMoveNodes);
+            this.Tools = createTools(this.WhenAnyValue(view => view.CanMoveNodes));
+            this.Tools.ForProjection(projection);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
         }
 
@@ -128,6 +164,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.ApplySelection(this.selection.SelectedElement);
             this.ReleaseRemovedNestedViews(projection);
             this.Projection = projection;
+            this.Tools?.ForProjection(projection);
         }
 
         /// <summary>Selects the supplied represented canonical element.</summary>
@@ -136,10 +173,27 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         {
             ObjectDisposedException.ThrowIf(this.disposed, this);
 
-            if (element is not null && this.selectionTargets.ContainsKey(element))
+            if (this.Tools.Effective?.Tool.AllowsSelection == true && element is not null && this.selectionTargets.ContainsKey(element))
             {
                 this.selection.SelectedElement = element;
             }
+        }
+
+        /// <summary>Updates permitted occurrence-local geometry without editing the semantic projection.</summary>
+        /// <param name="occurrenceId">The graphical occurrence identity.</param>
+        /// <param name="x">The finite horizontal model-space coordinate.</param>
+        /// <param name="y">The finite vertical model-space coordinate.</param>
+        /// <returns>Whether this live diagram accepted movement.</returns>
+        public bool MoveNode(Guid occurrenceId, double x, double y)
+        {
+            if (this.disposed || !this.CanMoveNodes || !double.IsFinite(x) || !double.IsFinite(y)
+                || !this.nodeStates.TryGetValue(occurrenceId, out var node) || !node.Presentation.Occurrence.IsMovable)
+            {
+                return false;
+            }
+
+            node.SetPosition(new DiagramPoint(x, y));
+            return true;
         }
 
         /// <summary>Changes the zoom percentage while preserving pan.</summary>
@@ -175,12 +229,20 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="height">The available canvas height.</param>
         public void FitToView(double width, double height)
         {
-            if (width <= 0 || height <= 0 || !double.IsFinite(width) || !double.IsFinite(height) || this.Projection.Nodes.IsEmpty)
+            if (this.disposed || width <= 0 || height <= 0 || !double.IsFinite(width) || !double.IsFinite(height) || this.Projection.Nodes.IsEmpty)
             {
                 return;
             }
 
-            var bounds = DiagramBoundsCalculator.Measure(this.Projection);
+            var positioned = this.Projection with
+            {
+                Nodes = this.Projection.Nodes.Select(node =>
+            {
+                var position = this.nodeStates[node.Occurrence.Id].Position;
+                return node with { Occurrence = node.Occurrence with { X = position.X, Y = position.Y } };
+            }).ToImmutableArray()
+            };
+            var bounds = DiagramBoundsCalculator.Measure(positioned);
             var zoom = Math.Clamp(Math.Min(width / (bounds.Right - bounds.Left), height / (bounds.Bottom - bounds.Top)), DiagramViewport.MinimumZoom, 1);
             this.SetViewport((width - (bounds.Right - bounds.Left) * zoom) / 2 - bounds.Left * zoom,
                 (height - (bounds.Bottom - bounds.Top) * zoom) / 2 - bounds.Top * zoom, zoom);
@@ -198,6 +260,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             if (!this.nestedViews.TryGetValue((occurrenceId, projection), out var nested))
             {
                 nested = this.createNestedView(projection);
+                nested.IsReadOnly = true;
                 this.nestedViews.Add((occurrenceId, projection), nested);
             }
 
@@ -222,6 +285,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             this.disposed = true;
             this.selectionSubscription.Dispose();
+            this.Tools.Dispose();
+            this.canMoveNodes.Dispose();
 
             foreach (var nested in this.nestedViews.Values)
             {

@@ -11,6 +11,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.IO;
@@ -47,6 +48,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram.Tools;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -74,6 +76,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var viewModel = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             viewModel.SetupGet(value => value.Projection).Returns(projection);
             viewModel.SetupGet(value => value.Viewport).Returns(new DiagramViewport());
+            viewModel.SetupGet(value => value.Tools).Returns(Mock.Of<IDiagramToolState>(state => state.Toolbox == ImmutableArray<DiagramToolPlacement>.Empty));
             viewModel.Setup(value => value.Dispose());
             var factory = new Mock<Func<SysML2Element, IDiagramViewModel>>(MockBehavior.Strict);
             factory.Setup(create => create(It.IsAny<SysML2Element>())).Returns(viewModel.Object);
@@ -202,6 +205,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var diagram = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             diagram.SetupGet(viewModel => viewModel.Projection).Returns(projection);
             diagram.SetupGet(viewModel => viewModel.Viewport).Returns(new DiagramViewport());
+            diagram.SetupGet(viewModel => viewModel.Tools).Returns(Mock.Of<IDiagramToolState>(state => state.Toolbox == ImmutableArray<DiagramToolPlacement>.Empty));
             diagram.Setup(viewModel => viewModel.Dispose());
             var factory = new Mock<Func<DiagramProjection, IDiagramViewModel>>(MockBehavior.Strict);
             factory.Setup(create => create(It.Is<DiagramProjection>(value => ReferenceEquals(value, projection)))).Returns(diagram.Object);

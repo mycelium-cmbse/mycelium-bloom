@@ -35,12 +35,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             : base(presentation.Occurrence.Id.ToString(), new Point(presentation.Occurrence.X, presentation.Occurrence.Y))
         {
             this.ViewModel = owner.GetNodeViewModel(presentation.Occurrence.Id);
+            this.Position = new Point(this.ViewModel.Position.X, this.ViewModel.Position.Y);
+            this.Locked = !presentation.Occurrence.IsMovable;
             this.Size = new Size(presentation.Occurrence.Width, presentation.Occurrence.Height);
             this.ControlledSize = true;
 
             for (var index = 0; index < this.ViewModel.BoundaryFeatures.Length; index++)
             {
-                var feature = this.ViewModel.BoundaryFeatures[index].Presentation;
+                var boundary = this.ViewModel.BoundaryFeatures[index];
+                var feature = boundary.Presentation;
                 var alignment = feature.Side switch
                 {
                     BoundarySide.Left => PortAlignment.Left,
@@ -51,9 +54,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 var offset = feature.Offset;
                 var x = feature.Side switch { BoundarySide.Left => 0, BoundarySide.Right => this.Size.Width, _ => this.Size.Width * offset };
                 var y = feature.Side switch { BoundarySide.Top => 0, BoundarySide.Bottom => this.Size.Height, _ => this.Size.Height * offset };
-                this.AddPort(new PortModel($"{this.Id}-boundary-{index}", this, alignment,
-                    new Point(this.Position.X + x - 6, this.Position.Y + y - 6), new Size(12, 12))
-                { Initialized = true });
+                this.AddPort(new DiagramBoundaryPortModel($"{this.Id}-boundary-{index}", this, alignment,
+                    new Point(this.Position.X + x - 6, this.Position.Y + y - 6), new Size(12, 12), boundary));
             }
         }
     }

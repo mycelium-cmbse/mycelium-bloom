@@ -1326,3 +1326,83 @@ test("diagram modules do not load native styles before a canvas requests them", 
     assert.equal(document.querySelectorAll('link[rel="stylesheet"]').length, 0);
     assert.equal(document.querySelectorAll("script").length, 0);
 });
+
+async function createDiagramCapture(parent = document.body) {
+    const { attachDiagramPointerCapture } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
+    const canvas = document.createElement("div");
+    canvas.className = "diagram-canvas";
+    canvas.tabIndex = -1;
+    canvas.innerHTML = "<button>Node</button>";
+    parent.append(canvas);
+    const child = canvas.querySelector("button");
+    const captures = new Map();
+    for (const target of [canvas, child]) {
+        target.setPointerCapture = id => captures.set(id, target);
+        target.hasPointerCapture = id => captures.get(id) === target;
+        target.releasePointerCapture = id => captures.delete(id);
+    }
+    const handle = attachDiagramPointerCapture(canvas);
+    const pointer = (type, target = canvas, overrides = {}) => {
+        const event = new window.Event(type, { bubbles: true, cancelable: true });
+        for (const [key, value] of Object.entries({ pointerId: 1, button: 0, isPrimary: true, ...overrides })) {
+            Object.defineProperty(event, key, { value });
+        }
+        target.dispatchEvent(event);
+        return event;
+    };
+    return { canvas, child, captures, handle, pointer };
+}
+
+test("diagram captures the native hit target and allows normal activation", async () => {
+    const { child, captures, handle, pointer } = await createDiagramCapture();
+    assert.equal(pointer("pointerdown", child).defaultPrevented, false);
+    assert.equal(captures.get(1), child);
+    child.releasePointerCapture(1);
+    pointer("lostpointercapture", child);
+    assert.equal(pointer("click", child).defaultPrevented, false);
+    assert.equal(captures.size, 0);
+    handle.dispose();
+});
+
+test("diagram capture prevents middle-button autoscroll and ignores unsupported presses", async () => {
+    const { canvas, child, captures, handle, pointer } = await createDiagramCapture();
+    assert.equal(pointer("pointerdown", child, { button: 1 }).defaultPrevented, true);
+    assert.equal(document.activeElement, canvas);
+    assert.equal(handle.hasFocus(), true);
+    assert.equal(captures.get(1), child);
+    handle.release();
+    handle.release();
+    assert.equal(pointer("pointerdown", child, { button: 2 }).defaultPrevented, false);
+    pointer("pointerdown", child, { isPrimary: false });
+    assert.equal(captures.size, 0);
+    handle.dispose();
+});
+
+test("diagram capture follows browser focus and releases native resources on blur and disposal", async () => {
+    const { canvas, child, captures, handle, pointer } = await createDiagramCapture();
+    canvas.focus();
+    child.focus();
+    assert.equal(handle.hasFocus(), true);
+    pointer("pointerdown", child);
+    assert.equal(captures.get(1), child);
+    window.dispatchEvent(new window.Event("blur"));
+    assert.equal(handle.hasFocus(), false);
+    assert.equal(captures.size, 0);
+    pointer("pointerdown", child);
+    handle.dispose();
+    handle.dispose();
+    pointer("pointerdown", child);
+    assert.equal(captures.size, 0);
+});
+
+test("nested native capture is attached only to the originating canvas", async () => {
+    const outer = await createDiagramCapture();
+    const inner = await createDiagramCapture(outer.canvas);
+    inner.pointer("pointerdown", inner.child);
+    assert.equal(outer.captures.size, 0);
+    assert.equal(inner.captures.get(1), inner.child);
+    outer.handle.dispose();
+    assert.equal(inner.captures.get(1), inner.child);
+    inner.handle.dispose();
+    assert.equal(inner.captures.size, 0);
+});

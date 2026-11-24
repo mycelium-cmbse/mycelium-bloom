@@ -60,17 +60,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <returns>The native boundary anchor or shape intersection anchor.</returns>
         private static Anchor CreateAnchor(NodeModel node, IElement feature)
         {
-            var occurrence = (DiagramNodeModel)node;
-
-            for (var index = 0; index < occurrence.ViewModel.BoundaryFeatures.Length; index++)
-            {
-                if (ReferenceEquals(occurrence.ViewModel.BoundaryFeatures[index].Element, feature))
-                {
-                    return new SinglePortAnchor(node.Ports[index]);
-                }
-            }
-
-            return new ShapeIntersectionAnchor(node);
+            var port = node.Ports.OfType<DiagramBoundaryPortModel>().FirstOrDefault(port => ReferenceEquals(port.ViewModel.Element, feature));
+            return port is null ? new ShapeIntersectionAnchor(node) : new SinglePortAnchor(port);
         }
     }
 }

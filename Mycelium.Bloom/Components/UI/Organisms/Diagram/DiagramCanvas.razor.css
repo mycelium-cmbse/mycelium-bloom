@@ -16,6 +16,18 @@
     overflow: hidden;
 }
 
+.general-diagram[data-tool-cursor] ::deep .diagram-canvas,
+.general-diagram[data-tool-cursor] ::deep .diagram-occurrence,
+.general-diagram[data-tool-cursor] ::deep .mb-diagram-node-select,
+.general-diagram[data-tool-cursor] ::deep .diagram-edge {
+    cursor: var(--diagram-tool-cursor);
+}
+
+.general-diagram[data-capture-nested-input] ::deep .general-diagram--nested,
+.general-diagram[data-capture-nested-input] ::deep .general-diagram--nested * {
+    pointer-events: none;
+}
+
 .diagram-view-frame {
     align-self: flex-start;
     border-right: var(--border-width-default) solid var(--border-subtle);
@@ -90,6 +102,10 @@
     font-family: monospace;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+}
+
+.general-diagram ::deep .diagram-boundary-port {
+    display: contents;
 }
 
 .general-diagram ::deep .diagram-boundary {
@@ -216,7 +232,9 @@
 
 .diagram-navigation {
     display: flex;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
     padding: var(--spacing-4) var(--spacing-8);
     border-bottom: var(--border-width-default) solid var(--border-subtle);
 }

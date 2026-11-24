@@ -66,7 +66,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 index, referenceSite)).ToImmutableArray();
             var edges = this.ProjectEdges(source, nodes, ref omitted);
 
-            return new(nodes, edges, name, omitted);
+            return new(nodes, edges, name, omitted) { Kind = "general-view" };
         }
     }
 }

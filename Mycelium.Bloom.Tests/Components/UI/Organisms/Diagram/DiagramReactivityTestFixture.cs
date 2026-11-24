@@ -18,6 +18,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     using System.Threading.Tasks;
 
     using Blazor.Diagrams.Components;
+    using Blazor.Diagrams.Components.Renderers;
     using Blazor.Diagrams.Core.Geometry;
 
     using Bunit;
@@ -48,6 +49,11 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
     [NonParallelizable]
     public sealed class DiagramReactivityTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         private BunitContext context;
 
         private List<DiagramViewModel> ownedViews;
@@ -137,6 +143,37 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         }
 
         [Test]
+        public async Task VerifyNativeBoundaryPointerAndKeyboardActivateExactlyOnce()
+        {
+            var selection = new CountingSelectionService();
+            var owner = this.CreateOwner(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var port = component.FindComponents<PortRenderer>()[0];
+            var boundaryWidget = port.FindComponent<DiagramBoundaryFeature>();
+            var boundary = boundaryWidget.Instance.ViewModel.Element;
+            var nativeSurface = port.Find("[data-port-id]");
+            var pointer = new PointerEventArgs { PointerId = 1, Button = 0, IsPrimary = true, PointerType = "mouse" };
+
+            await nativeSurface.TriggerEventAsync("onpointerdown", pointer);
+            await nativeSurface.TriggerEventAsync("onpointerup", pointer);
+            await boundaryWidget.Find("button").ClickAsync(new MouseEventArgs { Detail = 1 });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(boundary));
+                Assert.That(selection.SelectionWrites, Is.EqualTo(1));
+            }
+
+            await boundaryWidget.Find("button").ClickAsync(new MouseEventArgs { Detail = 0 });
+            Assert.That(selection.SelectionWrites, Is.EqualTo(2));
+
+            await component.Find("button[aria-label=Pan]").ClickAsync();
+            await nativeSurface.TriggerEventAsync("onpointerdown", pointer);
+            await nativeSurface.TriggerEventAsync("onpointerup", pointer);
+            Assert.That(selection.SelectionWrites, Is.EqualTo(2));
+        }
+
+        [Test]
         public void VerifySelectionUpdatesRepeatedOccurrencesWithoutCrossingCanonicalModels()
         {
             var selection = new CountingSelectionService();
@@ -217,7 +254,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         {
             var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
             var owner = this.CreateOwner(projection, new CountingSelectionService());
-            using var renderer = new DiagramRenderer(owner);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             var state = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
             var native = renderer.Diagram.Nodes[0];
             var invalid = projection with { Edges = projection.Edges.SetItem(0, projection.Edges[0] with { Source = Guid.NewGuid() }) };
@@ -365,9 +402,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         [Test]
         public void VerifyFirstAvailableProjectionFitsAfterEmptyInitialization()
         {
-            var owner = new DiagramViewModel(new([], []), new CountingSelectionService());
+            var owner = this.diagrams.CreateViewModel(new([], []), new CountingSelectionService());
             this.ownedViews.Add(owner);
-            using var renderer = new DiagramRenderer(owner);
+            using var renderer = this.diagrams.CreateRenderer(owner);
             renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
             Assert.That(owner.Viewport.IsInitialized, Is.False);
             owner.UpdateProjection(DiagramTestFactory.Create(Enumerable.Range(0, 200).Select(index => new PartUsage { Id = Guid.NewGuid(), DeclaredName = "Node" + index })));
@@ -407,7 +444,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
         private DiagramViewModel CreateOwner(DiagramProjection projection, IElementSelectionService selection)
         {
-            var owner = new DiagramViewModel(projection, selection);
+            var owner = this.diagrams.CreateViewModel(projection, selection);
             owner.SetViewport(0, 0, 1);
             this.ownedViews.Add(owner);
             return owner;
@@ -427,10 +464,16 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
             public int ActiveSubscriptions { get; set; }
 
+            public int SelectionWrites { get; private set; }
+
             public IElement SelectedElement
             {
                 get => this.selectedElement;
-                set => this.RaiseAndSetIfChanged(ref this.selectedElement, value);
+                set
+                {
+                    this.SelectionWrites++;
+                    this.RaiseAndSetIfChanged(ref this.selectedElement, value);
+                }
             }
 
         }

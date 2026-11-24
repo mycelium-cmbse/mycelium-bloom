@@ -9,13 +9,12 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Renders a reusable port or parameter and captures its selection intent.</summary>
-    public partial class DiagramBoundaryFeature : BloomReactiveComponentBase<DiagramBoundaryViewModel>
+    public partial class DiagramBoundaryFeature : SelectableDiagramWidgetBase<DiagramBoundaryViewModel>
     {
         /// <summary>Gets the current boundary notation from its occurrence-owned reactive state.</summary>
         private DiagramBoundaryPresentation Presentation => this.ViewModel.Presentation;
@@ -37,8 +36,5 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             (_, "InOut") => "↔",
             _ => ""
         };
-
-        /// <summary>Captures selection intent and delegates it to the boundary presentation owner.</summary>
-        private void Select() => this.ViewModel.Select();
     }
 }

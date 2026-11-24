@@ -35,6 +35,11 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     [TestFixture]
     public sealed class DiagramInfrastructureTestFixture
     {
+        private readonly DiagramTestServices diagrams = new();
+
+        [TearDown]
+        public void DisposeDiagramServices() => this.diagrams.Dispose();
+
         [TestCase(0, 16)]
         [TestCase(24, -1)]
         [TestCase(double.NaN, 16)]
@@ -45,7 +50,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             var target = new PartUsage();
             var relationship = new Redefinition { RedefiningFeature = source, RedefinedFeature = target };
             var projection = DiagramTestFactory.CreateProjector().Create([source, target, relationship]);
-            using var owner = new DiagramViewModel(projection, new ContextAwareService());
+            using var owner = this.diagrams.CreateViewModel(projection, new ContextAwareService());
             var retained = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
             var marker = DiagramMarker.Triangle with { ViewBox = (-23, -8, width, height) };
             var edge = projection.Edges[0];
@@ -264,9 +269,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             var environment = new Mock<IHostEnvironment>(MockBehavior.Strict);
             environment.SetupGet(value => value.EnvironmentName).Returns(development ? Environments.Development : Environments.Production);
-            var services = new ServiceCollection().AddDiagramServices();
+            var services = DiagramTestServices.CreateCollection(new ContextAwareService());
             services.AddSingleton(environment.Object);
-            services.AddSingleton<IElementSelectionService>(new ContextAwareService());
             using var provider = services.BuildServiceProvider();
             using var scope = provider.CreateScope();
             var registry = scope.ServiceProvider.GetRequiredService<DiagramEditorRegistry>();

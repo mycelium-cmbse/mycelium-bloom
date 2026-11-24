@@ -11,12 +11,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
     using Microsoft.AspNetCore.Components;
 
-    using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Adapts a native occurrence to the shared node components and captures selection.</summary>
-    public partial class DiagramNodeWidget : BloomReactiveComponentBase<DiagramNodeViewModel>
+    public partial class DiagramNodeWidget : SelectableDiagramWidgetBase<DiagramNodeViewModel>
     {
         /// <summary>The immutable presentation used by the cached component parameters.</summary>
         private DiagramNodePresentation renderedPresentation;
@@ -61,8 +60,5 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
             return this.componentParameters;
         }
-
-        /// <summary>Delegates occurrence selection to its presentation owner.</summary>
-        private void Select() => this.ViewModel.Select();
     }
 }
