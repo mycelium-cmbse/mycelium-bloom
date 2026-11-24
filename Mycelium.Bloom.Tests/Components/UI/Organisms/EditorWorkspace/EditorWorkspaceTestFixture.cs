@@ -18,10 +18,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
     using System.Threading;
     using System.Threading.Tasks;
 
-    using BlazorBlueprint.Components;
-    using BlazorBlueprint.Primitives;
-    using BlazorBlueprint.Primitives.Services;
-
     using Bunit;
 
     using Microsoft.AspNetCore.Components;
@@ -35,7 +31,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
 
-    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
 
     /// <summary>
@@ -98,11 +93,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
             "Editor group 2: Shared"
         ];
 
-        private readonly IRenderedComponent<BbPortalHost> portalHost;
-
         public EditorWorkspaceTestFixture()
         {
-            this.portalHost = BlueprintTestSetup.ConfigureWithPortalHost(this);
+            BlueprintTestSetup.Configure(this);
             this.JSInterop.Mode = JSRuntimeMode.Loose;
         }
 
@@ -692,59 +685,31 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.EditorWorkspace
         }
 
         [Test]
-        public async Task VerifyTemplatedAddControlHostsAccessibleActionMenuTrigger()
+        public async Task VerifyTemplatedAddControlReceivesItsGroup()
         {
             var state = CreateViewModel();
             var group = state.Groups[0];
-            var actions = new[]
-            {
-                new ActionMenuItem { Id = "empty", Label = "Empty editor" },
-                new ActionMenuItem { Id = "browser", Label = "Project Browser", Disabled = true }
-            };
-            Guid? selectedGroupId = null;
-            ActionMenuItem selectedAction = null;
+            Guid? requestedGroupId = null;
             RenderFragment<Guid> addTabControl = groupId => builder =>
             {
-                builder.OpenComponent<ActionMenuComponent>(0);
-                builder.AddAttribute(1, nameof(ActionMenuComponent.Items), actions);
-                builder.AddAttribute(
-                    2,
-                    nameof(ActionMenuComponent.TriggerAriaLabel),
-                    "Add tab to Editor group 1");
-                builder.AddAttribute(3, nameof(ActionMenuComponent.TriggerTitle), "Add tab");
-                builder.AddAttribute(4, nameof(ActionMenuComponent.TriggerClass), "mb-editor-workspace__add-tab");
-                builder.AddAttribute(
-                    5,
-                    nameof(ActionMenuComponent.TriggerContent),
-                    (RenderFragment)(triggerBuilder => triggerBuilder.AddContent(0, "+")));
-                builder.AddAttribute(
-                    6,
-                    nameof(ActionMenuComponent.ItemSelected),
-                    EventCallback.Factory.Create<ActionMenuItem>(this, item =>
-                    {
-                        selectedGroupId = groupId;
-                        selectedAction = item;
-                    }));
-                builder.CloseComponent();
+                builder.OpenElement(0, "button");
+                builder.AddAttribute(1, "type", "button");
+                builder.AddAttribute(2, "aria-label", "Add tab to Editor group 1");
+                builder.AddAttribute(3, "onclick", EventCallback.Factory.Create(this, () => requestedGroupId = groupId));
+                builder.AddContent(4, "+");
+                builder.CloseElement();
             };
 
             using var component = this.RenderWorkspace(state, addTabControl: addTabControl);
-            var actionMenu = component.FindComponent<ActionMenuComponent>();
-            var trigger = actionMenu.Find("button");
+            var trigger = component.Find($"{AddTabHostSelector} button");
 
             await trigger.ClickAsync();
-            var menuItems = await this.portalHost.WaitForElementsAsync("[role='menuitem']", 2);
-            await menuItems[0].ClickAsync();
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find(AddTabHostSelector).GetAttribute("data-group-id"),
-                    Is.EqualTo(group.Id.ToString()));
+                Assert.That(component.Find(AddTabHostSelector).GetAttribute("data-group-id"), Is.EqualTo(group.Id.ToString()));
                 Assert.That(trigger.GetAttribute("aria-label"), Is.EqualTo("Add tab to Editor group 1"));
-                Assert.That(trigger.GetAttribute("title"), Is.EqualTo("Add tab"));
-                Assert.That(selectedGroupId, Is.EqualTo(group.Id));
-                Assert.That(selectedAction, Is.SameAs(actions[0]));
-                Assert.That(actions[1].Disabled, Is.True);
+                Assert.That(requestedGroupId, Is.EqualTo(group.Id));
             }
         }
 

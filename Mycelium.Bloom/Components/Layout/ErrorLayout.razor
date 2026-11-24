@@ -10,14 +10,12 @@
 @inherits LayoutComponentBase
 
 <div class="error-layout">
-    <AppHeader AriaLabel="Bloom application header">
-        <BrandContent>
-            <a class="error-layout__brand" href="/workspace/modeling">
-                <span class="error-layout__mark"><BrandMark /></span>
-                <span>Mycelium Bloom</span>
-            </a>
-        </BrandContent>
-    </AppHeader>
+    <header class="error-layout__header" aria-label="Bloom application header">
+        <a class="error-layout__brand" href="/workspace/modeling">
+            <span class="error-layout__mark"><BrandMark /></span>
+            <span>Mycelium Bloom</span>
+        </a>
+    </header>
 
     <main class="error-layout__main">
         @this.Body

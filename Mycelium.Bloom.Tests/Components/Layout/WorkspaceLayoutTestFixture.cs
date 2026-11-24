@@ -42,7 +42,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
     using Mycelium.Bloom.ViewModel.Workspace;
     using Mycelium.SDK;
 
-    using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
@@ -168,7 +167,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(component.FindComponents<WorkspaceShellComponent>(), Has.Count.EqualTo(1));
-                Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("header[aria-label='Bloom application header']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
@@ -183,9 +182,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                     .TextContent.Trim(), Is.EqualTo("ModellingEditor content"));
                 Assert.That(component.Find(".mb-workspace-shell__main h1").TextContent.Trim(),
                     Is.EqualTo("Modelling"));
-                Assert.That(component.FindAll("header.mb-app-header h1"), Is.Empty);
-                Assert.That(component.Find("header.mb-app-header").GetAttribute("style"),
-                    Does.Contain("height: 48px"));
+                Assert.That(component.FindAll("header[aria-label='Bloom application header'] h1"), Is.Empty);
                 Assert.That(component.Find("button[aria-label='Switch to dark mode']"), Is.Not.Null);
                 Assert.That(links.Count(link => link.LocalName == "a"), Is.EqualTo(2));
                 Assert.That(links.Count(link => link.HasAttribute("disabled")), Is.EqualTo(14));
@@ -283,7 +280,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
             {
                 Assert.That(component.Instance, Is.SameAs(layoutInstance));
                 Assert.That(component.FindComponents<WorkspaceShellComponent>(), Has.Count.EqualTo(1));
-                Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("header[aria-label='Bloom application header']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
@@ -511,8 +508,6 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                 Assert.That(style, Does.Contain(
                     ".mb-workspace-shell:not(.mb-workspace-shell--left-panel-collapsed) .mb-workspace-shell__body"));
                 Assert.That(style, Does.Contain("--workspace-shell-left-panel-width: fit-content;"));
-                Assert.That(style, Does.Contain(
-                    "width: calc(var(--workspace-shell-left-panel-collapsed-width) - (2 * var(--spacing-8)));"));
                 Assert.That(style, Does.Not.Match("#[0-9a-fA-F]{3,8}"));
             }
         }

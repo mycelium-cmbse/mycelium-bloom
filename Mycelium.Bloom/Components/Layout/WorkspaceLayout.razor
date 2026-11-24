@@ -38,42 +38,19 @@
                     CompactRightPanelLabel="Properties"
                     role="main">
         <Header>
-            <AppHeader Compact="true"
-                       AriaLabel="Bloom application header"
-                       style="height: 48px; min-height: 48px;">
-                <BrandContent>
-                    <div class="mb-workspace-layout__brand">
-                        <a class="mb-workspace-layout__home" href="@(OrganizationRoutes.AccountPath)">
-                            <span class="sr-only">Home</span>
-                            <BrandMark style="width: 22.2px;" />
-                        </a>
-                    </div>
-                    <WorkspaceBreadcrumb />
-                </BrandContent>
-
-                <ActionsContent>
-                    <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
-                              Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
-                              Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-                              AriaLabel="@(this.GetDetailsPanelToggleLabel())"
-                              title="@(this.GetDetailsPanelToggleLabel())"
-                              id="@(this.propertiesToggleId)"
-                              data-testid="properties-collapse"
-                              aria-expanded="@(!this.LayoutState.PropertiesCollapsed ? "true" : "false")"
-                              OnClick="this.ToggleDetailsPanel">
-                        <LucideIcon Name="@(this.GetDetailsPanelToggleIconName())"
-                                    Size="16"
-                                    StrokeWidth="1.75"
-                                    role="presentation"
-                                    aria-hidden="true"
-                                    focusable="false" />
+            <header class="mb-workspace-header" aria-label="Bloom application header">
+                <a class="mb-workspace-header__home" href="@(OrganizationRoutes.AccountPath)">
+                    <span class="sr-only">Home</span>
+                    <span class="mb-workspace-header__mark"><BrandMark /></span>
+                </a>
+                <WorkspaceBreadcrumb />
+                <div class="mb-workspace-header__tools">
+                    <BbButton Type="BlazorBlueprint.Components.ButtonType.Button" Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Size="BlazorBlueprint.Components.ButtonSize.IconSmall" Class="mb-workspace-header__tool" AriaLabel="@(this.GetDetailsPanelToggleLabel())" title="@(this.GetDetailsPanelToggleLabel())" id="@(this.propertiesToggleId)" data-testid="properties-collapse" aria-expanded="@(!this.LayoutState.PropertiesCollapsed ? "true" : "false")" OnClick="this.ToggleDetailsPanel">
+                        <LucideIcon Name="@(this.GetDetailsPanelToggleIconName())" Size="16" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
                     </BbButton>
-
-                    <BbDarkModeToggle Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
-                                      Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
-                                      ShowLabel="false" />
-                </ActionsContent>
-            </AppHeader>
+                    <BbDarkModeToggle Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Size="BlazorBlueprint.Components.ButtonSize.IconSmall" Class="mb-workspace-header__tool" ShowLabel="false" />
+                </div>
+            </header>
         </Header>
 
         <LeftPanel>

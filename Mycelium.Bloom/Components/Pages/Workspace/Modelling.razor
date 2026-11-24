@@ -40,24 +40,24 @@
         </TabLeadingContent>
 
         <AddTabControl Context="groupId">
-            <ActionMenu Class="mb-editor-workspace__add-tab-menu"
-                        Items="@(this.CreateAddTabActions())"
-                        TriggerAriaLabel="@(this.GetAddTabAriaLabel(groupId))"
-                        TriggerTitle="Add tab"
-                        TriggerClass="mb-editor-workspace__add-tab"
-                        Alignment="ActionMenuAlignment.Start"
-                        ItemSelected="item => this.HandleAddTabActionSelected(groupId, item)"
-                        data-group-id="@(groupId)"
-                        data-testid="editor-workspace-add-tab-menu">
-                <TriggerContent>
-                    <LucideIcon Name="plus"
-                                Size="14"
-                                StrokeWidth="1.16667"
-                                role="presentation"
-                                aria-hidden="true"
-                                focusable="false" />
-                </TriggerContent>
-            </ActionMenu>
+            <div class="mb-editor-workspace__add-tab-menu" data-group-id="@(groupId)" data-testid="editor-workspace-add-tab-menu">
+                <BbDropdownMenu>
+                    <BbDropdownMenuTrigger AsChild="false" type="button" Class="mb-editor-workspace__add-tab" title="Add tab" aria-label="@(this.GetAddTabAriaLabel(groupId))">
+                        <LucideIcon Name="plus" Size="14" StrokeWidth="1.16667" role="presentation" aria-hidden="true" focusable="false" />
+                    </BbDropdownMenuTrigger>
+                    <BbDropdownMenuContent Class="mb-menu" Side="PopoverSide.Bottom" Align="PopoverAlign.Start" Offset="6">
+                        @foreach (var editorType in this.GetAddTabEditorTypes())
+                        {
+                            <BbDropdownMenuItem CloseOnSelect="true" OnClick="_ => this.HandleAddTabActionSelected(groupId, editorType.ActionId)">
+                                <Icon>
+                                    <LucideIcon Name="@(editorType.Symbol.ToLucideName())" Size="16" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+                                </Icon>
+                                <ChildContent>@(editorType.Label)</ChildContent>
+                            </BbDropdownMenuItem>
+                        }
+                    </BbDropdownMenuContent>
+                </BbDropdownMenu>
+            </div>
         </AddTabControl>
 
         <EditorContent Context="tab">

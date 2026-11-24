@@ -49,7 +49,6 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using SysML2.NET.Core.POCO.Root.Elements;
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
-    using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
@@ -156,7 +155,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             {
                 Assert.That(routes.FindComponents<WorkspaceLayout>(), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<WorkspaceShellComponent>(), Has.Count.EqualTo(1));
-                Assert.That(routes.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
+                Assert.That(routes.FindAll("header[aria-label='Bloom application header']"), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<Modelling>(), Has.Count.EqualTo(1));
@@ -206,7 +205,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
             {
                 Assert.That(routes.FindComponents<WorkspaceLayout>(), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<WorkspaceShellComponent>(), Has.Count.EqualTo(1));
-                Assert.That(routes.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
+                Assert.That(routes.FindAll("header[aria-label='Bloom application header']"), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
                 Assert.That(routes.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
@@ -214,7 +213,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                 Assert.That(routes.FindComponents<Modelling>(), Is.Empty);
                 Assert.That(routes.Find(".mb-workspace-shell__main h1").TextContent.Trim(),
                     Is.EqualTo("Dashboard"));
-                Assert.That(routes.FindAll("header.mb-app-header h1"), Is.Empty);
+                Assert.That(routes.FindAll("header[aria-label='Bloom application header'] h1"), Is.Empty);
                 Assert.That(navigation.Instance.ViewModel.SelectedItem.Id, Is.EqualTo("dashboard"));
                 Assert.That(routes.Find("a[aria-label='Dashboard']").GetAttribute("aria-current"),
                     Is.EqualTo("page"));
@@ -367,7 +366,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                 {
                     Assert.That(routes.FindComponents<WorkspaceLayout>().Single().Instance, Is.SameAs(initialLayout));
                     Assert.That(routes.FindComponents<WorkspaceShellComponent>(), Has.Count.EqualTo(1));
-                    Assert.That(routes.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
+                    Assert.That(routes.FindAll("header[aria-label='Bloom application header']"), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<StatusBarComponent>(), Has.Count.EqualTo(1));
                     Assert.That(routes.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));

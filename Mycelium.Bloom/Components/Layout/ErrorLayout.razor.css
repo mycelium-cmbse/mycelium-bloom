@@ -6,8 +6,14 @@
     background: var(--background);
 }
 
-.error-layout ::deep > header {
+.error-layout__header {
+    display: flex;
+    align-items: center;
     justify-content: center;
+    min-height: var(--spacing-48);
+    padding-inline: var(--spacing-16);
+    border-bottom: var(--border-width-default) solid var(--border-subtle);
+    background: var(--card);
 }
 
 .error-layout__brand {

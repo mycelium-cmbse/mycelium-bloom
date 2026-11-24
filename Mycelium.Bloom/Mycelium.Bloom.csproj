@@ -50,10 +50,8 @@
 
     <ItemGroup>
         <!--
-          Blueprint Components 3.16.0 compatibility boundaries are deliberately narrow:
-          SelectInput bridges verified keyboard, ARIA, and Tab-order limitations; SplitButton bridges the verified
-          Enter-key limitation. TextArea and Checkbox remain native because Blueprint cannot preserve their required
-          contracts. Direct Primitive TabsList and TabsTrigger use remains localized to the Design System.
+          Blueprint Components compatibility boundaries are deliberately narrow: direct Primitive TabsList and
+          TabsTrigger use remains localized to the Design System.
           Bloom has no production Tooltip implementation because Escape dismissal and description relationships are
           incomplete. Reassess only these exceptions after upgrading Blueprint.
         -->

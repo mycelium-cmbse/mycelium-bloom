@@ -443,36 +443,26 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         }
 
         /// <summary>
-        /// Creates the generic add-tab actions from the workspace's current coherent rendering state.
+        /// Gets the editor types that every editor group offers in its add tab menu: the Project Browser, then the registered diagram editors.
         /// </summary>
-        /// <returns>The actions available to every editor group.</returns>
-        private ActionMenuItem[] CreateAddTabActions()
+        /// <returns>The editor types available to every editor group.</returns>
+        private IEnumerable<EditorTypePresentation> GetAddTabEditorTypes()
         {
-            return EditorTypes.Concat(this.DiagramEditors.Editors.Select(editor =>
-                new EditorTypePresentation(editor.ActionId, editor.Title, editor.ViewTypeKey, editor.Symbol)))
-                .Select(editorType => new ActionMenuItem
-                {
-                    Id = editorType.ActionId,
-                    Label = editorType.Label,
-                    Symbol = editorType.Symbol
-                })
-                .ToArray();
+            return EditorTypes.Concat(this.DiagramEditors.Editors.Select(editor => new EditorTypePresentation(editor.ActionId, editor.Title, editor.ViewTypeKey, editor.Symbol)));
         }
 
         /// <summary>
         /// Handles one composition-owned add-tab action for the exact requesting group.
         /// </summary>
         /// <param name="groupId">The group requesting new editor content.</param>
-        /// <param name="item">The selected generic action metadata.</param>
-        private void HandleAddTabActionSelected(Guid groupId, ActionMenuItem item)
+        /// <param name="actionId">The identifier of the selected editor type.</param>
+        private void HandleAddTabActionSelected(Guid groupId, string actionId)
         {
-            ArgumentNullException.ThrowIfNull(item);
-
-            if (this.DiagramEditors.FindAction(item.Id) is { } descriptor)
+            if (this.DiagramEditors.FindAction(actionId) is { } descriptor)
             {
                 this.OpenDiagram(groupId, descriptor);
             }
-            else if (item.Id == ProjectBrowserActionId)
+            else if (actionId == ProjectBrowserActionId)
             {
                 _ = this.OpenProjectBrowserTab(groupId);
             }

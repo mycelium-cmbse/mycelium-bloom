@@ -9,25 +9,47 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 {
+    using BlazorBlueprint.Components;
+
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
-
-    using Mycelium.Bloom.Components.UI.Atoms.SearchInput;
+    using Microsoft.JSInterop;
 
     /// <summary>
     /// Composes Blueprint input, popover, and command components into Project Browser search refinements.
     /// </summary>
-    public sealed partial class ProjectBrowserSearchAssistant : ComponentBase
+    public sealed partial class ProjectBrowserSearchAssistant : ComponentBase, IAsyncDisposable
     {
+        /// <summary>
+        /// The browser module that clears the native field and refuses a leading space, which Blazor cannot do before the browser
+        /// shows the typed character.
+        /// </summary>
+        private const string SearchModulePath = "./Components/UI/Organisms/ProjectBrowser/ProjectBrowserSearchAssistant.razor.js";
+
         /// <summary>
         /// The stable identifier relating the search field to its Blueprint command listbox.
         /// </summary>
         private readonly string suggestionListId = $"mb-project-browser-search-suggestions-{Guid.NewGuid():N}";
 
         /// <summary>
-        /// The rendered search input used to restore focus after accepting a refinement.
+        /// The stable identifier of the search field, used by the leading space guard of the browser module.
         /// </summary>
-        private SearchInput searchInputReference;
+        private readonly string searchFieldId = $"mb-project-browser-search-field-{Guid.NewGuid():N}";
+
+        /// <summary>
+        /// The rendered search field used to restore focus after accepting a refinement.
+        /// </summary>
+        private BbInputGroupInput searchInputReference;
+
+        /// <summary>
+        /// The browser module of the search field, imported on the first render.
+        /// </summary>
+        private IJSObjectReference searchModule;
+
+        /// <summary>
+        /// A value indicating whether the component was disposed, so that a module imported afterwards is released at once.
+        /// </summary>
+        private bool isDisposed;
 
         /// <summary>
         /// The Project Browser-specific list hosted by Blueprint's command component.
@@ -80,7 +102,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         private string searchAnchorId;
 
         /// <summary>
-        /// The presentation identity of the current popover opening.
+        /// The presentation identity of the current popover opening, used as its key: each opening owns its portal identifier, so the
+        /// asynchronous disposal of an earlier opening cannot unregister a newer one.
         /// </summary>
         private long popoverGeneration;
 
@@ -88,6 +111,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         /// The last controlled open state received from the Browser.
         /// </summary>
         private bool wasOpen;
+
+        /// <summary>
+        /// Gets or sets the JavaScript runtime that loads the browser module of the search field.
+        /// </summary>
+        [Inject]
+        private IJSRuntime JsRuntime { get; set; }
 
         /// <summary>
         /// Gets or sets the committed per-tab Contains criterion.
@@ -211,6 +240,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         }
 
         /// <summary>
+        /// Removes the leading space guard of the search field and releases its browser module. A module still loading when the
+        /// component is disposed is released as soon as it arrives.
+        /// </summary>
+        /// <returns>A task representing the release.</returns>
+        public async ValueTask DisposeAsync()
+        {
+            this.isDisposed = true;
+            await this.ReleaseSearchModuleAsync();
+        }
+
+        /// <summary>
         /// Completes deferred command navigation and search-input focus work.
         /// </summary>
         /// <param name="firstRender">Whether this is the component's first render.</param>
@@ -219,12 +259,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
         {
             await base.OnAfterRenderAsync(firstRender);
 
+            if (firstRender)
+            {
+                await this.LoadSearchModuleAsync();
+            }
+
             await this.HandleContentReadyAsync();
 
             if (this.shouldClearSearchInputAfterRender && this.searchInputReference is not null)
             {
                 this.shouldClearSearchInputAfterRender = false;
-                await this.searchInputReference.ClearAsync();
+                await this.ClearSearchFieldAsync();
             }
 
             if (this.shouldRestoreSearchFocusAfterRender)
@@ -571,7 +616,76 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             }
 
             this.shouldClearSearchInputAfterRender = false;
-            await this.searchInputReference.ClearAsync();
+            await this.ClearSearchFieldAsync();
+        }
+
+        /// <summary>
+        /// Empties the native search field, whose value Blazor does not rewrite when the draft it last rendered is unchanged. Does
+        /// nothing until the browser module is loaded, or once the circuit is gone.
+        /// </summary>
+        /// <returns>A task representing the browser call.</returns>
+        private async Task ClearSearchFieldAsync()
+        {
+            if (this.searchModule is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await this.searchModule.InvokeVoidAsync("clearSearchInputValue", this.searchInputReference.Element);
+            }
+            catch (Exception exception) when (exception is JSDisconnectedException or ObjectDisposedException)
+            {
+                this.searchModule = null;
+            }
+        }
+
+        /// <summary>
+        /// Imports the browser module and registers the leading space guard of the search field, then releases them at once when the
+        /// component was disposed during the import. A circuit closed during the import leaves the field without the guard.
+        /// </summary>
+        /// <returns>A task representing the browser calls.</returns>
+        private async Task LoadSearchModuleAsync()
+        {
+            try
+            {
+                this.searchModule = await this.JsRuntime.InvokeAsync<IJSObjectReference>("import", SearchModulePath);
+                await this.searchModule.InvokeVoidAsync("registerEmptySpaceGuard", this.searchFieldId);
+            }
+            catch (Exception exception) when (exception is JSDisconnectedException or ObjectDisposedException)
+            {
+                this.searchModule = null;
+            }
+
+            if (this.isDisposed)
+            {
+                await this.ReleaseSearchModuleAsync();
+            }
+        }
+
+        /// <summary>
+        /// Removes the leading space guard and disposes the browser module, once; a closed circuit has nothing left to release.
+        /// </summary>
+        /// <returns>A task representing the release.</returns>
+        private async Task ReleaseSearchModuleAsync()
+        {
+            if (this.searchModule is not { } module)
+            {
+                return;
+            }
+
+            this.searchModule = null;
+
+            try
+            {
+                await module.InvokeVoidAsync("disposeEmptySpaceGuard", this.searchFieldId);
+                await module.DisposeAsync();
+            }
+            catch (Exception exception) when (exception is JSDisconnectedException or ObjectDisposedException)
+            {
+                this.isDisposed = true;
+            }
         }
 
         /// <summary>

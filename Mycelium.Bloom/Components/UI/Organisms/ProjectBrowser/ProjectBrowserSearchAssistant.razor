@@ -10,90 +10,42 @@
 @using BlazorBlueprint.Icons.Lucide.Components
 
 <div id="@this.searchAnchorId" class="mb-project-browser-search-assistant" @ref="this.searchAnchor">
-    <SearchInput
-        @ref="this.searchInputReference"
-        Value="@(this.draftSearchText)"
-        ValueChanged="this.HandleDraftSearchTextChangedAsync"
-        InputType="BlazorBlueprint.Components.InputType.Text"
-        FullWidth="true"
-        Placeholder="Filter elements..."
-        AriaLabel="Filter project browser by name or qualified name"
-        EnableShortcut="false"
-        ShowShortcut="false"
-        PreventEmptySpace="true"
-        ForwardTriggerKeyDown="false"
-        ForwardTriggerFocus="false"
-        OnBlur="this.HandleSearchBlurAsync"
-        OnKeyDown="this.HandleSearchKeyDownAsync"
-        @onclick="this.HandleSearchClickAsync"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-haspopup="listbox"
-        aria-expanded="@(this.IsOpen ? "true" : "false")"
-        aria-controls="@(this.suggestionListId)"
-        autocomplete="off"
-        spellcheck="false">
-        <InlineContent>
-            @if (this.HasCommittedCriteria())
-            {
-                <div class="mb-project-browser-search-assistant__criteria"
-                     role="group"
-                     aria-label="Active project browser search criteria">
+    <BbInputGroup Class="mb-project-browser-search-assistant__control">
+        <BbInputGroupAddon Align="BlazorBlueprint.Components.InputGroupAlign.InlineStart" Class="mb-project-browser-search-assistant__icon" aria-hidden="true">
+            <LucideIcon Name="search" Size="12" StrokeWidth="1.75" role="presentation" aria-hidden="true" focusable="false" />
+        </BbInputGroupAddon>
+        @if (this.HasCommittedCriteria())
+        {
+            <div class="mb-project-browser-search-assistant__criteria-scroll">
+                <div class="mb-project-browser-search-assistant__criteria" role="group" aria-label="Active project browser search criteria">
                     @if (!string.IsNullOrWhiteSpace(this.CommittedFilterText))
                     {
-                        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
-                                 Class="mb-project-browser-search-assistant__criterion">
+                        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Outline" Class="mb-project-browser-search-assistant__criterion">
                             <span class="mb-project-browser-search-assistant__criterion-label">
                                 Contains &quot;@(this.CommittedFilterText.Trim())&quot;
                             </span>
-                            <BbButton
-                                Class="mb-project-browser-search-assistant__criterion-remove"
-                                Type="BlazorBlueprint.Components.ButtonType.Button"
-                                Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
-                                Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                OnClick="this.HandleContainsRemovedAsync"
-                                title="@(this.GetContainsRemovalLabel())"
-                                aria-label="@(this.GetContainsRemovalLabel())">
-                                <LucideIcon Name="x"
-                                            Size="12"
-                                            StrokeWidth="2"
-                                            role="presentation"
-                                            aria-hidden="true"
-                                            focusable="false" />
+                            <BbButton Class="mb-project-browser-search-assistant__criterion-remove" Type="BlazorBlueprint.Components.ButtonType.Button" Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Size="BlazorBlueprint.Components.ButtonSize.Small" OnClick="this.HandleContainsRemovedAsync" title="@(this.GetContainsRemovalLabel())" aria-label="@(this.GetContainsRemovalLabel())">
+                                <LucideIcon Name="x" Size="12" StrokeWidth="2" role="presentation" aria-hidden="true" focusable="false" />
                             </BbButton>
                         </BbBadge>
                     }
 
                     @foreach (var elementType in this.GetSelectedElementTypes())
                     {
-                        <BbBadge @key="elementType"
-                                 Variant="BlazorBlueprint.Components.BadgeVariant.Outline"
-                                 Class="mb-project-browser-search-assistant__criterion mb-project-browser-search-assistant__criterion--type">
+                        <BbBadge @key="elementType" Variant="BlazorBlueprint.Components.BadgeVariant.Outline" Class="mb-project-browser-search-assistant__criterion mb-project-browser-search-assistant__criterion--type">
                             <span class="mb-project-browser-search-assistant__criterion-label">
                                 Type @(ProjectBrowser.GetElementTypeLabel(elementType))
                             </span>
-                            <BbButton
-                                Class="mb-project-browser-search-assistant__criterion-remove"
-                                Type="BlazorBlueprint.Components.ButtonType.Button"
-                                Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
-                                Size="BlazorBlueprint.Components.ButtonSize.Small"
-                                OnClick="_ => this.HandleElementTypeRemovedAsync(elementType)"
-                                title="@(GetElementTypeRemovalLabel(elementType))"
-                                aria-label="@(GetElementTypeRemovalLabel(elementType))">
-                                <LucideIcon Name="x"
-                                            Size="12"
-                                            StrokeWidth="2"
-                                            role="presentation"
-                                            aria-hidden="true"
-                                            focusable="false" />
+                            <BbButton Class="mb-project-browser-search-assistant__criterion-remove" Type="BlazorBlueprint.Components.ButtonType.Button" Variant="BlazorBlueprint.Components.ButtonVariant.Ghost" Size="BlazorBlueprint.Components.ButtonSize.Small" OnClick="_ => this.HandleElementTypeRemovedAsync(elementType)" title="@(GetElementTypeRemovalLabel(elementType))" aria-label="@(GetElementTypeRemovalLabel(elementType))">
+                                <LucideIcon Name="x" Size="12" StrokeWidth="2" role="presentation" aria-hidden="true" focusable="false" />
                             </BbButton>
                         </BbBadge>
                     }
                 </div>
-            }
-        </InlineContent>
-    </SearchInput>
-    @* Each opening owns its portal ID; asynchronous disposal cannot unregister a newer opening. *@
+            </div>
+        }
+        <BbInputGroupInput @ref="this.searchInputReference" Id="@(this.searchFieldId)" Class="mb-project-browser-search-assistant__field" Type="BlazorBlueprint.Components.InputType.Text" Value="@(this.draftSearchText)" ValueChanged="this.HandleDraftSearchTextChangedAsync" Placeholder="Filter elements..." AriaLabel="Filter project browser by name or qualified name" UpdateTiming="BlazorBlueprint.Components.UpdateTiming.Immediate" @onkeydown="this.HandleSearchKeyDownAsync" @onblur="this.HandleSearchBlurAsync" @onclick="this.HandleSearchClickAsync" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="@(this.IsOpen ? "true" : "false")" aria-controls="@(this.suggestionListId)" autocomplete="off" spellcheck="false" />
+    </BbInputGroup>
     <BbPopover @key="this.popoverGeneration"
                Open="@(this.IsOpen)"
                OpenChanged="this.GetPopoverOpenChangedHandler()"

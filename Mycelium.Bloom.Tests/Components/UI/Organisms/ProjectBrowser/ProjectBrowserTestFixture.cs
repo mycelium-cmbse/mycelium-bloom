@@ -43,7 +43,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using ProjectBrowserSearchAssistantComponent =
         Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAssistant;
-    using SearchInputComponent = Mycelium.Bloom.Components.UI.Atoms.SearchInput.SearchInput;
+    using SearchFieldComponent = BlazorBlueprint.Components.BbInputGroupInput;
 
     [TestFixture]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -59,6 +59,8 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             ["«part def»", "«part»", "«namespace»"];
 
         private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
+
+        private static readonly string[] SearchModuleCalls = ["registerEmptySpaceGuard", "clearSearchInputValue", "disposeEmptySpaceGuard"];
 
         private static readonly ProjectBrowserFilterPresentation InactiveFilterPresentation =
             CreateInactiveFilterPresentation();
@@ -214,7 +216,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
             using var component = this.RenderProjectBrowser();
             var input = component.Find("input[role='combobox']");
-            var searchInput = component.FindComponent<SearchInputComponent>();
+            var searchInput = component.FindComponent<SearchFieldComponent>();
 
             using (Assert.EnterMultipleScope())
             {
@@ -222,8 +224,6 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(component.FindAll(".mb-project-browser__filter-trigger-host"), Is.Empty);
                 Assert.That(component.FindComponents<BbPopover>(), Has.Count.EqualTo(1));
                 Assert.That(searchInput.Instance.Placeholder, Is.EqualTo("Filter elements..."));
-                Assert.That(searchInput.Instance.FullWidth, Is.True);
-                Assert.That(searchInput.Instance.EnableShortcut, Is.False);
                 Assert.That(input.GetAttribute("aria-label"), Is.EqualTo("Filter project browser by name or qualified name"));
                 Assert.That(input.GetAttribute("aria-expanded"), Is.EqualTo("false"));
                 Assert.That(input.GetAttribute("aria-controls"), Is.Not.Empty);
@@ -238,7 +238,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            var searchInput = component.FindComponent<SearchInputComponent>();
+            var searchInput = component.FindComponent<SearchFieldComponent>();
 
             await component.InvokeAsync(() => searchInput.Instance.ValueChanged.InvokeAsync("  needle  "));
             await component.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
@@ -308,7 +308,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel);
 
             using var component = this.RenderProjectBrowser();
-            var stableSearchInput = component.FindComponent<SearchInputComponent>().Instance;
+            var stableSearchInput = component.FindComponent<SearchFieldComponent>().Instance;
             var input = component.Find("input[role='combobox']");
 
             await component.InvokeAsync(() => stableSearchInput.FocusAsync().AsTask());
@@ -328,7 +328,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
+                Assert.That(component.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(stableSearchInput));
                 Assert.That(input.GetAttribute("value"), Is.Empty);
                 Assert.That(viewModel.FilterText, Is.Empty);
                 Assert.That(options, Has.Count.EqualTo(2));
@@ -349,7 +349,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            var stableSearchInput = component.FindComponent<SearchInputComponent>().Instance;
+            var stableSearchInput = component.FindComponent<SearchFieldComponent>().Instance;
             var stableInputId = component.Find("input[role='combobox']").Id;
 
             for (var iteration = 0; iteration < 3; iteration++)
@@ -377,7 +377,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(selectedTypes, Is.EquivalentTo(new[] { typeof(PartDefinition) }));
-                Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
+                Assert.That(component.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(stableSearchInput));
                 Assert.That(component.Find("input[role='combobox']").Id, Is.EqualTo(stableInputId));
                 Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
             }
@@ -391,7 +391,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.RenderProjectBrowser();
             await this.OpenSearchAssistantAsync(component, "multi");
-            var searchInput = component.FindComponent<SearchInputComponent>();
+            var searchInput = component.FindComponent<SearchFieldComponent>();
 
             await component.Find("input[role='combobox']")
                 .KeyDownAsync(new KeyboardEventArgs { Key = " " });
@@ -475,7 +475,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(input.GetAttribute("value"), Is.EqualTo("thruster"));
             }
 
-            await component.InvokeAsync(() => component.FindComponent<SearchInputComponent>()
+            await component.InvokeAsync(() => component.FindComponent<SearchFieldComponent>()
                 .Instance.ValueChanged.InvokeAsync("thrusters"));
 
             await this.portalHost.WaitForAssertionAsync(() =>
@@ -536,12 +536,9 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
             using var component = this.RenderProjectBrowser();
             var input = component.Find("input[role='combobox']");
-            var searchInput = component.FindComponent<SearchInputComponent>().Instance;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(searchInput.ForwardTriggerFocus, Is.False);
-                Assert.That(searchInput.ForwardTriggerKeyDown, Is.False);
                 Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.False);
                 Assert.That(this.portalHost.FindAll(".mb-project-browser-search-assistant__surface"), Is.Empty);
                 Assert.That(input.GetAttribute("value"), Is.Empty);
@@ -617,7 +614,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            var stableSearchInput = component.FindComponent<SearchInputComponent>().Instance;
+            var stableSearchInput = component.FindComponent<SearchFieldComponent>().Instance;
             var stableInputId = component.Find("input[role='combobox']").Id;
 
             await this.OpenSearchAssistantAsync(component, "usage");
@@ -647,7 +644,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Assert.That(viewModel.Object.FilterText, Is.EqualTo(committedDraft));
                     Assert.That(selectedTypes, Is.EquivalentTo(new[] { typeof(PartUsage) }));
                     Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(2));
-                    Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
+                    Assert.That(component.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(stableSearchInput));
                     Assert.That(component.Find("input[role='combobox']").Id, Is.EqualTo(stableInputId));
                     Assert.That(this.portalHost.Find(".mb-project-browser-search-assistant__surface").TextContent, Does.Contain($"Contains \"{nextDraft}\""));
                 }
@@ -665,7 +662,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel.Object);
 
             using var component = this.RenderProjectBrowser();
-            var stableSearchInput = component.FindComponent<SearchInputComponent>().Instance;
+            var stableSearchInput = component.FindComponent<SearchFieldComponent>().Instance;
 
             await this.OpenSearchAssistantAsync(component, "thruster");
             await component.Find("input[role='combobox']")
@@ -681,7 +678,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 Assert.That(viewModel.Object.FilterText, Is.EqualTo("thruster"));
                 Assert.That(selectedTypes, Is.EquivalentTo(new[] { typeof(PartUsage) }));
                 Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(2));
-                Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
+                Assert.That(component.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(stableSearchInput));
                 Assert.That(GetSearchAssistantPopover(component).Instance.Open, Is.True);
                 Assert.That(this.portalHost.Find(".mb-project-browser-search-assistant__surface").TextContent, Does.Contain("Contains \"next criterion\""));
             }
@@ -699,7 +696,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             this.RegisterViewModel(viewModel);
 
             using var component = this.RenderProjectBrowser();
-            var stableSearchInput = component.FindComponent<SearchInputComponent>().Instance;
+            var stableSearchInput = component.FindComponent<SearchFieldComponent>().Instance;
 
             for (var iteration = 0; iteration < iterationCount; iteration++)
             {
@@ -745,7 +742,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                     Assert.That(viewModel.SelectedElementTypes, Is.Empty);
                     Assert.That(viewModel.FilterPresentation.IsActive, Is.True);
                     Assert.That(component.FindAll(".mb-project-browser-search-assistant__criterion"), Has.Count.EqualTo(1));
-                    Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(stableSearchInput));
+                    Assert.That(component.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(stableSearchInput));
                     Assert.That(viewModel.RootNodes.Single(), Is.SameAs(canonicalRoot));
                     Assert.That(canonicalRoot.Children, Is.EqualTo(canonicalChildren));
                     Assert.That(canonicalRoot.IsExpanded, Is.True);
@@ -960,7 +957,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using var viewModel = await ProjectBrowserNodeTestFactory.CreateFilterTreeViewModelAsync();
 
             using var component = context.Render<ProjectBrowserComponent>(parameters => parameters.Add(browser => browser.ViewModel, viewModel));
-            var persistentInput = component.FindComponent<SearchInputComponent>().Instance;
+            var persistentInput = component.FindComponent<SearchFieldComponent>().Instance;
             await component.Find("input[role='combobox']").ClickAsync();
             await portal.WaitForElementAsync("[role='option']");
             var previousId = component.FindComponent<Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser.ProjectBrowserSearchAnchor>()
@@ -1001,7 +998,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 using (Assert.EnterMultipleScope())
                 {
                     Assert.That(component.Find("input[role='combobox']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
-                    Assert.That(component.FindComponent<SearchInputComponent>().Instance, Is.SameAs(persistentInput));
+                    Assert.That(component.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(persistentInput));
                 }
 
                 await portal.Find($"#{currentId} button.mb-project-browser__clear-all").ClickAsync();
@@ -1034,7 +1031,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
                 .Add(component => component.ElementTypeOptions, DefaultAvailableElementTypes)
                 .Add(component => component.SelectedElementTypes, EmptySelectedElementTypes)
                 .Add(component => component.ContainsCommitted, (string _) => completion.Task));
-            var search = assistant.FindComponent<SearchInputComponent>();
+            var search = assistant.FindComponent<SearchFieldComponent>();
             await assistant.InvokeAsync(() => search.Instance.ValueChanged.InvokeAsync("needle"));
             var acceptance = assistant.Find("input[role='combobox']")
                 .KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
@@ -1054,8 +1051,73 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(assistant.Find("input[role='combobox']").HasAttribute("disabled"), Is.False);
-                Assert.That(assistant.FindComponent<SearchInputComponent>().Instance, Is.SameAs(search.Instance));
+                Assert.That(assistant.FindComponent<SearchFieldComponent>().Instance, Is.SameAs(search.Instance));
                 Assert.That(assistant.Find("input[role='combobox']").GetAttribute("value"), Is.EqualTo("next criterion"));
+            }
+        }
+
+        [Test]
+        public async Task VerifySearchFieldGuardsLeadingSpaceClearsCommittedTextAndReleasesItsModule()
+        {
+            var module = this.JSInterop.SetupModule("./Components/UI/Organisms/ProjectBrowser/ProjectBrowserSearchAssistant.razor.js");
+            var guard = module.SetupVoid("registerEmptySpaceGuard", _ => true);
+            var clear = module.SetupVoid("clearSearchInputValue", _ => true);
+            var release = module.SetupVoid("disposeEmptySpaceGuard", _ => true);
+            guard.SetVoidResult();
+            clear.SetVoidResult();
+            release.SetVoidResult();
+            var assistant = this.Render<ProjectBrowserSearchAssistantComponent>(parameters => parameters
+                .Add(component => component.ElementTypeOptions, DefaultAvailableElementTypes)
+                .Add(component => component.SelectedElementTypes, EmptySelectedElementTypes)
+                .Add(component => component.ContainsCommitted, (string _) => Task.CompletedTask));
+            var fieldId = assistant.Find("input[role='combobox']").GetAttribute("id");
+
+            await assistant.InvokeAsync(() => assistant.FindComponent<SearchFieldComponent>().Instance.ValueChanged.InvokeAsync("needle"));
+            await assistant.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
+            await assistant.InvokeAsync(() => assistant.Instance.DisposeAsync().AsTask());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(guard.Invocations.Select(invocation => invocation.Arguments.Single()).ToList(), Has.Count.EqualTo(1).And.All.EqualTo(fieldId));
+                Assert.That(clear.Invocations, Has.Count.EqualTo(1));
+                Assert.That(release.Invocations.Select(invocation => invocation.Arguments.Single()).ToList(), Has.Count.EqualTo(1).And.All.EqualTo(fieldId));
+            }
+        }
+
+        [TestCase("registerEmptySpaceGuard", 0)]
+        [TestCase("clearSearchInputValue", 0)]
+        [TestCase("disposeEmptySpaceGuard", 1)]
+        public async Task VerifySearchFieldKeepsCommittingAndDisposesWhenTheCircuitCloses(string closedCall, int expectedReleases)
+        {
+            var module = this.JSInterop.SetupModule("./Components/UI/Organisms/ProjectBrowser/ProjectBrowserSearchAssistant.razor.js");
+            var handlers = SearchModuleCalls.ToDictionary(call => call, call => module.SetupVoid(call, _ => true));
+
+            foreach (var (call, handler) in handlers)
+            {
+                if (call == closedCall)
+                {
+                    handler.SetException(new JSDisconnectedException("Circuit closed"));
+                }
+                else
+                {
+                    handler.SetVoidResult();
+                }
+            }
+
+            var committed = new List<string>();
+            var assistant = this.Render<ProjectBrowserSearchAssistantComponent>(parameters => parameters
+                .Add(component => component.ElementTypeOptions, DefaultAvailableElementTypes)
+                .Add(component => component.SelectedElementTypes, EmptySelectedElementTypes)
+                .Add(component => component.ContainsCommitted, (string text) => { committed.Add(text); return Task.CompletedTask; }));
+
+            await assistant.InvokeAsync(() => assistant.FindComponent<SearchFieldComponent>().Instance.ValueChanged.InvokeAsync("needle"));
+            await assistant.Find("input[role='combobox']").KeyDownAsync(new KeyboardEventArgs { Key = "Enter" });
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(async () => await assistant.InvokeAsync(() => assistant.Instance.DisposeAsync().AsTask()), Throws.Nothing);
+                Assert.That(committed, Has.Count.EqualTo(1).And.All.EqualTo("needle"));
+                Assert.That(handlers["disposeEmptySpaceGuard"].Invocations, Has.Count.EqualTo(expectedReleases));
             }
         }
 
@@ -2147,7 +2209,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
         private async Task OpenSearchAssistantAsync(IRenderedComponent<ProjectBrowserComponent> component, string query)
         {
-            var searchInput = component.FindComponent<SearchInputComponent>();
+            var searchInput = component.FindComponent<SearchFieldComponent>();
 
             await component.InvokeAsync(() => searchInput.Instance.ValueChanged.InvokeAsync(query));
 

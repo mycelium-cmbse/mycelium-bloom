@@ -220,8 +220,7 @@
     min-width: 0;
 }
 
-.mb-editor-workspace__add-tab-host ::deep .mb-editor-workspace__add-tab-menu,
-.mb-editor-workspace__add-tab-host ::deep .mb-action-menu {
+.mb-editor-workspace__add-tab-host ::deep .mb-editor-workspace__add-tab-menu {
     width: 32px;
     height: 38px;
 }
@@ -233,21 +232,13 @@
     padding: 0;
     border: 0;
     border-radius: 0;
-}
-
-.mb-editor-workspace__add-tab-host ::deep .mb-action-menu__trigger-content {
-    flex: 0 0 auto;
-    justify-content: center;
-    gap: 0;
-}
-
-.mb-editor-workspace__add-tab-host ::deep .mb-action-menu__chevron {
-    display: none;
+    cursor: pointer;
 }
 
 .mb-editor-workspace__tab-close:hover,
 .mb-editor-workspace__add-tab:hover,
-.mb-editor-workspace__add-tab-host ::deep .mb-editor-workspace__add-tab:hover {
+.mb-editor-workspace__add-tab-host ::deep .mb-editor-workspace__add-tab:hover,
+.mb-editor-workspace__add-tab-host ::deep .mb-editor-workspace__add-tab[aria-expanded="true"] {
     background: var(--muted);
     color: var(--foreground);
 }

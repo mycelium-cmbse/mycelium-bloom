@@ -40,6 +40,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Core.Organization;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model;
@@ -56,8 +57,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
 
     using SysML2.NET.Core.POCO.Root.Namespaces;
 
-    using ActionMenuComponent = Mycelium.Bloom.Components.UI.Molecules.ActionMenu.ActionMenu;
-    using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
     using EditorWorkspaceComponent = Mycelium.Bloom.Components.UI.Organisms.EditorWorkspace.EditorWorkspace;
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
@@ -277,7 +276,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var renderedWeights = composition.Editor.Groups
                 .Select(group => editorWorkspace.Instance.InitialGroupWeights[group.Id])
                 .ToArray();
-            var addTabMenus = component.FindComponents<ActionMenuComponent>();
+            var addTabMenus = component.FindAll("[data-testid='editor-workspace-add-tab-menu']");
             var renderedTabIcons = component.FindAll("[data-testid='workspace-editor-tab-icon']")
                 .ToDictionary(
                     icon => Guid.Parse(icon.GetAttribute("data-tab-id")),
@@ -301,7 +300,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(editorWorkspace.Instance.TabLeadingContent, Is.Not.Null);
                 Assert.That(projectBrowser.Instance.ViewModel, Is.SameAs(composition.ProjectBrowsers[0].Object));
                 Assert.That(detailsPanel.Instance.ViewModel.Presentation?.Element, Is.SameAs(composition.Context.SelectedElement));
-                Assert.That(component.FindComponents<AppHeaderComponent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindAll("header[aria-label='Bloom application header']"), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<NavigationRailComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<EditorWorkspaceComponent>(), Has.Count.EqualTo(1));
                 Assert.That(component.FindComponents<ProjectBrowserComponent>(), Has.Count.EqualTo(1));
@@ -310,9 +309,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(component.FindAll("main"), Is.Empty);
                 Assert.That(component.Find(".mb-workspace-shell__main h1").TextContent.Trim(),
                     Is.EqualTo("Modelling"));
-                Assert.That(component.Find(".mb-workspace-layout__brand"), Is.Not.Null);
-                Assert.That(component.Find("header.mb-app-header").GetAttribute("style"),
-                    Does.Contain("height: 48px"));
+                Assert.That(component.Find($"header[aria-label='Bloom application header'] a[href='{OrganizationRoutes.AccountPath}']"), Is.Not.Null);
                 Assert.That(shellBody.Children.Select(element => element.LocalName),
                     Is.EqualTo(ExpectedWorkspaceBodyElementNames));
                 Assert.That(component.FindAll(".mb-editor-workspace [data-testid='workspace-project-browser']"),
@@ -329,10 +326,6 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
                 Assert.That(component.FindAll("[data-testid='workspace-editor-placeholder']"),
                     Has.Count.EqualTo(2));
                 Assert.That(addTabMenus, Has.Count.EqualTo(3));
-                Assert.That(
-                    addTabMenus.All(menu => menu.Instance.Items.Select(item => item.Symbol)
-                        .SequenceEqual(new SymbolIconName?[] { SymbolIconName.Tree, SymbolIconName.Document, SymbolIconName.Document })),
-                    Is.True);
                 Assert.That(renderedTabIcons[composition.Editor.Groups[0].ActiveTab.Id], Is.EqualTo("list-tree"));
                 Assert.That(
                     composition.Editor.Groups.Skip(1)
@@ -434,7 +427,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(this.portalHost.FindAll("[role='menuitem']").Select(item => item.TextContent.Trim()), Is.EqualTo(ExpectedAddTabActions));
-                Assert.That(projectBrowserAction.QuerySelector("svg"), Is.Not.Null);
+                Assert.That(this.portalHost.FindAll("[role='menuitem']").All(item => item.QuerySelector("svg") is not null), Is.True);
             }
 
             await projectBrowserAction.ClickAsync();
