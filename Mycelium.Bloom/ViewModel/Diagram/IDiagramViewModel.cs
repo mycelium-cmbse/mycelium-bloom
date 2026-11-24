@@ -36,6 +36,16 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <returns>Whether movement was accepted.</returns>
         bool MoveNode(Guid occurrenceId, double x, double y);
 
+        /// <summary>Adds a new occurrence of an existing canonical object without changing its semantic model.</summary>
+        /// <param name="element">The borrowed Browser element.</param>
+        /// <param name="x">The finite horizontal model-space position.</param>
+        /// <param name="y">The finite vertical model-space position.</param>
+        /// <returns>Whether this view accepted the graphical addition.</returns>
+        bool AddElement(IElement element, double x, double y);
+
+        /// <summary>Gets whether the current tool and editing policy permit element placement.</summary>
+        bool CanAddElements { get; }
+
         /// <summary>Gets the immutable notation projected from canonical model objects.</summary>
         DiagramProjection Projection { get; }
 

@@ -35,6 +35,9 @@ namespace Mycelium.Bloom.Model.Diagram
         /// <summary>Gets whether the tool permits selection through diagram content.</summary>
         public bool AllowsSelection { get; init; }
 
+        /// <summary>Gets whether the tool accepts placement of existing elements from the Project Browser.</summary>
+        public bool AllowsElementDrop { get; init; }
+
         /// <summary>Gets whether gestures over nested canvases should route to the owning canvas.</summary>
         public bool CapturesNestedInput { get; init; }
 

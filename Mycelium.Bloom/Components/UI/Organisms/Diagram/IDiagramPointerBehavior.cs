@@ -29,6 +29,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets whether a gesture or navigation override owns input.</summary>
         bool IsInteracting { get; }
 
+        /// <summary>Places a canonical browser element through the mounted native viewport.</summary>
+        /// <param name="element">The borrowed canonical element.</param>
+        /// <param name="x">The horizontal canvas-local coordinate.</param>
+        /// <param name="y">The vertical canvas-local coordinate.</param>
+        /// <returns>Whether the live diagram accepted placement.</returns>
+        bool DropElement(SysML2.NET.Core.POCO.Root.Elements.IElement element, double x, double y);
+
         /// <summary>Records a focused target for a possible Space tap.</summary>
         /// <param name="args">The key press on the selectable widget.</param>
         /// <param name="target">The tab-owned selection target.</param>

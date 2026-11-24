@@ -77,6 +77,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         [TestCase("state")]
         [TestCase("context")]
         [TestCase("runtime-provider")]
+        [TestCase("element-projector")]
         public void VerifyMissingRequiredRegistrationFailsClearly(string missing)
         {
             var registrations = DiagramTestServices.CreateCollection();
@@ -94,6 +95,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                     break;
                 case "runtime-provider":
                     registrations.RemoveAll<IDiagramToolRuntimeProvider>();
+                    break;
+                case "element-projector":
+                    registrations.RemoveAll<IDiagramElementProjector>();
                     break;
             }
 
@@ -125,6 +129,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
         {
             var projection = new DiagramProjection([], []);
             var tools = new Mock<IDiagramToolState>(MockBehavior.Strict);
+            tools.SetupGet(state => state.Effective).Returns((DiagramToolPlacement)null);
             tools.Setup(state => state.ForProjection(projection));
             tools.Setup(state => state.Dispose());
             var registrations = DiagramTestServices.CreateCollection();

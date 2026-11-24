@@ -80,13 +80,39 @@ export async function ensureDiagramAssets() {
 /**
  * Attaches native pointer capture to one canvas.
  * @param {HTMLElement} canvas The mounted native canvas.
+ * @param {object} reference The mount-owned .NET drop receiver.
  * @returns {object} The browser-owned capture and listener lifetime.
  */
-export function attachDiagramPointerCapture(canvas) {
+export function attachDiagramPointerCapture(canvas, reference) {
     const view = canvas.ownerDocument.defaultView;
     const listeners = new view.AbortController();
     const options = { capture: true, signal: listeners.signal };
     let capture;
+
+    const elementType = 'application/x-mycelium-element';
+    const acceptsElement = event => event.target.closest('.diagram-canvas') === canvas
+        && canvas.closest('.general-diagram')?.dataset.canAdd === 'true'
+        && event.dataTransfer?.types.includes(elementType);
+    canvas.addEventListener('dragover', event => {
+        if (acceptsElement(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+        }
+    }, options);
+    canvas.addEventListener('drop', async event => {
+        if (!acceptsElement(event)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const bounds = canvas.getBoundingClientRect();
+        const scaleX = canvas.clientWidth > 0 && bounds.width > 0 ? canvas.clientWidth / bounds.width : 1;
+        const scaleY = canvas.clientHeight > 0 && bounds.height > 0 ? canvas.clientHeight / bounds.height : 1;
+        await reference.invokeMethodAsync('DropElement', event.dataTransfer.getData(elementType),
+            (event.clientX - bounds.left) * scaleX, (event.clientY - bounds.top) * scaleY);
+    }, options);
 
     const release = () => {
         const captured = capture;

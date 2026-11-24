@@ -89,6 +89,10 @@ namespace Mycelium.Bloom.Components.Pages.Workspace
         /// </summary>
         private int nextPlaceholderTabNumber;
 
+        /// <summary>Gets or sets the circuit-scoped bridge for mounted canonical Browser drag sources.</summary>
+        [Inject]
+        private Mycelium.Bloom.Core.Presentation.IElementDragRegistry DragRegistry { get; set; }
+
         /// <summary>Gets or sets the circuit-owned canonical selection authority.</summary>
         [Inject]
         private IElementSelectionService ElementSelection { get; set; }

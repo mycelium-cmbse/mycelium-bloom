@@ -51,6 +51,8 @@
                 tabindex="-1"
                 class="@(this.GetNodeCssClass())"
                 title="@(this.GetTooltip())"
+                draggable="@(this.DragRegistry is not null && !viewModel.IsGroup ? "true" : "false")"
+                data-element-drag-token="@(this.DragRegistry is not null && !viewModel.IsGroup ? this.dragToken.ToString() : null)"
                 data-testid="project-browser-node-selection"
                 @onclick="this.SelectNodeAsync">
                 @if ((viewModel.IsGroup ? "folder" : viewModel.Presentation.IconName) is { } iconName)

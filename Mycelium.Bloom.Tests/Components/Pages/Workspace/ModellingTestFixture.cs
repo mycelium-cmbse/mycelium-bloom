@@ -75,6 +75,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             var projection = new DiagramProjection([], []);
             var viewModel = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             viewModel.SetupGet(value => value.Projection).Returns(projection);
+            viewModel.SetupGet(value => value.CanAddElements).Returns(false);
             viewModel.SetupGet(value => value.Viewport).Returns(new DiagramViewport());
             viewModel.SetupGet(value => value.Tools).Returns(Mock.Of<IDiagramToolState>(state => state.Toolbox == ImmutableArray<DiagramToolPlacement>.Empty));
             viewModel.Setup(value => value.Dispose());
@@ -204,6 +205,7 @@ namespace Mycelium.Bloom.Tests.Components.Pages.Workspace
             projector.Setup(service => service.CreateForRoot(root)).Returns(projection);
             var diagram = new Mock<IDiagramViewModel>(MockBehavior.Strict);
             diagram.SetupGet(viewModel => viewModel.Projection).Returns(projection);
+            diagram.SetupGet(viewModel => viewModel.CanAddElements).Returns(false);
             diagram.SetupGet(viewModel => viewModel.Viewport).Returns(new DiagramViewport());
             diagram.SetupGet(viewModel => viewModel.Tools).Returns(Mock.Of<IDiagramToolState>(state => state.Toolbox == ImmutableArray<DiagramToolPlacement>.Empty));
             diagram.Setup(viewModel => viewModel.Dispose());
