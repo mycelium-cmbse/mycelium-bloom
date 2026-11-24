@@ -196,6 +196,23 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             return true;
         }
 
+        /// <summary>Updates permitted occurrence dimensions without editing canonical model data.</summary>
+        /// <param name="occurrenceId">The graphical occurrence identity.</param>
+        /// <param name="width">The finite requested width.</param>
+        /// <param name="height">The finite requested height.</param>
+        /// <returns>Whether this live diagram accepted resizing.</returns>
+        public bool ResizeNode(Guid occurrenceId, double width, double height)
+        {
+            if (this.disposed || !this.CanMoveNodes || this.Tools.Effective?.Tool.Id != DiagramToolDefaults.Move || !double.IsFinite(width) || !double.IsFinite(height)
+                || !this.nodeStates.TryGetValue(occurrenceId, out var node) || !node.Presentation.Occurrence.IsResizable)
+            {
+                return false;
+            }
+
+            node.SetSize(new DiagramSize(Math.Max(width, DiagramLayoutMetrics.MinimumNodeWidth), Math.Max(height, DiagramLayoutMetrics.MinimumNodeHeight)));
+            return true;
+        }
+
         /// <summary>Changes the zoom percentage while preserving pan.</summary>
         /// <param name="percent">The finite requested zoom percentage.</param>
         public void ChangeZoom(double percent)
@@ -239,7 +256,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 Nodes = this.Projection.Nodes.Select(node =>
             {
                 var position = this.nodeStates[node.Occurrence.Id].Position;
-                return node with { Occurrence = node.Occurrence with { X = position.X, Y = position.Y } };
+                var size = this.nodeStates[node.Occurrence.Id].Size;
+                return node with { Occurrence = node.Occurrence with { X = position.X, Y = position.Y, Width = size.Width, Height = size.Height } };
             }).ToImmutableArray()
             };
             var bounds = DiagramBoundsCalculator.Measure(positioned);

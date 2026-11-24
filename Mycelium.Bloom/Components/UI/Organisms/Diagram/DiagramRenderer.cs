@@ -115,6 +115,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 model.Moving += this.ReportPosition;
                 this.nodeSubscriptions.Add(Disposable.Create(() => model.Moving -= this.ReportPosition));
                 this.nodeSubscriptions.Add(model.ViewModel.WhenAnyValue(value => value.Position).Subscribe(position => ApplyPosition(model, position)));
+                this.nodeSubscriptions.Add(model.ViewModel.WhenAnyValue(value => value.Size).Subscribe(model.ApplySize));
             }
 
             foreach (var edge in this.owner.Projection.Edges)

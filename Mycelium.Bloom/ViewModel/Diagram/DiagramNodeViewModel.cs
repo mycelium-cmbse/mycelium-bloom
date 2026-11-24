@@ -34,6 +34,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             private set => this.RaiseAndSetIfChanged(ref this.position, value);
         }
 
+        /// <summary>Gets the current graphical dimensions independently of canonical model data.</summary>
+        public DiagramSize Size
+        {
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        }
+
         /// <summary>Gets the current notation, including geometry, without changing canonical objects.</summary>
         public DiagramNodePresentation Presentation
         {
@@ -56,11 +63,22 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         {
             this.Update(presentation);
             this.Position = new DiagramPoint(presentation.Occurrence.X, presentation.Occurrence.Y);
+            this.Size = new DiagramSize(presentation.Occurrence.Width, presentation.Occurrence.Height);
         }
 
         /// <summary>Applies graphical coordinates validated by the tab owner.</summary>
         /// <param name="value">The accepted finite model-space position.</param>
         internal void SetPosition(DiagramPoint value) => this.Position = value;
+
+        /// <summary>Applies graphical dimensions validated by the tab owner.</summary>
+        /// <param name="value">The accepted model-space dimensions.</param>
+        internal void SetSize(DiagramSize value) => this.Size = value;
+
+        /// <summary>Delegates an accessible resize request to the tab's geometry authority.</summary>
+        /// <param name="width">The requested model-space width.</param>
+        /// <param name="height">The requested model-space height.</param>
+        /// <returns>Whether this occurrence accepted resizing.</returns>
+        public bool Resize(double width, double height) => this.Owner.ResizeNode(this.Presentation.Occurrence.Id, width, height);
 
         /// <summary>Gets nested state retained by this exact parent occurrence.</summary>
         /// <param name="projection">The child view's immutable notation.</param>
@@ -99,6 +117,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             if (this.Presentation is { } previous && !(previous.Occurrence.X, previous.Occurrence.Y).Equals((value.Occurrence.X, value.Occurrence.Y)))
             {
                 this.Position = new DiagramPoint(value.Occurrence.X, value.Occurrence.Y);
+            }
+
+            if (this.Presentation is { } prior && !(prior.Occurrence.Width, prior.Occurrence.Height).Equals((value.Occurrence.Width, value.Occurrence.Height)))
+            {
+                this.Size = new DiagramSize(value.Occurrence.Width, value.Occurrence.Height);
             }
 
             this.Presentation = value;
