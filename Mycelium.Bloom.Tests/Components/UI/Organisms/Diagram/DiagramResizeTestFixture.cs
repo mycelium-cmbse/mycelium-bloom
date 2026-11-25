@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -20,8 +21,10 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
     using Microsoft.AspNetCore.Components;
     using Microsoft.AspNetCore.Components.Web;
+    using Microsoft.Extensions.DependencyInjection;
 
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
+    using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Core.Context;
     using Mycelium.Bloom.Extensions;
     using Mycelium.Bloom.Model.Diagram;
@@ -87,7 +90,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(component.Find(".general-diagram").GetAttribute("data-can-resize"), Is.EqualTo("true"));
+                Assert.That(component.FindAll("[data-diagram-resize]"), Has.Count.EqualTo(1));
                 Assert.That(owner.Tools.Temporary.Tool.Id, Is.EqualTo(DiagramToolDefaults.Pan));
                 Assert.That(owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id).Size, Is.EqualTo(new DiagramSize(240, 160)));
             }
@@ -141,7 +144,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             {
                 var refreshes = 0;
                 renderer.Diagram.Links[0].Changed += _ => refreshes++;
-                renderer.Pointer.BeginResize(occurrence.Id, Pointer(100, 100));
+                renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(100, 100));
                 renderer.Diagram.TriggerPointerMove(null, Pointer(160, 140));
                 renderer.Diagram.TriggerPointerUp(null, Pointer(160, 140));
                 var node = renderer.Diagram.Nodes[0];
@@ -183,6 +186,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(result, Is.EqualTo(accepted));
+                Assert.That(owner.GetNodeViewModel(occurrence.Id).CanResize, Is.EqualTo(accepted));
                 Assert.That(owner.GetNodeViewModel(occurrence.Id).Size,
                     Is.EqualTo(accepted ? new DiagramSize(400, 300) : new DiagramSize(occurrence.Width, occurrence.Height)));
             }
@@ -347,14 +351,14 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var owner = this.diagrams.CreateViewModel(projection, selection);
             using var renderer = this.CreateRenderer(owner);
             var occurrence = projection.Nodes[0].Occurrence;
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(0, 0));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(0, 0));
             renderer.Pointer.Cancel();
             renderer.Diagram.TriggerPointerMove(null, Pointer(100, 100));
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(0, 0));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(0, 0));
             selection.LifecycleState = ProjectLifecycleKind.Review;
             renderer.Diagram.TriggerPointerMove(null, Pointer(100, 100));
             selection.LifecycleState = ProjectLifecycleKind.Open;
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(0, 0));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(0, 0));
             renderer.Dispose();
             renderer.Diagram.TriggerPointerMove(null, Pointer(100, 100));
 
@@ -373,7 +377,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var renderer = this.CreateRenderer(owner);
             renderer.Diagram.SetContainer(new Rectangle(30, 40, 1030, 740));
             var occurrence = projection.Nodes[0].Occurrence;
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(100, 100));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(100, 100));
             renderer.Diagram.TriggerPointerMove(null, Pointer(100 + 30 * zoom, 100 + 20 * zoom));
             renderer.Diagram.TriggerPointerUp(null, Pointer(100 + 40 * zoom, 100 + 25 * zoom));
             renderer.Diagram.TriggerPointerMove(null, Pointer(500, 500));
@@ -402,7 +406,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 renderer.Pointer.KeyChanged(" ", "Space", true);
             }
 
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(100, 100, button: space ? 0 : 1));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(100, 100, button: space ? 0 : 1));
             renderer.Diagram.TriggerPointerMove(null, Pointer(160, 140));
             renderer.Diagram.TriggerPointerUp(null, Pointer(160, 140));
             renderer.Pointer.KeyChanged(" ", "Space", false);
@@ -424,7 +428,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             using var owner = this.diagrams.CreateViewModel(projection, selection);
             using var renderer = this.CreateRenderer(owner);
             var occurrence = projection.Nodes[0].Occurrence;
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(100, 100));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(100, 100));
             renderer.Diagram.TriggerPointerMove(null, Pointer(120, 130));
             var unrelatedCancelled = renderer.Pointer.CancelPointer(2);
 
@@ -437,7 +441,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             Assert.That(renderer.Pointer.CancelPointer(1), Is.True);
             renderer.Diagram.TriggerPointerMove(null, Pointer(200, 200));
             renderer.Diagram.TriggerPointerUp(null, Pointer(200, 200));
-            renderer.Pointer.BeginResize(occurrence.Id, Pointer(100, 100));
+            renderer.Pointer.BeginResize((DiagramNodeModel)renderer.Diagram.Nodes[0], Pointer(100, 100));
             owner.Tools.TryActivate(DiagramToolDefaults.Pan);
             renderer.Diagram.TriggerPointerMove(null, Pointer(300, 300));
 
@@ -446,6 +450,278 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                 Assert.That(owner.GetNodeViewModel(occurrence.Id).Size, Is.EqualTo(new DiagramSize(260, 190)));
                 Assert.That(owner.Viewport, Is.EqualTo(new DiagramViewport(0, 0, 1, true)));
                 Assert.That(renderer.Pointer.IsInteracting, Is.False);
+            }
+        }
+
+        [Test]
+        public void VerifyResizeByUsesRetainedDimensionsAndRejectsInvalidChanges()
+        {
+            using var selection = new ContextAwareService();
+            var projection = DiagramTestFactory.Create([new PartUsage()]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            var node = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
+            var resized = node.ResizeBy(20, -10);
+            var size = node.Size;
+            var invalidWidth = node.ResizeBy(double.NaN, 0);
+            var invalidHeight = node.ResizeBy(0, double.PositiveInfinity);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(resized, Is.True);
+                Assert.That(size, Is.EqualTo(new DiagramSize(260, 150)));
+                Assert.That(invalidWidth, Is.False);
+                Assert.That(invalidHeight, Is.False);
+                Assert.That(node.Size, Is.EqualTo(new DiagramSize(260, 150)));
+            }
+
+            var minimized = node.ResizeBy(-1000, -1000);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(minimized, Is.True);
+                Assert.That(node.Size, Is.EqualTo(new DiagramSize(80, 60)));
+            }
+        }
+
+        [TestCase("ArrowLeft", false, 230, 160)]
+        [TestCase("ArrowRight", false, 250, 160)]
+        [TestCase("ArrowUp", false, 240, 150)]
+        [TestCase("ArrowDown", false, 240, 170)]
+        [TestCase("ArrowLeft", true, 239, 160)]
+        [TestCase("ArrowRight", true, 241, 160)]
+        [TestCase("ArrowUp", true, 240, 159)]
+        [TestCase("ArrowDown", true, 240, 161)]
+        public async Task VerifyKeyboardDirectionAndPrecision(string key, bool precision, double width, double height)
+        {
+            using var selection = new ContextAwareService();
+            var projection = DiagramTestFactory.Create([new PartUsage()]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            owner.Select(projection.Nodes[0].Occurrence.Element);
+            await using var context = new BunitContext();
+            context.Services.AddDiagramServices();
+            context.SetRendererInfo(new RendererInfo("Server", true));
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
+            var component = context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            await component.Find("[data-diagram-resize]").KeyDownAsync(new KeyboardEventArgs { Key = key, ShiftKey = precision });
+            Assert.That(owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id).Size, Is.EqualTo(new DiagramSize(width, height)));
+        }
+
+        [Test]
+        public async Task VerifyHandleFollowsEditingPolicyAndExplicitToolChanges()
+        {
+            using var selection = new ContextAwareService();
+            var projection = DiagramTestFactory.Create([new PartUsage()]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            owner.Select(projection.Nodes[0].Occurrence.Element);
+            await using var context = new BunitContext();
+            context.Services.AddDiagramServices();
+            context.SetRendererInfo(new RendererInfo("Server", true));
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
+            var component = context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            owner.Tools.TryActivate(DiagramToolDefaults.Pan);
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-diagram-resize]"), Is.Empty));
+            owner.Tools.TryActivate(DiagramToolDefaults.Move);
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-diagram-resize]"), Has.Count.EqualTo(1)));
+            owner.IsReadOnly = true;
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-diagram-resize]"), Is.Empty));
+            owner.IsReadOnly = false;
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-diagram-resize]"), Has.Count.EqualTo(1)));
+            selection.LifecycleState = ProjectLifecycleKind.Review;
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-diagram-resize]"), Is.Empty));
+            selection.LifecycleState = ProjectLifecycleKind.Open;
+            await component.WaitForAssertionAsync(() => Assert.That(component.FindAll("[data-diagram-resize]"), Has.Count.EqualTo(1)));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void VerifyDifferentToolIdUsesResizeCapabilityAndEffectiveNavigation(bool allowsResize)
+        {
+            using var selection = new ContextAwareService();
+            var definition = new DiagramToolDefinition("resize-selection", "Resize selection", "mouse-pointer-2")
+            {
+                AllowsSelection = true,
+                AllowsResize = allowsResize
+            };
+            var catalogue = DiagramTestServices.CreateCatalogue(definition);
+            var layout = new DiagramToolLayout([new(definition.Id), new(DiagramToolDefaults.Pan)], definition.Id, DiagramToolDefaults.Pan);
+            var projection = DiagramTestFactory.Create([new PartUsage()]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection, catalogue, layout);
+            using var runtimeServices = DiagramTestServices.CreateCollection()
+                .AddSingleton(new DiagramToolRuntimeRegistration(definition.Id, (context, _) => new MoveDiagramTool(context)))
+                .BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
+            using var renderer = this.diagrams.CreateRenderer(owner, runtimeServices.GetRequiredService<IDiagramToolRuntimeProvider>());
+            owner.SetViewport(0, 0, 1);
+            renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
+            var native = (DiagramNodeModel)renderer.Diagram.Nodes[0];
+            var node = native.ViewModel;
+            renderer.Pointer.BeginResize(native, Pointer(100, 100));
+            var started = renderer.Pointer.IsInteracting;
+            renderer.Diagram.TriggerPointerUp(null, Pointer(120, 130));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active.Tool, Is.SameAs(definition));
+                Assert.That(node.CanResize, Is.EqualTo(allowsResize));
+                Assert.That(started, Is.EqualTo(allowsResize));
+                Assert.That(node.Size, Is.EqualTo(allowsResize ? new DiagramSize(260, 190) : new DiagramSize(240, 160)));
+            }
+
+            renderer.Pointer.KeyChanged(" ", "Space", true);
+            var temporaryAccepted = node.ResizeBy(10, 10);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(node.CanResize, Is.EqualTo(allowsResize));
+                Assert.That(owner.Tools.Effective.Tool.AllowsResize, Is.False);
+                Assert.That(temporaryAccepted, Is.False);
+            }
+
+            renderer.Pointer.KeyChanged(" ", "Space", false);
+            var accepted = node.ResizeBy(10, 10);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(accepted, Is.EqualTo(allowsResize));
+                Assert.That(node.Size, Is.EqualTo(allowsResize ? new DiagramSize(270, 200) : new DiagramSize(240, 160)));
+            }
+        }
+
+        [Test]
+        public void VerifyProjectionRefreshesResizePermissionAndRevokesReplacedOccurrences()
+        {
+            using var selection = new ContextAwareService();
+            var original = DiagramTestFactory.Node(new PartUsage());
+            var additional = DiagramTestFactory.Node(new PartUsage());
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([original], []), selection);
+            var stale = owner.GetNodeViewModel(original.Occurrence.Id);
+            owner.Tools.TryActivate(DiagramToolDefaults.Pan);
+            owner.UpdateProjection(new DiagramProjection([original, additional], []));
+            var added = owner.GetNodeViewModel(additional.Occurrence.Id);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(stale.CanResize, Is.False);
+                Assert.That(added.CanResize, Is.False);
+            }
+
+            owner.Tools.TryActivate(DiagramToolDefaults.Move);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(stale.CanResize, Is.True);
+                Assert.That(added.CanResize, Is.True);
+            }
+
+            var pinned = original with { Occurrence = original.Occurrence with { IsResizable = false } };
+            owner.UpdateProjection(new DiagramProjection([pinned], []));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(stale.CanResize, Is.False);
+                Assert.That(added.CanResize, Is.False);
+            }
+
+            owner.UpdateProjection(new DiagramProjection([original], []));
+            Assert.That(stale.CanResize, Is.True);
+            var replacement = original with { Occurrence = original.Occurrence with { Element = new PartUsage() } };
+            owner.UpdateProjection(new DiagramProjection([replacement, additional], []));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(stale.CanResize, Is.False);
+                Assert.That(stale.ResizeBy(10, 10), Is.False);
+                Assert.That(owner.GetNodeViewModel(original.Occurrence.Id).CanResize, Is.True);
+                Assert.That(owner.GetNodeViewModel(additional.Occurrence.Id).CanResize, Is.True);
+                Assert.That(owner.GetNodeViewModel(original.Occurrence.Id).Size, Is.EqualTo(new DiagramSize(240, 160)));
+            }
+        }
+
+        [Test]
+        public void VerifyBoundaryResizeReadsCurrentViewModelGeometryAndKeepsNativePortIdentity()
+        {
+            using var selection = new ContextAwareService();
+            var element = new PartUsage();
+            var original = DiagramTestFactory.Node(new PartUsage()) with { Boundary = [new(element, "port", BoundarySide.Right, 0.5)] };
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([original], []), selection);
+            var native = new DiagramNodeModel(original, owner);
+            var port = native.Ports[0];
+            var replacement = original with { Boundary = [new(element, "port", BoundarySide.Right, 0.25)] };
+            owner.UpdateProjection(new DiagramProjection([replacement], []));
+            native.ApplySize(new DiagramSize(400, 300));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(native.Ports[0], Is.SameAs(port));
+                Assert.That(((IDiagramBoundaryPortModel)port).ViewModel, Is.SameAs(native.ViewModel.BoundaryFeatures[0]));
+                Assert.That(port.Position, Is.EqualTo(new Point(native.Position.X + 394, native.Position.Y + 69)));
+            }
+        }
+
+        [Test]
+        public void VerifyBeginResizeRejectsForeignReplacedAndDisposedMounts()
+        {
+            using var selection = new ContextAwareService();
+            var projection = DiagramTestFactory.Create([new PartUsage()]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            using var renderer = this.CreateRenderer(owner);
+            using var other = this.CreateRenderer(owner);
+            var previous = (DiagramNodeModel)renderer.Diagram.Nodes[0];
+            var foreign = (DiagramNodeModel)other.Diagram.Nodes[0];
+            renderer.Pointer.BeginResize(foreign, Pointer(0, 0));
+            Assert.That(renderer.Pointer.IsInteracting, Is.False);
+            renderer.Pointer.BeginResize(previous, Pointer(0, 0));
+            Assert.That(renderer.Pointer.IsInteracting, Is.True);
+            owner.UpdateProjection(projection with { ViewName = "Replacement" });
+            renderer.Pointer.BeginResize(previous, Pointer(0, 0));
+            Assert.That(renderer.Pointer.IsInteracting, Is.False);
+            var current = (DiagramNodeModel)renderer.Diagram.Nodes[0];
+            renderer.Dispose();
+            renderer.Pointer.BeginResize(current, Pointer(0, 0));
+            renderer.Diagram.TriggerPointerMove(null, Pointer(100, 100));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(renderer.Pointer.IsInteracting, Is.False);
+                Assert.That(current.ViewModel.Size, Is.EqualTo(new DiagramSize(240, 160)));
+            }
+        }
+
+        [Test]
+        public void VerifyResizePermissionObservationStopsWhenOwnerIsDisposed()
+        {
+            using var selection = new ContextAwareService();
+            var projection = DiagramTestFactory.Create([new PartUsage()]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            using var independent = this.diagrams.CreateViewModel(projection, selection);
+            var node = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
+            var states = new List<bool>();
+            node.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(DiagramNodeViewModel.CanResize))
+                {
+                    states.Add(node.CanResize);
+                }
+            };
+            Assert.That(node.CanResize, Is.True);
+            owner.IsReadOnly = true;
+            Assert.That(node.CanResize, Is.False);
+            owner.IsReadOnly = false;
+            Assert.That(node.CanResize, Is.True);
+            owner.Dispose();
+            var snapshot = states.ToArray();
+            selection.LifecycleState = ProjectLifecycleKind.Review;
+            selection.LifecycleState = ProjectLifecycleKind.Open;
+            owner.IsReadOnly = true;
+            owner.IsReadOnly = false;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(states, Is.EqualTo(snapshot));
+                Assert.That(node.CanResize, Is.False);
+                Assert.That(node.ResizeBy(10, 10), Is.False);
+                Assert.That(independent.GetNodeViewModel(projection.Nodes[0].Occurrence.Id).CanResize, Is.True);
             }
         }
 

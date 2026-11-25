@@ -27,6 +27,16 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>The boundary presentations scoped to this occurrence.</summary>
         private ImmutableArray<DiagramBoundaryViewModel> boundaryFeatures = [];
 
+        /// <summary>The latest resize permission supplied by the tab owner.</summary>
+        private bool resizePermitted;
+
+        /// <summary>Gets whether the retained tool and editing policy permit resizing this occurrence.</summary>
+        public bool CanResize
+        {
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        }
+
         /// <summary>Gets the current graphical position independently of canonical model data.</summary>
         public DiagramPoint Position
         {
@@ -74,11 +84,20 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="value">The accepted model-space dimensions.</param>
         internal void SetSize(DiagramSize value) => this.Size = value;
 
-        /// <summary>Delegates an accessible resize request to the tab's geometry authority.</summary>
-        /// <param name="width">The requested model-space width.</param>
-        /// <param name="height">The requested model-space height.</param>
+        /// <summary>Applies relative dimensions through the tab's geometry and permission authority.</summary>
+        /// <param name="dx">The horizontal model-space size change.</param>
+        /// <param name="dy">The vertical model-space size change.</param>
         /// <returns>Whether this occurrence accepted resizing.</returns>
-        public bool Resize(double width, double height) => this.Owner.ResizeNode(this.Presentation.Occurrence.Id, width, height);
+        public bool ResizeBy(double dx, double dy) => this.CanResize
+            && this.Owner.ResizeNode(this.Presentation.Occurrence.Id, this.Size.Width + dx, this.Size.Height + dy);
+
+        /// <summary>Applies the owner's permission while preserving this occurrence's resize restriction.</summary>
+        /// <param name="permitted">Whether the tab's retained tool and editing policy allow resizing.</param>
+        internal void SetResizePermitted(bool permitted)
+        {
+            this.resizePermitted = permitted;
+            this.CanResize = permitted && this.Presentation.Occurrence.IsResizable;
+        }
 
         /// <summary>Gets nested state retained by this exact parent occurrence.</summary>
         /// <param name="projection">The child view's immutable notation.</param>
@@ -125,6 +144,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
 
             this.Presentation = value;
+            this.SetResizePermitted(this.resizePermitted);
         }
     }
 }

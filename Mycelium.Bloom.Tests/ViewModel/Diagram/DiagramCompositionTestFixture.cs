@@ -131,6 +131,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             registrations.AddSingleton<Func<IObservable<bool>, IDiagramToolState>>(_ => tools.Object);
             using var services = registrations.BuildServiceProvider();
             using var scope = services.CreateScope();
+            var definition = services.GetServices<DiagramToolDefinition>().Single(tool => tool.Id == DiagramToolDefaults.Move);
+            tools.SetupGet(state => state.Active).Returns(new DiagramToolPlacement(definition, new DiagramToolLayout.Item(definition.Id), 0));
             var owner = scope.ServiceProvider.GetRequiredService<Func<DiagramProjection, IDiagramViewModel>>()(projection);
 
             Assert.That(owner.Tools, Is.SameAs(tools.Object));

@@ -73,28 +73,32 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
         /// <summary>Captures the resize handle before native node movement can begin.</summary>
         /// <param name="args">The browser pointer event delivered by Blazor.</param>
-        private void BeginResize(PointerEventArgs args) => this.ResizePointer.BeginResize(this.ViewModel.Presentation.Occurrence.Id, args.ToCore());
+        private void BeginResize(PointerEventArgs args) => this.ResizePointer.BeginResize(this.Node, args.ToCore());
 
         /// <summary>Captures keyboard resizing before delegating to the presentation authority.</summary>
         /// <param name="args">The directional key and precision modifier.</param>
         private void ResizeWithKeyboard(KeyboardEventArgs args)
         {
+            if (args.AltKey || args.CtrlKey || args.MetaKey)
+            {
+                return;
+            }
+
             var step = args.ShiftKey ? 1 : 10;
-            var size = this.ViewModel.Size;
 
             switch (args.Key)
             {
                 case "ArrowLeft":
-                    this.ViewModel.Resize(size.Width - step, size.Height);
+                    this.ViewModel.ResizeBy(-step, 0);
                     break;
                 case "ArrowRight":
-                    this.ViewModel.Resize(size.Width + step, size.Height);
+                    this.ViewModel.ResizeBy(step, 0);
                     break;
                 case "ArrowUp":
-                    this.ViewModel.Resize(size.Width, size.Height - step);
+                    this.ViewModel.ResizeBy(0, -step);
                     break;
                 case "ArrowDown":
-                    this.ViewModel.Resize(size.Width, size.Height + step);
+                    this.ViewModel.ResizeBy(0, step);
                     break;
             }
         }

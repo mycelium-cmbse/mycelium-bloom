@@ -35,6 +35,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>The view's single subscription to canonical selection.</summary>
         private readonly IDisposable selectionSubscription;
 
+        /// <summary>The tab-owned observation that publishes resize permission to node presentations.</summary>
+        private readonly IDisposable resizePermissionSubscription;
+
         /// <summary>The reactive presentations indexed by graphical node identity.</summary>
         private readonly Dictionary<Guid, DiagramNodeViewModel> nodeStates = new();
 
@@ -117,6 +120,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.Tools = createTools(this.WhenAnyValue(view => view.CanMoveNodes));
             this.Tools.ForProjection(projection);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
+            this.resizePermissionSubscription = this.WhenAnyValue(view => view.CanMoveNodes, view => view.Tools.Active)
+                .Subscribe(_ => this.ApplyResizePermission());
         }
 
         /// <summary>Gets retained reactive state for one graphical node.</summary>
@@ -164,7 +169,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.ApplySelection(this.selection.SelectedElement);
             this.ReleaseRemovedNestedViews(projection);
             this.Projection = projection;
-            this.Tools?.ForProjection(projection);
+
+            if (this.Tools is not null)
+            {
+                this.Tools.ForProjection(projection);
+                this.ApplyResizePermission();
+            }
         }
 
         /// <summary>Selects the supplied represented canonical element.</summary>
@@ -203,8 +213,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <returns>Whether this live diagram accepted resizing.</returns>
         public bool ResizeNode(Guid occurrenceId, double width, double height)
         {
-            if (this.disposed || !this.CanMoveNodes || this.Tools.Effective?.Tool.Id != DiagramToolDefaults.Move || !double.IsFinite(width) || !double.IsFinite(height)
-                || !this.nodeStates.TryGetValue(occurrenceId, out var node) || !node.Presentation.Occurrence.IsResizable)
+            if (this.disposed || this.Tools.Effective?.Tool.AllowsResize != true || !double.IsFinite(width) || !double.IsFinite(height)
+                || !this.nodeStates.TryGetValue(occurrenceId, out var node) || !node.CanResize)
             {
                 return false;
             }
@@ -303,6 +313,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             this.disposed = true;
             this.selectionSubscription.Dispose();
+            this.resizePermissionSubscription.Dispose();
+            this.ApplyResizePermission();
             this.Tools.Dispose();
             this.canMoveNodes.Dispose();
 
@@ -316,6 +328,17 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.selectedTargets = Array.Empty<DiagramElementViewModel>();
             this.nodeStates.Clear();
             this.edgeStates.Clear();
+        }
+
+        /// <summary>Publishes the retained tool's editing permission to every current occurrence.</summary>
+        private void ApplyResizePermission()
+        {
+            var permitted = this.CanMoveNodes && this.Tools.Active?.Tool.AllowsResize == true;
+
+            foreach (var node in this.nodeStates.Values)
+            {
+                node.SetResizePermitted(permitted);
+            }
         }
 
         /// <summary>Updates only previous and current selection decorations, including repeated occurrences.</summary>
@@ -365,6 +388,14 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                     : new DiagramNodeViewModel(node, this);
                 state.Update(node);
                 retained.Add(node.Occurrence.Id, state);
+            }
+
+            foreach (var previous in this.nodeStates.Values)
+            {
+                if (!retained.TryGetValue(previous.Presentation.Occurrence.Id, out var current) || !ReferenceEquals(previous, current))
+                {
+                    previous.SetResizePermitted(false);
+                }
             }
 
             this.nodeStates.Clear();

@@ -103,18 +103,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         }
 
         /// <summary>Routes a resize handle to resizing or the active navigation override without starting node movement.</summary>
-        /// <param name="occurrenceId">The mounted graphical occurrence represented by the handle.</param>
+        /// <param name="node">The native node represented by the mounted handle.</param>
         /// <param name="args">The starting browser pointer event.</param>
-        public void BeginResize(Guid occurrenceId, PointerEventArgs args)
+        public void BeginResize(DiagramNodeModel node, PointerEventArgs args)
         {
-            if (this.disposed || !args.IsPrimary || args.Button is not (0 or 1) || this.pointerStart is not null)
-            {
-                return;
-            }
-
-            var node = this.Diagram.Nodes.OfType<DiagramNodeModel>().SingleOrDefault(value => value.Presentation.Occurrence.Id == occurrenceId);
-
-            if (node is null)
+            if (this.disposed || node is null || args is not { IsPrimary: true, Button: 0 or 1 }
+                || this.pointerStart is not null || !this.Diagram.Nodes.Contains(node))
             {
                 return;
             }

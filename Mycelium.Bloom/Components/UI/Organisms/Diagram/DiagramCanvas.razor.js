@@ -78,7 +78,7 @@ export async function ensureDiagramAssets() {
 }
 
 /**
- * Attaches native pointer capture to one canvas.
+ * Attaches native pointer capture and resize-arrow default filtering to one canvas.
  * @param {HTMLElement} canvas The mounted native canvas.
  * @returns {object} The browser-owned capture and listener lifetime.
  */
@@ -87,6 +87,14 @@ export function attachDiagramPointerCapture(canvas) {
     const listeners = new view.AbortController();
     const options = { capture: true, signal: listeners.signal };
     let capture;
+
+    canvas.addEventListener('keydown', event => {
+        if (event.target.closest('.diagram-canvas') === canvas && event.target.closest('[data-diagram-resize]')
+            && !event.altKey && !event.ctrlKey && !event.metaKey
+            && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+            event.preventDefault();
+        }
+    }, options);
 
     const release = () => {
         const captured = capture;

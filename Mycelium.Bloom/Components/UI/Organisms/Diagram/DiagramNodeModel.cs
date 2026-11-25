@@ -9,8 +9,6 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
-    using System.Collections.Immutable;
-
     using Blazor.Diagrams.Core.Geometry;
     using Blazor.Diagrams.Core.Models;
 
@@ -21,9 +19,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
     /// <summary>Adapts one graphical occurrence and its boundaries to native renderer geometry.</summary>
     public sealed class DiagramNodeModel : NodeModel
     {
-        /// <summary>The immutable boundary geometry associated with this native model's ports.</summary>
-        private readonly ImmutableArray<DiagramBoundaryPresentation> boundaries;
-
         /// <summary>Gets the tab-owned reactive presentation borrowed by this native occurrence.</summary>
         public DiagramNodeViewModel ViewModel { get; }
 
@@ -44,7 +39,6 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.Locked = !presentation.Occurrence.IsMovable;
             this.Size = new Size(this.ViewModel.Size.Width, this.ViewModel.Size.Height);
             this.ControlledSize = true;
-            this.boundaries = presentation is DiagramShellPresentation shell ? shell.Boundary : [];
 
             for (var index = 0; index < this.ViewModel.BoundaryFeatures.Length; index++)
             {
@@ -73,10 +67,13 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
             this.Size = new Size(size.Width, size.Height);
 
-            for (var index = 0; index < this.Ports.Count; index++)
+            foreach (var port in this.Ports)
             {
-                this.Ports[index].Position = this.GetBoundaryPosition(this.boundaries[index]);
-                this.Ports[index].RefreshAll();
+                if (port is IDiagramBoundaryPortModel boundary)
+                {
+                    port.Position = this.GetBoundaryPosition(boundary.ViewModel.Presentation);
+                    port.RefreshAll();
+                }
             }
 
             this.Refresh();

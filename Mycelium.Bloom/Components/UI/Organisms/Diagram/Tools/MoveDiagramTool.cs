@@ -55,7 +55,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools
         /// <returns>Whether resizing is currently permitted.</returns>
         public bool BeginResize(DiagramNodeModel node, PointerEventArgs args)
         {
-            if (!context.Owner.CanMoveNodes || !node.Presentation.Occurrence.IsResizable || context.Diagram.Container is null
+            if (!node.ViewModel.CanResize || context.Diagram.Container is null
                 || !double.IsFinite(args.ClientX) || !double.IsFinite(args.ClientY))
             {
                 return false;

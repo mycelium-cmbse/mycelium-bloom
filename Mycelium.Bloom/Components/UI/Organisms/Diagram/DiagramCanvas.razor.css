@@ -56,7 +56,6 @@
 }
 
 .general-diagram ::deep .diagram-resize-handle {
-    display: none;
     position: absolute;
     right: -6px;
     bottom: -6px;
@@ -68,14 +67,6 @@
     cursor: nwse-resize;
     z-index: 2;
     touch-action: none;
-}
-
-.general-diagram[data-tool="move"][data-can-resize="true"] ::deep .diagram-resize-handle {
-    display: block;
-}
-
-.general-diagram[data-tool][data-can-resize="false"] ::deep .diagram-resize-handle {
-    display: none;
 }
 
 .general-diagram ::deep .diagram-resize-handle:focus-visible {
