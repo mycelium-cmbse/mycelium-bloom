@@ -20,4 +20,12 @@
             <DynamicComponent Type="@this.Components.GetComponentType(this.ViewModel.Presentation.GetType())" Parameters="@this.GetComponentParameters()" />
         </CascadingValue>
     </CascadingValue>
+    @if (this.ViewModel.IsSelected && this.ViewModel.CanResize)
+    {
+        <button type="button" class="diagram-resize-handle" data-diagram-resize="@this.Node.Id"
+                aria-label="Resize @this.ViewModel.Presentation.Name.Declaration" aria-describedby="@this.ResizeHelpId"
+                @onpointerdown="this.BeginResize" @onpointerdown:stopPropagation="true"
+                @onkeydown="this.ResizeWithKeyboard" @onclick:stopPropagation="true"></button>
+        <span id="@this.ResizeHelpId" class="diagram-resize-help" aria-hidden="true">Use arrow keys to resize; hold Shift for one-pixel steps.</span>
+    }
 </div>

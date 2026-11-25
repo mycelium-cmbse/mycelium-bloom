@@ -1406,3 +1406,59 @@ test("nested native capture is attached only to the originating canvas", async (
     inner.handle.dispose();
     assert.equal(inner.captures.size, 0);
 });
+
+test("resize handles prevent only directional arrow defaults while preserving Blazor event delivery", async () => {
+    const { canvas, child, handle } = await createDiagramCapture();
+    child.dataset.diagramResize = "node";
+    const delivered = [];
+    canvas.addEventListener("keydown", event => delivered.push(event.key));
+
+    for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
+        for (const shiftKey of [false, true]) {
+            const event = new window.KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true });
+            child.dispatchEvent(event);
+            assert.equal(event.defaultPrevented, true);
+            assert.equal(delivered.at(-1), key);
+        }
+    }
+
+    handle.dispose();
+    const afterDisposal = new window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    child.dispatchEvent(afterDisposal);
+    assert.equal(afterDisposal.defaultPrevented, false);
+});
+
+test("resize filtering preserves native focus navigation, Space and modified shortcuts", async () => {
+    const { child, handle } = await createDiagramCapture();
+    const ordinaryArrow = new window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    child.dispatchEvent(ordinaryArrow);
+    assert.equal(ordinaryArrow.defaultPrevented, false);
+    child.dataset.diagramResize = "node";
+
+    for (const input of [
+        { key: "Tab" }, { key: "Tab", shiftKey: true }, { key: " ", code: "Space" },
+        { key: "Enter" }, { key: "Escape" }, { key: "ArrowLeft", ctrlKey: true },
+        { key: "ArrowRight", altKey: true }, { key: "ArrowUp", metaKey: true }
+    ]) {
+        const event = new window.KeyboardEvent("keydown", { ...input, bubbles: true, cancelable: true });
+        child.dispatchEvent(event);
+        assert.equal(event.defaultPrevented, false, JSON.stringify(input));
+    }
+
+    handle.dispose();
+});
+
+test("resize arrow filtering remains scoped to its originating canvas", async () => {
+    const outer = await createDiagramCapture();
+    const inner = await createDiagramCapture(outer.canvas);
+    inner.child.dataset.diagramResize = "nested-node";
+    inner.handle.dispose();
+    const unowned = new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    inner.child.dispatchEvent(unowned);
+    assert.equal(unowned.defaultPrevented, false);
+    outer.child.dataset.diagramResize = "outer-node";
+    const owned = new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    outer.child.dispatchEvent(owned);
+    assert.equal(owned.defaultPrevented, true);
+    outer.handle.dispose();
+});

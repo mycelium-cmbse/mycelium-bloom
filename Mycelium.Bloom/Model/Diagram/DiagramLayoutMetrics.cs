@@ -12,6 +12,12 @@ namespace Mycelium.Bloom.Model.Diagram
     /// <summary>Defines the bounded label envelope used by canvas styling and viewport fitting.</summary>
     public static class DiagramLayoutMetrics
     {
+        /// <summary>Reserves enough horizontal room for an accessible name compartment.</summary>
+        public const double MinimumNodeWidth = 80;
+
+        /// <summary>Reserves enough vertical room for a name compartment and resize control.</summary>
+        public const double MinimumNodeHeight = 60;
+
         /// <summary>The maximum visible width of a boundary-feature label before ellipsis.</summary>
         public const double BoundaryLabelMaximumWidth = 200;
 

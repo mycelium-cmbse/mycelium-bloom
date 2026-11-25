@@ -9,7 +9,10 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
+    using Blazor.Diagrams.Extensions;
+
     using Microsoft.AspNetCore.Components;
+    using Microsoft.AspNetCore.Components.Web;
 
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram;
@@ -31,8 +34,15 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         [Parameter, EditorRequired]
         public DiagramNodeModel Node { get; set; }
 
+        /// <summary>Gets or sets the mount-owned pointer dispatcher.</summary>
+        [CascadingParameter]
+        private IDiagramPointerBehavior ResizePointer { get; set; }
+
         /// <summary>Gets invariant occurrence dimensions without changing canonical geometry.</summary>
         private string Size => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"width:{this.Node.Size.Width}px;height:{this.Node.Size.Height}px");
+
+        /// <summary>Gets a mount-local association for accessible resize instructions.</summary>
+        private string ResizeHelpId { get; } = $"diagram-resize-{Guid.NewGuid():N}";
 
         /// <summary>Supplies occurrence state before the reactive base attaches its initial observation.</summary>
         protected override void OnInitialized()
@@ -59,6 +69,38 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
 
             return this.componentParameters;
+        }
+
+        /// <summary>Captures the resize handle before native node movement can begin.</summary>
+        /// <param name="args">The browser pointer event delivered by Blazor.</param>
+        private void BeginResize(PointerEventArgs args) => this.ResizePointer.BeginResize(this.Node, args.ToCore());
+
+        /// <summary>Captures keyboard resizing before delegating to the presentation authority.</summary>
+        /// <param name="args">The directional key and precision modifier.</param>
+        private void ResizeWithKeyboard(KeyboardEventArgs args)
+        {
+            if (args.AltKey || args.CtrlKey || args.MetaKey)
+            {
+                return;
+            }
+
+            var step = args.ShiftKey ? 1 : 10;
+
+            switch (args.Key)
+            {
+                case "ArrowLeft":
+                    this.ViewModel.ResizeBy(-step, 0);
+                    break;
+                case "ArrowRight":
+                    this.ViewModel.ResizeBy(step, 0);
+                    break;
+                case "ArrowUp":
+                    this.ViewModel.ResizeBy(0, -step);
+                    break;
+                case "ArrowDown":
+                    this.ViewModel.ResizeBy(0, step);
+                    break;
+            }
         }
     }
 }

@@ -29,6 +29,11 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets whether a gesture or navigation override owns input.</summary>
         bool IsInteracting { get; }
 
+        /// <summary>Routes a resize handle to the active runtime using the native pointer lifecycle.</summary>
+        /// <param name="node">The native node represented by the mounted handle.</param>
+        /// <param name="args">The starting browser pointer event.</param>
+        void BeginResize(DiagramNodeModel node, Blazor.Diagrams.Core.Events.PointerEventArgs args);
+
         /// <summary>Records a focused target for a possible Space tap.</summary>
         /// <param name="args">The key press on the selectable widget.</param>
         /// <param name="target">The tab-owned selection target.</param>
