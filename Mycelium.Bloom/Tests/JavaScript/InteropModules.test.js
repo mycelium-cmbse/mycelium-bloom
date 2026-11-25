@@ -1582,3 +1582,84 @@ for (const scale of [0.5, 0.75, 1.5]) {
         handle.dispose();
     });
 }
+
+for (const scale of [0.5, 1, 1.5]) {
+    test(`diagram drop preserves fractional canvas dimensions at CSS scale ${scale}`, async () => {
+        const { section, canvas, calls, handle } = await createDiagramCapture();
+        section.dataset.canAdd = 'true';
+        canvas.style.width = '333.328px';
+        canvas.style.height = '600.667px';
+        Object.defineProperty(canvas, 'clientWidth', { value: 333 });
+        Object.defineProperty(canvas, 'clientHeight', { value: 601 });
+        canvas.getBoundingClientRect = () => ({ left: 200, top: 100, width: 333.328 * scale, height: 600.667 * scale });
+        const event = new window.Event('drop', { bubbles: true, cancelable: true });
+        for (const [key, value] of Object.entries({
+            dataTransfer: { types: ['application/x-mycelium-element'], getData: () => 'canonical-source' },
+            clientX: 200 + 120.5 * scale, clientY: 100 + 70.25 * scale
+        })) {
+            Object.defineProperty(event, key, { value });
+        }
+        canvas.dispatchEvent(event);
+        assert.equal(calls.length, 1);
+        assert.deepEqual(calls[0].slice(0, 2), ['DropElement', 'canonical-source']);
+        assert.ok(Math.abs(calls[0][2] - 120.5) < 1e-9);
+        assert.ok(Math.abs(calls[0][3] - 70.25) < 1e-9);
+        handle.dispose();
+    });
+}
+
+test("resize handles prevent only directional arrow defaults while preserving Blazor event delivery", async () => {
+    const { canvas, child, handle } = await createDiagramCapture();
+    child.dataset.diagramResize = "node";
+    const delivered = [];
+    canvas.addEventListener("keydown", event => delivered.push(event.key));
+
+    for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
+        for (const shiftKey of [false, true]) {
+            const event = new window.KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true });
+            child.dispatchEvent(event);
+            assert.equal(event.defaultPrevented, true);
+            assert.equal(delivered.at(-1), key);
+        }
+    }
+
+    handle.dispose();
+    const afterDisposal = new window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    child.dispatchEvent(afterDisposal);
+    assert.equal(afterDisposal.defaultPrevented, false);
+});
+
+test("resize filtering preserves native focus navigation, Space and modified shortcuts", async () => {
+    const { child, handle } = await createDiagramCapture();
+    const ordinaryArrow = new window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    child.dispatchEvent(ordinaryArrow);
+    assert.equal(ordinaryArrow.defaultPrevented, false);
+    child.dataset.diagramResize = "node";
+
+    for (const input of [
+        { key: "Tab" }, { key: "Tab", shiftKey: true }, { key: " ", code: "Space" },
+        { key: "Enter" }, { key: "Escape" }, { key: "ArrowLeft", ctrlKey: true },
+        { key: "ArrowRight", altKey: true }, { key: "ArrowUp", metaKey: true }
+    ]) {
+        const event = new window.KeyboardEvent("keydown", { ...input, bubbles: true, cancelable: true });
+        child.dispatchEvent(event);
+        assert.equal(event.defaultPrevented, false, JSON.stringify(input));
+    }
+
+    handle.dispose();
+});
+
+test("resize arrow filtering remains scoped to its originating canvas", async () => {
+    const outer = await createDiagramCapture();
+    const inner = await createDiagramCapture(outer.canvas);
+    inner.child.dataset.diagramResize = "nested-node";
+    inner.handle.dispose();
+    const unowned = new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    inner.child.dispatchEvent(unowned);
+    assert.equal(unowned.defaultPrevented, false);
+    outer.child.dataset.diagramResize = "outer-node";
+    const owned = new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    outer.child.dispatchEvent(owned);
+    assert.equal(owned.defaultPrevented, true);
+    outer.handle.dispose();
+});

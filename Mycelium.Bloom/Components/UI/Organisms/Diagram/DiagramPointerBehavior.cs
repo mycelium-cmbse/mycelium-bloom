@@ -113,6 +113,31 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             diagram.PointerUp += this.PointerUp;
         }
 
+        /// <summary>Routes a resize handle to resizing or the active navigation override without starting node movement.</summary>
+        /// <param name="node">The native node represented by the mounted handle.</param>
+        /// <param name="args">The starting browser pointer event.</param>
+        public void BeginResize(DiagramNodeModel node, PointerEventArgs args)
+        {
+            if (this.disposed || node is null || args is not { IsPrimary: true, Button: 0 or 1 }
+                || this.pointerStart is not null || !this.Diagram.Nodes.Contains(node))
+            {
+                return;
+            }
+
+            if (args.Button == 1 || this.current is not IDiagramResizeTool resize)
+            {
+                this.PointerDown(node, args);
+                return;
+            }
+
+            if (resize.BeginResize(node, args))
+            {
+                this.spaceActivationTarget = null;
+                this.pointerStart = args;
+                this.Changed?.Invoke();
+            }
+        }
+
         /// <summary>Records a focused selection target without activating it on Space keydown.</summary>
         /// <param name="args">The key press captured by the focusable element before it bubbles to the canvas.</param>
         /// <param name="target">The element that can be activated by a Space tap.</param>

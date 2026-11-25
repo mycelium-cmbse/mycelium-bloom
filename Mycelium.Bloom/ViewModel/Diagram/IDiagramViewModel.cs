@@ -46,6 +46,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Gets whether the current tool and editing policy permit element placement.</summary>
         bool CanAddElements { get; }
 
+        /// <summary>Updates permitted occurrence dimensions without changing canonical data.</summary>
+        /// <param name="occurrenceId">The view-local occurrence identity.</param>
+        /// <param name="width">The finite width, constrained to the minimum readable rectangle.</param>
+        /// <param name="height">The finite height, constrained to the minimum readable rectangle.</param>
+        /// <returns>Whether resizing was accepted.</returns>
+        bool ResizeNode(Guid occurrenceId, double width, double height);
+
         /// <summary>Gets the immutable notation projected from canonical model objects.</summary>
         DiagramProjection Projection { get; }
 

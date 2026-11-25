@@ -41,6 +41,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>The view's single subscription to canonical selection.</summary>
         private readonly IDisposable selectionSubscription;
 
+        /// <summary>The tab-owned observation that publishes resize permission to node presentations.</summary>
+        private readonly IDisposable resizePermissionSubscription;
+
         /// <summary>The reactive presentations indexed by graphical node identity.</summary>
         private readonly Dictionary<Guid, DiagramNodeViewModel> nodeStates = new();
 
@@ -132,6 +135,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 .CombineLatest(this.Tools.WhenAnyValue(state => state.Effective), (editable, tool) => editable && tool?.Tool.AllowsElementDrop == true)
                 .ToProperty(this, view => view.CanAddElements);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
+            this.resizePermissionSubscription = this.WhenAnyValue(view => view.CanMoveNodes, view => view.Tools.Active)
+                .Subscribe(_ => this.ApplyResizePermission());
         }
 
         /// <summary>Gets retained reactive state for one graphical node.</summary>
@@ -179,7 +184,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.ApplySelection(this.selection.SelectedElement);
             this.ReleaseRemovedNestedViews(projection);
             this.Projection = projection;
-            this.Tools?.ForProjection(projection);
+
+            if (this.Tools is not null)
+            {
+                this.Tools.ForProjection(projection);
+                this.ApplyResizePermission();
+            }
         }
 
         /// <summary>Selects the supplied represented canonical element.</summary>
@@ -236,6 +246,23 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             return true;
         }
 
+        /// <summary>Updates permitted occurrence dimensions without editing canonical model data.</summary>
+        /// <param name="occurrenceId">The graphical occurrence identity.</param>
+        /// <param name="width">The finite requested width.</param>
+        /// <param name="height">The finite requested height.</param>
+        /// <returns>Whether this live diagram accepted resizing.</returns>
+        public bool ResizeNode(Guid occurrenceId, double width, double height)
+        {
+            if (this.disposed || this.Tools.Effective?.Tool.AllowsResize != true || !double.IsFinite(width) || !double.IsFinite(height)
+                || !this.nodeStates.TryGetValue(occurrenceId, out var node) || !node.CanResize)
+            {
+                return false;
+            }
+
+            node.SetSize(new DiagramSize(Math.Max(width, DiagramLayoutMetrics.MinimumNodeWidth), Math.Max(height, DiagramLayoutMetrics.MinimumNodeHeight)));
+            return true;
+        }
+
         /// <summary>Changes the zoom percentage while preserving pan.</summary>
         /// <param name="percent">The finite requested zoom percentage.</param>
         public void ChangeZoom(double percent)
@@ -279,7 +306,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 Nodes = this.Projection.Nodes.Select(node =>
             {
                 var position = this.nodeStates[node.Occurrence.Id].Position;
-                return node with { Occurrence = node.Occurrence with { X = position.X, Y = position.Y } };
+                var size = this.nodeStates[node.Occurrence.Id].Size;
+                return node with { Occurrence = node.Occurrence with { X = position.X, Y = position.Y, Width = size.Width, Height = size.Height } };
             }).ToImmutableArray()
             };
             var bounds = DiagramBoundsCalculator.Measure(positioned);
@@ -325,6 +353,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             this.disposed = true;
             this.selectionSubscription.Dispose();
+            this.resizePermissionSubscription.Dispose();
+            this.ApplyResizePermission();
             this.Tools.Dispose();
             this.canAddElements.Dispose();
             this.canMoveNodes.Dispose();
@@ -339,6 +369,17 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.selectedTargets = Array.Empty<DiagramElementViewModel>();
             this.nodeStates.Clear();
             this.edgeStates.Clear();
+        }
+
+        /// <summary>Publishes the retained tool's editing permission to every current occurrence.</summary>
+        private void ApplyResizePermission()
+        {
+            var permitted = this.CanMoveNodes && this.Tools.Active?.Tool.AllowsResize == true;
+
+            foreach (var node in this.nodeStates.Values)
+            {
+                node.SetResizePermitted(permitted);
+            }
         }
 
         /// <summary>Updates only previous and current selection decorations, including repeated occurrences.</summary>
@@ -388,6 +429,14 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                     : new DiagramNodeViewModel(node, this);
                 state.Update(node);
                 retained.Add(node.Occurrence.Id, state);
+            }
+
+            foreach (var previous in this.nodeStates.Values)
+            {
+                if (!retained.TryGetValue(previous.Presentation.Occurrence.Id, out var current) || !ReferenceEquals(previous, current))
+                {
+                    previous.SetResizePermitted(false);
+                }
             }
 
             this.nodeStates.Clear();

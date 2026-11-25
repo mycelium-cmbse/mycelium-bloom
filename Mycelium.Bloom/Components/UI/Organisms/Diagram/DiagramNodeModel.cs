@@ -37,7 +37,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             this.ViewModel = owner.GetNodeViewModel(presentation.Occurrence.Id);
             this.Position = new Point(this.ViewModel.Position.X, this.ViewModel.Position.Y);
             this.Locked = !presentation.Occurrence.IsMovable;
-            this.Size = new Size(presentation.Occurrence.Width, presentation.Occurrence.Height);
+            this.Size = new Size(this.ViewModel.Size.Width, this.ViewModel.Size.Height);
             this.ControlledSize = true;
 
             for (var index = 0; index < this.ViewModel.BoundaryFeatures.Length; index++)
@@ -51,12 +51,43 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                     BoundarySide.Bottom => PortAlignment.Bottom,
                     _ => PortAlignment.Right
                 };
-                var offset = feature.Offset;
-                var x = feature.Side switch { BoundarySide.Left => 0, BoundarySide.Right => this.Size.Width, _ => this.Size.Width * offset };
-                var y = feature.Side switch { BoundarySide.Top => 0, BoundarySide.Bottom => this.Size.Height, _ => this.Size.Height * offset };
                 this.AddPort(new DiagramBoundaryPortModel($"{this.Id}-boundary-{index}", this, alignment,
-                    new Point(this.Position.X + x - 6, this.Position.Y + y - 6), new Size(12, 12), boundary));
+                    this.GetBoundaryPosition(feature), new Size(12, 12), boundary));
             }
+        }
+
+        /// <summary>Synchronizes native bounds and boundary anchors with retained occurrence dimensions.</summary>
+        /// <param name="size">The tab-owned model-space dimensions.</param>
+        public void ApplySize(DiagramSize size)
+        {
+            if ((this.Size.Width, this.Size.Height).Equals((size.Width, size.Height)))
+            {
+                return;
+            }
+
+            this.Size = new Size(size.Width, size.Height);
+
+            foreach (var port in this.Ports)
+            {
+                if (port is IDiagramBoundaryPortModel boundary)
+                {
+                    port.Position = this.GetBoundaryPosition(boundary.ViewModel.Presentation);
+                    port.RefreshAll();
+                }
+            }
+
+            this.Refresh();
+            this.RefreshLinks();
+        }
+
+        /// <summary>Locates a boundary symbol relative to the current native rectangle.</summary>
+        /// <param name="feature">The boundary's retained side and fractional offset.</param>
+        /// <returns>The model-space origin of the twelve-pixel boundary symbol.</returns>
+        private Point GetBoundaryPosition(DiagramBoundaryPresentation feature)
+        {
+            var x = feature.Side switch { BoundarySide.Left => 0, BoundarySide.Right => this.Size.Width, _ => this.Size.Width * feature.Offset };
+            var y = feature.Side switch { BoundarySide.Top => 0, BoundarySide.Bottom => this.Size.Height, _ => this.Size.Height * feature.Offset };
+            return new Point(this.Position.X + x - 6, this.Position.Y + y - 6);
         }
     }
 }

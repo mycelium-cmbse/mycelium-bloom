@@ -179,6 +179,7 @@ namespace Mycelium.Bloom.Extensions
                 {
                     AllowsSelection = true,
                     AllowsElementDrop = true,
+                    AllowsResize = true,
                     Tooltip = "Select / Move"
                 });
                 services.AddSingleton(new DiagramToolDefinition(DiagramToolDefaults.Pan, "Pan", "hand")

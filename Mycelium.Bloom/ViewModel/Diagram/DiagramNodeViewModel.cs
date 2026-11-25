@@ -27,11 +27,28 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>The boundary presentations scoped to this occurrence.</summary>
         private ImmutableArray<DiagramBoundaryViewModel> boundaryFeatures = [];
 
+        /// <summary>The latest resize permission supplied by the tab owner.</summary>
+        private bool resizePermitted;
+
+        /// <summary>Gets whether the retained tool and editing policy permit resizing this occurrence.</summary>
+        public bool CanResize
+        {
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        }
+
         /// <summary>Gets the current graphical position independently of canonical model data.</summary>
         public DiagramPoint Position
         {
             get => this.position;
             private set => this.RaiseAndSetIfChanged(ref this.position, value);
+        }
+
+        /// <summary>Gets the current graphical dimensions independently of canonical model data.</summary>
+        public DiagramSize Size
+        {
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
         }
 
         /// <summary>Gets the current notation, including geometry, without changing canonical objects.</summary>
@@ -56,11 +73,31 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         {
             this.Update(presentation);
             this.Position = new DiagramPoint(presentation.Occurrence.X, presentation.Occurrence.Y);
+            this.Size = new DiagramSize(presentation.Occurrence.Width, presentation.Occurrence.Height);
         }
 
         /// <summary>Applies graphical coordinates validated by the tab owner.</summary>
         /// <param name="value">The accepted finite model-space position.</param>
         internal void SetPosition(DiagramPoint value) => this.Position = value;
+
+        /// <summary>Applies graphical dimensions validated by the tab owner.</summary>
+        /// <param name="value">The accepted model-space dimensions.</param>
+        internal void SetSize(DiagramSize value) => this.Size = value;
+
+        /// <summary>Applies relative dimensions through the tab's geometry and permission authority.</summary>
+        /// <param name="dx">The horizontal model-space size change.</param>
+        /// <param name="dy">The vertical model-space size change.</param>
+        /// <returns>Whether this occurrence accepted resizing.</returns>
+        public bool ResizeBy(double dx, double dy) => this.CanResize
+            && this.Owner.ResizeNode(this.Presentation.Occurrence.Id, this.Size.Width + dx, this.Size.Height + dy);
+
+        /// <summary>Applies the owner's permission while preserving this occurrence's resize restriction.</summary>
+        /// <param name="permitted">Whether the tab's retained tool and editing policy allow resizing.</param>
+        internal void SetResizePermitted(bool permitted)
+        {
+            this.resizePermitted = permitted;
+            this.CanResize = permitted && this.Presentation.Occurrence.IsResizable;
+        }
 
         /// <summary>Gets nested state retained by this exact parent occurrence.</summary>
         /// <param name="projection">The child view's immutable notation.</param>
@@ -101,7 +138,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 this.Position = new DiagramPoint(value.Occurrence.X, value.Occurrence.Y);
             }
 
+            if (this.Presentation is { } prior && !(prior.Occurrence.Width, prior.Occurrence.Height).Equals((value.Occurrence.Width, value.Occurrence.Height)))
+            {
+                this.Size = new DiagramSize(value.Occurrence.Width, value.Occurrence.Height);
+            }
+
             this.Presentation = value;
+            this.SetResizePermitted(this.resizePermitted);
         }
     }
 }

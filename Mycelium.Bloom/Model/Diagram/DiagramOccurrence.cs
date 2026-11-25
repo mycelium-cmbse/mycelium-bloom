@@ -22,5 +22,8 @@ namespace Mycelium.Bloom.Model.Diagram
     {
         /// <summary>Gets whether this occurrence permits graphical repositioning.</summary>
         public bool IsMovable { get; init; } = true;
+
+        /// <summary>Gets whether this occurrence permits graphical resizing.</summary>
+        public bool IsResizable { get; init; } = true;
     }
 }

@@ -13,6 +13,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     using System.Collections.Generic;
     using System.Linq;
 
+    using Blazor.Diagrams.Core.Anchors;
     using Blazor.Diagrams.Core.Geometry;
 
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
@@ -34,6 +35,7 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Root.Namespaces;
     using SysML2.NET.Core.POCO.Systems.Connections;
     using SysML2.NET.Core.POCO.Systems.Parts;
+    using SysML2.NET.Core.POCO.Systems.Ports;
 
     [TestFixture]
     public sealed class DiagramDropTestFixture
@@ -205,6 +207,134 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
                 Assert.That(owner.Projection, Is.SameAs(projection));
                 Assert.That(owner.Viewport, Is.SameAs(viewport));
             }
+        }
+
+        [Test]
+        public void VerifyDropRetainsResizedGeometryAndCanonicalBoundaryConnections()
+        {
+            using var selection = new ContextAwareService();
+            var package = new Package();
+            var source = new PartUsage();
+            var target = new PartUsage();
+            var port = new PortUsage();
+            var connector = new ConnectionUsage();
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(package, source);
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(package, target);
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(source, port);
+            BrowserAcceptanceModelTestFactory.Own<OwningMembership>(package, connector);
+
+            foreach (var endpoint in new IFeature[] { port, target })
+            {
+                var end = new Feature { IsEnd = true };
+                BrowserAcceptanceModelTestFactory.Own<EndFeatureMembership>(connector, end);
+                BrowserAcceptanceModelTestFactory.AddRelationship(end, new ReferenceSubsetting { ReferencedFeature = endpoint });
+            }
+
+            var owned = package.OwnedRelationship.ToArray();
+            var projection = DiagramTestFactory.Create([source]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            owner.SetViewport(20, 30, 2);
+            var state = owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id);
+            using var renderer = this.diagrams.CreateRenderer(owner);
+            renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
+            Assert.That(owner.ResizeNode(projection.Nodes[0].Occurrence.Id, 400, 300), Is.True);
+
+            var added = renderer.Pointer.DropElement(target, 340, 190);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(added, Is.True);
+                Assert.That(owner.Projection.Nodes, Has.Length.EqualTo(2));
+                Assert.That(renderer.Diagram.Links, Has.Count.EqualTo(1));
+            }
+
+            var native = (DiagramNodeModel)renderer.Diagram.Nodes[0];
+            var placed = owner.GetNodeViewModel(owner.Projection.Nodes[1].Occurrence.Id);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(native.ViewModel, Is.SameAs(state));
+                Assert.That(native.Size, Is.EqualTo(new Size(400, 300)));
+                Assert.That(native.Ports, Has.Count.EqualTo(1));
+                Assert.That(renderer.Diagram.Links[0].Source, Is.TypeOf<SinglePortAnchor>());
+                Assert.That(placed.Position, Is.EqualTo(new DiagramPoint(160, 80)));
+                Assert.That(placed.CanResize, Is.True);
+            }
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(((SinglePortAnchor)renderer.Diagram.Links[0].Source).Port, Is.SameAs(native.Ports[0]));
+                Assert.That(native.Ports[0].Position, Is.EqualTo(new Point(native.Position.X + 394, native.Position.Y + 144)));
+                Assert.That(((IDiagramBoundaryPortModel)native.Ports[0]).ViewModel.Element, Is.SameAs(port));
+                Assert.That(owner.Projection.Edges[0].Element, Is.SameAs(connector));
+            }
+
+            Assert.That(placed.ResizeBy(20, 10), Is.True);
+            var repeated = renderer.Pointer.DropElement(target, 500, 200);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(repeated, Is.True);
+                Assert.That(owner.Projection.Nodes, Has.Length.EqualTo(3));
+                Assert.That(owner.Projection.Edges, Has.Length.EqualTo(2));
+                Assert.That(placed.Size, Is.EqualTo(new DiagramSize(260, 170)));
+                Assert.That(owner.GetNodeViewModel(projection.Nodes[0].Occurrence.Id), Is.SameAs(state));
+                Assert.That(state.Size, Is.EqualTo(new DiagramSize(400, 300)));
+                Assert.That(owner.Projection.Nodes.Select(node => node.Occurrence.Element), Is.EqualTo(new IElement[] { source, target, target }));
+                Assert.That(owner.Projection.Edges, Has.All.Property("Element").SameAs(connector));
+                Assert.That(package.OwnedRelationship, Is.EqualTo(owned));
+            }
+        }
+
+        [Test]
+        public void VerifyResizeGestureAndTemporaryPanGuardPlacementWithoutChangingRetainedTool()
+        {
+            using var selection = new ContextAwareService();
+            var element = new PartUsage();
+            var projection = DiagramTestFactory.Create([element]);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            owner.SetViewport(0, 0, 1);
+            using var renderer = this.diagrams.CreateRenderer(owner);
+            renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
+            var active = owner.Tools.Active;
+            var node = (DiagramNodeModel)renderer.Diagram.Nodes[0];
+            renderer.Pointer.BeginResize(node, new Blazor.Diagrams.Core.Events.PointerEventArgs(100, 100, 0, 1, false, false, false, 1, 1, 1, 0, 0, 0, "mouse", true));
+
+            var duringResize = renderer.Pointer.DropElement(element, 300, 200);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(renderer.Pointer.IsInteracting, Is.True);
+                Assert.That(duringResize, Is.False);
+                Assert.That(owner.Projection, Is.SameAs(projection));
+            }
+
+            renderer.Pointer.Cancel();
+            renderer.Pointer.KeyChanged(" ", "Space", true);
+
+            var duringPan = renderer.Pointer.DropElement(element, 300, 200);
+            var resized = owner.ResizeNode(projection.Nodes[0].Occurrence.Id, 400, 300);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active, Is.SameAs(active));
+                Assert.That(node.ViewModel.CanResize, Is.True);
+                Assert.That(owner.CanAddElements, Is.False);
+                Assert.That(duringPan, Is.False);
+                Assert.That(resized, Is.False);
+                Assert.That(owner.Projection, Is.SameAs(projection));
+            }
+
+            renderer.Pointer.KeyChanged(" ", "Space", false);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active, Is.SameAs(active));
+                Assert.That(owner.Tools.Effective, Is.SameAs(active));
+                Assert.That(owner.CanAddElements, Is.True);
+            }
+
+            Assert.That(renderer.Pointer.DropElement(element, 300, 200), Is.True);
         }
 
         [Test]
