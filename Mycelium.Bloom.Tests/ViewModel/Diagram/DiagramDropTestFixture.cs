@@ -65,6 +65,148 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             }
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void VerifyPlacementUsesCustomToolCapability(bool allowsElementDrop)
+        {
+            var tool = new DiagramToolDefinition("place-existing", "Place existing element", "mouse-pointer-2") { AllowsElementDrop = allowsElementDrop };
+            var catalogue = DiagramTestServices.CreateCatalogue(tool);
+            var layout = new DiagramToolLayout([new(tool.Id), new(DiagramToolDefaults.Pan)], tool.Id, DiagramToolDefaults.Pan);
+            using var selection = new ContextAwareService { LifecycleState = ProjectLifecycleKind.Open };
+            var projection = new DiagramProjection([], []);
+            using var owner = this.diagrams.CreateViewModel(projection, selection, catalogue, layout);
+            var element = new PartUsage();
+            Assert.That(owner.Tools.Active.Tool, Is.SameAs(tool));
+
+            var added = owner.AddElement(element, 30, 40);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.CanAddElements, Is.EqualTo(allowsElementDrop));
+                Assert.That(added, Is.EqualTo(allowsElementDrop));
+                Assert.That(owner.Projection.Nodes, Has.Length.EqualTo(allowsElementDrop ? 1 : 0));
+            }
+
+            if (allowsElementDrop)
+            {
+                Assert.That(owner.Projection.Nodes[0].Occurrence.Element, Is.SameAs(element));
+            }
+            else
+            {
+                Assert.That(owner.Projection, Is.SameAs(projection));
+            }
+        }
+
+        [Test]
+        public void VerifyTemporaryPanDeniesPlacementAndRestoresCustomToolPermission()
+        {
+            var tool = new DiagramToolDefinition("place-existing", "Place existing element", "mouse-pointer-2") { AllowsElementDrop = true };
+            var catalogue = DiagramTestServices.CreateCatalogue(tool);
+            var layout = new DiagramToolLayout([new(tool.Id), new(DiagramToolDefaults.Pan)], tool.Id, DiagramToolDefaults.Pan);
+            using var selection = new ContextAwareService { LifecycleState = ProjectLifecycleKind.Open };
+            var projection = new DiagramProjection([], []);
+            using var owner = this.diagrams.CreateViewModel(projection, selection, catalogue, layout);
+            var active = owner.Tools.Active;
+            var navigation = owner.Tools.Navigation;
+            var element = new PartUsage();
+            var observed = new List<bool>();
+            using var subscription = owner.WhenAnyValue(view => view.CanAddElements).Subscribe(observed.Add);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(active.Tool, Is.SameAs(tool));
+                Assert.That(navigation, Is.Not.Null);
+            }
+
+            owner.Tools.Temporary = navigation;
+
+            var denied = owner.AddElement(element, 30, 40);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active, Is.SameAs(active));
+                Assert.That(owner.Tools.Effective, Is.SameAs(navigation));
+                Assert.That(owner.CanAddElements, Is.False);
+                Assert.That(denied, Is.False);
+                Assert.That(owner.Projection, Is.SameAs(projection));
+            }
+
+            owner.Tools.Temporary = null;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active, Is.SameAs(active));
+                Assert.That(owner.Tools.Effective, Is.SameAs(active));
+                Assert.That(owner.CanAddElements, Is.True);
+                Assert.That(observed, Is.EqualTo((bool[])[true, false, true]));
+            }
+
+            var added = owner.AddElement(element, 30, 40);
+            Assert.That(owner.Projection.Nodes, Has.Length.EqualTo(1));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(added, Is.True);
+                Assert.That(owner.Projection.Nodes[0].Occurrence.Element, Is.SameAs(element));
+            }
+        }
+
+        [TestCase(ProjectLifecycleKind.Open, true)]
+        [TestCase(ProjectLifecycleKind.Review, false)]
+        [TestCase(ProjectLifecycleKind.Archived, false)]
+        public void VerifyPlacementMutationRejectsEditingProhibitionWithoutChangingActiveTool(ProjectLifecycleKind lifecycle, bool readOnly)
+        {
+            var tool = new DiagramToolDefinition("place-existing", "Place existing element", "mouse-pointer-2")
+            {
+                AllowsElementDrop = true,
+                RequiresEditableDiagram = false
+            };
+            var catalogue = DiagramTestServices.CreateCatalogue(tool);
+            var layout = new DiagramToolLayout([new(tool.Id), new(DiagramToolDefaults.Pan)], tool.Id, DiagramToolDefaults.Pan);
+            using var selection = new ContextAwareService { LifecycleState = ProjectLifecycleKind.Open };
+            var projection = new DiagramProjection([], []);
+            using var owner = this.diagrams.CreateViewModel(projection, selection, catalogue, layout);
+            var active = owner.Tools.Active;
+            var viewport = owner.Viewport;
+            var element = new PartUsage();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(active.Tool, Is.SameAs(tool));
+                Assert.That(owner.CanAddElements, Is.True);
+            }
+
+            owner.IsReadOnly = readOnly;
+            selection.LifecycleState = lifecycle;
+
+            var added = owner.AddElement(element, 30, 40);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active, Is.SameAs(active));
+                Assert.That(owner.Tools.Effective, Is.SameAs(active));
+                Assert.That(owner.CanAddElements, Is.False);
+                Assert.That(added, Is.False);
+                Assert.That(owner.Projection, Is.SameAs(projection));
+                Assert.That(owner.Viewport, Is.SameAs(viewport));
+            }
+
+            owner.Tools.Temporary = owner.Tools.Navigation;
+            owner.Tools.Temporary = null;
+
+            var stillDenied = owner.AddElement(element, 30, 40);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Tools.Active, Is.SameAs(active));
+                Assert.That(owner.Tools.Effective, Is.SameAs(active));
+                Assert.That(owner.CanAddElements, Is.False);
+                Assert.That(stillDenied, Is.False);
+                Assert.That(owner.Projection, Is.SameAs(projection));
+                Assert.That(owner.Viewport, Is.SameAs(viewport));
+            }
+        }
+
         [Test]
         public void VerifyDropConnectsEachExistingOccurrenceWithoutDuplicatingConnectors()
         {
