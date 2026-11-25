@@ -449,7 +449,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             }
         }
 
-        private IDiagramRenderer CreateRenderer(IDiagramViewModel owner)
+        private IDiagramRenderer CreateRenderer(DiagramViewModel owner)
         {
             if (!owner.Viewport.IsInitialized)
             {
