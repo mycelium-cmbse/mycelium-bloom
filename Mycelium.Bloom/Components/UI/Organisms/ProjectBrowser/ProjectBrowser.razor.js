@@ -246,6 +246,14 @@ export function registerTree(root) {
             repair(records.some(record => record.attributeName === "aria-selected"));
         });
     observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-selected", "aria-expanded"] });
+    const onDragStart = event => {
+        const source = event.target.closest?.('[data-element-drag-token]');
+        if (source && root.contains(source) && event.dataTransfer) {
+            event.dataTransfer.setData('application/x-mycelium-element', source.dataset.elementDragToken);
+            event.dataTransfer.effectAllowed = 'copy';
+        }
+    };
+    root.addEventListener('dragstart', onDragStart);
     root.addEventListener("keydown", onKey);
     root.addEventListener("focusin", onFocus);
     root.addEventListener("focusout", onFocusOut);
@@ -257,6 +265,7 @@ export function registerTree(root) {
          */
         () => {
             observer.disconnect();
+            root.removeEventListener('dragstart', onDragStart);
             root.removeEventListener("keydown", onKey);
             root.removeEventListener("focusin", onFocus);
             root.removeEventListener("focusout", onFocusOut);

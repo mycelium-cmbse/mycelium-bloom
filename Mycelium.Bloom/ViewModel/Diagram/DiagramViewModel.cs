@@ -26,6 +26,12 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     /// <summary>Owns presentation and nested-view lifetimes for one tab, borrowing canonical objects and selection.</summary>
     public class DiagramViewModel : BloomBaseViewModel, IDiagramViewModel
     {
+        /// <summary>The registered policy for adding graphical occurrences.</summary>
+        private readonly IDiagramElementProjector elementProjector;
+
+        /// <summary>Derives placement availability from editing permission and the effective tool.</summary>
+        private readonly ObservableAsPropertyHelper<bool> canAddElements;
+
         /// <summary>The circuit-owned selection authority.</summary>
         private readonly IElementSelectionService selection;
 
@@ -81,6 +87,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <summary>Gets whether the live diagram permits graphical node movement.</summary>
         public bool CanMoveNodes => !this.disposed && this.canMoveNodes.Value;
 
+        /// <summary>Gets whether this live diagram accepts browser element placement.</summary>
+        public bool CanAddElements => !this.disposed && this.canAddElements.Value;
+
         /// <summary>Gets the current immutable graphical projection.</summary>
         public DiagramProjection Projection
         {
@@ -101,15 +110,18 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         /// <param name="createNestedView">The registered factory for caller-owned nested views.</param>
         /// <param name="context">The circuit-owned lifecycle authority.</param>
         /// <param name="createTools">The registered factory for tab-owned tool state.</param>
+        /// <param name="elementProjector">The registered occurrence projection policy.</param>
         public DiagramViewModel(DiagramProjection projection, IElementSelectionService selection,
             Func<DiagramProjection, IDiagramViewModel> createNestedView, IContextAwareService context,
-            Func<IObservable<bool>, IDiagramToolState> createTools)
+            Func<IObservable<bool>, IDiagramToolState> createTools, IDiagramElementProjector elementProjector)
         {
             ArgumentNullException.ThrowIfNull(projection);
             ArgumentNullException.ThrowIfNull(selection);
             ArgumentNullException.ThrowIfNull(createNestedView);
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(createTools);
+            ArgumentNullException.ThrowIfNull(elementProjector);
+            this.elementProjector = elementProjector;
             this.selection = selection;
             this.createNestedView = createNestedView;
             this.UpdateProjection(projection);
@@ -119,6 +131,9 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 .ToProperty(this, value => value.CanMoveNodes);
             this.Tools = createTools(this.WhenAnyValue(view => view.CanMoveNodes));
             this.Tools.ForProjection(projection);
+            this.canAddElements = this.WhenAnyValue(view => view.CanMoveNodes)
+                .CombineLatest(this.Tools.WhenAnyValue(state => state.Effective), (editable, tool) => editable && tool?.Tool.AllowsElementDrop == true)
+                .ToProperty(this, view => view.CanAddElements);
             this.selectionSubscription = this.selection.WhenAnyValue(service => service.SelectedElement).Subscribe(this.ApplySelection);
             this.resizePermissionSubscription = this.WhenAnyValue(view => view.CanMoveNodes, view => view.Tools.Active)
                 .Subscribe(_ => this.ApplyResizePermission());
@@ -203,6 +218,31 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             }
 
             node.SetPosition(new DiagramPoint(x, y));
+            return true;
+        }
+
+        /// <summary>Adds graphical presentation while preserving selection, viewport and canonical objects.</summary>
+        /// <param name="element">The canonical object borrowed from the browser.</param>
+        /// <param name="x">The finite horizontal model-space position.</param>
+        /// <param name="y">The finite vertical model-space position.</param>
+        /// <returns>Whether this live diagram accepted the occurrence.</returns>
+        public bool AddElement(IElement element, double x, double y)
+        {
+            if (!this.CanAddElements || element is null || !double.IsFinite(x) || !double.IsFinite(y))
+            {
+                return false;
+            }
+
+            var projection = this.elementProjector.AddElement(this.Projection, element, new DiagramPoint(x, y));
+
+            if (projection is null)
+            {
+                return false;
+            }
+
+            DiagramProjectionValidator.Validate(projection);
+            this.SetViewport(this.Viewport.PanX, this.Viewport.PanY, this.Viewport.Zoom);
+            this.UpdateProjection(projection);
             return true;
         }
 
@@ -316,6 +356,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             this.resizePermissionSubscription.Dispose();
             this.ApplyResizePermission();
             this.Tools.Dispose();
+            this.canAddElements.Dispose();
             this.canMoveNodes.Dispose();
 
             foreach (var nested in this.nestedViews.Values)

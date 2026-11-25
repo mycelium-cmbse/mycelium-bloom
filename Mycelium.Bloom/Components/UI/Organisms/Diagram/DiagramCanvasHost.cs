@@ -9,7 +9,10 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
+    using Microsoft.AspNetCore.Components;
     using Microsoft.JSInterop;
+
+    using Mycelium.Bloom.Core.Presentation;
 
     using NativeDiagramCanvas = Blazor.Diagrams.Components.DiagramCanvas;
 
@@ -34,6 +37,29 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 
         /// <summary>The browser listener lifetime owned by this mount.</summary>
         private IJSObjectReference interactionHandle;
+
+        /// <summary>The interop reference owned by this mounted canvas.</summary>
+        private DotNetObjectReference<DiagramCanvasHost> interactionReference;
+
+        /// <summary>Gets or sets the workspace's mounted canonical source bridge.</summary>
+        [CascadingParameter]
+        public IElementDragRegistry DragRegistry { get; set; }
+
+        /// <summary>Gets or sets the interaction dispatcher borrowed from this mount.</summary>
+        [CascadingParameter]
+        public IDiagramPointerBehavior Interaction { get; set; }
+
+        /// <summary>Captures a browser drop and delegates placement through the native viewport.</summary>
+        /// <param name="token">The opaque mounted browser source identity.</param>
+        /// <param name="x">The horizontal canvas-local coordinate.</param>
+        /// <param name="y">The vertical canvas-local coordinate.</param>
+        /// <returns>Whether a live canonical source and diagram accepted the drop.</returns>
+        [JSInvokable]
+        public bool DropElement(string token, double x, double y)
+        {
+            return !this.disposed && this.DragRegistry?.Resolve(token) is { } element && this.Interaction is not null
+                && this.Interaction.DropElement(element, x, y);
+        }
 
         /// <summary>Tracks the library's initial bounds query and observer registration.</summary>
         /// <param name="firstRender">Whether this is the initial interactive render.</param>
@@ -104,7 +130,8 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             try
             {
                 this.interactionModule = await this.JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
-                this.interactionHandle = await this.interactionModule.InvokeAsync<IJSObjectReference>("attachDiagramPointerCapture", this.elementReference);
+                this.interactionReference = DotNetObjectReference.Create(this);
+                this.interactionHandle = await this.interactionModule.InvokeAsync<IJSObjectReference>("attachDiagramPointerCapture", this.elementReference, this.interactionReference);
             }
             catch (JSDisconnectedException)
             {
@@ -143,6 +170,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 }
                 finally
                 {
+                    this.interactionReference?.Dispose();
                     await base.DisposeAsync();
                 }
             }

@@ -22,7 +22,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Systems.DefinitionAndUsage;
 
     /// <summary>Shares canonical node, connector, relationship and annotation projection between diagram kinds.</summary>
-    public abstract class DiagramProjector
+    public abstract class DiagramProjector : IDiagramElementProjector
     {
         /// <summary>The registered node policies in deterministic fallback order.</summary>
         private readonly IDiagramNodeFactory[] factories;
@@ -81,7 +81,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             foreach (var occurrence in nodes.Select(node => node.Occurrence))
             {
-                lookup.Add(occurrence.Element, occurrence.Id);
+                lookup.TryAdd(occurrence.Element, occurrence.Id);
             }
 
             foreach (var shell in nodes.OfType<DiagramShellPresentation>())
@@ -274,6 +274,126 @@ namespace Mycelium.Bloom.ViewModel.Diagram
         private static DiagramEndLabel EndLabel(IFeature end)
         {
             return new DiagramEndLabel(end.DeclaredName, ElementPresentation.GetMultiplicity(end), end.IsOrdered ? "{ordered}" : null);
+        }
+
+        /// <summary>Adds graphical notation using the existing SDK-type policies and canonical relationship projection.</summary>
+        /// <param name="projection">The retained immutable slice.</param>
+        /// <param name="element">The canonical object borrowed from the Browser.</param>
+        /// <param name="position">The finite model-space position.</param>
+        /// <returns>The extended projection, or null for unsupported elements or a full view.</returns>
+        public virtual DiagramProjection AddElement(DiagramProjection projection, IElement element, DiagramPoint position)
+        {
+            if (element is null || element is IRelationship and not IDefinition || element is IConnector
+                || !double.IsFinite(position.X) || !double.IsFinite(position.Y) || projection.Nodes.Length >= this.Layout.MaximumElements)
+            {
+                return null;
+            }
+
+            var node = this.Node(element);
+            node = node with { Occurrence = node.Occurrence with { X = position.X, Y = position.Y } };
+            var nodes = projection.Nodes.Add(node);
+            var source = this.RelationshipSources(projection, nodes);
+            var omitted = projection.HasOmittedContent;
+            var edges = projection.Edges.ToBuilder();
+
+            foreach (var existingNode in projection.Nodes)
+            {
+                var candidates = projection.Nodes.Remove(existingNode).Insert(0, existingNode).Insert(0, node);
+                var projected = this.ProjectEdges(source, candidates, ref omitted);
+
+                foreach (var edge in projected)
+                {
+                    if ((edge.Source == node.Occurrence.Id || edge.Target == node.Occurrence.Id)
+                        && !edges.Any(existing => ReferenceEquals(existing.Element, edge.Element) && existing.Source == edge.Source && existing.Target == edge.Target))
+                    {
+                        edges.Add(edge);
+                    }
+                }
+            }
+
+            return projection with { Nodes = nodes, Edges = edges.ToImmutable(), HasOmittedContent = omitted };
+        }
+
+        /// <summary>Finds supported existing relationships within the represented elements' canonical ownership graphs.</summary>
+        /// <param name="projection">The retained canonical relationship references.</param>
+        /// <param name="nodes">The current graphical occurrences.</param>
+        /// <returns>The reference-distinct source slice for existing relationship policies.</returns>
+        private IElement[] RelationshipSources(DiagramProjection projection, ImmutableArray<DiagramNodePresentation> nodes)
+        {
+            var source = new HashSet<IElement>(projection.Edges.Select(edge => edge.Element), ReferenceEqualityComparer.Instance);
+            var represented = new HashSet<IElement>(nodes.Select(node => node.Occurrence.Element)
+                .Concat(nodes.OfType<DiagramShellPresentation>().SelectMany(node => node.Boundary.Select(boundary => boundary.Element))), ReferenceEqualityComparer.Instance);
+            source.UnionWith(nodes.Select(node => node.Occurrence.Element));
+
+            foreach (var element in OwnedElements(nodes.Select(node => node.Occurrence.Element)))
+            {
+                if (element is IConnector connector && this.HasRepresentedEndpoints(connector, represented))
+                {
+                    source.Add(connector);
+                }
+
+                foreach (var relationship in element.OwnedRelationship.Where(relationship => this.HasRepresentedEndpoints(relationship, represented)))
+                {
+                    source.Add(relationship);
+                }
+            }
+
+            return source.ToArray();
+        }
+
+        /// <summary>Checks registered non-membership notation without interpreting unsupported relationship semantics.</summary>
+        /// <param name="relationship">The existing canonical relationship.</param>
+        /// <param name="represented">The canonical nodes and boundary features available as graphical endpoints.</param>
+        /// <returns>Whether the existing relationship connects represented elements.</returns>
+        private bool HasRepresentedEndpoints(IRelationship relationship, HashSet<IElement> represented)
+        {
+            if (relationship is IMembership || this.GetEdgeNotation(relationship) is null)
+            {
+                return false;
+            }
+
+            var endpoints = relationship is IConnector connector ? connector.relatedFeature.Cast<IElement>().ToArray()
+                : relationship.Source.Concat(relationship.Target).ToArray();
+            return endpoints.Length > 1 && endpoints.All(represented.Contains);
+        }
+
+        /// <summary>Visits each available owned element once without following relationship endpoints or imports.</summary>
+        /// <param name="elements">The canonical elements whose ownership roots define the available graph.</param>
+        /// <returns>The reference-distinct canonical ownership closure.</returns>
+        private static IEnumerable<IElement> OwnedElements(IEnumerable<IElement> elements)
+        {
+            var pending = new Stack<IElement>(elements.Select(OwnershipRoot).Distinct<IElement>(ReferenceEqualityComparer.Instance));
+            var visited = new HashSet<IElement>(ReferenceEqualityComparer.Instance);
+
+            while (pending.TryPop(out var element))
+            {
+                if (!visited.Add(element))
+                {
+                    continue;
+                }
+
+                yield return element;
+
+                foreach (var child in element.ownedElement)
+                {
+                    pending.Push(child);
+                }
+            }
+        }
+
+        /// <summary>Finds an element's available ownership root using canonical references.</summary>
+        /// <param name="element">The represented canonical element.</param>
+        /// <returns>The highest available owner, bounded by repeated canonical references.</returns>
+        private static IElement OwnershipRoot(IElement element)
+        {
+            var visited = new HashSet<IElement>(ReferenceEqualityComparer.Instance) { element };
+
+            while (element.owner is { } owner && visited.Add(owner))
+            {
+                element = owner;
+            }
+
+            return element;
         }
 
         /// <summary>Projects generic slots for one canonical definition, usage, package or annotation.</summary>

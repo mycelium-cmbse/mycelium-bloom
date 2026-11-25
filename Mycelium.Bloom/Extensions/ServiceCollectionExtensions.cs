@@ -154,6 +154,8 @@ namespace Mycelium.Bloom.Extensions
                 services.TryAddEnumerable(ServiceDescriptor.Singleton<IDiagramNodeFactory, ShellDiagramNodeFactory>());
                 services.TryAddSingleton<IDiagramLayout, GridDiagramLayout>();
 
+                services.TryAddScoped<Mycelium.Bloom.Core.Presentation.IElementDragRegistry, Mycelium.Bloom.Core.Presentation.ElementDragRegistry>();
+
                 var defaultEdgeFactories = DiagramEdgeFactories.CreateDefault();
 
                 foreach (var factory in defaultEdgeFactories)
@@ -165,6 +167,7 @@ namespace Mycelium.Bloom.Extensions
                     serviceProvider.GetServices<IDiagramNodeFactory>(),
                     serviceProvider.GetServices<IDiagramEdgeFactory>().OrderBy(factory => defaultEdgeFactories.Contains(factory, ReferenceEqualityComparer.Instance)),
                     serviceProvider.GetRequiredService<IDiagramLayout>()));
+                services.TryAddScoped<IDiagramElementProjector>(provider => provider.GetRequiredService<IGeneralViewProjector>());
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramShellPresentation), typeof(DiagramShellNode)));
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramPackagePresentation), typeof(DiagramPackageNode)));
                 services.AddSingleton(new DiagramNodeComponentRegistration(typeof(DiagramCommentPresentation), typeof(DiagramCommentNode)));
@@ -175,6 +178,7 @@ namespace Mycelium.Bloom.Extensions
                 services.AddSingleton(new DiagramToolDefinition(DiagramToolDefaults.Move, "Move", "mouse-pointer-2")
                 {
                     AllowsSelection = true,
+                    AllowsElementDrop = true,
                     AllowsResize = true,
                     Tooltip = "Select / Move"
                 });

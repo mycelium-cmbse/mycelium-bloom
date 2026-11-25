@@ -78,15 +78,59 @@ export async function ensureDiagramAssets() {
 }
 
 /**
- * Attaches native pointer capture and resize-arrow default filtering to one canvas.
+ * Attaches native pointer capture, element drops and resize-arrow default filtering to one canvas.
  * @param {HTMLElement} canvas The mounted native canvas.
+ * @param {object} reference The mount-owned .NET drop receiver.
  * @returns {object} The browser-owned capture and listener lifetime.
  */
-export function attachDiagramPointerCapture(canvas) {
+export function attachDiagramPointerCapture(canvas, reference) {
     const view = canvas.ownerDocument.defaultView;
     const listeners = new view.AbortController();
     const options = { capture: true, signal: listeners.signal };
     let capture;
+
+    const elementType = 'application/x-mycelium-element';
+    const acceptsElement = event => event.target.closest('.diagram-canvas') === canvas
+        && canvas.closest('.general-diagram')?.dataset.canAdd === 'true'
+        && event.dataTransfer?.types.includes(elementType);
+    canvas.addEventListener('dragover', event => {
+        if (acceptsElement(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+        }
+    }, options);
+    canvas.addEventListener('drop', async event => {
+        if (!acceptsElement(event)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        const bounds = canvas.getBoundingClientRect();
+        const style = view.getComputedStyle(canvas);
+        const width = Number.parseFloat(style.width) || canvas.clientWidth;
+        const height = Number.parseFloat(style.height) || canvas.clientHeight;
+        const scaleX = width > 0 && bounds.width > 0 ? width / bounds.width : 1;
+        const scaleY = height > 0 && bounds.height > 0 ? height / bounds.height : 1;
+        try {
+            await reference.invokeMethodAsync('DropElement', event.dataTransfer.getData(elementType),
+                (event.clientX - bounds.left) * scaleX, (event.clientY - bounds.top) * scaleY);
+        } catch (error) {
+            const message = error?.message ?? '';
+            const receiverDisposed = /^(?:System\.ArgumentException: )?There is no tracked object with id '[^']+'\. Perhaps the DotNetObjectReference instance was already disposed\./.test(message);
+            const disconnected = [
+                'The circuit associated with this dispatcher is no longer available.',
+                "Cannot send data if the connection is not in the 'Connected' State.",
+                'Invocation canceled due to the underlying connection being closed.'
+            ].includes(message);
+
+            // Disposal only excuses known interop teardown; projection failures must remain visible.
+            if (error?.name !== 'AbortError' && !(listeners.signal.aborted && (receiverDisposed || disconnected))) {
+                view.reportError(error);
+            }
+        }
+    }, options);
 
     canvas.addEventListener('keydown', event => {
         if (event.target.closest('.diagram-canvas') === canvas && event.target.closest('[data-diagram-resize]')

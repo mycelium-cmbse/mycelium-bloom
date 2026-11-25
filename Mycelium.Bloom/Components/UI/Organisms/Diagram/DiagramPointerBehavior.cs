@@ -72,6 +72,17 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets whether a gesture or temporary tool owns input.</summary>
         public bool IsInteracting => this.pointerStart is not null || this.tools.Temporary is not null;
 
+        /// <summary>Converts canvas-local coordinates through the native viewport before placement.</summary>
+        /// <param name="element">The canonical browser element.</param>
+        /// <param name="x">The horizontal canvas-local coordinate.</param>
+        /// <param name="y">The vertical canvas-local coordinate.</param>
+        /// <returns>Whether this live mount and its tab accepted placement.</returns>
+        public bool DropElement(SysML2.NET.Core.POCO.Root.Elements.IElement element, double x, double y)
+        {
+            return !this.disposed && !this.IsInteracting && this.context.Owner.AddElement(element,
+                (x - this.Diagram.Pan.X) / this.Diagram.Zoom, (y - this.Diagram.Pan.Y) / this.Diagram.Zoom);
+        }
+
         /// <summary>Installs routing ahead of the native movable behavior.</summary>
         /// <param name="diagram">The mounted native graph.</param>
         /// <param name="owner">The tab-owned presentation authority.</param>

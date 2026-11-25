@@ -17,6 +17,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
 
     using Moq;
 
+    using Mycelium.Bloom.Core.Presentation;
     using Mycelium.Bloom.Tests.Common;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
@@ -38,6 +39,29 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.ProjectBrowser
     public sealed class ProjectBrowserNodeTestFixture : BunitContext
     {
         private static readonly string[] ExpectedVisibleFilterPathTitles = ["Root", "Branch", "Needle"];
+
+        [Test]
+        public async Task VerifyMountedDragSourceReplacementAndDisposalReleaseCanonicalReferences()
+        {
+            var registry = new ElementDragRegistry();
+            var first = new PartUsage { Id = Guid.NewGuid(), DeclaredName = "motor" };
+            var replacement = new PartUsage { Id = first.Id, DeclaredName = "other model" };
+            var firstNode = new ProjectBrowserNodeViewModel("row", "motor", new ProjectBrowserNodeMetadata("motor", null, first), []);
+            var secondNode = new ProjectBrowserNodeViewModel("row", "other model", new ProjectBrowserNodeMetadata("other", null, replacement), []);
+            var component = this.Render<ProjectBrowserNodeComponent>(parameters => parameters.AddCascadingValue<IElementDragRegistry>(registry).Add(value => value.ViewModel, firstNode));
+            var token = component.Find("[data-element-drag-token]").GetAttribute("data-element-drag-token");
+            Assert.That(registry.Resolve(token), Is.SameAs(first));
+
+            component.Render(parameters => parameters.Add(value => value.ViewModel, secondNode));
+            var replacementToken = component.Find("[data-element-drag-token]").GetAttribute("data-element-drag-token");
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(registry.Resolve(token), Is.Null);
+                Assert.That(registry.Resolve(replacementToken), Is.SameAs(replacement));
+            }
+            await this.DisposeAsync();
+            Assert.That(registry.Resolve(replacementToken), Is.Null);
+        }
 
         [Test]
         public void VerifyRecordedVerdictRendersAsAnAccessibleBadge()

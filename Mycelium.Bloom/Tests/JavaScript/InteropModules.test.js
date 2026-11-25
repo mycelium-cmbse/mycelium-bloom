@@ -1327,13 +1327,16 @@ test("diagram modules do not load native styles before a canvas requests them", 
     assert.equal(document.querySelectorAll("script").length, 0);
 });
 
-async function createDiagramCapture(parent = document.body) {
+async function createDiagramCapture(parent = document.body, invokeMethod = () => Promise.resolve()) {
     const { attachDiagramPointerCapture } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
     const canvas = document.createElement("div");
     canvas.className = "diagram-canvas";
     canvas.tabIndex = -1;
     canvas.innerHTML = "<button>Node</button>";
-    parent.append(canvas);
+    const section = document.createElement('section');
+    section.className = 'general-diagram';
+    section.append(canvas);
+    parent.append(section);
     const child = canvas.querySelector("button");
     const captures = new Map();
     for (const target of [canvas, child]) {
@@ -1341,7 +1344,8 @@ async function createDiagramCapture(parent = document.body) {
         target.hasPointerCapture = id => captures.get(id) === target;
         target.releasePointerCapture = id => captures.delete(id);
     }
-    const handle = attachDiagramPointerCapture(canvas);
+    const calls = [];
+    const handle = attachDiagramPointerCapture(canvas, { invokeMethodAsync: (...args) => { calls.push(args); return invokeMethod(...args); } });
     const pointer = (type, target = canvas, overrides = {}) => {
         const event = new window.Event(type, { bubbles: true, cancelable: true });
         for (const [key, value] of Object.entries({ pointerId: 1, button: 0, isPrimary: true, ...overrides })) {
@@ -1350,7 +1354,7 @@ async function createDiagramCapture(parent = document.body) {
         target.dispatchEvent(event);
         return event;
     };
-    return { canvas, child, captures, handle, pointer };
+    return { section, canvas, child, captures, handle, pointer, calls };
 }
 
 test("diagram captures the native hit target and allows normal activation", async () => {
@@ -1406,6 +1410,203 @@ test("nested native capture is attached only to the originating canvas", async (
     inner.handle.dispose();
     assert.equal(inner.captures.size, 0);
 });
+
+test("Browser drag publishes only the opaque mounted canonical source token and detaches on disposal", () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<div role="treeitem"><div class="mb-project-browser-node__line"><button class="mb-project-browser-node__row" draggable="true" data-element-drag-token="source-token"><span>Name</span></button></div></div>';
+    document.body.append(root);
+    registerTree(root);
+    const payload = new Map();
+    const transfer = { setData: (key, value) => payload.set(key, value), effectAllowed: 'none' };
+    const drag = () => {
+        const event = new window.Event('dragstart', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'dataTransfer', { value: transfer });
+        root.querySelector('span').dispatchEvent(event);
+    };
+    drag();
+    assert.deepEqual([...payload], [['application/x-mycelium-element', 'source-token']]);
+    assert.equal(transfer.effectAllowed, 'copy');
+    disposeTree(root);
+    payload.clear();
+    drag();
+    assert.equal(payload.size, 0);
+});
+
+test("diagram drop uses the local canvas origin and preserves its nested pointer boundary", async () => {
+    const outer = await createDiagramCapture();
+    const inner = await createDiagramCapture();
+    outer.canvas.append(inner.section);
+    outer.section.dataset.canAdd = 'true';
+    inner.section.dataset.canAdd = 'true';
+    inner.canvas.getBoundingClientRect = () => ({ left: 200, top: 100 });
+    const dataTransfer = { types: ['application/x-mycelium-element'], getData: () => 'canonical-source', dropEffect: 'none' };
+    const event = new window.Event('drop', { bubbles: true, cancelable: true });
+    for (const [key, value] of Object.entries({ dataTransfer, clientX: 520, clientY: 260 })) {
+        Object.defineProperty(event, key, { value });
+    }
+    inner.canvas.querySelector('button').dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+    assert.deepEqual(inner.calls, [['DropElement', 'canonical-source', 320, 160]]);
+    assert.deepEqual(outer.calls, []);
+    inner.handle.dispose();
+    outer.handle.dispose();
+});
+
+test("diagram drop refuses read-only and unrelated payloads and releases listeners on remount", async () => {
+    const { section, canvas, calls, handle } = await createDiagramCapture();
+    const drop = type => {
+        const event = new window.Event('drop', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'dataTransfer', { value: { types: [type], getData: () => 'source' } });
+        canvas.dispatchEvent(event);
+        return event;
+    };
+    assert.equal(drop('application/x-mycelium-element').defaultPrevented, false);
+    section.dataset.canAdd = 'true';
+    assert.equal(drop('text/plain').defaultPrevented, false);
+    handle.dispose();
+    assert.equal(drop('application/x-mycelium-element').defaultPrevented, false);
+    assert.deepEqual(calls, []);
+});
+
+async function createPendingDiagramDrop(context) {
+    const pending = Promise.withResolvers();
+    const diagram = await createDiagramCapture(document.body, () => pending.promise);
+    diagram.section.dataset.canAdd = 'true';
+    const view = diagram.canvas.ownerDocument.defaultView;
+    const reported = [];
+    const unhandled = [];
+    view.reportError = error => reported.push(error);
+    const onUnhandled = error => unhandled.push(error);
+    process.on('unhandledRejection', onUnhandled);
+    view.addEventListener('unhandledrejection', onUnhandled);
+    context.after(() => {
+        diagram.handle.dispose();
+        process.off('unhandledRejection', onUnhandled);
+        view.removeEventListener('unhandledrejection', onUnhandled);
+    });
+    const drop = () => {
+        const event = new window.Event('drop', { bubbles: true, cancelable: true });
+        for (const [key, value] of Object.entries({
+            dataTransfer: { types: ['application/x-mycelium-element'], getData: () => 'canonical-source' },
+            clientX: 320, clientY: 160
+        })) {
+            Object.defineProperty(event, key, { value });
+        }
+        diagram.canvas.dispatchEvent(event);
+        return event;
+    };
+    return { ...diagram, pending, reported, unhandled, drop };
+}
+
+test("diagram drop awaits a successful receiver without reporting an error", async context => {
+    const { pending, reported, unhandled, drop, calls } = await createPendingDiagramDrop(context);
+    assert.equal(drop().defaultPrevented, true);
+    assert.deepEqual(calls, [['DropElement', 'canonical-source', 320, 160]]);
+    pending.resolve(true);
+    await new Promise(setImmediate);
+    assert.deepEqual(reported, []);
+    assert.deepEqual(unhandled, []);
+});
+
+for (const disposed of [false, true]) {
+    test(`diagram drop reports an unexpected receiver failure with disposed=${disposed}`, async context => {
+        const { pending, reported, unhandled, drop, calls, handle } = await createPendingDiagramDrop(context);
+        drop();
+        if (disposed) {
+            handle.dispose();
+        }
+        const failure = new Error('Diagram projection failed.');
+        pending.reject(failure);
+        await new Promise(setImmediate);
+        assert.deepEqual(reported, [failure]);
+        assert.deepEqual(unhandled, []);
+        handle.dispose();
+        assert.equal(drop().defaultPrevented, false);
+        assert.equal(calls.length, 1);
+    });
+
+    test(`diagram drop handles native cancellation with disposed=${disposed}`, async context => {
+        const { pending, reported, unhandled, drop, handle } = await createPendingDiagramDrop(context);
+        drop();
+        if (disposed) {
+            handle.dispose();
+        }
+        pending.reject(new window.DOMException('The operation was aborted.', 'AbortError'));
+        await new Promise(setImmediate);
+        assert.deepEqual(reported, []);
+        assert.deepEqual(unhandled, []);
+    });
+}
+
+for (const message of [
+    "System.ArgumentException: There is no tracked object with id '42'. Perhaps the DotNetObjectReference instance was already disposed. (Parameter 'dotNetObjectId')",
+    'The circuit associated with this dispatcher is no longer available.',
+    "Cannot send data if the connection is not in the 'Connected' State.",
+    'Invocation canceled due to the underlying connection being closed.'
+]) {
+    for (const disposed of [false, true]) {
+        test(`diagram drop handles interop teardown '${message}' with disposed=${disposed}`, async context => {
+            const { pending, reported, unhandled, drop, calls, handle } = await createPendingDiagramDrop(context);
+            drop();
+            if (disposed) {
+                handle.dispose();
+            }
+            const failure = new Error(message);
+            pending.reject(failure);
+            await new Promise(setImmediate);
+            assert.deepEqual(reported, disposed ? [] : [failure]);
+            assert.deepEqual(unhandled, []);
+            handle.dispose();
+            assert.equal(drop().defaultPrevented, false);
+            assert.equal(calls.length, 1);
+        });
+    }
+}
+
+for (const scale of [0.5, 0.75, 1.5]) {
+    test(`diagram drop normalizes canvas CSS scale ${scale} before native viewport conversion`, async () => {
+        const { section, canvas, calls, handle } = await createDiagramCapture();
+        section.dataset.canAdd = 'true';
+        Object.defineProperty(canvas, 'clientWidth', { value: 800 });
+        Object.defineProperty(canvas, 'clientHeight', { value: 600 });
+        canvas.getBoundingClientRect = () => ({ left: 200, top: 100, width: 800 * scale, height: 600 * scale });
+        const event = new window.Event('drop', { bubbles: true, cancelable: true });
+        for (const [key, value] of Object.entries({
+            dataTransfer: { types: ['application/x-mycelium-element'], getData: () => 'canonical-source' },
+            clientX: 200 + 320 * scale, clientY: 100 + 160 * scale
+        })) {
+            Object.defineProperty(event, key, { value });
+        }
+        canvas.dispatchEvent(event);
+        assert.deepEqual(calls, [['DropElement', 'canonical-source', 320, 160]]);
+        handle.dispose();
+    });
+}
+
+for (const scale of [0.5, 1, 1.5]) {
+    test(`diagram drop preserves fractional canvas dimensions at CSS scale ${scale}`, async () => {
+        const { section, canvas, calls, handle } = await createDiagramCapture();
+        section.dataset.canAdd = 'true';
+        canvas.style.width = '333.328px';
+        canvas.style.height = '600.667px';
+        Object.defineProperty(canvas, 'clientWidth', { value: 333 });
+        Object.defineProperty(canvas, 'clientHeight', { value: 601 });
+        canvas.getBoundingClientRect = () => ({ left: 200, top: 100, width: 333.328 * scale, height: 600.667 * scale });
+        const event = new window.Event('drop', { bubbles: true, cancelable: true });
+        for (const [key, value] of Object.entries({
+            dataTransfer: { types: ['application/x-mycelium-element'], getData: () => 'canonical-source' },
+            clientX: 200 + 120.5 * scale, clientY: 100 + 70.25 * scale
+        })) {
+            Object.defineProperty(event, key, { value });
+        }
+        canvas.dispatchEvent(event);
+        assert.equal(calls.length, 1);
+        assert.deepEqual(calls[0].slice(0, 2), ['DropElement', 'canonical-source']);
+        assert.ok(Math.abs(calls[0][2] - 120.5) < 1e-9);
+        assert.ok(Math.abs(calls[0][3] - 70.25) < 1e-9);
+        handle.dispose();
+    });
+}
 
 test("resize handles prevent only directional arrow defaults while preserving Blazor event delivery", async () => {
     const { canvas, child, handle } = await createDiagramCapture();

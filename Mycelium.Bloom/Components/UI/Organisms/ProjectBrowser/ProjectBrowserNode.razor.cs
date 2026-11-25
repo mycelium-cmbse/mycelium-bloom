@@ -15,6 +15,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
 
     using Mycelium.Bloom.Components.Common;
     using Mycelium.Bloom.Components.UI.Common;
+    using Mycelium.Bloom.Core.Presentation;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     /// <summary>
@@ -22,6 +23,19 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
     /// </summary>
     public partial class ProjectBrowserNode : BloomReactiveComponentBase<ProjectBrowserNodeViewModel>
     {
+        /// <summary>The mounted DOM identity, independent of SDK and Browser row identities.</summary>
+        private Guid dragToken;
+
+        /// <summary>The registry currently borrowing this mounted row's canonical object.</summary>
+        private IElementDragRegistry registeredDragRegistry;
+
+        /// <summary>The exact canonical source currently registered by this mount.</summary>
+        private SysML2.NET.Core.POCO.Root.Elements.IElement registeredDragElement;
+
+        /// <summary>Gets or sets the workspace's optional drag source bridge.</summary>
+        [CascadingParameter]
+        public IElementDragRegistry DragRegistry { get; set; }
+
         /// <summary>
         /// Describes the effective node state shared by rendering and accessible labels.
         /// </summary>
@@ -254,6 +268,40 @@ namespace Mycelium.Bloom.Components.UI.Organisms.ProjectBrowser
             return this.RequiredViewModel.IsGroup ? null : ReferenceEquals(this.RequiredViewModel, this.SelectedNode)
                 .ToString()
                 .ToLowerInvariant();
+        }
+
+        /// <summary>Registers canonical sources only while their Browser row is mounted.</summary>
+        protected override void OnParametersSet()
+        {
+            base.OnParametersSet();
+            var element = this.ViewModel?.SourceElement;
+
+            if (ReferenceEquals(this.registeredDragRegistry, this.DragRegistry) && ReferenceEquals(this.registeredDragElement, element))
+            {
+                return;
+            }
+
+            this.registeredDragRegistry?.Remove(this.dragToken);
+            this.registeredDragRegistry = this.DragRegistry;
+            this.registeredDragElement = element;
+            this.dragToken = Guid.NewGuid();
+
+            if (this.DragRegistry is not null && element is not null)
+            {
+                this.DragRegistry.Register(this.dragToken, element);
+            }
+        }
+
+        /// <summary>Releases this mount's canonical reference without disposing the shared registry.</summary>
+        /// <param name="disposing">Whether managed resources are being released.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.registeredDragRegistry?.Remove(this.dragToken);
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

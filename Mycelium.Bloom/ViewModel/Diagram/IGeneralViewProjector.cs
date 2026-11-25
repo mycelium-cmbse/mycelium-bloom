@@ -14,7 +14,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
     using SysML2.NET.Core.POCO.Root.Elements;
 
     /// <summary>Projects canonical model slices independently of workspace composition.</summary>
-    public interface IGeneralViewProjector
+    public interface IGeneralViewProjector : IDiagramElementProjector
     {
         /// <summary>Projects a canonical root and its direct members.</summary>
         /// <param name="root">The selected canonical root, or null.</param>
