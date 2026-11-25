@@ -1327,7 +1327,7 @@ test("diagram modules do not load native styles before a canvas requests them", 
     assert.equal(document.querySelectorAll("script").length, 0);
 });
 
-async function createDiagramCapture(parent = document.body) {
+async function createDiagramCapture(parent = document.body, invokeMethod = () => Promise.resolve()) {
     const { attachDiagramPointerCapture } = await import("../../Components/UI/Organisms/Diagram/DiagramCanvas.razor.js");
     const canvas = document.createElement("div");
     canvas.className = "diagram-canvas";
@@ -1345,7 +1345,7 @@ async function createDiagramCapture(parent = document.body) {
         target.releasePointerCapture = id => captures.delete(id);
     }
     const calls = [];
-    const handle = attachDiagramPointerCapture(canvas, { invokeMethodAsync: (...args) => { calls.push(args); return Promise.resolve(); } });
+    const handle = attachDiagramPointerCapture(canvas, { invokeMethodAsync: (...args) => { calls.push(args); return invokeMethod(...args); } });
     const pointer = (type, target = canvas, overrides = {}) => {
         const event = new window.Event(type, { bubbles: true, cancelable: true });
         for (const [key, value] of Object.entries({ pointerId: 1, button: 0, isPrimary: true, ...overrides })) {
@@ -1467,6 +1467,101 @@ test("diagram drop refuses read-only and unrelated payloads and releases listene
     assert.equal(drop('application/x-mycelium-element').defaultPrevented, false);
     assert.deepEqual(calls, []);
 });
+
+async function createPendingDiagramDrop(context) {
+    const pending = Promise.withResolvers();
+    const diagram = await createDiagramCapture(document.body, () => pending.promise);
+    diagram.section.dataset.canAdd = 'true';
+    const view = diagram.canvas.ownerDocument.defaultView;
+    const reported = [];
+    const unhandled = [];
+    view.reportError = error => reported.push(error);
+    const onUnhandled = error => unhandled.push(error);
+    process.on('unhandledRejection', onUnhandled);
+    view.addEventListener('unhandledrejection', onUnhandled);
+    context.after(() => {
+        diagram.handle.dispose();
+        process.off('unhandledRejection', onUnhandled);
+        view.removeEventListener('unhandledrejection', onUnhandled);
+    });
+    const drop = () => {
+        const event = new window.Event('drop', { bubbles: true, cancelable: true });
+        for (const [key, value] of Object.entries({
+            dataTransfer: { types: ['application/x-mycelium-element'], getData: () => 'canonical-source' },
+            clientX: 320, clientY: 160
+        })) {
+            Object.defineProperty(event, key, { value });
+        }
+        diagram.canvas.dispatchEvent(event);
+        return event;
+    };
+    return { ...diagram, pending, reported, unhandled, drop };
+}
+
+test("diagram drop awaits a successful receiver without reporting an error", async context => {
+    const { pending, reported, unhandled, drop, calls } = await createPendingDiagramDrop(context);
+    assert.equal(drop().defaultPrevented, true);
+    assert.deepEqual(calls, [['DropElement', 'canonical-source', 320, 160]]);
+    pending.resolve(true);
+    await new Promise(setImmediate);
+    assert.deepEqual(reported, []);
+    assert.deepEqual(unhandled, []);
+});
+
+for (const disposed of [false, true]) {
+    test(`diagram drop reports an unexpected receiver failure with disposed=${disposed}`, async context => {
+        const { pending, reported, unhandled, drop, calls, handle } = await createPendingDiagramDrop(context);
+        drop();
+        if (disposed) {
+            handle.dispose();
+        }
+        const failure = new Error('Diagram projection failed.');
+        pending.reject(failure);
+        await new Promise(setImmediate);
+        assert.deepEqual(reported, [failure]);
+        assert.deepEqual(unhandled, []);
+        handle.dispose();
+        assert.equal(drop().defaultPrevented, false);
+        assert.equal(calls.length, 1);
+    });
+
+    test(`diagram drop handles native cancellation with disposed=${disposed}`, async context => {
+        const { pending, reported, unhandled, drop, handle } = await createPendingDiagramDrop(context);
+        drop();
+        if (disposed) {
+            handle.dispose();
+        }
+        pending.reject(new window.DOMException('The operation was aborted.', 'AbortError'));
+        await new Promise(setImmediate);
+        assert.deepEqual(reported, []);
+        assert.deepEqual(unhandled, []);
+    });
+}
+
+for (const message of [
+    "System.ArgumentException: There is no tracked object with id '42'. Perhaps the DotNetObjectReference instance was already disposed. (Parameter 'dotNetObjectId')",
+    'The circuit associated with this dispatcher is no longer available.',
+    "Cannot send data if the connection is not in the 'Connected' State.",
+    'Invocation canceled due to the underlying connection being closed.'
+]) {
+    for (const disposed of [false, true]) {
+        test(`diagram drop handles interop teardown '${message}' with disposed=${disposed}`, async context => {
+            const { pending, reported, unhandled, drop, calls, handle } = await createPendingDiagramDrop(context);
+            drop();
+            if (disposed) {
+                handle.dispose();
+            }
+            const failure = new Error(message);
+            pending.reject(failure);
+            await new Promise(setImmediate);
+            assert.deepEqual(reported, disposed ? [] : [failure]);
+            assert.deepEqual(unhandled, []);
+            handle.dispose();
+            assert.equal(drop().defaultPrevented, false);
+            assert.equal(calls.length, 1);
+        });
+    }
+}
 
 for (const scale of [0.5, 0.75, 1.5]) {
     test(`diagram drop normalizes canvas CSS scale ${scale} before native viewport conversion`, async () => {

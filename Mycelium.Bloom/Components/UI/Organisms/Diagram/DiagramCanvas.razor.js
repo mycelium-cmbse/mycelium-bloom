@@ -110,8 +110,23 @@ export function attachDiagramPointerCapture(canvas, reference) {
         const bounds = canvas.getBoundingClientRect();
         const scaleX = canvas.clientWidth > 0 && bounds.width > 0 ? canvas.clientWidth / bounds.width : 1;
         const scaleY = canvas.clientHeight > 0 && bounds.height > 0 ? canvas.clientHeight / bounds.height : 1;
-        await reference.invokeMethodAsync('DropElement', event.dataTransfer.getData(elementType),
-            (event.clientX - bounds.left) * scaleX, (event.clientY - bounds.top) * scaleY);
+        try {
+            await reference.invokeMethodAsync('DropElement', event.dataTransfer.getData(elementType),
+                (event.clientX - bounds.left) * scaleX, (event.clientY - bounds.top) * scaleY);
+        } catch (error) {
+            const message = error?.message ?? '';
+            const receiverDisposed = /^(?:System\.ArgumentException: )?There is no tracked object with id '[^']+'\. Perhaps the DotNetObjectReference instance was already disposed\./.test(message);
+            const disconnected = [
+                'The circuit associated with this dispatcher is no longer available.',
+                "Cannot send data if the connection is not in the 'Connected' State.",
+                'Invocation canceled due to the underlying connection being closed.'
+            ].includes(message);
+
+            // Disposal only excuses known interop teardown; projection failures must remain visible.
+            if (error?.name !== 'AbortError' && !(listeners.signal.aborted && (receiverDisposed || disconnected))) {
+                view.reportError(error);
+            }
+        }
     }, options);
 
     const release = () => {
