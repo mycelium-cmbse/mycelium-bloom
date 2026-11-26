@@ -201,7 +201,7 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
         public void VerifyCompartmentAndNameRenderEscapedTextAndTruncation()
         {
             var compartment = this.context.Render<DiagramCompartment>(parameters => parameters.Add(component => component.Presentation,
-                new DiagramCompartmentPresentation("attributes", ["value = <script>"], true)));
+                new DiagramCompartmentPresentation("attributes", [new("value = <script>")], true)));
             using (Assert.EnterMultipleScope())
             {
                 Assert.That(compartment.Find("[role=group]").GetAttribute("aria-label"), Is.EqualTo("attributes"));
@@ -211,6 +211,38 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
                     "engine : Engine", ["propulsion"])));
                 Assert.That(name.Markup, Does.Contain("«alias» propulsion"));
             }
+        }
+
+        [Test]
+        public async Task VerifyCompartmentRowsRenderSeparateAccessibleControls()
+        {
+            this.context.JSInterop.Setup<Rectangle>("ZBlazorDiagrams.getBoundingClientRect", _ => true).SetResult(new Rectangle(0, 0, 1000, 700));
+            using var selection = new ContextAwareService();
+            var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            this.ownedViewModels.Add(owner);
+            var component = this.context.Render<DiagramCanvas>(parameters => parameters.Add(value => value.ViewModel, owner));
+            var row = component.FindComponents<DiagramCompartmentRow>().Single(value => value.Instance.ViewModel.Element.ElementId == "example-attribute");
+            var button = row.Find("button");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(button.TextContent, Is.EqualTo(row.Instance.ViewModel.Presentation.Text));
+                Assert.That(button.GetAttribute("aria-label"), Is.EqualTo(button.TextContent));
+                Assert.That(button.GetAttribute("aria-pressed"), Is.EqualTo("false"));
+                Assert.That(component.FindAll("button button, button a, button input, button select, button textarea, button [tabindex]"), Is.Empty);
+            }
+
+            await button.ClickAsync(new MouseEventArgs { Detail = 0 });
+
+            await row.WaitForAssertionAsync(() => Assert.That(row.Find("button").GetAttribute("aria-pressed"), Is.EqualTo("true")));
+            Assert.That(selection.SelectedElement, Is.SameAs(row.Instance.ViewModel.Element));
+
+            await component.InvokeAsync(() => selection.SelectedElement = null);
+
+            await row.WaitForAssertionAsync(() => Assert.That(row.Find("button").GetAttribute("aria-pressed"), Is.EqualTo("false")));
+            component.Dispose();
+            row.Instance.ViewModel.Select();
+            Assert.That(selection.SelectedElement, Is.SameAs(row.Instance.ViewModel.Element));
         }
 
         [TestCase(BoundarySide.Left)]

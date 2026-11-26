@@ -43,7 +43,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             };
             var attributes = element.OwnedRelationship.OfType<IMembership>().Select(member => member.MemberElement).OfType<IAttributeUsage>().ToArray();
             var compartments = attributes.Length == 0 ? ImmutableArray<DiagramCompartmentPresentation>.Empty
-                : [new("attributes", attributes.Select(attribute => DiagramNotation.Declaration(attribute, true)).ToImmutableArray())];
+                : [new("attributes", attributes.Select(attribute =>
+                    new DiagramCompartmentRowPresentation(DiagramNotation.Declaration(attribute, true), attribute)).ToImmutableArray())];
             var ports = element.OwnedRelationship.OfType<IMembership>().Select(member => member.MemberElement).OfType<IFeature>()
                 .Where(feature => feature is IPortUsage || feature.Direction is not null).ToArray();
             var boundary = ports.Select((port, position) => new DiagramBoundaryPresentation(port, DiagramNotation.Declaration(port),

@@ -87,6 +87,7 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 DiagramNodeModel node => node.ViewModel,
                 DiagramLinkModel link => link.ViewModel,
                 IDiagramBoundaryPortModel port => port.ViewModel,
+                CompartmentRowModel row => row.ViewModel,
                 _ => null
             });
             this.toolSubscriptions.Add(this.tools.WhenAnyValue(state => state.Active).Skip(1).Subscribe(_ =>
@@ -125,6 +126,21 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
                 this.pointerStart = args;
                 this.Changed?.Invoke();
             }
+        }
+
+        /// <summary>Routes a current semantic row through native tools without starting movement of its containing node.</summary>
+        /// <param name="node">The mounted parent occurrence.</param>
+        /// <param name="row">The current row state owned by that occurrence.</param>
+        /// <param name="args">The primary selection or navigation pointer event.</param>
+        public void BeginSelection(DiagramNodeModel node, DiagramCompartmentRowViewModel row, PointerEventArgs args)
+        {
+            if (this.disposed || node is null || row is null || args is not { IsPrimary: true, Button: 0 or 1 }
+                || !this.Diagram.Nodes.Contains(node) || !node.ViewModel.CompartmentRows.Any(rows => rows.Contains(row)))
+            {
+                return;
+            }
+
+            this.Diagram.TriggerPointerDown(new CompartmentRowModel(row), args);
         }
 
         /// <summary>Records a focused selection target without activating it on Space keydown.</summary>
@@ -361,6 +377,14 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
             }
 
             this.Changed?.Invoke();
+        }
+
+        /// <summary>Adapts one row hit to native tools without supplying movable node geometry.</summary>
+        /// <param name="viewModel">The current occurrence-owned row state.</param>
+        private sealed class CompartmentRowModel(DiagramCompartmentRowViewModel viewModel) : Model
+        {
+            /// <summary>Gets the canonical selection presentation borrowed for this hit.</summary>
+            public DiagramCompartmentRowViewModel ViewModel { get; } = viewModel;
         }
     }
 }

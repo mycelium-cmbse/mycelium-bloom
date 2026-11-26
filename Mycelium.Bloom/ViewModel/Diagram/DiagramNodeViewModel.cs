@@ -65,6 +65,13 @@ namespace Mycelium.Bloom.ViewModel.Diagram
             private set => this.RaiseAndSetIfChanged(ref this.boundaryFeatures, value);
         }
 
+        /// <summary>Gets row state in compartment order, with null entries for nonselectable text.</summary>
+        public ImmutableArray<ImmutableArray<DiagramCompartmentRowViewModel>> CompartmentRows
+        {
+            get;
+            private set => this.RaiseAndSetIfChanged(ref field, value);
+        } = [];
+
         /// <summary>Creates presentation state for one graphical node occurrence.</summary>
         /// <param name="presentation">The immutable canonical projection.</param>
         /// <param name="owner">The tab-owned state authority.</param>
@@ -133,6 +140,8 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 this.BoundaryFeatures = updated;
             }
 
+            this.UpdateCompartmentRows(value is DiagramShellPresentation content ? content.Compartments : []);
+
             if (this.Presentation is { } previous && !(previous.Occurrence.X, previous.Occurrence.Y).Equals((value.Occurrence.X, value.Occurrence.Y)))
             {
                 this.Position = new DiagramPoint(value.Occurrence.X, value.Occurrence.Y);
@@ -145,6 +154,40 @@ namespace Mycelium.Bloom.ViewModel.Diagram
 
             this.Presentation = value;
             this.SetResizePermitted(this.resizePermitted);
+        }
+
+        /// <summary>Retains row state only while its compartment position and canonical reference remain represented.</summary>
+        /// <param name="compartments">The current immutable compartment presentations.</param>
+        private void UpdateCompartmentRows(ImmutableArray<DiagramCompartmentPresentation> compartments)
+        {
+            var states = ImmutableArray.CreateBuilder<ImmutableArray<DiagramCompartmentRowViewModel>>(compartments.Length);
+
+            for (var compartmentIndex = 0; compartmentIndex < compartments.Length; compartmentIndex++)
+            {
+                var previous = compartmentIndex < this.CompartmentRows.Length ? this.CompartmentRows[compartmentIndex] : [];
+                var presentations = compartments[compartmentIndex].Rows;
+                var rows = ImmutableArray.CreateBuilder<DiagramCompartmentRowViewModel>(presentations.Length);
+
+                for (var rowIndex = 0; rowIndex < presentations.Length; rowIndex++)
+                {
+                    var row = presentations[rowIndex];
+                    DiagramCompartmentRowViewModel state = null;
+
+                    if (row.Element is not null)
+                    {
+                        state = rowIndex < previous.Length && ReferenceEquals(previous[rowIndex]?.Element, row.Element)
+                            ? previous[rowIndex]
+                            : new DiagramCompartmentRowViewModel(row, this.Owner);
+                        state.Update(row);
+                    }
+
+                    rows.Add(state);
+                }
+
+                states.Add(rows.MoveToImmutable());
+            }
+
+            this.CompartmentRows = states.MoveToImmutable();
         }
     }
 }

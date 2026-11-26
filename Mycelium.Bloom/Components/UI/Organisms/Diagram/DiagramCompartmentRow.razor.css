@@ -1,0 +1,32 @@
+.diagram-row ::deep .diagram-row-select {
+    display: block;
+    position: relative;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    border-radius: var(--radius-4);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-align: start;
+    white-space: inherit;
+    overflow-wrap: inherit;
+    cursor: inherit;
+}
+
+.diagram-row ::deep .diagram-row-select:hover {
+    background: var(--muted);
+}
+
+.diagram-row ::deep .diagram-row-select[aria-pressed="true"] {
+    background: var(--accent);
+    color: light-dark(var(--primary-strong), var(--accent-foreground));
+}
+
+.diagram-row ::deep .diagram-row-select:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}

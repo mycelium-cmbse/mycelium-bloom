@@ -16,5 +16,6 @@ namespace Mycelium.Bloom.Model.Diagram
     /// <param name="Rows">The already-formatted textual member rows.</param>
     /// <param name="IsTruncated">Whether additional textual members are omitted.</param>
     /// <param name="GraphicalView">The optional nested graphical presentation.</param>
-    public sealed record DiagramCompartmentPresentation(string Title, ImmutableArray<string> Rows, bool IsTruncated = false, DiagramProjection GraphicalView = null);
+    public sealed record DiagramCompartmentPresentation(string Title, ImmutableArray<DiagramCompartmentRowPresentation> Rows,
+        bool IsTruncated = false, DiagramProjection GraphicalView = null);
 }

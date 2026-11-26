@@ -9,10 +9,13 @@
 
 namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
 {
+    using System.Collections.Immutable;
+
     using Microsoft.AspNetCore.Components;
 
     using Mycelium.Bloom.Components.UI.Common;
     using Mycelium.Bloom.Model.Diagram;
+    using Mycelium.Bloom.ViewModel.Diagram;
 
     /// <summary>Renders a reusable titled textual or graphical compartment.</summary>
     public partial class DiagramCompartment : BloomComponentBase
@@ -20,6 +23,10 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <summary>Gets or sets the preformatted compartment content.</summary>
         [Parameter, EditorRequired]
         public DiagramCompartmentPresentation Presentation { get; set; }
+
+        /// <summary>Gets or sets the caller-owned selection state aligned with the presented rows.</summary>
+        [Parameter]
+        public ImmutableArray<DiagramCompartmentRowViewModel> Rows { get; set; } = [];
 
         /// <summary>Gets or sets the optional nested graphical fragment.</summary>
         [Parameter]

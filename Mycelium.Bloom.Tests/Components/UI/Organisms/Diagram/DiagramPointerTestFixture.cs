@@ -99,6 +99,98 @@ namespace Mycelium.Bloom.Tests.Components.UI.Organisms.Diagram
             Assert.That(remounted.Diagram.Nodes[0].Position, Is.EqualTo(moved));
         }
 
+        [TestCase(ProjectLifecycleKind.Preparation, false)]
+        [TestCase(ProjectLifecycleKind.Review, false)]
+        [TestCase(ProjectLifecycleKind.Archived, false)]
+        [TestCase(ProjectLifecycleKind.Open, true)]
+        public void VerifyCompartmentPointerSelectsWithoutMovingParent(ProjectLifecycleKind lifecycle, bool readOnly)
+        {
+            using var selection = new ContextAwareService { LifecycleState = lifecycle };
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            owner.IsReadOnly = readOnly;
+            using var renderer = this.diagrams.CreateRenderer(owner);
+            renderer.Diagram.SetContainer(new Rectangle(0, 0, 1000, 700));
+            var node = renderer.Diagram.Nodes.OfType<DiagramNodeModel>().Single(value => value.Presentation.Occurrence.Element.ElementId == "example-part");
+            var row = node.ViewModel.CompartmentRows[0][0];
+            var position = node.ViewModel.Position;
+            var size = node.ViewModel.Size;
+
+            renderer.Pointer.BeginSelection(node, row, Pointer(100, 100));
+            renderer.Diagram.TriggerPointerMove(null, Pointer(160, 140));
+            renderer.Diagram.TriggerPointerUp(node, Pointer(160, 140));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(row.Element));
+                Assert.That(row.IsSelected, Is.True);
+                Assert.That(node.ViewModel.IsSelected, Is.False);
+                Assert.That(node.Selected, Is.False);
+                Assert.That(node.ViewModel.Position, Is.EqualTo(position));
+                Assert.That(node.ViewModel.Size, Is.EqualTo(size));
+                Assert.That(renderer.Pointer.IsInteracting, Is.False);
+            }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void VerifyPanOverCompartmentPreservesSelection(bool temporary, bool middle)
+        {
+            using var selection = new ContextAwareService();
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            owner.SetViewport(0, 0, 2);
+            owner.Tools.TryActivate(temporary || middle ? DiagramToolDefaults.Move : DiagramToolDefaults.Pan);
+            using var renderer = this.diagrams.CreateRenderer(owner);
+            var node = renderer.Diagram.Nodes.OfType<DiagramNodeModel>().Single(value => value.Presentation.Occurrence.Element.ElementId == "example-part");
+            selection.SelectedElement = node.ViewModel.Element;
+            var position = node.ViewModel.Position;
+
+            if (temporary)
+            {
+                renderer.Pointer.KeyChanged(" ", "Space", true);
+            }
+
+            renderer.Pointer.BeginSelection(node, node.ViewModel.CompartmentRows[0][0], Pointer(100, 100, middle ? 1 : 0));
+            renderer.Diagram.TriggerPointerMove(null, Pointer(160, 140));
+            renderer.Diagram.TriggerPointerUp(node, Pointer(160, 140));
+
+            if (temporary)
+            {
+                renderer.Pointer.KeyChanged(" ", "Space", false);
+            }
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(owner.Viewport.PanX, Is.EqualTo(60));
+                Assert.That(owner.Viewport.PanY, Is.EqualTo(40));
+                Assert.That(selection.SelectedElement, Is.SameAs(node.ViewModel.Element));
+                Assert.That(node.ViewModel.Position, Is.EqualTo(position));
+                Assert.That(renderer.Pointer.IsInteracting, Is.False);
+            }
+        }
+
+        [Test]
+        public void VerifyCompartmentPointerCancellationAndStaleTargets()
+        {
+            using var selection = new ContextAwareService();
+            using var owner = this.diagrams.CreateViewModel(GeneralViewExample.Create(DiagramTestFactory.CreateProjector()), selection);
+            using var renderer = this.diagrams.CreateRenderer(owner);
+            var node = renderer.Diagram.Nodes.OfType<DiagramNodeModel>().Single(value => value.Presentation.Occurrence.Element.ElementId == "example-part");
+            var row = node.ViewModel.CompartmentRows[0][0];
+            renderer.Pointer.BeginSelection(node, row, Pointer(100, 100));
+            renderer.Pointer.KeyChanged("Escape", "Escape", true);
+            selection.SelectedElement = node.ViewModel.Element;
+            owner.UpdateProjection(new DiagramProjection([], []));
+
+            renderer.Pointer.BeginSelection(node, row, Pointer(100, 100));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(selection.SelectedElement, Is.SameAs(node.ViewModel.Element));
+                Assert.That(renderer.Pointer.IsInteracting, Is.False);
+            }
+        }
+
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
