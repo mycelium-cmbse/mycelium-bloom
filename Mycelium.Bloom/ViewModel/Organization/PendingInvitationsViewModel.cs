@@ -23,6 +23,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
     public sealed class PendingInvitationsViewModel : ListLoadingViewModel<InvitationRowViewModel>, IPendingInvitationsViewModel
     {
         /// <summary>
+        /// The identifier of the organization whose invitations are listed.
+        /// </summary>
+        private readonly Guid organizationId;
+
+        /// <summary>
         /// Provides the invitations.
         /// </summary>
         private readonly IOrganizationInvitationService invitationService;
@@ -44,11 +49,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <see langword="null" />.
         /// </exception>
         public PendingInvitationsViewModel(IOrganizationContextViewModel context, IOrganizationInvitationService invitationService, TimeProvider timeProvider, ILogger<PendingInvitationsViewModel> logger)
-            : base(context.Organization.Id, "pending invitations", logger)
+            : base("pending invitations", logger)
         {
             ArgumentNullException.ThrowIfNull(invitationService);
             ArgumentNullException.ThrowIfNull(timeProvider);
 
+            this.organizationId = context.Organization.Id;
             this.invitationService = invitationService;
             this.timeProvider = timeProvider;
             this.BeginLoad();
@@ -63,12 +69,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <summary>
         /// Gets the pending invitations of the organization as rows, the most recently sent first, told from one current time.
         /// </summary>
-        /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="cancellationToken">The token that cancels the load.</param>
         /// <returns>The rows, or the errors of the service.</returns>
-        protected override async Task<ErrorOr<IReadOnlyList<InvitationRowViewModel>>> LoadRowsAsync(Guid organizationId, CancellationToken cancellationToken)
+        protected override async Task<ErrorOr<IReadOnlyList<InvitationRowViewModel>>> LoadRowsAsync(CancellationToken cancellationToken)
         {
-            var result = await this.invitationService.GetPendingInvitationsAsync(organizationId, cancellationToken);
+            var result = await this.invitationService.GetPendingInvitationsAsync(this.organizationId, cancellationToken);
             var now = this.timeProvider.GetUtcNow();
 
             return result.Then(invitations => (IReadOnlyList<InvitationRowViewModel>)[.. invitations.Select(invitation => new InvitationRowViewModel(invitation, now))]);

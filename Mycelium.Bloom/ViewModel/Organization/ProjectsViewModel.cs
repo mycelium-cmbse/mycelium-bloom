@@ -23,6 +23,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
     public sealed class ProjectsViewModel : ListLoadingViewModel<ProjectRowViewModel>, IProjectsViewModel
     {
         /// <summary>
+        /// The identifier of the organization whose projects are listed.
+        /// </summary>
+        private readonly Guid organizationId;
+
+        /// <summary>
         /// Provides the projects.
         /// </summary>
         private readonly IOrganizationProjectService projectService;
@@ -46,11 +51,12 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <see langword="null" />.
         /// </exception>
         public ProjectsViewModel(IOrganizationContextViewModel context, IOrganizationProjectService projectService, TimeProvider timeProvider, ILogger<ProjectsViewModel> logger)
-            : base(context.Organization.Id, "projects", logger)
+            : base("projects", logger)
         {
             ArgumentNullException.ThrowIfNull(projectService);
             ArgumentNullException.ThrowIfNull(timeProvider);
 
+            this.organizationId = context.Organization.Id;
             this.projectService = projectService;
             this.timeProvider = timeProvider;
             this.CanCreateProject = context.Capabilities is { CanCreateProject: true };
@@ -70,12 +76,11 @@ namespace Mycelium.Bloom.ViewModel.Organization
         /// <summary>
         /// Gets the projects of the organization as rows, the most recently updated first, told from one current time.
         /// </summary>
-        /// <param name="organizationId">The identifier of the organization.</param>
         /// <param name="cancellationToken">The token that cancels the load.</param>
         /// <returns>The rows, or the errors of the service.</returns>
-        protected override async Task<ErrorOr<IReadOnlyList<ProjectRowViewModel>>> LoadRowsAsync(Guid organizationId, CancellationToken cancellationToken)
+        protected override async Task<ErrorOr<IReadOnlyList<ProjectRowViewModel>>> LoadRowsAsync(CancellationToken cancellationToken)
         {
-            var result = await this.projectService.GetProjectsAsync(organizationId, cancellationToken);
+            var result = await this.projectService.GetProjectsAsync(this.organizationId, cancellationToken);
             var now = this.timeProvider.GetUtcNow();
 
             return result.Then(projects => (IReadOnlyList<ProjectRowViewModel>)

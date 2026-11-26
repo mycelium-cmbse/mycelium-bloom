@@ -7,7 +7,7 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Tests.ViewModel.Organization
+namespace Mycelium.Bloom.Tests.ViewModel
 {
     using System;
     using System.Collections.Generic;
@@ -20,14 +20,14 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
     using Microsoft.Extensions.Logging;
 
-    using Mycelium.Bloom.ViewModel.Organization;
+    using Mycelium.Bloom.ViewModel;
 
     internal sealed class TestListLoadingViewModel : ListLoadingViewModel<string>
     {
-        private readonly Func<Guid, CancellationToken, Task<ErrorOr<IReadOnlyList<string>>>> load;
+        private readonly Func<CancellationToken, Task<ErrorOr<IReadOnlyList<string>>>> load;
 
-        public TestListLoadingViewModel(Guid organizationId, ILogger logger, Func<Guid, CancellationToken, Task<ErrorOr<IReadOnlyList<string>>>> load)
-            : base(organizationId, "widgets", logger)
+        public TestListLoadingViewModel(ILogger logger, Func<CancellationToken, Task<ErrorOr<IReadOnlyList<string>>>> load)
+            : base("widgets", logger)
         {
             this.load = load;
             this.BeginLoad();
@@ -35,9 +35,9 @@ namespace Mycelium.Bloom.Tests.ViewModel.Organization
 
         public ISourceList<string> Items => this.Source;
 
-        protected override Task<ErrorOr<IReadOnlyList<string>>> LoadRowsAsync(Guid organizationId, CancellationToken cancellationToken)
+        protected override Task<ErrorOr<IReadOnlyList<string>>> LoadRowsAsync(CancellationToken cancellationToken)
         {
-            return this.load(organizationId, cancellationToken);
+            return this.load(cancellationToken);
         }
     }
 }

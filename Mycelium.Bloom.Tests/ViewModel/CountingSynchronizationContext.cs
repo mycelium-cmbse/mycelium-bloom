@@ -7,7 +7,7 @@
 // </copyright>
 // ------------------------------------------------------------------------------------------------
 
-namespace Mycelium.Bloom.Tests.ViewModel.Organization
+namespace Mycelium.Bloom.Tests.ViewModel
 {
     using System.Threading;
 
