@@ -25,6 +25,7 @@
         <Using Include="Mycelium.Bloom.Extensions" />
         <Using Include="Mycelium.Bloom.ViewModel.Organization" />
         <Using Include="Mycelium.SDK" />
+        <Using Include="SysML2.NET.PSM.DTO.Project" Alias="Project" />
     </ItemGroup>
     <ItemGroup>
         <Content Remove="package.json;package-lock.json" />
@@ -69,14 +70,16 @@
         <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
         <PackageReference Include="Humanizer.Core" Version="3.0.10" />
         <PackageReference Include="Mycelium.SDK" Version="0.2.0" />
+        <PackageReference Include="Mycelium.SDK.REST" Version="0.4.0-pr116" />
         <PackageReference Include="OpenTelemetry" Version="1.19.1" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.19.1" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
         <PackageReference Include="ReactiveUI.Blazor" Version="24.2.0" />
         <PackageReference Include="Z.Blazor.Diagrams" Version="3.0.4.1" />
-        <PackageReference Include="SysML2.NET.Dal" Version="0.23.0" />
-        <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.23.0" />
-        <PackageReference Include="SysML2.NET.Serializer.TextualNotation" Version="0.23.0" />
+        <PackageReference Include="SysML2.NET.Dal" Version="0.27.0" />
+        <PackageReference Include="SysML2.NET.Serializer.Json" Version="0.27.0" />
+        <PackageReference Include="SysML2.NET.Serializer.TextualNotation" Version="0.27.0" />
+        <PackageReference Include="SysML2.NET.REST" Version="0.27.0" />
     </ItemGroup>
 
     <ItemGroup>

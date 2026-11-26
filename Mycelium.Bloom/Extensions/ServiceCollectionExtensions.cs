@@ -23,7 +23,10 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.MockedData;
     using Mycelium.Bloom.Core.ModelLoading;
+    using Mycelium.Bloom.Core.Organization;
+    using Mycelium.Bloom.Core.Organization.Placeholder;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
@@ -31,10 +34,14 @@ namespace Mycelium.Bloom.Extensions
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
+    using Mycelium.Bloom.ViewModel.Session;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
+    using Mycelium.SDK.REST;
 
     using SysML2.NET.Dal;
     using SysML2.NET.Serializer.Json;
+
+    using SySML2.NET.REST;
 
     /// <summary>
     /// Provides dependency-injection registration extensions for Mycelium Bloom application services.
@@ -213,6 +220,63 @@ namespace Mycelium.Bloom.Extensions
                         GeneralViewExample.Create(serviceProvider.GetRequiredService<IGeneralViewProjector>())), typeof(DiagramCanvas))
                 { IsDevelopmentOnly = true });
                 services.TryAddScoped<DiagramEditorRegistry>();
+
+                return services;
+            }
+
+            /// <summary>
+            /// Binds the organization options and registers the mocked data of the circuit, the organization services, which
+            /// answer with it, the ViewModels of the organization context and of its header, one of each per circuit (the layout, the header
+            /// and the page content must share the same context, which a transient registration would split in three), and
+            /// the factories of the projects and members page ViewModels, which build one ViewModel per page instance, and of the
+            /// pending invitations block, one per members page, and the shared time provider. Replacing a placeholder service
+            /// changes this registration only.
+            /// </summary>
+            /// <param name="configuration">The application configuration containing the organization section.</param>
+            /// <returns>The original service collection for continued registration chaining.</returns>
+            /// <exception cref="ArgumentNullException">
+            /// Thrown when <paramref name="services" /> or <paramref name="configuration" /> is <see langword="null" />.
+            /// </exception>
+            public IServiceCollection AddOrganizationServices(IConfiguration configuration)
+            {
+                ArgumentNullException.ThrowIfNull(services);
+                ArgumentNullException.ThrowIfNull(configuration);
+
+                services.Configure<OrganizationOptions>(configuration.GetSection(OrganizationOptions.SectionName));
+                services.AddScoped<IMockedDataService, MockedDataService>();
+                services.AddScoped<IOrganizationContextService, PlaceholderOrganizationContextService>();
+                services.AddScoped<IOrganizationContextViewModel, OrganizationContextViewModel>();
+                services.AddScoped<IOrganizationHeaderViewModel, OrganizationHeaderViewModel>();
+                services.AddScoped<IOrganizationProjectService, PlaceholderOrganizationProjectService>();
+                services.AddScoped<Func<IProjectsViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<ProjectsViewModel>(serviceProvider));
+                services.AddScoped<IOrganizationMemberService, PlaceholderOrganizationMemberService>();
+                services.AddScoped<Func<IMembersViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<MembersViewModel>(serviceProvider));
+                services.AddScoped<IOrganizationInvitationService, PlaceholderOrganizationInvitationService>();
+                services.AddScoped<Func<IPendingInvitationsViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<PendingInvitationsViewModel>(serviceProvider));
+                services.TryAddSingleton(TimeProvider.System);
+
+                return services;
+            }
+
+            /// <summary>
+            /// Registers the session of the SysML2.NET REST client and the session service of the Mycelium SDK that holds it, one
+            /// per circuit so that every page of the user works against the same server, and the factory of the start page
+            /// ViewModel, which builds one ViewModel per page instance. The session assembles the server's model in an assembler
+            /// of its own, not the circuit's <see cref="IAssembler" />, because closing the session drops what it assembled and
+            /// must not drop the locally loaded libraries. The limits of the session service keep the defaults of
+            /// <see cref="SessionServiceOptions" /> until Bloom needs to set them.
+            /// </summary>
+            /// <returns>The original service collection for continued registration chaining.</returns>
+            /// <exception cref="ArgumentNullException">Thrown when <paramref name="services" /> is <see langword="null" />.</exception>
+            public IServiceCollection AddSessionServices()
+            {
+                ArgumentNullException.ThrowIfNull(services);
+
+                services.AddHttpClient();
+                services.AddScoped<ISession>(serviceProvider => new Session(serviceProvider.GetRequiredService<IHttpClientFactory>(), new DeSerializer(), new Serializer(), new Assembler(), serviceProvider.GetRequiredService<ILoggerFactory>()));
+                services.AddOptions<SessionServiceOptions>();
+                services.AddScoped<ISessionService, SessionService>();
+                services.AddScoped<Func<IConnectViewModel>>(serviceProvider => () => ActivatorUtilities.CreateInstance<ConnectViewModel>(serviceProvider));
 
                 return services;
             }

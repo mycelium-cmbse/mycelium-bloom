@@ -45,7 +45,8 @@ namespace Mycelium.Bloom.Tests.ViewModel
             var multiple = new AttributeUsage { DeclaredName = "multiple" };
             var empty = new AttributeUsage { DeclaredName = "empty" };
             Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(unsupported, new LiteralExpression());
-            Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(multiple, new LiteralInteger { Value = 2 }, new LiteralInteger { Value = 3 });
+            Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(multiple, new LiteralInteger { Value = 2 });
+            Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(multiple, new LiteralInteger { Value = 3 });
             Mycelium.Bloom.Tests.Common.ExpressionModelTestFactory.Attach<FeatureValue>(empty, new LiteralString { Value = "" });
             var parent = new Mock<IPartUsage>();
             parent.SetupGet(element => element.ownedElement).Returns([unset, missing.Object, unsupported, multiple, empty]);
