@@ -40,6 +40,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.Session;
+    using Mycelium.Bloom.ViewModel.Workspace;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
     using Mycelium.SDK;
 
@@ -100,6 +101,7 @@ namespace Mycelium.Bloom.Tests.Components.Routing
                     this.elementIdResolver.Object,
                     this.context,
                     NullLogger<WorkspaceUrlContextService>.Instance));
+            this.Services.AddScoped<Func<IWorkspaceBreadcrumbViewModel>>(_ => () => new Mock<IWorkspaceBreadcrumbViewModel>().Object);
             this.Services.AddSingleton<INavigationRailItemProvider, NavigationRailItemProvider>();
             this.Services.AddScoped<Func<INavigationRailViewModel>>(serviceProvider =>
                 () =>

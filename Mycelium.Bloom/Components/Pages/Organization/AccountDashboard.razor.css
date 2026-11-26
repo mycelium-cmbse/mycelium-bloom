@@ -35,6 +35,16 @@
 .mb-home__name-text {
     color: var(--foreground);
     font: var(--typography-typography-ui-medium-13);
+    text-decoration: none;
+}
+
+.mb-home__name-text:hover {
+    text-decoration: underline;
+}
+
+.mb-home__open {
+    display: inline-flex;
+    color: var(--muted-foreground);
 }
 
 .mb-home__description {
