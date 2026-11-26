@@ -1,0 +1,17 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="DiagramCompartmentRow.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits SelectableDiagramWidgetBase<DiagramCompartmentRowViewModel>
+
+<div class="diagram-row" @onpointerdown="this.BeginSelection" @onpointerdown:stopPropagation="true">
+    @this.SelectableSurface("button",
+        [new("type", "button"), new("class", this.BuildRootCssClass("diagram-row-select")),
+            new("aria-label", this.ViewModel.Presentation.Text), new("aria-pressed", this.ViewModel.IsSelected.ToString().ToLowerInvariant()),
+            new("data-element-id", this.ViewModel.Element.ElementId)], @<text>@this.ViewModel.Presentation.Text</text>)
+</div>

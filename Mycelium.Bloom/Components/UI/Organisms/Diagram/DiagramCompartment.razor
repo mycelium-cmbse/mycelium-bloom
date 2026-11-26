@@ -17,9 +17,16 @@
     }
     else
     {
-        @foreach (var row in this.Presentation.Rows)
+        @for (var index = 0; index < this.Presentation.Rows.Length; index++)
         {
-            <div class="diagram-row">@row</div>
+            @if (!this.Rows.IsDefaultOrEmpty && this.Rows[index] is { } row)
+            {
+                <DiagramCompartmentRow ViewModel="row" @key="row" />
+            }
+            else
+            {
+                <div class="diagram-row">@this.Presentation.Rows[index].Text</div>
+            }
         }
         @if (this.Presentation.IsTruncated)
         {

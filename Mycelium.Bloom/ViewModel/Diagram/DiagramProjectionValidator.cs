@@ -89,6 +89,7 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 if (occurrence.Id == Guid.Empty || occurrence.Element is null || !ids.Add(occurrence.Id)
                     || !HasValidGeometry(occurrence)
                     || node is DiagramShellPresentation shell && (shell.Boundary.IsDefault || shell.Compartments.IsDefault
+                        || shell.Compartments.Any(compartment => compartment is null || compartment.Rows.IsDefault || compartment.Rows.Any(row => row is null))
                         || shell.Boundary.Any(feature => feature.Element is null || !double.IsFinite(feature.Offset) || feature.Offset < 0 || feature.Offset > 1)))
                 {
                     throw new ArgumentException("Diagram occurrences require unique graphical identities and finite positive geometry with normalized boundaries.",

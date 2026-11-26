@@ -159,6 +159,11 @@ namespace Mycelium.Bloom.ViewModel.Diagram
                 {
                     this.RegisterSelectionTarget(boundary);
                 }
+
+                foreach (var row in node.CompartmentRows.SelectMany(rows => rows).Where(row => row is not null))
+                {
+                    this.RegisterSelectionTarget(row);
+                }
             }
 
             foreach (var edge in this.edgeStates.Values)

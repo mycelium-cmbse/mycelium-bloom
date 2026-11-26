@@ -34,6 +34,12 @@ namespace Mycelium.Bloom.Components.UI.Organisms.Diagram
         /// <param name="args">The starting browser pointer event.</param>
         void BeginResize(DiagramNodeModel node, Blazor.Diagrams.Core.Events.PointerEventArgs args);
 
+        /// <summary>Routes a nonmovable semantic row through the current native tool and gesture lifetime.</summary>
+        /// <param name="node">The mounted parent occurrence.</param>
+        /// <param name="row">The current row state owned by that occurrence.</param>
+        /// <param name="args">The starting browser pointer event.</param>
+        void BeginSelection(DiagramNodeModel node, DiagramCompartmentRowViewModel row, Blazor.Diagrams.Core.Events.PointerEventArgs args);
+
         /// <summary>Records a focused target for a possible Space tap.</summary>
         /// <param name="args">The key press on the selectable widget.</param>
         /// <param name="target">The tab-owned selection target.</param>

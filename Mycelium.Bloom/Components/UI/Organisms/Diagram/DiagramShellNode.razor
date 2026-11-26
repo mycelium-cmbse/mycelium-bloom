@@ -18,8 +18,9 @@
         }
     </NestedView>
     <Compartments>
-        @foreach (var compartment in this.Presentation.Compartments)
+        @for (var index = 0; index < this.Presentation.Compartments.Length; index++)
         {
+            var compartment = this.Presentation.Compartments[index];
             @if (compartment.GraphicalView is { } graphical)
             {
                 <DiagramCompartment Presentation="compartment">
@@ -28,7 +29,7 @@
             }
             else
             {
-                <DiagramCompartment Presentation="compartment" />
+                <DiagramCompartment Presentation="compartment" Rows="this.ViewModel.CompartmentRows[index]" />
             }
         }
     </Compartments>

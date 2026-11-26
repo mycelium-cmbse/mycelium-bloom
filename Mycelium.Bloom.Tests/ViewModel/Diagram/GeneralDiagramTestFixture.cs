@@ -12,6 +12,8 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     using Blazor.Diagrams.Core.Geometry;
 
@@ -19,10 +21,13 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
 
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.Model.Enum;
     using Mycelium.Bloom.Tests.Common;
+    using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
+    using Mycelium.Bloom.ViewModel.ProjectBrowser;
 
     using SysML2.NET.Core.POCO.Core.Classifiers;
     using SysML2.NET.Core.POCO.Core.Features;
@@ -809,9 +814,143 @@ namespace Mycelium.Bloom.Tests.ViewModel.Diagram
             {
                 Assert.That(part.Name.Declaration, Does.Contain("engine").And.Contain("Engine"));
                 Assert.That(part.Compartments.Single().Title, Is.EqualTo("attributes"));
-                Assert.That(part.Compartments.Single().Rows.Single(), Does.Contain("heaters").And.Contain("= 8"));
+                Assert.That(part.Compartments.Single().Rows.Single().Text, Does.Contain("heaters").And.Contain("= 8"));
                 Assert.That(part.Boundary.Single(boundary => boundary.Element.ElementId == "example-port").Label, Does.Contain("powerIn").And.Contain("PowerPort"));
                 Assert.That(part.Name.Keyword, Is.EqualTo("part"));
+            }
+        }
+
+        [Test]
+        public void VerifyCompartmentSelectionUsesCanonicalAttributeAndExistingDetails()
+        {
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var shell = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.Occurrence.Element.ElementId == "example-part");
+            var attribute = shell.Occurrence.Element.OwnedRelationship.OfType<IMembership>().Select(member => member.MemberElement)
+                .OfType<IAttributeUsage>().Single(element => element.ElementId == "example-attribute");
+            var relationships = attribute.OwnedRelationship.ToArray();
+            using var selection = new ContextAwareService();
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            using var details = new DetailsPanelViewModel(selection);
+            var node = owner.GetNodeViewModel(shell.Occurrence.Id);
+            var row = node.CompartmentRows[0][0];
+
+            row.Select();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(row.Element, Is.SameAs(attribute));
+                Assert.That(selection.SelectedElement, Is.SameAs(attribute));
+                Assert.That(details.Presentation.Element, Is.SameAs(attribute));
+                Assert.That(row.IsSelected, Is.True);
+                Assert.That(node.IsSelected, Is.False);
+                Assert.That(row.Presentation.Text, Is.EqualTo(DiagramNotation.Declaration(attribute, true)));
+                Assert.That(attribute.OwnedRelationship, Is.EqualTo(relationships));
+                Assert.That(owner.Projection, Is.SameAs(projection));
+            }
+        }
+
+        [Test]
+        public async Task VerifyCompartmentSelectionCanBeRevealedInBrowser()
+        {
+            var projection = GeneralViewExample.Create(DiagramTestFactory.CreateProjector());
+            var root = (INamespace)projection.Nodes.OfType<DiagramPackagePresentation>().Single().Occurrence.Element;
+            var loader = new Mock<IModelLoaderService>(MockBehavior.Strict);
+            loader.Setup(service => service.LoadQuantitiesModel()).Returns(root);
+            using var selection = new ContextAwareService();
+            using var browser = new ProjectBrowserViewModel(loader.Object, selection);
+            var initialized = await browser.InitializeAsync(CancellationToken.None);
+            Assert.That(initialized, Is.True);
+            using var owner = this.diagrams.CreateViewModel(projection, selection);
+            var shell = projection.Nodes.OfType<DiagramShellPresentation>().Single(node => node.Occurrence.Element.ElementId == "example-part");
+            var row = owner.GetNodeViewModel(shell.Occurrence.Id).CompartmentRows[0][0];
+
+            row.Select();
+            browser.FocusElement(selection.SelectedElement);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(browser.SelectedNode.SourceElement, Is.SameAs(row.Element));
+                Assert.That(browser.SelectedNode.ElementId, Is.EqualTo("example-attribute"));
+                Assert.That(selection.SelectedElement, Is.SameAs(row.Element));
+            }
+        }
+
+        [Test]
+        public void VerifyCompartmentSelectionDecoratesRepeatedCanonicalOccurrences()
+        {
+            var part = new PartUsage { Id = Guid.NewGuid(), ElementId = "part", DeclaredName = "part" };
+            var attribute = new AttributeUsage { Id = Guid.NewGuid(), ElementId = "attribute", DeclaredName = "value" };
+            BrowserAcceptanceModelTestFactory.Own<FeatureMembership>(part, attribute);
+            var shell = DiagramTestFactory.Node(part);
+            var repeated = shell with { Occurrence = shell.Occurrence with { Id = Guid.NewGuid(), X = 400 } };
+            using var selection = new ContextAwareService();
+            using var owner = this.diagrams.CreateViewModel(new DiagramProjection([shell, repeated], []), selection);
+            var first = owner.GetNodeViewModel(shell.Occurrence.Id).CompartmentRows[0][0];
+            var second = owner.GetNodeViewModel(repeated.Occurrence.Id).CompartmentRows[0][0];
+
+            selection.SelectedElement = new AttributeUsage { Id = attribute.Id, ElementId = attribute.ElementId };
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first.IsSelected, Is.False);
+                Assert.That(second.IsSelected, Is.False);
+            }
+
+            first.Select();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(first, Is.Not.SameAs(second));
+                Assert.That(first.IsSelected, Is.True);
+                Assert.That(second.IsSelected, Is.True);
+                Assert.That(selection.SelectedElement, Is.SameAs(attribute));
+            }
+        }
+
+        [Test]
+        public void VerifyCompartmentRowsReconcileAndDetachFromReplacedProjection()
+        {
+            var part = new PartUsage { Id = Guid.NewGuid(), DeclaredName = "part" };
+            var attribute = new AttributeUsage { Id = Guid.NewGuid(), DeclaredName = "value" };
+            BrowserAcceptanceModelTestFactory.Own<FeatureMembership>(part, attribute);
+            var shell = DiagramTestFactory.Node(part);
+            using var selection = new ContextAwareService();
+            DiagramCompartmentRowViewModel row;
+            using (var owner = this.diagrams.CreateViewModel(new DiagramProjection([shell], []), selection))
+            {
+                row = owner.GetNodeViewModel(shell.Occurrence.Id).CompartmentRows[0][0];
+                row.Select();
+                var updated = shell with { Compartments = [new("attributes", [new("value = 2", attribute), new("additional text")])] };
+
+                owner.UpdateProjection(new DiagramProjection([updated], []));
+                var current = owner.GetNodeViewModel(shell.Occurrence.Id).CompartmentRows[0];
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(current[0], Is.SameAs(row));
+                    Assert.That(current[0].Presentation.Text, Is.EqualTo("value = 2"));
+                    Assert.That(current[0].IsSelected, Is.True);
+                    Assert.That(current[1], Is.Null);
+                }
+
+                owner.UpdateProjection(new DiagramProjection([shell with { Compartments = [] }], []));
+                owner.Select(part);
+                row.Select();
+
+                using (Assert.EnterMultipleScope())
+                {
+                    Assert.That(selection.SelectedElement, Is.SameAs(part));
+                    Assert.That(row.IsSelected, Is.False);
+                    Assert.That(owner.GetNodeViewModel(shell.Occurrence.Id).CompartmentRows, Is.Empty);
+                }
+            }
+
+            selection.SelectedElement = attribute;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(row.IsSelected, Is.False);
+                Assert.That(() => row.Select(), Throws.TypeOf<ObjectDisposedException>());
             }
         }
 
