@@ -1,0 +1,25 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="HyphaLogo.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@inherits BloomComponentBase
+
+<span @attributes="this.AdditionalAttributes"
+      class="@(this.BuildRootCssClass("mb-hypha-logo"))"
+      aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" focusable="false">
+        <path d="M6 17L12 5.5L18 15L6 17"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round" />
+        <circle cx="6" cy="17" r="2.6" fill="currentColor" />
+        <circle cx="12" cy="5.5" r="2.6" fill="currentColor" />
+        <circle cx="18" cy="15" r="2.6" fill="currentColor" />
+    </svg>
+</span>

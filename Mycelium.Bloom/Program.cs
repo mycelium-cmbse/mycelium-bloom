@@ -40,6 +40,7 @@ namespace Mycelium.Bloom
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddWorkspaceEditorOptions(builder.Configuration);
+            builder.Services.AddHyphaServices(builder.Configuration);
             builder.Services.AddReverseProxyOptions(builder.Configuration);
             builder.Services.AddOrganizationServices(builder.Configuration);
 

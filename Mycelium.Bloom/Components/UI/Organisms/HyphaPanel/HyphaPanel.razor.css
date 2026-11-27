@@ -1,0 +1,283 @@
+.mb-hypha-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--card);
+    color: var(--foreground);
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.mb-hypha-panel__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    flex: 0 0 calc(var(--spacing-44) + var(--spacing-2));
+    padding: var(--spacing-12) var(--spacing-14) calc(var(--spacing-12) - var(--border-width-default));
+    border-bottom: var(--border-width-default) solid var(--border);
+}
+
+.mb-hypha-panel__icon {
+    display: inline-flex;
+    color: var(--primary);
+}
+
+.mb-hypha-panel__title {
+    margin: 0;
+    font-size: var(--text-14);
+    font-weight: 600;
+    line-height: var(--spacing-17);
+    white-space: nowrap;
+}
+
+.mb-hypha-panel ::deep .mb-hypha-panel__badge {
+    font-size: var(--text-10);
+    letter-spacing: var(--typography-typography-label-xs-letter-spacing);
+}
+
+.mb-hypha-panel ::deep .mb-hypha-panel__close {
+    margin-left: auto;
+    color: var(--muted-foreground);
+}
+
+/* column-reverse keeps the newest row in view while an answer streams, without script. */
+.mb-hypha-panel__transcript {
+    display: flex;
+    flex: 1;
+    flex-direction: column-reverse;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--spacing-12) var(--spacing-14);
+}
+
+.mb-hypha-panel__rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-10);
+}
+
+.mb-hypha-panel__empty {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-12);
+}
+
+.mb-hypha-panel__question {
+    align-self: flex-end;
+    max-width: 85%;
+    margin: 0;
+    padding: var(--spacing-8) var(--spacing-12);
+    border-radius: var(--radius-8);
+    background: var(--muted);
+    font-size: var(--text-13);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.mb-hypha-panel__answer {
+    font-size: var(--text-13);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.mb-hypha-panel__answer ::deep :is(p, ul, ol, table) {
+    margin: 0 0 var(--spacing-8);
+}
+
+.mb-hypha-panel__answer ::deep :is(ul, ol) {
+    padding-left: var(--spacing-20);
+}
+
+.mb-hypha-panel__answer ::deep table {
+    border-collapse: collapse;
+    font-size: var(--text-12);
+}
+
+.mb-hypha-panel__answer ::deep :is(th, td) {
+    padding: var(--spacing-4) var(--spacing-8);
+    border: var(--border-width-default) solid var(--border);
+    text-align: left;
+}
+
+.mb-hypha-panel__answer ::deep code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--text-12);
+}
+
+.mb-hypha-panel__reasoning {
+    color: var(--muted-foreground);
+    font-size: var(--text-12);
+}
+
+.mb-hypha-panel__reasoning-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    border-radius: var(--radius-8);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.mb-hypha-panel__reasoning-summary::-webkit-details-marker {
+    display: none;
+}
+
+.mb-hypha-panel__reasoning-summary:hover {
+    color: var(--foreground);
+}
+
+.mb-hypha-panel__reasoning-summary:focus-visible {
+    outline: var(--border-width-default) solid var(--ring);
+    outline-offset: var(--spacing-2);
+}
+
+/* The chevron points right while folded, down once open. */
+.mb-hypha-panel__reasoning-summary ::deep .mb-chevron-icon {
+    inline-size: var(--spacing-12);
+    block-size: var(--spacing-12);
+    transform: rotate(-90deg);
+    transition: transform 0.15s ease-out;
+}
+
+.mb-hypha-panel__reasoning[open] .mb-hypha-panel__reasoning-summary ::deep .mb-chevron-icon {
+    transform: rotate(0deg);
+}
+
+.mb-hypha-panel__reasoning-text {
+    margin: var(--spacing-6) 0 0;
+    padding-left: var(--spacing-10);
+    border-left: var(--border-width-default) solid var(--border);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.mb-hypha-panel__tool,
+.mb-hypha-panel__error {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    margin: 0;
+    font-size: var(--text-12);
+    color: var(--muted-foreground);
+}
+
+.mb-hypha-panel__tool-done {
+    display: inline-flex;
+    color: var(--success);
+}
+
+.mb-hypha-panel__error {
+    align-items: flex-start;
+    color: var(--destructive);
+}
+
+/* A wave: each dot is in the air for half of the cycle (0.45 s) and the next one leaves 0.1 s later, before it lands. */
+.mb-hypha-panel__dots {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-4);
+    padding: var(--spacing-8) 0 var(--spacing-4);
+}
+
+.mb-hypha-panel__dots span {
+    width: var(--spacing-6);
+    height: var(--spacing-6);
+    border-radius: var(--radius-full);
+    background: var(--muted-foreground);
+    opacity: 0.4;
+    animation: mb-hypha-dot 0.9s ease-in-out infinite;
+}
+
+.mb-hypha-panel__dots span:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.mb-hypha-panel__dots span:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+@keyframes mb-hypha-dot {
+    0%, 50%, 100% {
+        opacity: 0.4;
+        transform: translateY(0);
+    }
+
+    25% {
+        opacity: 1;
+        transform: translateY(calc(-1 * var(--spacing-4)));
+    }
+}
+
+/* With reduced motion (Windows animation effects off), Blueprint cuts every animation to 0.01 ms with !important.
+   The dots are the only sign that Hypha is working, so they keep jumping. */
+@media (prefers-reduced-motion: reduce) {
+    .mb-hypha-panel__dots span {
+        animation-duration: 0.9s !important;
+        animation-iteration-count: infinite !important;
+    }
+}
+
+.mb-hypha-panel__composer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+    padding: var(--spacing-10) var(--spacing-14) var(--spacing-12);
+    border-top: var(--border-width-default) solid var(--border);
+}
+
+.mb-hypha-panel__queued {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    font-size: var(--text-12);
+    color: var(--muted-foreground);
+}
+
+.mb-hypha-panel__queued-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-hypha-panel__form {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    padding: var(--spacing-4) var(--spacing-4) var(--spacing-4) var(--spacing-10);
+    border: var(--border-width-default) solid var(--input);
+    border-radius: var(--radius-8);
+    background: var(--background);
+}
+
+.mb-hypha-panel__form:focus-within {
+    outline: var(--border-width-default) solid var(--ring);
+    outline-offset: 0;
+}
+
+.mb-hypha-panel__input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font: inherit;
+    font-size: var(--text-13);
+}
+
+.mb-hypha-panel__input::placeholder {
+    color: var(--muted-foreground);
+}
+
+.mb-hypha-panel__notice {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-11);
+}

@@ -68,6 +68,10 @@
         <!-- Intentionally direct: selects reviewed HtmlSanitizer 9.2.1039 used with Blueprint Components, preserves the accepted AngleSharp resolution, and must be reassessed when either dependency is upgraded. -->
         <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
         <PackageReference Include="Humanizer.Core" Version="3.0.10" />
+        <!-- Hypha chat: AG-UI client of the Fabric agent endpoint (MIT). -->
+        <PackageReference Include="AGUI.Client" Version="1.0.1" />
+        <!-- Intentionally direct: renders Hypha answers and keeps the Markdig version already resolved through BlazorBlueprint.Components; reassess with Blueprint upgrades. -->
+        <PackageReference Include="Markdig" Version="0.37.0" />
         <PackageReference Include="Mycelium.SDK" Version="0.2.0" />
         <PackageReference Include="OpenTelemetry" Version="1.19.1" />
         <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.19.1" />

@@ -1,0 +1,15 @@
+.mb-hypha-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    inline-size: 1rem;
+    block-size: 1rem;
+    line-height: 0;
+}
+
+.mb-hypha-logo svg {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+}

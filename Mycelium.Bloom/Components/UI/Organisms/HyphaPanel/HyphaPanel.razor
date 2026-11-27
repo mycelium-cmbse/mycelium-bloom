@@ -1,0 +1,129 @@
+@* ------------------------------------------------------------------------------------------------
+<copyright file="HyphaPanel.razor" company="Starion Group S.A.">
+
+  Copyright 2026 Starion Group S.A.
+  SPDX-License-Identifier: Apache-2.0
+
+</copyright>
+------------------------------------------------------------------------------------------------ *@
+
+@using Mycelium.Bloom.Core.Hypha
+@using Mycelium.Bloom.Model.Enum
+
+@inherits BloomReactiveComponentBase<Mycelium.Bloom.ViewModel.Hypha.IHyphaPanelViewModel>
+
+<section class="@(this.GetCssClass())" aria-labelledby="@(this.headingId)" @attributes="this.AdditionalAttributes">
+    <header class="mb-hypha-panel__header">
+        <span class="mb-hypha-panel__icon"><HyphaLogo /></span>
+        <h2 id="@(this.headingId)" class="mb-hypha-panel__title">Hypha</h2>
+        <BbBadge Variant="BlazorBlueprint.Components.BadgeVariant.Secondary" Class="mb-hypha-panel__badge">BETA</BbBadge>
+        @if (this.CloseRequested.HasDelegate)
+        {
+            <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                      Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                      AriaLabel="Close Hypha" title="Close Hypha"
+                      Class="mb-hypha-panel__close" data-testid="hypha-close" OnClick="this.ClosePanel">
+                <LucideIcon Name="x" Size="14" aria-hidden="true" />
+            </BbButton>
+        }
+    </header>
+
+    <div class="mb-hypha-panel__transcript" role="log" aria-label="Conversation with Hypha"
+         aria-busy="@(this.ViewModel.IsAnswering ? "true" : "false")" data-testid="hypha-transcript">
+        <div class="mb-hypha-panel__rows">
+            @if (this.ViewModel.Items.Count == 0 && !this.ViewModel.IsLoadingHistory)
+            {
+                <p class="mb-hypha-panel__empty">Ask Hypha about the model: budgets, requirements, what an element is made of.</p>
+            }
+
+            @foreach (var item in this.ViewModel.Items)
+            {
+                @switch (item.Kind)
+                {
+                    case HyphaChatItemKind.Question:
+                        <p class="mb-hypha-panel__question" data-testid="hypha-question">@item.Text</p>
+                        break;
+                    case HyphaChatItemKind.Answer:
+                        <div class="mb-hypha-panel__answer" data-testid="hypha-answer">@((MarkupString)HyphaMarkdown.ToSafeHtml(item.Text))</div>
+                        break;
+                    case HyphaChatItemKind.Reasoning:
+                        @* Folded by default; the browser keeps it open or closed across renders. *@
+                        <details class="mb-hypha-panel__reasoning" data-testid="hypha-reasoning" data-done="@(item.IsDone ? "true" : "false")">
+                            <summary class="mb-hypha-panel__reasoning-summary">
+                                <ChevronIcon />
+                                <span data-testid="hypha-reasoning-label">@GetReasoningLabel(item)</span>
+                            </summary>
+                            <p class="mb-hypha-panel__reasoning-text" data-testid="hypha-reasoning-text">@item.Text</p>
+                        </details>
+                        break;
+                    case HyphaChatItemKind.ToolCall:
+                        <p class="mb-hypha-panel__tool" data-testid="hypha-tool-call" data-done="@(item.IsDone ? "true" : "false")">
+                            @if (item.IsDone)
+                            {
+                                <span class="mb-hypha-panel__tool-done"><LucideIcon Name="check" Size="14" aria-hidden="true" /></span>
+                            }
+                            else
+                            {
+                                <BbSpinner Size="BlazorBlueprint.Components.SpinnerSize.Small" AriaLabel="Running" Class="mb-hypha-panel__tool-running" />
+                            }
+                            <span>@item.Text</span>
+                        </p>
+                        break;
+                    case HyphaChatItemKind.Error:
+                        <p class="mb-hypha-panel__error" role="alert" data-testid="hypha-error">
+                            <LucideIcon Name="circle-alert" Size="14" aria-hidden="true" />
+                            <span>@item.Text</span>
+                        </p>
+                        break;
+                }
+            }
+
+            @if (this.ViewModel.IsThinking)
+            {
+                <div class="mb-hypha-panel__dots" role="status" aria-label="Hypha is thinking" data-testid="hypha-thinking">
+                    <span></span><span></span><span></span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <footer class="mb-hypha-panel__composer">
+        @if (this.ViewModel.QueuedQuestion is not null)
+        {
+            <div class="mb-hypha-panel__queued" data-testid="hypha-queued">
+                <span class="mb-hypha-panel__queued-text">Waiting: @this.ViewModel.QueuedQuestion</span>
+                <BbButton Variant="BlazorBlueprint.Components.ButtonVariant.Link"
+                          Size="BlazorBlueprint.Components.ButtonSize.Small"
+                          data-testid="hypha-send-now" OnClick="this.SendNow">Send now</BbButton>
+            </div>
+        }
+
+        <div class="mb-hypha-panel__form">
+            <input class="mb-hypha-panel__input" type="text" aria-label="Ask Hypha" data-testid="hypha-input"
+                   placeholder="@(this.ViewModel.IsAnswering ? "Hypha is answering…" : "Ask anything about your model")"
+                   @bind="this.ViewModel.Draft" @bind:event="oninput" @onkeydown="this.HandleKeyDownAsync" />
+            @if (this.ViewModel.IsAnswering)
+            {
+                <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                          Variant="BlazorBlueprint.Components.ButtonVariant.Outline"
+                          Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                          AriaLabel="Stop the answer" title="Stop the answer"
+                          data-testid="hypha-stop" OnClick="this.Stop">
+                    <LucideIcon Name="square" Size="12" aria-hidden="true" />
+                </BbButton>
+            }
+            else
+            {
+                <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                          Variant="BlazorBlueprint.Components.ButtonVariant.Default"
+                          Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                          AriaLabel="Send" title="Send" Class="mb-hypha-panel__send"
+                          Disabled="@(string.IsNullOrWhiteSpace(this.ViewModel.Draft))"
+                          data-testid="hypha-send" OnClick="this.SendAsync">
+                    <LucideIcon Name="arrow-up" Size="14" aria-hidden="true" />
+                </BbButton>
+            }
+        </div>
+        <p class="mb-hypha-panel__notice">Hypha can make mistakes. Check answers against the model.</p>
+    </footer>
+</section>

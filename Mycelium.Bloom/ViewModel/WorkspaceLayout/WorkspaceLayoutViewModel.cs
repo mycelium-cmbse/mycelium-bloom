@@ -10,6 +10,7 @@
 namespace Mycelium.Bloom.ViewModel.WorkspaceLayout
 {
     using Mycelium.Bloom.Model;
+    using Mycelium.Bloom.Model.Enum;
 
     using ReactiveUI;
 
@@ -21,6 +22,16 @@ namespace Mycelium.Bloom.ViewModel.WorkspaceLayout
 
         /// <summary>The preferred width retained independently of responsive geometry.</summary>
         private double propertiesWidth = DetailsPanelSizing.MinimumWidth;
+
+        /// <summary>What the right panel shows when it is unfolded.</summary>
+        private WorkspaceRightPanelContent rightPanelContent = WorkspaceRightPanelContent.Properties;
+
+        /// <summary>Gets or sets what the right panel shows when it is unfolded: Properties or Hypha.</summary>
+        public WorkspaceRightPanelContent RightPanelContent
+        {
+            get => this.rightPanelContent;
+            set => this.RaiseAndSetIfChanged(ref this.rightPanelContent, value);
+        }
 
         /// <summary>Gets or sets whether Properties is folded without clearing selection.</summary>
         public bool PropertiesCollapsed

@@ -44,6 +44,11 @@ namespace Mycelium.Bloom.Components.Layout
         /// </summary>
         private readonly string propertiesToggleId = $"properties-toggle-{Guid.NewGuid():N}";
 
+        /// <summary>
+        /// The stable focus-return target for the Hypha region.
+        /// </summary>
+        private readonly string hyphaToggleId = $"hypha-toggle-{Guid.NewGuid():N}";
+
         /// <summary>The generic shell rendered by this layout.</summary>
         private WorkspaceShell workspaceShell;
 
@@ -68,6 +73,15 @@ namespace Mycelium.Bloom.Components.Layout
 
         /// <summary>Gets the region preferences owned solely by this layout.</summary>
         private WorkspaceLayoutViewModel LayoutState { get; } = new();
+
+        /// <summary>Gets a value indicating whether the right panel holds Hypha, unfolded or not.</summary>
+        private bool IsHyphaContent => this.LayoutState.RightPanelContent == WorkspaceRightPanelContent.Hypha;
+
+        /// <summary>Gets a value indicating whether Hypha is visible in the right panel.</summary>
+        private bool IsHyphaShown => this.IsHyphaContent && !this.LayoutState.PropertiesCollapsed;
+
+        /// <summary>Gets a value indicating whether Properties is visible in the right panel.</summary>
+        private bool IsPropertiesShown => !this.IsHyphaContent && !this.LayoutState.PropertiesCollapsed;
 
         /// <summary>
         /// A value indicating whether final layout disposal has occurred.
@@ -179,7 +193,7 @@ namespace Mycelium.Bloom.Components.Layout
                 this.ObserveUrlContext();
 
                 this.urlContextSubscriptions.Add(this.LayoutState
-                    .WhenAnyValue(state => state.PropertiesCollapsed, state => state.PropertiesWidth)
+                    .WhenAnyValue(state => state.PropertiesCollapsed, state => state.PropertiesWidth, state => state.RightPanelContent)
                     .Skip(1)
                     .Select(_ => Observable.FromAsync(() => this.InvokeAsync(() =>
                     {
@@ -319,16 +333,36 @@ namespace Mycelium.Bloom.Components.Layout
         }
 
         /// <summary>
-        /// Toggles the workspace inspector visibility.
+        /// Shows one content in the right panel, or folds the panel when that content is already shown.
+        /// </summary>
+        /// <param name="content">The content selected by a header button.</param>
+        private void ToggleRightPanel(WorkspaceRightPanelContent content)
+        {
+            if (!this.LayoutState.PropertiesCollapsed && this.LayoutState.RightPanelContent == content)
+            {
+                this.LayoutState.PropertiesCollapsed = true;
+                return;
+            }
+
+            this.LayoutState.RightPanelContent = content;
+            this.LayoutState.PropertiesCollapsed = false;
+            this.workspaceShell?.RevealRightPanel();
+        }
+
+        /// <summary>
+        /// Toggles the workspace inspector visibility; while Hypha is shown, shows Properties instead.
         /// </summary>
         private void ToggleDetailsPanel()
         {
-            this.LayoutState.PropertiesCollapsed = !this.LayoutState.PropertiesCollapsed;
+            this.ToggleRightPanel(WorkspaceRightPanelContent.Properties);
+        }
 
-            if (!this.LayoutState.PropertiesCollapsed)
-            {
-                this.workspaceShell?.RevealRightPanel();
-            }
+        /// <summary>
+        /// Toggles Hypha in the right panel; while Properties is shown, shows Hypha instead.
+        /// </summary>
+        private void ToggleHypha()
+        {
+            this.ToggleRightPanel(WorkspaceRightPanelContent.Hypha);
         }
 
         /// <summary>Reveals Properties only for an explicit composition-owned user intent.</summary>
@@ -336,6 +370,7 @@ namespace Mycelium.Bloom.Components.Layout
         {
             if (!this.isDisposed)
             {
+                this.LayoutState.RightPanelContent = WorkspaceRightPanelContent.Properties;
                 this.LayoutState.PropertiesCollapsed = false;
                 this.workspaceShell?.RevealRightPanel();
             }
@@ -351,7 +386,7 @@ namespace Mycelium.Bloom.Components.Layout
         /// <returns>The action performed by the toggle.</returns>
         private string GetDetailsPanelToggleLabel()
         {
-            return this.LayoutState.PropertiesCollapsed ? "Expand Properties" : "Collapse Properties";
+            return this.IsPropertiesShown ? "Collapse Properties" : "Expand Properties";
         }
 
         /// <summary>
@@ -360,7 +395,25 @@ namespace Mycelium.Bloom.Components.Layout
         /// <returns>The Lucide icon name.</returns>
         private string GetDetailsPanelToggleIconName()
         {
-            return this.LayoutState.PropertiesCollapsed ? "panel-right-open" : "panel-right-close";
+            return this.IsPropertiesShown ? "panel-right-close" : "panel-right-open";
+        }
+
+        /// <summary>
+        /// Gets the accessible action label for the Hypha toggle.
+        /// </summary>
+        /// <returns>The action performed by the toggle.</returns>
+        private string GetHyphaToggleLabel()
+        {
+            return this.IsHyphaShown ? "Hide Hypha" : "Show Hypha";
+        }
+
+        /// <summary>
+        /// Gets the accessible name of the right panel for its current content.
+        /// </summary>
+        /// <returns>"Hypha" or "Properties".</returns>
+        private string GetRightPanelName()
+        {
+            return this.IsHyphaContent ? "Hypha" : "Properties";
         }
 
         /// <summary>

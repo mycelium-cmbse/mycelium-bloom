@@ -21,20 +21,20 @@
                     RightPanelCollapsed="this.LayoutState.PropertiesCollapsed"
                     RightPanelResizable="true"
                     RightPanelWidth="this.LayoutState.PropertiesWidth"
-                    RightPanelMinimumWidth="this.propertiesMinimumWidth"
+                    RightPanelMinimumWidth="@(this.IsHyphaContent ? DetailsPanelSizing.MinimumWidth : this.propertiesMinimumWidth)"
                     RightPanelWidthChanged="this.HandlePropertiesWidthChanged"
-                    RightPanelFocusReturnId="@(this.propertiesToggleId)"
-                    RightPanelResizeLabel="Resize Properties"
+                    RightPanelFocusReturnId="@(this.IsHyphaContent ? this.hyphaToggleId : this.propertiesToggleId)"
+                    RightPanelResizeLabel="@($"Resize {this.GetRightPanelName()}")"
                     RightPanelTestId="properties-region"
                     AriaLabel="Bloom engineering workspace"
                     HeaderAriaLabel="Application header"
                     LeftPanelAriaLabel="Workspace navigation"
                     MainContentAriaLabel="Workspace content"
-                    RightPanelAriaLabel="Properties"
+                    RightPanelAriaLabel="@(this.GetRightPanelName())"
                     StatusBarAriaLabel="Workspace status"
                     CompactLeftPanelLabel="Navigation"
                     CompactMainContentLabel="Content"
-                    CompactRightPanelLabel="Properties"
+                    CompactRightPanelLabel="@(this.GetRightPanelName())"
                     role="main">
         <Header>
             <AppHeader Compact="true"
@@ -51,11 +51,23 @@
                     <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
                               Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
                               Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
+                              AriaLabel="@(this.GetHyphaToggleLabel())"
+                              title="@(this.GetHyphaToggleLabel())"
+                              id="@(this.hyphaToggleId)"
+                              data-testid="hypha-toggle"
+                              aria-expanded="@(this.IsHyphaShown ? "true" : "false")"
+                              OnClick="this.ToggleHypha">
+                        <HyphaLogo />
+                    </BbButton>
+
+                    <BbButton Type="BlazorBlueprint.Components.ButtonType.Button"
+                              Variant="BlazorBlueprint.Components.ButtonVariant.Ghost"
+                              Size="BlazorBlueprint.Components.ButtonSize.IconSmall"
                               AriaLabel="@(this.GetDetailsPanelToggleLabel())"
                               title="@(this.GetDetailsPanelToggleLabel())"
                               id="@(this.propertiesToggleId)"
                               data-testid="properties-collapse"
-                              aria-expanded="@(!this.LayoutState.PropertiesCollapsed ? "true" : "false")"
+                              aria-expanded="@(this.IsPropertiesShown ? "true" : "false")"
                               OnClick="this.ToggleDetailsPanel">
                         <LucideIcon Name="@(this.GetDetailsPanelToggleIconName())"
                                     Size="16"
@@ -82,10 +94,17 @@
         </MainContent>
 
         <RightPanel>
-            <DetailsPanel CloseRequested="this.ToggleDetailsPanel"
-                          MinimumWidthChanged="this.HandlePropertiesMinimumWidthChanged"
-                          ShowInBrowserRequested="@(this.browserReveal.HasDelegate ? EventCallback.Factory.Create<SysML2.NET.Core.POCO.Root.Elements.IElement>(this, this.ShowInBrowser) : default)"
-                          data-testid="workspace-details-panel" />
+            @if (this.IsHyphaContent)
+            {
+                <HyphaPanel CloseRequested="this.ToggleHypha" data-testid="workspace-hypha-panel" />
+            }
+            else
+            {
+                <DetailsPanel CloseRequested="this.ToggleDetailsPanel"
+                              MinimumWidthChanged="this.HandlePropertiesMinimumWidthChanged"
+                              ShowInBrowserRequested="@(this.browserReveal.HasDelegate ? EventCallback.Factory.Create<SysML2.NET.Core.POCO.Root.Elements.IElement>(this, this.ShowInBrowser) : default)"
+                              data-testid="workspace-details-panel" />
+            }
         </RightPanel>
 
         <StatusBar>

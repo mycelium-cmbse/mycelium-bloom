@@ -18,17 +18,20 @@ namespace Mycelium.Bloom.Extensions
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
+    using Microsoft.Extensions.Options;
 
     using Mycelium.Bloom.Components.UI.Organisms.Diagram;
     using Mycelium.Bloom.Components.UI.Organisms.Diagram.Tools;
     using Mycelium.Bloom.Core.Configuration;
     using Mycelium.Bloom.Core.Context;
+    using Mycelium.Bloom.Core.Hypha;
     using Mycelium.Bloom.Core.ModelLoading;
     using Mycelium.Bloom.Core.Selection;
     using Mycelium.Bloom.Model.Diagram;
     using Mycelium.Bloom.ViewModel.DetailsPanel;
     using Mycelium.Bloom.ViewModel.Diagram;
     using Mycelium.Bloom.ViewModel.Diagram.Tools;
+    using Mycelium.Bloom.ViewModel.Hypha;
     using Mycelium.Bloom.ViewModel.NavigationRail;
     using Mycelium.Bloom.ViewModel.ProjectBrowser;
     using Mycelium.Bloom.ViewModel.WorkspaceEditor;
@@ -101,6 +104,41 @@ namespace Mycelium.Bloom.Extensions
                         options => options.MaximumGroupCount >= 1,
                         $"{WorkspaceEditorOptions.SectionName}:{nameof(WorkspaceEditorOptions.MaximumGroupCount)} must be at least 1.")
                     .ValidateOnStart();
+
+                return services;
+            }
+
+            /// <summary>
+            /// Adds the Hypha chat: validated options, the AG-UI client of Fabric and the panel state of one circuit.
+            /// </summary>
+            /// <param name="configuration">The application configuration containing the Hypha section.</param>
+            /// <returns>The original service collection for continued registration chaining.</returns>
+            /// <exception cref="ArgumentNullException">
+            /// Thrown when <paramref name="services" /> or <paramref name="configuration" /> is
+            /// <see langword="null" />.
+            /// </exception>
+            public IServiceCollection AddHyphaServices(IConfiguration configuration)
+            {
+                ArgumentNullException.ThrowIfNull(services);
+                ArgumentNullException.ThrowIfNull(configuration);
+
+                services.AddOptions<HyphaOptions>()
+                    .Bind(configuration.GetSection(HyphaOptions.SectionName))
+                    .Validate(
+                        options => options.Endpoint is { IsAbsoluteUri: true } endpoint && (endpoint.Scheme == Uri.UriSchemeHttp || endpoint.Scheme == Uri.UriSchemeHttps),
+                        $"{HyphaOptions.SectionName}:{nameof(HyphaOptions.Endpoint)} must be an absolute http or https address.")
+                    .ValidateOnStart();
+
+                // An answer streams for as long as Fabric keeps producing it: Fabric stops a silent language model itself.
+                services.AddHttpClient<IHyphaClient, HyphaClient>((serviceProvider, httpClient) =>
+                {
+                    var endpoint = serviceProvider.GetRequiredService<IOptions<HyphaOptions>>().Value.Endpoint;
+                    httpClient.BaseAddress = endpoint.AbsoluteUri.EndsWith('/') ? endpoint : new Uri($"{endpoint.AbsoluteUri}/");
+                    httpClient.Timeout = Timeout.InfiniteTimeSpan;
+                });
+
+                services.TryAddSingleton(TimeProvider.System);
+                services.AddScoped<IHyphaPanelViewModel, HyphaPanelViewModel>();
 
                 return services;
             }

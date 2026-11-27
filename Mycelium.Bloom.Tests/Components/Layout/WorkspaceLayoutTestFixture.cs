@@ -43,6 +43,7 @@ namespace Mycelium.Bloom.Tests.Components.Layout
 
     using AppHeaderComponent = Mycelium.Bloom.Components.UI.Organisms.AppHeader.AppHeader;
     using DetailsPanelComponent = Mycelium.Bloom.Components.UI.Organisms.DetailsPanel.DetailsPanel;
+    using HyphaPanelComponent = Mycelium.Bloom.Components.UI.Organisms.HyphaPanel.HyphaPanel;
     using NavigationRailComponent = Mycelium.Bloom.Components.UI.Organisms.NavigationRail.NavigationRail;
     using StatusBarComponent = Mycelium.Bloom.Components.UI.Organisms.StatusBar.StatusBar;
     using WorkspaceShellComponent = Mycelium.Bloom.Components.UI.Organisms.WorkspaceShell.WorkspaceShell;
@@ -778,6 +779,51 @@ namespace Mycelium.Bloom.Tests.Components.Layout
                     Assert.That(navigation.Uri, Does.Contain("selectedElement=D").And.Not.Contain("inspectedElement"));
                 }
             });
+        }
+
+        [Test]
+        public void VerifyTheHyphaButtonSwitchesTheRightPanelBetweenPropertiesAndHypha()
+        {
+            var hyphaClient = new Mock<Mycelium.Bloom.Core.Hypha.IHyphaClient>();
+            hyphaClient.Setup(client => client.GetHistoryAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ErrorOr.Error.Unexpected("Hypha.Unreachable", "Hypha cannot reach Fabric."));
+            var mockedData = new Mock<Mycelium.Bloom.Core.MockedData.IMockedDataService>();
+            mockedData.SetupGet(data => data.CurrentUser).Returns(new Mycelium.SDK.POCO.User { Id = Guid.NewGuid(), Name = "Demo Account" });
+            this.Services.AddScoped<Mycelium.Bloom.ViewModel.Hypha.IHyphaPanelViewModel>(provider =>
+                new Mycelium.Bloom.ViewModel.Hypha.HyphaPanelViewModel(hyphaClient.Object, this.context, mockedData.Object, provider.GetRequiredService<NavigationManager>(), TimeProvider.System));
+            using var component = this.RenderLayout(CreateBody("Editor content", "Modelling"));
+
+            component.Find("[data-testid='hypha-toggle']").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindComponents<HyphaPanelComponent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindComponents<DetailsPanelComponent>(), Is.Empty);
+                Assert.That(component.Find("[data-testid='hypha-toggle']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+                Assert.That(component.Find("[data-testid='properties-collapse']").GetAttribute("aria-label"), Is.EqualTo("Expand Properties"));
+                Assert.That(component.Find("aside.mb-workspace-shell__right-panel").GetAttribute("aria-label"), Is.EqualTo("Hypha"));
+                Assert.That(component.Find("aside.mb-workspace-shell__right-panel").HasAttribute("hidden"), Is.False);
+            }
+
+            component.Find("[data-testid='properties-collapse']").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.FindComponents<DetailsPanelComponent>(), Has.Count.EqualTo(1));
+                Assert.That(component.FindComponents<HyphaPanelComponent>(), Is.Empty);
+                Assert.That(component.Find("[data-testid='hypha-toggle']").GetAttribute("aria-label"), Is.EqualTo("Show Hypha"));
+                Assert.That(component.Find("[data-testid='properties-collapse']").GetAttribute("aria-expanded"), Is.EqualTo("true"));
+            }
+
+            component.Find("[data-testid='hypha-toggle']").Click();
+            component.Find("[data-testid='hypha-close']").Click();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(component.Find("aside.mb-workspace-shell__right-panel").HasAttribute("hidden"), Is.True);
+                Assert.That(component.Find("[data-testid='hypha-toggle']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
+                Assert.That(component.Find("[data-testid='properties-collapse']").GetAttribute("aria-expanded"), Is.EqualTo("false"));
+            }
         }
 
         private IRenderedComponent<WorkspaceLayout> RenderLayout(RenderFragment body)

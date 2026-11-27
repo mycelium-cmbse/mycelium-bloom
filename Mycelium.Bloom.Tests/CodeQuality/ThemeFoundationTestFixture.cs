@@ -105,7 +105,9 @@ namespace Mycelium.Bloom.Tests.CodeQuality
         private static readonly string[] RequiredLucideIconNames =
         [
             "arrow-right",
+            "arrow-up",
             "check",
+            "circle-alert",
             "copy",
             "ellipsis",
             "eye",
@@ -129,6 +131,7 @@ namespace Mycelium.Bloom.Tests.CodeQuality
             "search",
             "settings-2",
             "share-2",
+            "square",
             "sticky-note",
             "trash-2",
             "undo-2",
