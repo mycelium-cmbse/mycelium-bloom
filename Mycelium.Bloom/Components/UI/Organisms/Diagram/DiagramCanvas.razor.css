@@ -240,7 +240,12 @@
 }
 
 .general-diagram ::deep .diagram-edge:focus {
-    outline: 2px solid var(--primary);
+    outline: none;
+}
+
+.general-diagram ::deep .diagram-edge:focus-visible > path:not(.diagram-edge-hit) {
+    stroke: var(--ring);
+    stroke-width: 3;
 }
 
 .general-diagram ::deep .mb-diagram-node-select {
